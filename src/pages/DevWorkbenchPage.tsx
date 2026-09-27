@@ -19,6 +19,7 @@ import {
   TaskStatus,
   useAiTask,
 } from '@/capabilities/ai'
+import { VideoPlayer, VideoPoster } from '@/capabilities/video'
 import {
   Button,
   Card,
@@ -60,6 +61,25 @@ const rows: DemoRow[] = [
   { id: '2', name: '组件预览', status: '进行中', owner: '团队 B' },
   { id: '3', name: '触控检查', status: '待开始', owner: '团队 C' },
 ]
+
+const demoVideoSource = {
+  src: '/mock/media/sample.mp4',
+  type: 'video/mp4',
+  poster: '/mock/media/poster.svg',
+  subtitles: [
+    {
+      src: '/mock/media/sample.vtt',
+      srcLang: 'zh-CN',
+      label: '中文',
+      default: true,
+    },
+  ],
+}
+const brokenVideoSource = {
+  src: '/mock/media/not-found.mp4',
+  type: 'video/mp4',
+  poster: '/mock/media/poster.svg',
+}
 
 const demoUpload: UploadTransport = (_file, { signal, onProgress }) =>
   new Promise((resolve, reject) => {
@@ -129,6 +149,7 @@ export function DevWorkbenchPage() {
   >('filled')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [fileIssues, setFileIssues] = useState<string[]>([])
+  const [showVideoError, setShowVideoError] = useState(false)
   const upload = useFileUpload(demoUpload)
   const aiClient = useMemo(() => createMockAiTaskClient(), [])
   const aiTask = useAiTask(aiClient, { pollIntervalMs: 300 })
@@ -690,6 +711,48 @@ export function DevWorkbenchPage() {
                   onCancel={() => void aiTask.cancel()}
                   onRetry={() => void aiTask.retry()}
                 />
+              </CardContent>
+            </Card>
+          </div>
+        </DemoSection>
+
+        <DemoSection
+          title="视频能力"
+          note="播放、暂停、跳转、音量、全屏、字幕和媒体错误"
+        >
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(16rem,1fr)]">
+            <Card>
+              <CardHeader>
+                <CardTitle>视频播放器</CardTitle>
+                <CardDescription>
+                  使用浏览器原生 video，控制栏按钮和进度条支持键盘与触控。
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <VideoPlayer source={demoVideoSource} title="视频能力示例" />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>海报与错误状态</CardTitle>
+                <CardDescription>
+                  资源不存在时显示可重试的媒体错误，海报可独立复用。
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <VideoPoster src="/mock/media/poster.svg" alt="示例视频封面" />
+                <Button
+                  variant="outline"
+                  onClick={() => setShowVideoError((visible) => !visible)}
+                >
+                  {showVideoError ? '隐藏媒体错误' : '演示媒体错误'}
+                </Button>
+                {showVideoError && (
+                  <VideoPlayer
+                    source={brokenVideoSource}
+                    title="错误视频示例"
+                  />
+                )}
               </CardContent>
             </Card>
           </div>

@@ -104,6 +104,48 @@ test('AI tasks show progress, cancellation, failure and retry', async ({
   ).toBeVisible({ timeout: 5_000 })
 })
 
+test('video player supports playback, touch controls and media errors', async ({
+  page,
+}, testInfo) => {
+  const activate = async (locator: ReturnType<typeof page.getByRole>) => {
+    if (testInfo.project.name === 'mobile-chromium') await locator.tap()
+    else await locator.click()
+  }
+  await page.goto('/__ui')
+  const player = page.getByRole('region', { name: '视频能力示例' })
+  await expect(player).toBeVisible()
+  await expect(player.getByRole('status')).toHaveText(/视频已就绪/, {
+    timeout: 5_000,
+  })
+
+  await activate(player.getByRole('button', { name: '播放视频' }))
+  await expect(player.getByRole('button', { name: '暂停视频' })).toBeVisible()
+  await activate(player.getByRole('button', { name: '暂停视频' }))
+
+  const seek = player.getByRole('slider', { name: /视频进度/ })
+  await seek.fill('1')
+  await expect(seek).toHaveValue('1')
+  await activate(player.getByRole('button', { name: '静音视频' }))
+  await expect(player.getByRole('button', { name: '取消静音' })).toBeVisible()
+
+  await activate(page.getByRole('button', { name: '演示媒体错误' }))
+  const errorPlayer = page.getByRole('region', { name: '错误视频示例' })
+  await expect(errorPlayer.getByRole('alert')).toContainText('视频')
+  await expect(
+    errorPlayer.getByRole('button', { name: '重试播放' }),
+  ).toBeVisible()
+
+  for (const width of [360, 390, 768, 1280]) {
+    await page.setViewportSize({ width, height: 844 })
+    const overflow = await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth,
+    )
+    expect(overflow).toBe(false)
+  }
+})
+
 test('mobile controls are touchable without horizontal overflow', async ({
   page,
 }, testInfo) => {
