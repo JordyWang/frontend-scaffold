@@ -1,0 +1,7 @@
+{
+  "items": [
+    { "id": "mock-queued", "status": "queued", "progress": 0 },
+    { "id": "mock-running", "status": "running", "progress": 45 },
+    { "id": "mock-completed", "status": "completed", "progress": 100 }
+  ]
+}

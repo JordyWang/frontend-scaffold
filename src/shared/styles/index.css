@@ -693,3 +693,78 @@ select {
 .ui-upload-progress > .ui-button {
   justify-self: start;
 }
+.ui-ai-prompt {
+  display: grid;
+  gap: var(--space-sm);
+}
+.ui-ai-prompt__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+.ui-ai-fixtures,
+.ui-ai-result {
+  display: grid;
+  gap: var(--space-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--muted);
+  padding: var(--space-md);
+}
+.ui-ai-result {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.ui-ai-result p {
+  margin: 0;
+  line-height: 1.5;
+}
+.ui-ai-status {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 650;
+  line-height: 1;
+}
+.ui-ai-status--idle,
+.ui-ai-status--queued {
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+.ui-ai-status--running {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.ui-ai-status--completed {
+  background: #dcfce7;
+  color: #166534;
+}
+.ui-ai-status--failed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.ui-ai-status--cancelled {
+  background: var(--secondary);
+  color: var(--secondary-foreground);
+}
+.ui-ai-progress {
+  display: grid;
+  gap: var(--space-sm);
+}
+.ui-ai-progress__row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.ui-ai-progress progress {
+  width: 100%;
+  height: 0.75rem;
+  accent-color: var(--primary);
+}

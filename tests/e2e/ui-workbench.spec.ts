@@ -71,6 +71,39 @@ test('file selection, cancellation and retry work in the preview', async ({
   })
 })
 
+test('AI tasks show progress, cancellation, failure and retry', async ({
+  page,
+}) => {
+  await page.goto('/__ui')
+  const prompt = page.getByRole('textbox', { name: '任务描述' })
+  const submit = page.getByRole('button', { name: '提交任务' })
+
+  await prompt.fill('生成一份摘要')
+  await submit.click()
+  await expect(
+    page.getByRole('status', { name: '任务状态：已完成' }),
+  ).toBeVisible({ timeout: 5_000 })
+  await expect(page.getByText('任务已完成')).toBeVisible()
+
+  await prompt.fill('失败任务')
+  await submit.click()
+  await expect(
+    page.getByRole('status', { name: '任务状态：失败' }),
+  ).toBeVisible({ timeout: 5_000 })
+  await expect(page.getByText('Mock 任务失败，请重试')).toBeVisible()
+  await page.getByRole('button', { name: '重试任务' }).click()
+  await expect(
+    page.getByRole('status', { name: '任务状态：已完成' }),
+  ).toBeVisible({ timeout: 5_000 })
+
+  await prompt.fill('取消任务')
+  await submit.click()
+  await page.getByRole('button', { name: '取消任务' }).click()
+  await expect(
+    page.getByRole('status', { name: '任务状态：已取消' }),
+  ).toBeVisible({ timeout: 5_000 })
+})
+
 test('mobile controls are touchable without horizontal overflow', async ({
   page,
 }, testInfo) => {

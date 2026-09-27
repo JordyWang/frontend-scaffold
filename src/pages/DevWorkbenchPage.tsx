@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
 import { apiGet } from '@/shared/api/request'
@@ -11,6 +11,14 @@ import {
   type UploadTransport,
   type FileValidationResult,
 } from '@/capabilities/files'
+import {
+  createMockAiTaskClient,
+  PromptInput,
+  TaskActions,
+  TaskProgress,
+  TaskStatus,
+  useAiTask,
+} from '@/capabilities/ai'
 import {
   Button,
   Card,
@@ -122,6 +130,8 @@ export function DevWorkbenchPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [fileIssues, setFileIssues] = useState<string[]>([])
   const upload = useFileUpload(demoUpload)
+  const aiClient = useMemo(() => createMockAiTaskClient(), [])
+  const aiTask = useAiTask(aiClient, { pollIntervalMs: 300 })
   const visibleRows = dataState === 'filled' ? rows : []
 
   function onFiles(files: File[]) {
@@ -599,6 +609,86 @@ export function DevWorkbenchPage() {
                       ? () => void upload.start(selectedFile)
                       : undefined
                   }
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </DemoSection>
+
+        <DemoSection
+          title="AI 任务能力"
+          note="任务状态机、轮询、进度、取消、失败和重试"
+        >
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>提交任务</CardTitle>
+                <CardDescription>
+                  Mock 客户端从 JSON fixture
+                  初始化；输入“失败”可演示失败与重试。
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <PromptInput
+                  onSubmit={(prompt) => void aiTask.submit({ prompt })}
+                  loading={aiTask.phase === 'submitting'}
+                  disabled={aiTask.isBusy && aiTask.phase !== 'submitting'}
+                />
+                <div className="ui-ai-fixtures">
+                  <p className="font-medium">Mock 状态样例</p>
+                  {aiClient.fixtures.map((fixture) => (
+                    <div
+                      key={fixture.id}
+                      className="flex items-center justify-between gap-3 text-sm"
+                    >
+                      <code>{fixture.id}</code>
+                      <TaskStatus
+                        task={{
+                          id: fixture.id,
+                          input: { prompt: '' },
+                          status: fixture.status as
+                            'queued' | 'running' | 'completed',
+                          progress: fixture.progress,
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>任务状态</CardTitle>
+                <CardDescription>
+                  业务页面只消费任务状态，不直接处理轮询细节。
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span>当前状态</span>
+                  <TaskStatus task={aiTask.task} />
+                </div>
+                <TaskProgress task={aiTask.task} />
+                {aiTask.message && (
+                  <p role="alert" className="ui-field__error">
+                    {aiTask.message}
+                  </p>
+                )}
+                {aiTask.task?.error && (
+                  <p role="alert" className="ui-field__error">
+                    {aiTask.task.error}
+                  </p>
+                )}
+                {aiTask.task?.result && (
+                  <div className="ui-ai-result">
+                    <p className="font-semibold">{aiTask.task.result.title}</p>
+                    <p>{aiTask.task.result.summary}</p>
+                  </div>
+                )}
+                <TaskActions
+                  state={aiTask}
+                  onCancel={() => void aiTask.cancel()}
+                  onRetry={() => void aiTask.retry()}
                 />
               </CardContent>
             </Card>
