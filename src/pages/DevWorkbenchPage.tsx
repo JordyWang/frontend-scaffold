@@ -1,11 +1,35 @@
+import { useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
 import { apiGet } from '@/shared/api/request'
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  Dialog,
+  Empty,
+  FormField,
+  Input,
+  List,
+  Pagination,
+  Select,
+  Sheet,
+  Table,
+  Tabs,
+  Textarea,
+  ToastProvider,
+  toast,
+} from '@/shared/ui'
 
 type FixtureResponse = {
   status: string
   examples: { id: string; label: string }[]
 }
+type DemoRow = { id: string; name: string; status: string; owner: string }
 
 const swatches = [
   { name: '背景', variable: 'background' },
@@ -15,6 +39,31 @@ const swatches = [
   { name: '边框', variable: 'border' },
   { name: '危险', variable: 'destructive' },
 ]
+const rows: DemoRow[] = [
+  { id: '1', name: '设计变量', status: '已完成', owner: '团队 A' },
+  { id: '2', name: '组件预览', status: '进行中', owner: '团队 B' },
+  { id: '3', name: '触控检查', status: '待开始', owner: '团队 C' },
+]
+
+function DemoSection({
+  title,
+  note,
+  children,
+}: {
+  title: string
+  note?: string
+  children: ReactNode
+}) {
+  return (
+    <section className="space-y-4" aria-label={title}>
+      <div>
+        <h2 className="text-xl font-semibold">{title}</h2>
+        {note && <p className="mt-1 text-sm text-muted-foreground">{note}</p>}
+      </div>
+      {children}
+    </section>
+  )
+}
 
 export function DevWorkbenchPage() {
   const isMock = import.meta.env.MODE === 'mock'
@@ -24,30 +73,358 @@ export function DevWorkbenchPage() {
       apiGet<FixtureResponse>('/dev/fixtures', { signal }),
     enabled: isMock,
   })
+  const [name, setName] = useState('')
+  const [note, setNote] = useState('')
+  const [category, setCategory] = useState('')
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [page, setPage] = useState(1)
+  const [dataState, setDataState] = useState<'filled' | 'empty' | 'loading'>(
+    'filled',
+  )
+  const visibleRows = dataState === 'filled' ? rows : []
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <a className="skip-link" href="#main">
         跳到主要内容
       </a>
-      <main id="main" className="page-shell space-y-10 py-10 sm:py-16">
+      <main id="main" className="page-shell space-y-12 py-10 sm:py-16">
         <header className="space-y-3">
           <Link className="text-link inline-flex min-h-11 items-center" to="/">
             返回首页
           </Link>
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            开发预览
+            组件预览
           </h1>
           <p className="max-w-2xl leading-7 text-muted-foreground">
-            这里用于检查设计变量、响应式排版与 JSON
-            Mock。组件完成后再加入各状态预览。
+            检查默认、禁用、加载、错误、空数据和小屏布局。可用
+            Tab、方向键、Enter、Space 与 Escape 验证键盘操作。
           </p>
         </header>
 
-        <section aria-labelledby="tokens-title" className="space-y-4">
-          <h2 id="tokens-title" className="text-xl font-semibold">
-            设计变量
-          </h2>
+        <DemoSection
+          title="基础展示与输入"
+          note="Button、Input、Textarea、FormField、Card、Empty"
+        >
+          <div className="flex flex-wrap gap-3">
+            <Button
+              onClick={() => toast({ title: '操作已完成', variant: 'success' })}
+            >
+              主要操作
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => toast({ title: '次要操作已点击' })}
+            >
+              次要操作
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => toast({ title: '描边按钮已点击' })}
+            >
+              描边按钮
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => toast({ title: '轻量按钮已点击' })}
+            >
+              轻量按钮
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => toast({ title: '危险操作示例', variant: 'error' })}
+            >
+              危险操作
+            </Button>
+            <Button loading>提交中</Button>
+            <Button disabled>不可用</Button>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>表单状态</CardTitle>
+                <CardDescription>
+                  标签、说明和错误信息靠近输入控件
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  label="名称"
+                  required
+                  description="输入至少两个字符。"
+                  error={name.length === 1 ? '名称至少需要两个字符' : undefined}
+                  control={
+                    <Input
+                      value={name}
+                      onChange={(event) => setName(event.target.value)}
+                      placeholder="请输入名称"
+                    />
+                  }
+                />
+                <FormField
+                  label="补充说明"
+                  control={
+                    <Textarea
+                      value={note}
+                      onChange={(event) => setNote(event.target.value)}
+                      placeholder="请输入补充说明"
+                    />
+                  }
+                />
+                <FormField
+                  label="禁用输入"
+                  control={<Input disabled value="不可编辑" readOnly />}
+                />
+              </CardContent>
+              <CardFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setName('')
+                    setNote('')
+                  }}
+                >
+                  清空
+                </Button>
+              </CardFooter>
+            </Card>
+            <Empty
+              title="暂无内容"
+              description="创建内容后将在这里显示。"
+              action={
+                <Button
+                  variant="outline"
+                  onClick={() => toast({ title: '创建内容示例' })}
+                >
+                  创建内容
+                </Button>
+              }
+            />
+          </div>
+        </DemoSection>
+
+        <DemoSection title="交互与反馈" note="Select、Dialog、Sheet、Toast">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>选择与错误</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  label="分类"
+                  required
+                  error={category === 'error' ? '请选择有效分类' : undefined}
+                  control={
+                    <Select
+                      value={category}
+                      onValueChange={setCategory}
+                      options={[
+                        { value: 'design', label: '设计' },
+                        { value: 'code', label: '开发' },
+                        { value: 'error', label: '错误示例' },
+                        { value: 'disabled', label: '不可用', disabled: true },
+                      ]}
+                    />
+                  }
+                />
+                <FormField
+                  label="禁用选择"
+                  control={
+                    <Select
+                      disabled
+                      options={[{ value: 'a', label: '选项' }]}
+                    />
+                  }
+                />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>弹层与提示</CardTitle>
+                <CardDescription>在窄屏查看底部面板和安全区域</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-3">
+                <Dialog
+                  title="确认操作"
+                  description="按 Escape 或关闭按钮可退出。"
+                  open={dialogOpen}
+                  onOpenChange={setDialogOpen}
+                  trigger={<Button variant="outline">打开对话框</Button>}
+                  footer={
+                    <Button
+                      onClick={() => {
+                        setDialogOpen(false)
+                        toast({ title: '已确认', variant: 'success' })
+                      }}
+                    >
+                      确认
+                    </Button>
+                  }
+                >
+                  <p>焦点会留在对话框内，关闭后返回触发按钮。</p>
+                  <Input
+                    aria-label="对话框内输入"
+                    placeholder="试试输入"
+                    className="mt-4"
+                  />
+                </Dialog>
+                <Sheet
+                  title="详情面板"
+                  description="小屏显示为底部面板。"
+                  trigger={<Button variant="outline">打开面板</Button>}
+                >
+                  <p>面板内容可以滚动，底部留出安全区域。</p>
+                  <Input
+                    aria-label="面板内输入"
+                    placeholder="试试输入"
+                    className="mt-4"
+                  />
+                </Sheet>
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    toast({ title: '信息提示', description: '这是普通状态。' })
+                  }
+                >
+                  普通提示
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() =>
+                    toast({
+                      title: '操作失败',
+                      description: '请重试。',
+                      variant: 'error',
+                    })
+                  }
+                >
+                  错误提示
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </DemoSection>
+
+        <DemoSection
+          title="导航与数据"
+          note="Tabs、Pagination、List、基础 Table"
+        >
+          <Tabs
+            label="预览分组"
+            items={[
+              {
+                value: 'overview',
+                label: '总览',
+                content: <p>使用左右方向键切换分组。</p>,
+              },
+              {
+                value: 'details',
+                label: '详细内容',
+                content: <p>当前为第二个分组。</p>,
+              },
+              {
+                value: 'disabled',
+                label: '不可用',
+                content: null,
+                disabled: true,
+              },
+            ]}
+          />
+          <div
+            className="flex flex-wrap gap-3"
+            role="group"
+            aria-label="数据状态"
+          >
+            <Button
+              variant={dataState === 'filled' ? 'primary' : 'outline'}
+              onClick={() => setDataState('filled')}
+            >
+              有数据
+            </Button>
+            <Button
+              variant={dataState === 'empty' ? 'primary' : 'outline'}
+              onClick={() => setDataState('empty')}
+            >
+              空数据
+            </Button>
+            <Button
+              variant={dataState === 'loading' ? 'primary' : 'outline'}
+              onClick={() => setDataState('loading')}
+            >
+              加载中
+            </Button>
+          </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="space-y-3">
+              <h3 className="font-semibold">List</h3>
+              <List
+                items={visibleRows}
+                getKey={(row) => row.id}
+                renderItem={(row) => (
+                  <div className="flex justify-between gap-4">
+                    <span>{row.name}</span>
+                    <span className="text-muted-foreground">{row.status}</span>
+                  </div>
+                )}
+                loading={dataState === 'loading'}
+                label="示例任务"
+              />
+            </div>
+            <div className="space-y-3">
+              <h3 className="font-semibold">Table</h3>
+              <Table
+                caption="示例任务表"
+                rows={visibleRows}
+                getRowKey={(row) => row.id}
+                loading={dataState === 'loading'}
+                columns={[
+                  { key: 'name', header: '任务', render: (row) => row.name },
+                  {
+                    key: 'status',
+                    header: '状态',
+                    render: (row) => row.status,
+                  },
+                  {
+                    key: 'owner',
+                    header: '负责人',
+                    render: (row) => row.owner,
+                  },
+                ]}
+                renderMobileRow={(row) => (
+                  <div className="space-y-1">
+                    <strong>{row.name}</strong>
+                    <p className="text-sm text-muted-foreground">
+                      {row.status} · {row.owner}
+                    </p>
+                  </div>
+                )}
+              />
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <p className="font-semibold">页码模式</p>
+              <Pagination
+                page={page}
+                pageSize={3}
+                total={12}
+                onPageChange={setPage}
+              />
+            </div>
+            <div className="space-y-2">
+              <p className="font-semibold">加载更多模式</p>
+              <Pagination
+                page={page}
+                pageSize={3}
+                total={12}
+                onPageChange={setPage}
+                mode="load-more"
+              />
+            </div>
+          </div>
+        </DemoSection>
+
+        <DemoSection title="设计变量">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {swatches.map((swatch) => (
               <div
@@ -66,12 +443,8 @@ export function DevWorkbenchPage() {
               </div>
             ))}
           </div>
-        </section>
-
-        <section aria-labelledby="mock-title" className="space-y-4">
-          <h2 id="mock-title" className="text-xl font-semibold">
-            JSON Mock
-          </h2>
+        </DemoSection>
+        <DemoSection title="JSON Mock">
           {!isMock ? (
             <p className="text-muted-foreground">
               当前为真实接口模式。运行 <code>pnpm dev:mock</code> 可加载本地
@@ -84,17 +457,20 @@ export function DevWorkbenchPage() {
               Mock 数据加载失败：{fixtures.error.message}
             </p>
           ) : (
-            <div className="rounded-lg border border-border bg-card p-4">
-              <p className="font-medium">状态：{fixtures.data.status}</p>
-              <ul className="mt-3 list-inside list-disc space-y-1 text-muted-foreground">
-                {fixtures.data.examples.map((item) => (
-                  <li key={item.id}>{item.label}</li>
-                ))}
-              </ul>
-            </div>
+            <Card>
+              <CardContent>
+                <p className="font-medium">状态：{fixtures.data.status}</p>
+                <ul className="mt-3 list-inside list-disc space-y-1 text-muted-foreground">
+                  {fixtures.data.examples.map((item) => (
+                    <li key={item.id}>{item.label}</li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
           )}
-        </section>
+        </DemoSection>
       </main>
+      <ToastProvider />
     </div>
   )
 }

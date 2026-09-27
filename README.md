@@ -14,7 +14,7 @@ pnpm install
 pnpm dev:mock
 ```
 
-打开终端输出的地址。开发环境中的 `/__ui` 用于查看设计变量和 JSON Mock；生产构建不会注册这个路由。
+打开终端输出的地址。开发环境中的 `/__ui` 用于查看组件各状态、设计变量和 JSON Mock；生产构建不会注册这个路由。组件 API 见 [docs/shared-ui.md](docs/shared-ui.md)。
 
 首次运行端到端测试前安装固定版本浏览器：
 
