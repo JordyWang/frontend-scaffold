@@ -29,13 +29,49 @@ export type AiTaskClient = {
 
 export type UseAiTaskOptions = {
   pollIntervalMs?: number
+  /** Persist the latest task snapshot so a page re-entry can resume polling. */
+  storageKey?: string
+}
+
+const taskStatuses = [
+  'queued',
+  'running',
+  'completed',
+  'failed',
+  'cancelled',
+] as const
+
+function isTaskSnapshot(value: unknown): value is AiTaskSnapshot {
+  if (!value || typeof value !== 'object') return false
+  const task = value as Partial<AiTaskSnapshot>
+  return (
+    typeof task.id === 'string' &&
+    Boolean(task.input) &&
+    typeof task.input?.prompt === 'string' &&
+    typeof task.status === 'string' &&
+    taskStatuses.includes(task.status as (typeof taskStatuses)[number]) &&
+    (task.progress === null || typeof task.progress === 'number')
+  )
+}
+
+function restoreState(storageKey?: string) {
+  if (!storageKey || typeof window === 'undefined') return initialAiTaskState
+  try {
+    const raw = window.localStorage.getItem(storageKey)
+    if (!raw) return initialAiTaskState
+    const task: unknown = JSON.parse(raw)
+    if (!isTaskSnapshot(task)) return initialAiTaskState
+    return { phase: task.status, task }
+  } catch {
+    return initialAiTaskState
+  }
 }
 
 export function useAiTask(
   client: AiTaskClient,
-  { pollIntervalMs = 1000 }: UseAiTaskOptions = {},
+  { pollIntervalMs = 1000, storageKey }: UseAiTaskOptions = {},
 ) {
-  const [state, dispatch] = useReducer(aiTaskReducer, initialAiTaskState)
+  const [state, dispatch] = useReducer(aiTaskReducer, storageKey, restoreState)
   const requestRef = useRef<AbortController | null>(null)
 
   const stopRequest = useCallback(() => {
@@ -142,6 +178,17 @@ export function useAiTask(
   }, [client, pollIntervalMs, state.task])
 
   useEffect(() => stopRequest, [stopRequest])
+
+  useEffect(() => {
+    if (!storageKey || typeof window === 'undefined') return
+    try {
+      if (state.task)
+        window.localStorage.setItem(storageKey, JSON.stringify(state.task))
+      else window.localStorage.removeItem(storageKey)
+    } catch {
+      // Storage can be unavailable in private browsing or embedded webviews.
+    }
+  }, [state.task, storageKey])
 
   return {
     ...state,

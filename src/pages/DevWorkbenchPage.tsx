@@ -155,7 +155,10 @@ export function DevWorkbenchPage() {
   const [showAudioError, setShowAudioError] = useState(false)
   const upload = useFileUpload(demoUpload)
   const aiClient = useMemo(() => createMockAiTaskClient(), [])
-  const aiTask = useAiTask(aiClient, { pollIntervalMs: 300 })
+  const aiTask = useAiTask(aiClient, {
+    pollIntervalMs: 300,
+    storageKey: 'dev-workbench-ai-task',
+  })
   const visibleRows = dataState === 'filled' ? rows : []
 
   function onFiles(files: File[]) {
@@ -661,20 +664,29 @@ export function DevWorkbenchPage() {
                 <div className="ui-ai-fixtures">
                   <p className="font-medium">Mock 状态样例</p>
                   {aiClient.fixtures.map((fixture) => (
-                    <div
-                      key={fixture.id}
-                      className="flex items-center justify-between gap-3 text-sm"
-                    >
-                      <code>{fixture.id}</code>
-                      <TaskStatus
-                        task={{
-                          id: fixture.id,
-                          input: { prompt: '' },
-                          status: fixture.status as
-                            'queued' | 'running' | 'completed',
-                          progress: fixture.progress,
-                        }}
-                      />
+                    <div key={fixture.id} className="grid gap-2 text-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <code>{fixture.id}</code>
+                        <TaskStatus
+                          task={{
+                            id: fixture.id,
+                            input: { prompt: '' },
+                            status: fixture.status as
+                              'queued' | 'running' | 'completed',
+                            progress: fixture.progress,
+                          }}
+                        />
+                      </div>
+                      {fixture.status === 'running' && (
+                        <TaskProgress
+                          task={{
+                            id: fixture.id,
+                            input: { prompt: '' },
+                            status: 'running',
+                            progress: fixture.progress,
+                          }}
+                        />
+                      )}
                     </div>
                   ))}
                 </div>

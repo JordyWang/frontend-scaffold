@@ -1,9 +1,16 @@
-import { act, renderHook, waitFor } from '@testing-library/react'
+import {
+  act,
+  render,
+  renderHook,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import {
   aiTaskReducer,
   createMockAiTaskClient,
   initialAiTaskState,
+  TaskProgress,
   useAiTask,
   type AiTaskClient,
   type AiTaskSnapshot,
@@ -23,6 +30,14 @@ function snapshot(
 }
 
 describe('AI task state machine', () => {
+  it('renders unknown progress as indeterminate instead of zero percent', () => {
+    render(<TaskProgress task={snapshot('running', { progress: null })} />)
+    expect(screen.getByText('处理中')).toBeInTheDocument()
+    const progress = screen.getByRole('progressbar', { name: '任务进度' })
+    expect(progress).not.toHaveAttribute('value')
+    expect(progress).toHaveAttribute('aria-valuetext', '进度未知，任务处理中')
+  })
+
   it('allows forward progress and rejects stale or impossible transitions', () => {
     let state = aiTaskReducer(initialAiTaskState, {
       type: 'submitted',
@@ -122,5 +137,30 @@ describe('useAiTask', () => {
       await result.current.retry()
     })
     expect(result.current.phase).toBe('queued')
+  })
+
+  it('restores a persisted task and keeps it available on page re-entry', async () => {
+    localStorage.clear()
+    const client: AiTaskClient = {
+      submit: vi.fn(async (input) => snapshot('running', { input })),
+      get: vi.fn(async () => snapshot('running', { progress: null })),
+      cancel: vi.fn(async () => snapshot('cancelled')),
+      retry: vi.fn(async (task) =>
+        snapshot('queued', { id: `${task.id}-retry`, input: task.input }),
+      ),
+    }
+    const options = { pollIntervalMs: 1000, storageKey: 'ai-task' }
+    const first = renderHook(() => useAiTask(client, options))
+    await act(async () => {
+      await first.result.current.submit({ prompt: '恢复任务' })
+    })
+    expect(localStorage.getItem('ai-task')).toContain('恢复任务')
+    first.unmount()
+
+    const second = renderHook(() => useAiTask(client, options))
+    expect(second.result.current.phase).toBe('running')
+    expect(second.result.current.task?.input.prompt).toBe('恢复任务')
+    second.unmount()
+    localStorage.clear()
   })
 })

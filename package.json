@@ -16,6 +16,7 @@
     "typecheck": "tsc -b --pretty false",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "check": "pnpm lint && pnpm typecheck && pnpm format:check && pnpm test && pnpm build",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "test:e2e": "playwright test"

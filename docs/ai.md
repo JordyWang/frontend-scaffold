@@ -10,7 +10,7 @@ queued → running → completed
                  ↘ cancelled → retry → queued
 ```
 
-`aiTaskReducer` 会忽略不同任务的快照和不允许的回退转换。`useAiTask(client)` 提供 `submit`、`cancel`、`retry`、`reset`，并返回 `phase`、当前 `task`、`isBusy`、`canCancel` 和 `canRetry`。
+`aiTaskReducer` 会忽略不同任务的快照和不允许的回退转换。`useAiTask(client)` 提供 `submit`、`cancel`、`retry`、`reset`，并返回 `phase`、当前 `task`、`isBusy`、`canCancel` 和 `canRetry`。传入 `storageKey` 后会保存最新任务快照，页面重新进入时恢复任务并继续轮询；存储不可用时会自动退化为内存状态。
 
 ## 客户端接口
 
@@ -34,4 +34,4 @@ type AiTaskClient = {
 - `TaskProgress`：运行中的进度。
 - `TaskActions`：取消和重试动作。
 
-`/__ui` 使用 `createMockAiTaskClient` 演示成功、取消、失败和重试。输入包含“失败”会触发一次失败，重试会进入新的任务并最终完成。
+`TaskProgress` 对未知进度使用原生不确定进度语义并显示“处理中”，不会把未知值误报为 0%。`/__ui` 使用 `createMockAiTaskClient` 演示成功、取消、失败、重试、未知进度和刷新恢复。输入包含“失败”会触发一次失败，重试会进入新的任务并最终完成。
