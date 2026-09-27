@@ -10,6 +10,7 @@ export type SelectProps = {
   defaultValue?: string
   onValueChange?: (value: string) => void
   placeholder?: string
+  size?: 'default' | 'small'
   disabled?: boolean
   required?: boolean
   name?: string
@@ -27,6 +28,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
       defaultValue,
       onValueChange,
       placeholder = '请选择',
+      size = 'default',
       disabled,
       required,
       name,
@@ -48,7 +50,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
         <SelectPrimitive.Trigger
           ref={ref}
           id={id}
-          className={cn('ui-select', className)}
+          className={cn('ui-select', `ui-input--${size}`, className)}
           {...ariaProps}
         >
           <SelectPrimitive.Value placeholder={placeholder} />

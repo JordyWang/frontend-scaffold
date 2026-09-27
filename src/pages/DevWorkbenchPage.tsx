@@ -3,6 +3,15 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
 import { apiGet } from '@/shared/api/request'
 import {
+  FileDropzone,
+  FilePicker,
+  FilePreview,
+  UploadProgress,
+  useFileUpload,
+  type UploadTransport,
+  type FileValidationResult,
+} from '@/capabilities/files'
+import {
   Button,
   Card,
   CardContent,
@@ -21,7 +30,6 @@ import {
   Table,
   Tabs,
   Textarea,
-  ToastProvider,
   toast,
 } from '@/shared/ui'
 
@@ -44,6 +52,36 @@ const rows: DemoRow[] = [
   { id: '2', name: '组件预览', status: '进行中', owner: '团队 B' },
   { id: '3', name: '触控检查', status: '待开始', owner: '团队 C' },
 ]
+
+const demoUpload: UploadTransport = (_file, { signal, onProgress }) =>
+  new Promise((resolve, reject) => {
+    let progress = 0
+    const timer = window.setInterval(() => {
+      progress = Math.min(progress + 10, 100)
+      onProgress(progress)
+      if (progress === 100) {
+        cleanup()
+        resolve()
+      }
+    }, 250)
+    const onAbort = () => {
+      cleanup()
+      reject(new DOMException('已取消', 'AbortError'))
+    }
+    const cleanup = () => {
+      window.clearInterval(timer)
+      signal.removeEventListener('abort', onAbort)
+    }
+    signal.addEventListener('abort', onAbort, { once: true })
+  })
+
+const fileRules = {
+  accept: ['image/*', 'video/*', 'audio/*'],
+  maxBytes: 10 * 1024 * 1024,
+  maxImageWidth: 4096,
+  maxImageHeight: 4096,
+  maxMediaDurationSeconds: 120,
+}
 
 function DemoSection({
   title,
@@ -78,10 +116,27 @@ export function DevWorkbenchPage() {
   const [category, setCategory] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [page, setPage] = useState(1)
-  const [dataState, setDataState] = useState<'filled' | 'empty' | 'loading'>(
-    'filled',
-  )
+  const [dataState, setDataState] = useState<
+    'filled' | 'empty' | 'loading' | 'error'
+  >('filled')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [fileIssues, setFileIssues] = useState<string[]>([])
+  const upload = useFileUpload(demoUpload)
   const visibleRows = dataState === 'filled' ? rows : []
+
+  function onFiles(files: File[]) {
+    upload.reset()
+    setSelectedFile(files[0] ?? null)
+    setFileIssues([])
+  }
+
+  function onRejected(results: FileValidationResult[]) {
+    setFileIssues(
+      results.flatMap(({ file, issues }) =>
+        issues.map(({ message }) => `${file.name}：${message}`),
+      ),
+    )
+  }
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
@@ -138,6 +193,25 @@ export function DevWorkbenchPage() {
             </Button>
             <Button loading>提交中</Button>
             <Button disabled>不可用</Button>
+            <Button size="small" variant="outline">
+              紧凑尺寸
+            </Button>
+            <Button size="icon" variant="outline" aria-label="图标按钮示例">
+              <svg
+                aria-hidden="true"
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                fill="none"
+              >
+                <path
+                  d="M10 4v12M4 10h12"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </Button>
           </div>
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
@@ -174,6 +248,15 @@ export function DevWorkbenchPage() {
                 <FormField
                   label="禁用输入"
                   control={<Input disabled value="不可编辑" readOnly />}
+                />
+                <FormField
+                  label="紧凑输入"
+                  control={<Input size="small" placeholder="紧凑尺寸" />}
+                />
+                <FormField
+                  label="错误文本域"
+                  error="请检查输入内容"
+                  control={<Textarea size="small" defaultValue="错误示例" />}
                 />
               </CardContent>
               <CardFooter>
@@ -233,6 +316,15 @@ export function DevWorkbenchPage() {
                     <Select
                       disabled
                       options={[{ value: 'a', label: '选项' }]}
+                    />
+                  }
+                />
+                <FormField
+                  label="紧凑选择"
+                  control={
+                    <Select
+                      size="small"
+                      options={[{ value: 'a', label: '选项 A' }]}
                     />
                   }
                 />
@@ -353,6 +445,12 @@ export function DevWorkbenchPage() {
             >
               加载中
             </Button>
+            <Button
+              variant={dataState === 'error' ? 'primary' : 'outline'}
+              onClick={() => setDataState('error')}
+            >
+              错误
+            </Button>
           </div>
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="space-y-3">
@@ -367,6 +465,8 @@ export function DevWorkbenchPage() {
                   </div>
                 )}
                 loading={dataState === 'loading'}
+                error={dataState === 'error' ? '示例列表加载失败' : undefined}
+                onRetry={() => setDataState('filled')}
                 label="示例任务"
               />
             </div>
@@ -377,6 +477,8 @@ export function DevWorkbenchPage() {
                 rows={visibleRows}
                 getRowKey={(row) => row.id}
                 loading={dataState === 'loading'}
+                error={dataState === 'error' ? '示例表格加载失败' : undefined}
+                onRetry={() => setDataState('filled')}
                 columns={[
                   { key: 'name', header: '任务', render: (row) => row.name },
                   {
@@ -421,6 +523,85 @@ export function DevWorkbenchPage() {
                 mode="load-more"
               />
             </div>
+          </div>
+        </DemoSection>
+
+        <DemoSection
+          title="文件能力"
+          note="选择、拖放、校验、预览、上传进度与取消"
+        >
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>选择文件</CardTitle>
+                <CardDescription>
+                  图片、视频或音频，最多 10 MB；图片不超过 4096 ×
+                  4096，音视频不超过 120 秒。
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FilePicker
+                  rules={fileRules}
+                  onFiles={onFiles}
+                  onRejected={onRejected}
+                />
+                <FileDropzone
+                  rules={fileRules}
+                  onFiles={onFiles}
+                  onRejected={onRejected}
+                />
+                {fileIssues.length > 0 && (
+                  <ul
+                    role="alert"
+                    className="space-y-1 text-sm text-destructive"
+                  >
+                    {fileIssues.map((issue) => (
+                      <li key={issue}>{issue}</li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>预览与上传</CardTitle>
+                <CardDescription>
+                  演示使用本地模拟进度，真实上传可接入 XHR 适配器。
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {selectedFile ? (
+                  <FilePreview
+                    file={selectedFile}
+                    onRemove={() => {
+                      upload.reset()
+                      setSelectedFile(null)
+                    }}
+                  />
+                ) : (
+                  <Empty title="尚未选择文件" />
+                )}
+                <Button
+                  disabled={!selectedFile || upload.status === 'uploading'}
+                  onClick={() =>
+                    selectedFile && void upload.start(selectedFile)
+                  }
+                >
+                  开始上传
+                </Button>
+                <UploadProgress
+                  status={upload.status}
+                  progress={upload.progress}
+                  error={upload.error}
+                  onCancel={upload.cancel}
+                  onRetry={
+                    selectedFile
+                      ? () => void upload.start(selectedFile)
+                      : undefined
+                  }
+                />
+              </CardContent>
+            </Card>
           </div>
         </DemoSection>
 
@@ -470,7 +651,6 @@ export function DevWorkbenchPage() {
           )}
         </DemoSection>
       </main>
-      <ToastProvider />
     </div>
   )
 }

@@ -18,3 +18,7 @@ export function toast({
   if (variant === 'error') return sonnerToast.error(title, options)
   return sonnerToast(title, options)
 }
+
+export function dismissToast(id?: string | number) {
+  sonnerToast.dismiss(id)
+}

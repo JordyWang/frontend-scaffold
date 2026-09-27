@@ -1,6 +1,7 @@
 import { type Key, type ReactNode } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { Empty } from './empty'
+import { ErrorState, LoadingState } from './feedback-state'
 
 export type TableColumn<T> = {
   key: string
@@ -14,6 +15,8 @@ export type TableProps<T> = {
   getRowKey: (row: T) => Key
   caption: string
   loading?: boolean
+  error?: string
+  onRetry?: () => void
   emptyTitle?: string
   renderMobileRow?: (row: T) => ReactNode
   className?: string
@@ -25,16 +28,14 @@ export function Table<T>({
   getRowKey,
   caption,
   loading,
+  error,
+  onRetry,
   emptyTitle = '暂无数据',
   renderMobileRow,
   className,
 }: TableProps<T>) {
-  if (loading)
-    return (
-      <p role="status" className="ui-data-status">
-        正在加载…
-      </p>
-    )
+  if (loading) return <LoadingState />
+  if (error) return <ErrorState description={error} onRetry={onRetry} />
   if (rows.length === 0) return <Empty title={emptyTitle} />
   return (
     <div className={cn('ui-table-wrap', className)}>
