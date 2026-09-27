@@ -1,0 +1,6 @@
+{
+  "notConfigured": {
+    "code": "MOCK_NOT_CONFIGURED",
+    "message": "此接口尚未配置 Mock 数据"
+  }
+}

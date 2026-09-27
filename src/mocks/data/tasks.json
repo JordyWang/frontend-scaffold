@@ -1,0 +1,7 @@
+{
+  "items": [
+    { "id": "task-queued", "status": "queued", "progress": null },
+    { "id": "task-running", "status": "running", "progress": 0.45 },
+    { "id": "task-completed", "status": "completed", "progress": 1 }
+  ]
+}

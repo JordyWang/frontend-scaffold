@@ -1,0 +1,15 @@
+{
+  "items": [
+    {
+      "id": "sample-video",
+      "type": "video",
+      "src": "/mock/media/sample.mp4",
+      "poster": "/mock/media/poster.svg"
+    },
+    {
+      "id": "sample-audio",
+      "type": "audio",
+      "src": "/mock/media/sample.wav"
+    }
+  ]
+}

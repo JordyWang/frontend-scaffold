@@ -1,0 +1,7 @@
+{
+  "status": "ready",
+  "examples": [
+    { "id": "default", "label": "默认数据已从 JSON 文件加载" },
+    { "id": "mobile", "label": "同一接口可供 PC 与 H5 使用" }
+  ]
+}

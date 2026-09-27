@@ -8,18 +8,18 @@
 
 ## 2. 技术选型
 
-| 领域 | 选择 | 用途 |
-| --- | --- | --- |
-| 基础框架 | React + TypeScript 严格模式 | 页面与业务开发、静态类型检查 |
-| 构建与包管理 | Vite + pnpm | 本地开发、生产构建与锁定依赖 |
-| 路由 | React Router | 页面导航和路由级按需加载 |
-| 服务端数据 | TanStack Query | 请求缓存、加载状态和数据刷新 |
-| 本地 Mock | MSW + JSON 数据文件 | 无后端时拦截接口请求并返回文件中的数据 |
-| 样式 | Tailwind CSS + CSS 变量 | 响应式布局与统一设计变量 |
-| 基础 UI | shadcn/ui | 将基础组件代码保存在项目内，便于维护和调整 |
-| 表单 | React Hook Form + Zod | 表单状态与可复用的数据校验 |
-| 质量检查 | ESLint + Prettier + TypeScript | 代码风格、常见问题和类型检查 |
-| 测试 | Vitest + Testing Library + Playwright | 关键逻辑、组件交互和跨尺寸流程 |
+| 领域         | 选择                                  | 用途                                       |
+| ------------ | ------------------------------------- | ------------------------------------------ |
+| 基础框架     | React + TypeScript 严格模式           | 页面与业务开发、静态类型检查               |
+| 构建与包管理 | Vite + pnpm                           | 本地开发、生产构建与锁定依赖               |
+| 路由         | React Router                          | 页面导航和路由级按需加载                   |
+| 服务端数据   | TanStack Query                        | 请求缓存、加载状态和数据刷新               |
+| 本地 Mock    | MSW + JSON 数据文件                   | 无后端时拦截接口请求并返回文件中的数据     |
+| 样式         | Tailwind CSS + CSS 变量               | 响应式布局与统一设计变量                   |
+| 基础 UI      | shadcn/ui                             | 将基础组件代码保存在项目内，便于维护和调整 |
+| 表单         | React Hook Form + Zod                 | 表单状态与可复用的数据校验                 |
+| 质量检查     | ESLint + Prettier + TypeScript        | 代码风格、常见问题和类型检查               |
+| 测试         | Vitest + Testing Library + Playwright | 关键逻辑、组件交互和跨尺寸流程             |
 
 普通组件状态使用 React 自带能力；服务端数据交给 TanStack Query。只有出现明确的跨页面客户端状态需求时，才引入专门的全局状态库。
 
@@ -81,14 +81,14 @@ tests/
 
 P0 是第一版脚手架必须提供的基础组件；P1 在出现对应业务页面时加入，不作为第一版的空组件占位。
 
-| 分类 | P0：第一版实现 | P1：按业务接入 |
-| --- | --- | --- |
-| 通用 | Button、Icon、Typography | FloatButton |
-| 布局 | Container、Stack/Flex、Grid、Divider | Space、Affix |
-| 导航 | Tabs、Pagination | Breadcrumb、Dropdown、Menu、Steps、Anchor |
-| 数据录入 | FormField、Input、Textarea、Checkbox、Radio、Switch、Select | InputNumber、DatePicker、TimePicker、Upload、AutoComplete、Slider、Cascader |
+| 分类     | P0：第一版实现                                                    | P1：按业务接入                                                                        |
+| -------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| 通用     | Button、Icon、Typography                                          | FloatButton                                                                           |
+| 布局     | Container、Stack/Flex、Grid、Divider                              | Space、Affix                                                                          |
+| 导航     | Tabs、Pagination                                                  | Breadcrumb、Dropdown、Menu、Steps、Anchor                                             |
+| 数据录入 | FormField、Input、Textarea、Checkbox、Radio、Switch、Select       | InputNumber、DatePicker、TimePicker、Upload、AutoComplete、Slider、Cascader           |
 | 数据展示 | Card、List、Table（基础表格）、Tag、Badge、Image、Empty、Skeleton | Avatar、Descriptions、Collapse、Tooltip、Popover、Carousel、Tree、Timeline、Statistic |
-| 反馈 | Alert、Dialog/Modal、Drawer/Sheet、Toast/Message、Spinner/Spin | Popconfirm、Notification、Progress、Result |
+| 反馈     | Alert、Dialog/Modal、Drawer/Sheet、Toast/Message、Spinner/Spin    | Popconfirm、Notification、Progress、Result                                            |
 
 `FormField` 负责标签、说明和错误信息的展示；数据校验仍由 Zod 定义。`Table` 的 P0 范围是表头、行、空状态和基础加载状态。排序、筛选、固定列、虚拟滚动等能力应由实际业务需求决定，避免预先做成难以维护的通用表格。
 
@@ -107,12 +107,12 @@ P0 是第一版脚手架必须提供的基础组件；P1 在出现对应业务�
 
 AI 请求通常具有排队、运行、完成或失败等异步状态；视频和音频组件则要处理播放时间、媒体加载和浏览器兼容性。它们的依赖和状态模型不同，因此分别放在 `capabilities/ai`、`capabilities/video` 和 `capabilities/audio`。文件选择与上传由 `capabilities/files` 提供，供这些模块复用。这些模块只承载通用技术能力，不包含具体内容生产流程或业务实体。
 
-| 模块 | P0：首版提供 | P1：明确需要时再加入 |
-| --- | --- | --- |
-| `ai` | PromptInput、TaskStatus、TaskProgress、TaskActions（取消/重试）；统一的异步任务状态和轮询接口 | ModelSelect、ParameterPanel、ResultCompare、流式输出及 SSE/WebSocket 适配 |
-| `video` | VideoPlayer、VideoControls、VideoPoster、Timecode、CaptionTrack；播放、暂停、跳转、音量、全屏及媒体错误状态 | ThumbnailStrip、TrimRange、TimelineRuler、HLS 播放适配 |
-| `audio` | AudioPlayer、AudioControls；播放、暂停、跳转、音量及媒体错误状态 | Waveform、AudioTrim、音轨可视化 |
-| `files` | FilePicker/Dropzone、FilePreview（静态缩略图与基本信息）、UploadProgress；文件类型、大小、尺寸和时长校验，上传取消 | 分片及断点续传、批量上传、校验和 |
+| 模块    | P0：首版提供                                                                                                       | P1：明确需要时再加入                                                      |
+| ------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| `ai`    | PromptInput、TaskStatus、TaskProgress、TaskActions（取消/重试）；统一的异步任务状态和轮询接口                      | ModelSelect、ParameterPanel、ResultCompare、流式输出及 SSE/WebSocket 适配 |
+| `video` | VideoPlayer、VideoControls、VideoPoster、Timecode、CaptionTrack；播放、暂停、跳转、音量、全屏及媒体错误状态        | ThumbnailStrip、TrimRange、TimelineRuler、HLS 播放适配                    |
+| `audio` | AudioPlayer、AudioControls；播放、暂停、跳转、音量及媒体错误状态                                                   | Waveform、AudioTrim、音轨可视化                                           |
+| `files` | FilePicker/Dropzone、FilePreview（静态缩略图与基本信息）、UploadProgress；文件类型、大小、尺寸和时长校验，上传取消 | 分片及断点续传、批量上传、校验和                                          |
 
 P0 的播放器优先封装浏览器原生 `<video>` 和 `<audio>`，保持媒体接口可替换；只有格式或播放要求明确需要时才引入额外播放器依赖。首版不建立完整的媒体编辑器。媒体组件按路由或使用位置加载，避免把播放器代码加入所有页面的初始包。
 
