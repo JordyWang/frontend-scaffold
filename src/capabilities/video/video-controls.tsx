@@ -183,7 +183,7 @@ export function VideoControls({
           step={0.1}
           value={Math.min(currentTime, duration || 0)}
           disabled={!hasDuration}
-          onChange={(event) => onSeek(Number(event.target.value))}
+          onInput={(event) => onSeek(Number(event.currentTarget.value))}
           aria-label={`视频进度，当前 ${progressLabel}`}
         />
       </div>

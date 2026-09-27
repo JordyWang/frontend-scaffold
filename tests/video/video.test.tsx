@@ -123,7 +123,7 @@ describe('VideoPlayer', () => {
     fireEvent.click(screen.getByRole('button', { name: '后退 10 秒' }))
     expect(video.currentTime).toBe(0)
 
-    fireEvent.change(screen.getByRole('slider', { name: /视频进度/ }), {
+    fireEvent.input(screen.getByRole('slider', { name: /视频进度/ }), {
       target: { value: '1.5' },
     })
     expect(video.currentTime).toBe(1.5)

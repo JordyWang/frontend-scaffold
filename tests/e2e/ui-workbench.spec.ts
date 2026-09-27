@@ -124,6 +124,18 @@ test('video player supports playback, touch controls and media errors', async ({
   await expect(player.getByRole('button', { name: '暂停视频' })).toBeVisible()
   if (await player.getByRole('button', { name: '暂停视频' }).isVisible())
     await activate(player.getByRole('button', { name: '暂停视频' }))
+  const seek = player.getByRole('slider', { name: /视频进度/ })
+  const seekBox = await seek.boundingBox()
+  expect(seekBox).not.toBeNull()
+  await seek.click({
+    position: { x: seekBox!.width / 2, y: seekBox!.height / 2 },
+  })
+  await expect
+    .poll(async () => Number(await seek.inputValue()))
+    .toBeGreaterThan(0.5)
+  await seek.focus()
+  await page.keyboard.press('ArrowLeft')
+  await expect.poll(async () => Number(await seek.inputValue())).toBeLessThan(1)
   await activate(player.getByRole('button', { name: '静音视频' }))
   await expect(player.getByRole('button', { name: '取消静音' })).toBeVisible()
 
