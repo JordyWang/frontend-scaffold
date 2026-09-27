@@ -20,6 +20,8 @@ import {
   useAiTask,
 } from '@/capabilities/ai'
 import { VideoPlayer, VideoPoster } from '@/capabilities/video'
+import { AudioPlayer } from '@/capabilities/audio'
+import { MockWorkflowDemo } from './MockWorkflowDemo'
 import {
   Button,
   Card,
@@ -150,6 +152,7 @@ export function DevWorkbenchPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [fileIssues, setFileIssues] = useState<string[]>([])
   const [showVideoError, setShowVideoError] = useState(false)
+  const [showAudioError, setShowAudioError] = useState(false)
   const upload = useFileUpload(demoUpload)
   const aiClient = useMemo(() => createMockAiTaskClient(), [])
   const aiTask = useAiTask(aiClient, { pollIntervalMs: 300 })
@@ -757,6 +760,57 @@ export function DevWorkbenchPage() {
             </Card>
           </div>
         </DemoSection>
+
+        <DemoSection title="音频能力" note="播放、暂停、跳转、音量和媒体错误">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>音频播放器</CardTitle>
+                <CardDescription>
+                  本地 WAV 样例；支持键盘和触控操作。
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AudioPlayer
+                  source={{ src: '/mock/media/sample.wav', type: 'audio/wav' }}
+                  title="音频能力示例"
+                />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>错误状态</CardTitle>
+                <CardDescription>资源加载失败时可重试。</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAudioError((visible) => !visible)}
+                >
+                  {showAudioError ? '隐藏音频错误' : '演示音频错误'}
+                </Button>
+                {showAudioError && (
+                  <AudioPlayer
+                    source={{
+                      src: '/mock/media/not-found.wav',
+                      type: 'audio/wav',
+                    }}
+                    title="错误音频示例"
+                  />
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </DemoSection>
+
+        {isMock && (
+          <DemoSection
+            title="完整 Mock 示例流程"
+            note="文件选择 → 上传 → AI 任务 → 状态轮询 → 媒体预览；包含取消、失败与重试"
+          >
+            <MockWorkflowDemo />
+          </DemoSection>
+        )}
 
         <DemoSection title="设计变量">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">

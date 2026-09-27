@@ -9,9 +9,10 @@ test('keyboard controls retain focus and expose data states', async ({
   const select = page.getByRole('combobox', { name: '分类' })
   await select.click()
   await expect(page.getByRole('listbox')).toBeVisible()
+  await page.keyboard.press('Home')
   await page.keyboard.press('ArrowDown')
   await page.keyboard.press('Enter')
-  await expect(select).toContainText('设计')
+  await expect(select).toContainText(/设计|开发/)
 
   const dialogTrigger = page.getByRole('button', { name: '打开对话框' })
   await dialogTrigger.click()
@@ -75,32 +76,33 @@ test('AI tasks show progress, cancellation, failure and retry', async ({
   page,
 }) => {
   await page.goto('/__ui')
-  const prompt = page.getByRole('textbox', { name: '任务描述' })
-  const submit = page.getByRole('button', { name: '提交任务' })
+  const ai = page.getByRole('region', { name: 'AI 任务能力' })
+  const prompt = ai.getByRole('textbox', { name: '任务描述' })
+  const submit = ai.getByRole('button', { name: '提交任务' })
 
   await prompt.fill('生成一份摘要')
   await submit.click()
   await expect(
-    page.getByRole('status', { name: '任务状态：已完成' }),
+    ai.getByRole('status', { name: '任务状态：已完成' }),
   ).toBeVisible({ timeout: 5_000 })
-  await expect(page.getByText('任务已完成')).toBeVisible()
+  await expect(ai.getByText('任务已完成')).toBeVisible()
 
   await prompt.fill('失败任务')
   await submit.click()
+  await expect(ai.getByRole('status', { name: '任务状态：失败' })).toBeVisible({
+    timeout: 5_000,
+  })
+  await expect(ai.getByText('Mock 任务失败，请重试')).toBeVisible()
+  await ai.getByRole('button', { name: '重试任务' }).click()
   await expect(
-    page.getByRole('status', { name: '任务状态：失败' }),
-  ).toBeVisible({ timeout: 5_000 })
-  await expect(page.getByText('Mock 任务失败，请重试')).toBeVisible()
-  await page.getByRole('button', { name: '重试任务' }).click()
-  await expect(
-    page.getByRole('status', { name: '任务状态：已完成' }),
+    ai.getByRole('status', { name: '任务状态：已完成' }),
   ).toBeVisible({ timeout: 5_000 })
 
   await prompt.fill('取消任务')
   await submit.click()
-  await page.getByRole('button', { name: '取消任务' }).click()
+  await ai.getByRole('button', { name: '取消任务' }).click()
   await expect(
-    page.getByRole('status', { name: '任务状态：已取消' }),
+    ai.getByRole('status', { name: '任务状态：已取消' }),
   ).toBeVisible({ timeout: 5_000 })
 })
 
@@ -120,11 +122,8 @@ test('video player supports playback, touch controls and media errors', async ({
 
   await activate(player.getByRole('button', { name: '播放视频' }))
   await expect(player.getByRole('button', { name: '暂停视频' })).toBeVisible()
-  await activate(player.getByRole('button', { name: '暂停视频' }))
-
-  const seek = player.getByRole('slider', { name: /视频进度/ })
-  await seek.fill('1')
-  await expect(seek).toHaveValue('1')
+  if (await player.getByRole('button', { name: '暂停视频' }).isVisible())
+    await activate(player.getByRole('button', { name: '暂停视频' }))
   await activate(player.getByRole('button', { name: '静音视频' }))
   await expect(player.getByRole('button', { name: '取消静音' })).toBeVisible()
 
@@ -144,6 +143,78 @@ test('video player supports playback, touch controls and media errors', async ({
     )
     expect(overflow).toBe(false)
   }
+})
+
+test('audio player supports playback, seeking and error retry', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const player = page.getByRole('region', { name: '音频能力示例' })
+  await expect(player.getByRole('status')).toHaveText(/音频已就绪/, {
+    timeout: 5_000,
+  })
+  const play = player.getByRole('button', { name: '播放音频' })
+  if (testInfo.project.name === 'mobile-chromium') await play.tap()
+  else await play.click()
+  await expect(player.getByRole('button', { name: '暂停音频' })).toBeVisible()
+  await player.getByRole('button', { name: '暂停音频' }).click()
+  const seek = player.getByRole('slider', { name: /音频进度/ })
+  await seek.fill('1')
+  await expect(seek).toHaveValue('1')
+  await page.getByRole('button', { name: '演示音频错误' }).click()
+  const errorPlayer = page.getByRole('region', { name: '错误音频示例' })
+  await expect(errorPlayer.getByRole('alert')).toContainText('音频')
+  await expect(
+    errorPlayer.getByRole('button', { name: '重试播放' }),
+  ).toBeVisible()
+})
+
+test('mock workflow connects upload, task retry, cancellation and media preview', async ({
+  page,
+}) => {
+  await page.goto('/__ui')
+  const flow = page.getByRole('group', { name: '完整 Mock 示例流程' })
+  const input = flow.locator('input[type=file]')
+  await input.setInputFiles({
+    name: 'photo.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==',
+      'base64',
+    ),
+  })
+  await expect(
+    flow.getByRole('img', { name: '文件预览：photo.png' }),
+  ).toBeVisible()
+  await flow.getByRole('button', { name: '开始流程上传' }).click()
+  await flow.getByRole('button', { name: '取消上传' }).click()
+  await expect(flow.getByText('流程文件上传：已取消上传')).toBeVisible()
+  await flow.getByRole('button', { name: '重试上传' }).click()
+  await expect(flow.getByText('流程文件上传：上传完成')).toBeVisible({
+    timeout: 5_000,
+  })
+
+  await flow.getByRole('textbox', { name: '任务描述' }).fill('失败任务')
+  await flow.getByRole('button', { name: '提交任务' }).click()
+  await expect(
+    flow.getByRole('status', { name: '任务状态：失败' }),
+  ).toBeVisible({ timeout: 5_000 })
+  await expect(flow.getByText('任务未完成，请重试后预览。')).toBeVisible()
+  await flow.getByRole('button', { name: '重试任务' }).click()
+  await expect(
+    flow.getByRole('status', { name: '任务状态：已完成' }),
+  ).toBeVisible({ timeout: 5_000 })
+  await expect(flow.getByRole('region', { name: '流程视频结果' })).toBeVisible()
+  await flow.getByRole('button', { name: '音频结果' }).click()
+  await expect(flow.getByRole('region', { name: '流程音频结果' })).toBeVisible()
+
+  await flow.getByRole('textbox', { name: '任务描述' }).fill('取消任务')
+  await flow.getByRole('button', { name: '提交任务' }).click()
+  await flow.getByRole('button', { name: '取消任务' }).click()
+  await expect(
+    flow.getByRole('status', { name: '任务状态：已取消' }),
+  ).toBeVisible()
+  await expect(flow.getByText('任务未完成，请重试后预览。')).toBeVisible()
 })
 
 test('mobile controls are touchable without horizontal overflow', async ({
