@@ -34,6 +34,11 @@ src/
     main.tsx
   pages/                # 页面入口，负责组合业务功能
   features/             # 按业务功能组织组件、逻辑和接口调用
+  capabilities/
+    ai/                 # 通用 AI 任务状态、请求与交互组件
+    video/              # 视频播放、预览与时间控制
+    audio/              # 音频播放与时间控制
+    files/              # 文件选择、校验与上传
   mocks/
     browser.ts          # Mock Service Worker 启动入口
     handlers.ts         # 接口路径与 JSON 数据的映射
@@ -51,7 +56,7 @@ tests/
   e2e/                  # 浏览器端关键流程
 ```
 
-依赖方向为 `pages → features → shared`。业务功能之间避免互相引用；通用能力成熟后再下沉到 `shared`，避免提前建立大量抽象。
+依赖方向为 `pages → features → capabilities → shared`；页面和功能也可以直接使用 `shared`。`ai`、`video` 与 `audio` 保持独立，都可以依赖 `files`，但不相互引用。业务功能之间避免互相引用；通用能力成熟后再下沉到 `shared`，避免提前建立大量抽象。
 
 ## 4. PC 与 H5 适配
 
@@ -82,7 +87,7 @@ P0 是第一版脚手架必须提供的基础组件；P1 在出现对应业务�
 | 布局 | Container、Stack/Flex、Grid、Divider | Space、Affix |
 | 导航 | Tabs、Pagination | Breadcrumb、Dropdown、Menu、Steps、Anchor |
 | 数据录入 | FormField、Input、Textarea、Checkbox、Radio、Switch、Select | InputNumber、DatePicker、TimePicker、Upload、AutoComplete、Slider、Cascader |
-| 数据展示 | Card、List、Table（基础表格）、Tag、Badge、Empty、Skeleton | Avatar、Descriptions、Collapse、Tooltip、Popover、Image、Carousel、Tree、Timeline、Statistic |
+| 数据展示 | Card、List、Table（基础表格）、Tag、Badge、Image、Empty、Skeleton | Avatar、Descriptions、Collapse、Tooltip、Popover、Carousel、Tree、Timeline、Statistic |
 | 反馈 | Alert、Dialog/Modal、Drawer/Sheet、Toast/Message、Spinner/Spin | Popconfirm、Notification、Progress、Result |
 
 `FormField` 负责标签、说明和错误信息的展示；数据校验仍由 Zod 定义。`Table` 的 P0 范围是表头、行、空状态和基础加载状态。排序、筛选、固定列、虚拟滚动等能力应由实际业务需求决定，避免预先做成难以维护的通用表格。
@@ -98,6 +103,21 @@ P0 是第一版脚手架必须提供的基础组件；P1 在出现对应业务�
 
 表单校验使用 Zod，避免写入 UI 组件；复杂列表的数据转换与筛选也与展示组件分开。组件替换仍会涉及样式和交互调整，尤其是日期选择器、复杂表格等控件，但业务逻辑不应随之重写。新增第三方组件时先评估可访问性、移动端交互和项目维护情况。
 
+### 5.3 AI 与媒体场景的通用能力
+
+AI 请求通常具有排队、运行、完成或失败等异步状态；视频和音频组件则要处理播放时间、媒体加载和浏览器兼容性。它们的依赖和状态模型不同，因此分别放在 `capabilities/ai`、`capabilities/video` 和 `capabilities/audio`。文件选择与上传由 `capabilities/files` 提供，供这些模块复用。这些模块只承载通用技术能力，不包含具体内容生产流程或业务实体。
+
+| 模块 | P0：首版提供 | P1：明确需要时再加入 |
+| --- | --- | --- |
+| `ai` | PromptInput、TaskStatus、TaskProgress、TaskActions（取消/重试）；统一的异步任务状态和轮询接口 | ModelSelect、ParameterPanel、ResultCompare、流式输出及 SSE/WebSocket 适配 |
+| `video` | VideoPlayer、VideoControls、VideoPoster、Timecode、CaptionTrack；播放、暂停、跳转、音量、全屏及媒体错误状态 | ThumbnailStrip、TrimRange、TimelineRuler、HLS 播放适配 |
+| `audio` | AudioPlayer、AudioControls；播放、暂停、跳转、音量及媒体错误状态 | Waveform、AudioTrim、音轨可视化 |
+| `files` | FilePicker/Dropzone、FilePreview（静态缩略图与基本信息）、UploadProgress；文件类型、大小、尺寸和时长校验，上传取消 | 分片及断点续传、批量上传、校验和 |
+
+P0 的播放器优先封装浏览器原生 `<video>` 和 `<audio>`，保持媒体接口可替换；只有格式或播放要求明确需要时才引入额外播放器依赖。首版不建立完整的媒体编辑器。媒体组件按路由或使用位置加载，避免把播放器代码加入所有页面的初始包。
+
+H5 验收还需覆盖 `playsInline`、用户手势触发播放、触控拖动进度、视频全屏切换、弱网加载及格式不支持时的提示。AI 任务组件需正确呈现未知进度、页面重新进入后的状态恢复，以及取消和重试后的状态变化。
+
 ## 6. 请求、环境与错误处理
 
 `shared/api` 提供统一请求入口，支持基础地址、超时或取消、类型化响应，以及可供页面使用的统一错误类型。接口数据由 TanStack Query 管理；页面明确展示加载、空数据、失败和重试状态。
@@ -109,6 +129,8 @@ P0 是第一版脚手架必须提供的基础组件；P1 在出现对应业务�
 提供 `pnpm dev:mock`，对应脚本为 `vite --mode mock`。应用入口通过 `import.meta.env.MODE === 'mock'` 判断是否先启动 MSW，再渲染 React 页面；普通 `pnpm dev` 连接配置的真实接口。两种模式共用 `shared/api` 和页面代码，业务组件不根据模式选择不同的数据来源。
 
 Mock 数据存放在 `src/mocks/data/*.json`。`handlers.ts` 导入 JSON 文件，并按照真实接口的路径、方法、状态码和响应结构返回数据。例如 `items.json` 作为列表与详情接口的共同数据源，详情接口按 `id` 从中查找，避免两份样例数据互相矛盾。空列表等场景可以使用独立 JSON 文件；错误场景由 handler 返回约定的错误状态和 JSON 响应。
+
+AI 任务状态及音视频元数据也使用 JSON 文件作为 Mock 数据源；音视频文件本身以本地静态媒体文件提供，JSON 中保存其访问地址。这样可在无后端时检查任务状态、播放器及 H5 兼容行为。
 
 Mock 仅拦截项目约定的 `/api/*` 请求。Mock 模式下，如果页面请求了尚未配置的接口，应明确报错，防止意外访问真实后端。正常生产构建不启动 Mock Worker。修改 JSON 数据后，刷新页面即可验证新的展示结果。
 
@@ -133,9 +155,10 @@ CI 执行类型检查、Lint、必要测试和生产构建。部署静态文件�
 
 1. 建立 Vite + React + TypeScript 项目、目录结构、代码规范和开发命令。
 2. 建立设计变量与第 5 节的 P0 基础 UI 组件，完成 PC/H5 页面框架。
-3. 建立路由、请求层、错误状态、环境配置及 JSON 驱动的 Mock 模式。
-4. 使用同一套 API 调用实现“列表 → 详情”的示例流程，分别验证 PC/H5 和真实接口/Mock 模式。
-5. 增加必要测试、CI 和 README 使用说明。
+3. 建立 `ai`、`video`、`audio`、`files` 的 P0 通用能力，并按使用位置加载媒体代码。
+4. 建立路由、请求层、错误状态、环境配置及 JSON 驱动的 Mock 模式。
+5. 使用同一套 API 调用实现“列表 → 详情”的示例流程，分别验证 PC/H5 和真实接口/Mock 模式。
+6. 增加必要测试、CI 和 README 使用说明。
 
 ## 9. 验收标准
 
@@ -145,6 +168,8 @@ CI 执行类型检查、Lint、必要测试和生产构建。部署静态文件�
 - `pnpm dev:mock` 无需后端即可从 JSON 文件展示列表和详情；修改 JSON 后页面能显示更新数据。
 - Mock 模式下未配置的 `/api/*` 请求明确报错；`pnpm dev` 仍可连接真实接口，生产构建不启动 Mock。
 - 第 5 节的 P0 组件通过项目自身入口引用，并在 PC/H5 尺寸下完成交互检查；业务逻辑与 UI 库保持分离。
+- AI 任务状态组件与音视频播放器可使用通用 Mock 数据独立演示；`ai`、`video` 和 `audio` 不相互依赖。
+- 音视频在目标手机浏览器上能播放、暂停、跳转并正确报告加载或格式错误。
 - `lint`、`typecheck`、`test` 和 `build` 均通过。
 - 关键流程在规定的屏幕宽度和目标手机浏览器上通过检查。
 
