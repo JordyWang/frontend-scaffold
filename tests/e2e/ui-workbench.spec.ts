@@ -198,6 +198,21 @@ test('design system controls support keyboard, touch and local themes', async ({
   await expect(
     brandedScope.getByRole('button', { name: '主要操作' }),
   ).toHaveCSS('border-radius', '999px')
+  const nestedScope = brandedScope.locator('[data-ui-density="default"]')
+  await expect(nestedScope.getByRole('button', { name: '继承按钮' })).toHaveCSS(
+    'border-radius',
+    '999px',
+  )
+  await expect(nestedScope.getByRole('button', { name: '继承按钮' })).toHaveCSS(
+    'height',
+    '48px',
+  )
+  await expect(
+    nestedScope.getByRole('textbox', { name: '继承输入' }),
+  ).toHaveCSS('height', '48px')
+  await expect(
+    nestedScope.locator('.ui-card').filter({ hasText: '继承卡片' }),
+  ).toHaveCSS('border-top-left-radius', '16px')
   const accentBefore = await brandedScope
     .getByText('派生高亮')
     .evaluate((element) => getComputedStyle(element).backgroundColor)

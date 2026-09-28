@@ -29,6 +29,7 @@
   --space-md: 1rem;
   --space-lg: 1.5rem;
   --space-xl: 2rem;
+  --ui-radius-adjustment: 0.125rem;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -140,11 +141,20 @@
   --ui-color-warning: var(--ui-seed-warning);
   --ui-color-error: var(--ui-seed-error);
   /* Component tokens can be overridden on any scope. */
-  --ui-button-radius: calc(var(--radius) - 0.125rem);
-  --ui-button-height: var(--ui-control-height);
-  --ui-field-radius: calc(var(--radius) - 0.125rem);
-  --ui-card-radius: var(--radius);
-  --ui-control-height: 44px;
+  --ui-button-radius: var(
+    --ui-button-radius-override,
+    calc(var(--radius) - var(--ui-radius-adjustment))
+  );
+  --ui-button-height: var(
+    --ui-button-height-override,
+    var(--ui-control-height)
+  );
+  --ui-field-radius: var(
+    --ui-field-radius-override,
+    calc(var(--radius) - var(--ui-radius-adjustment))
+  );
+  --ui-card-radius: var(--ui-card-radius-override, var(--radius));
+  --ui-control-height: var(--ui-field-height-override, 44px);
 }
 
 /* Recalculate custom status colors for each nested scope's surface and text. */
@@ -190,12 +200,18 @@
   );
 }
 
+[data-ui-density='default'] {
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --ui-radius-adjustment: 0.125rem;
+}
+
 [data-ui-density='compact'] {
   --space-md: 0.75rem;
   --space-lg: 1rem;
   --space-xl: 1.5rem;
-  --ui-button-radius: calc(var(--radius) - 0.25rem);
-  --ui-field-radius: calc(var(--radius) - 0.25rem);
+  --ui-radius-adjustment: 0.25rem;
 }
 
 @theme inline {

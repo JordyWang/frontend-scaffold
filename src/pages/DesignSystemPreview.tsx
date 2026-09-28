@@ -12,6 +12,7 @@ import {
   Grid,
   Icon,
   Image,
+  Input,
   RadioGroup,
   Select,
   Sheet,
@@ -252,7 +253,8 @@ export function DesignSystemPreview() {
           warning: '#fbbf24',
           error: '#fb7185',
           components: {
-            button: { radius: '999px' },
+            button: { radius: '999px', height: '48px' },
+            field: { height: '48px' },
             card: { radius: '1rem' },
           },
         }}
@@ -296,6 +298,21 @@ export function DesignSystemPreview() {
             </Button>
           </Badge>
         </Stack>
+        <ThemeScope
+          density="default"
+          className="mt-4 rounded-xl border border-border p-4"
+        >
+          <Stack gap="sm">
+            <Typography as="span" variant="caption">
+              嵌套主题继承
+            </Typography>
+            <Button>继承按钮</Button>
+            <Input aria-label="继承输入" placeholder="继承输入" />
+            <Card>
+              <CardContent>继承卡片</CardContent>
+            </Card>
+          </Stack>
+        </ThemeScope>
       </ThemeScope>
     </section>
   )
