@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -285,6 +286,7 @@ export type TreeProps = {
   treeData: TreeNode[]
   expandedKeys?: string[]
   defaultExpandedKeys?: string[]
+  onExpand?: (keys: string[]) => void
   selectedKey?: string
   onSelect?: (key: string) => void
   label?: string
@@ -295,6 +297,7 @@ export function Tree({
   treeData,
   expandedKeys,
   defaultExpandedKeys = [],
+  onExpand,
   selectedKey,
   onSelect,
   label = '树形导航',
@@ -303,12 +306,66 @@ export function Tree({
   const [internalExpanded, setInternalExpanded] = useState(defaultExpandedKeys)
   const expanded = expandedKeys ?? internalExpanded
   const id = useId()
+  const nodeRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+
+  const visibleNodes = useMemo(() => {
+    const nodes: Array<{
+      key: string
+      parentKey?: string
+      hasChildren: boolean
+    }> = []
+    function collect(current: TreeNode[], parentKey?: string) {
+      for (const node of current) {
+        const hasChildren = Boolean(node.children?.length)
+        nodes.push({ key: node.key, parentKey, hasChildren })
+        if (hasChildren && expanded.includes(node.key))
+          collect(node.children ?? [], node.key)
+      }
+    }
+    collect(treeData)
+    return nodes
+  }, [expanded, treeData])
 
   function toggle(key: string) {
     const next = expanded.includes(key)
       ? expanded.filter((item) => item !== key)
       : [...expanded, key]
     if (expandedKeys === undefined) setInternalExpanded(next)
+    onExpand?.(next)
+  }
+
+  function focusNode(key: string | undefined) {
+    if (key) nodeRefs.current[key]?.focus()
+  }
+
+  function handleNodeKeyDown(
+    event: KeyboardEvent<HTMLButtonElement>,
+    node: TreeNode,
+  ) {
+    const currentIndex = visibleNodes.findIndex((item) => item.key === node.key)
+    const current = visibleNodes[currentIndex]
+    if (!current) return
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      focusNode(visibleNodes[currentIndex + 1]?.key)
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      focusNode(visibleNodes[currentIndex - 1]?.key)
+    } else if (event.key === 'Home') {
+      event.preventDefault()
+      focusNode(visibleNodes[0]?.key)
+    } else if (event.key === 'End') {
+      event.preventDefault()
+      focusNode(visibleNodes.at(-1)?.key)
+    } else if (event.key === 'ArrowRight' && current.hasChildren) {
+      event.preventDefault()
+      if (!expanded.includes(node.key)) toggle(node.key)
+      else focusNode(visibleNodes[currentIndex + 1]?.key)
+    } else if (event.key === 'ArrowLeft') {
+      event.preventDefault()
+      if (current.hasChildren && expanded.includes(node.key)) toggle(node.key)
+      else focusNode(current.parentKey)
+    }
   }
 
   function renderNodes(nodes: TreeNode[], level = 0): ReactNode {
@@ -343,6 +400,9 @@ export function Tree({
             <button
               type="button"
               role="treeitem"
+              ref={(element) => {
+                nodeRefs.current[node.key] = element
+              }}
               className={cn(
                 'ui-tree__label',
                 selectedKey === node.key && 'ui-tree__label--selected',
@@ -351,6 +411,7 @@ export function Tree({
               aria-expanded={hasChildren ? isExpanded : undefined}
               disabled={node.disabled}
               onClick={() => onSelect?.(node.key)}
+              onKeyDown={(event) => handleNodeKeyDown(event, node)}
             >
               {node.title}
             </button>

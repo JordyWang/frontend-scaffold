@@ -291,4 +291,35 @@ describe('Ant Design-inspired shared components', () => {
     expect(screen.getByRole('tree', { name: '树形导航' })).toBeInTheDocument()
     expect(screen.getByRole('treeitem', { name: '叶子' })).toBeInTheDocument()
   })
+
+  it('moves tree focus with arrows and reports controlled expansion', () => {
+    const onExpand = vi.fn()
+    render(
+      <Tree
+        defaultExpandedKeys={['root']}
+        onExpand={onExpand}
+        treeData={[
+          {
+            key: 'root',
+            title: '根节点',
+            children: [
+              { key: 'one', title: '第一项' },
+              { key: 'two', title: '第二项' },
+            ],
+          },
+        ]}
+      />,
+    )
+    const root = screen.getByRole('treeitem', { name: '根节点' })
+    const first = screen.getByRole('treeitem', { name: '第一项' })
+    root.focus()
+    fireEvent.keyDown(root, { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(first)
+    fireEvent.keyDown(first, { key: 'ArrowUp' })
+    expect(document.activeElement).toBe(root)
+    fireEvent.keyDown(root, { key: 'ArrowLeft' })
+    expect(onExpand).toHaveBeenCalledWith([])
+    fireEvent.keyDown(root, { key: 'ArrowRight' })
+    expect(onExpand).toHaveBeenLastCalledWith(['root'])
+  })
 })
