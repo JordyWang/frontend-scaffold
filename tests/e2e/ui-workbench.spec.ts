@@ -30,7 +30,7 @@ test('design system controls support keyboard, touch and local themes', async ({
   const switchControl = preview.getByRole('switch', { name: '启用提醒' })
   const theme = preview.getByRole('button', { name: '切换预览主题' })
 
-  if (testInfo.project.name === 'mobile-chromium') {
+  if (testInfo.project.name.startsWith('mobile-')) {
     await preview
       .locator('label.ui-choice')
       .filter({ hasText: '同意更新通知' })
@@ -59,7 +59,7 @@ test('design system controls support keyboard, touch and local themes', async ({
   await preview.getByRole('button', { name: '切换预览密度' }).click()
   await expect(preview.getByText('当前：深色 · 紧凑')).toBeVisible()
   const radio = preview.getByRole('radio', { name: '网格' })
-  if (testInfo.project.name === 'mobile-chromium')
+  if (testInfo.project.name.startsWith('mobile-'))
     await preview.getByText('网格', { exact: true }).tap()
   else {
     await preview.getByRole('radio', { name: '列表' }).focus()
@@ -68,7 +68,7 @@ test('design system controls support keyboard, touch and local themes', async ({
   await expect(radio).toBeChecked()
 
   const scopedSelect = preview.getByRole('combobox', { name: '局部选择' })
-  if (testInfo.project.name === 'mobile-chromium') await scopedSelect.tap()
+  if (testInfo.project.name.startsWith('mobile-')) await scopedSelect.tap()
   else await scopedSelect.click()
   const selectContent = page.locator('.ui-select__content')
   await expect(selectContent).toHaveCSS('background-color', 'rgb(30, 41, 59)')
@@ -82,14 +82,14 @@ test('design system controls support keyboard, touch and local themes', async ({
   await page.getByRole('option', { name: '选项一' }).click()
 
   const dialogTrigger = preview.getByRole('button', { name: '打开局部对话框' })
-  if (testInfo.project.name === 'mobile-chromium') await dialogTrigger.tap()
+  if (testInfo.project.name.startsWith('mobile-')) await dialogTrigger.tap()
   else await dialogTrigger.click()
   const scopedDialog = page.getByRole('dialog', { name: '局部对话框' })
   await expect(scopedDialog).toHaveCSS('background-color', 'rgb(30, 41, 59)')
   await scopedDialog.getByRole('button', { name: '关闭对话框' }).click()
 
   const sheetTrigger = preview.getByRole('button', { name: '打开局部面板' })
-  if (testInfo.project.name === 'mobile-chromium') await sheetTrigger.tap()
+  if (testInfo.project.name.startsWith('mobile-')) await sheetTrigger.tap()
   else await sheetTrigger.click()
   const scopedSheet = page.getByRole('dialog', { name: '局部面板' })
   await expect(scopedSheet).toHaveCSS('background-color', 'rgb(30, 41, 59)')
@@ -231,7 +231,7 @@ test('AI conversation workbench streams, cancels and retries messages', async ({
   page,
 }, testInfo) => {
   const activate = async (locator: ReturnType<typeof page.getByRole>) => {
-    if (testInfo.project.name === 'mobile-chromium') await locator.tap()
+    if (testInfo.project.name.startsWith('mobile-')) await locator.tap()
     else await locator.click()
   }
   await page.goto('/__ui')
@@ -266,7 +266,7 @@ test('video player supports playback, touch controls and media errors', async ({
   page,
 }, testInfo) => {
   const activate = async (locator: ReturnType<typeof page.getByRole>) => {
-    if (testInfo.project.name === 'mobile-chromium') await locator.tap()
+    if (testInfo.project.name.startsWith('mobile-')) await locator.tap()
     else await locator.click()
   }
   await page.goto('/__ui')
@@ -322,7 +322,7 @@ test('audio player supports playback, seeking and error retry', async ({
     timeout: 5_000,
   })
   const play = player.getByRole('button', { name: '播放音频' })
-  if (testInfo.project.name === 'mobile-chromium') await play.tap()
+  if (testInfo.project.name.startsWith('mobile-')) await play.tap()
   else await play.click()
   await expect(player.getByRole('button', { name: '暂停音频' })).toBeVisible()
   await player.getByRole('button', { name: '暂停音频' }).click()
@@ -388,7 +388,7 @@ test('mock workflow connects upload, task retry, cancellation and media preview'
 test('mobile controls are touchable without horizontal overflow', async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name !== 'mobile-chromium')
+  test.skip(!testInfo.project.name.startsWith('mobile-'))
   await page.goto('/__ui')
   await page.getByRole('button', { name: '打开面板' }).tap()
   await expect(page.getByRole('dialog', { name: '详情面板' })).toBeVisible()

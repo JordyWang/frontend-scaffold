@@ -19,23 +19,23 @@ pnpm dev:mock
 首次运行端到端测试前安装固定版本浏览器：
 
 ```bash
-pnpm exec playwright install chromium
+pnpm exec playwright install chromium webkit
 ```
 
 连接真实后端时，将 `.env.example` 复制为 `.env.development.local`，调整 `API_PROXY_TARGET`，然后运行 `pnpm dev`。浏览器通过 `/api` 请求接口，Vite 在开发环境中代理到后端。
 
 ## 常用命令
 
-| 命令             | 用途                                        |
-| ---------------- | ------------------------------------------- |
-| `pnpm dev`       | 使用真实接口启动开发服务                    |
-| `pnpm dev:mock`  | 使用 `src/mocks/data/*.json` 启动 Mock 模式 |
-| `pnpm lint`      | 检查代码规范                                |
-| `pnpm typecheck` | 检查 TypeScript 类型                        |
-| `pnpm test`      | 运行单元与组件测试                          |
-| `pnpm test:e2e`  | 在桌面和手机视口运行浏览器冒烟测试          |
-| `pnpm build`     | 生成生产构建                                |
-| `pnpm check`     | 一次执行 lint、类型、格式、单元测试和构建   |
+| 命令             | 用途                                                        |
+| ---------------- | ----------------------------------------------------------- |
+| `pnpm dev`       | 使用真实接口启动开发服务                                    |
+| `pnpm dev:mock`  | 使用 `src/mocks/data/*.json` 启动 Mock 模式                 |
+| `pnpm lint`      | 检查代码规范                                                |
+| `pnpm typecheck` | 检查 TypeScript 类型                                        |
+| `pnpm test`      | 运行单元与组件测试                                          |
+| `pnpm test:e2e`  | 在桌面 Chromium、手机 Chromium 和 WebKit 视口运行浏览器测试 |
+| `pnpm build`     | 生成生产构建                                                |
+| `pnpm check`     | 一次执行 lint、类型、格式、单元测试和构建                   |
 
 Mock 模式通过 MSW 拦截 `/api/*` 请求。修改 JSON 文件后刷新页面即可查看更新；未配置的接口会明确报错。音视频 Mock 数据的地址位于 `src/mocks/data/media.json`，样例媒体文件放在 `public/mock/media`。
 
