@@ -9,7 +9,7 @@
 | `shared/ui` | Button、Input、Textarea、FormField、Card、Empty、Select、Dialog、Sheet、Toast、Tabs、Pagination、List、基础 Table |
 | 公共交互    | Portal、ErrorBoundary、LoadingState、ErrorState、响应式 Container、焦点和 Escape 处理                             |
 | `files`     | 文件选择与拖放、类型/大小/尺寸/时长校验、预览、上传进度、取消、重试、XHR 传输适配                                 |
-| `ai`        | 任务状态机、提交/轮询/取消/重试、未知进度、AbortSignal、可选刷新恢复                                              |
+| `ai`        | 任务状态机、提交/轮询/取消/重试、未知进度、AbortSignal、可选刷新恢复；独立的对话 Mock、流式显示、取消和重试预览   |
 | `video`     | 播放、暂停、跳转、音量、静音、全屏、字幕、媒体错误和重试                                                          |
 | `audio`     | 播放、暂停、跳转、音量、静音、媒体错误和重试                                                                      |
 | `/__ui`     | 默认、禁用、加载、空、错误、取消、重试、键盘操作、触控和四种目标宽度                                              |
@@ -26,4 +26,4 @@ pnpm test:e2e    # 桌面与移动 Chromium 流程
 
 ## 阶段边界
 
-第一阶段不包含对话消息流、流式增量输出、模型选择、参数面板、音视频编辑器和真实业务 API。下一阶段在这些稳定契约之上实现 AI 对话交互，并继续通过独立能力模块接入业务页面。
+第一阶段已在 `/__ui` 提供对话消息流和流式 Mock，用于验证能力模块之间的协作；正式业务接入仍不包含模型选择、参数面板、音视频编辑器和真实业务 API。下一阶段在这些稳定契约之上接入真实 AI 服务，并继续通过独立能力模块组合业务页面。
