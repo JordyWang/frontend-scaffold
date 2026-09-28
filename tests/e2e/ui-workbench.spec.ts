@@ -280,6 +280,8 @@ test('keyboard controls retain focus and expose data states', async ({
 
   await page.getByRole('button', { name: '普通提示' }).click()
   await expect(page.getByText('信息提示')).toBeVisible()
+  await page.getByRole('button', { name: '警告提示' }).click()
+  await expect(page.getByText('需要注意')).toBeVisible()
 
   await page.getByRole('tab', { name: '总览' }).focus()
   await page.keyboard.press('ArrowRight')

@@ -424,6 +424,18 @@ export function DevWorkbenchPage() {
                   普通提示
                 </Button>
                 <Button
+                  variant="outline"
+                  onClick={() =>
+                    toast({
+                      title: '需要注意',
+                      description: '这是警告状态。',
+                      variant: 'warning',
+                    })
+                  }
+                >
+                  警告提示
+                </Button>
+                <Button
                   variant="destructive"
                   onClick={() =>
                     toast({
