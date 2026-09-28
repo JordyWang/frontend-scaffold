@@ -50,6 +50,7 @@ import {
   Tooltip,
   Typography,
   Upload,
+  notification,
   toast,
 } from '@/shared/ui'
 
@@ -333,6 +334,17 @@ export function DesignSystemPreview() {
                   >
                     <Button variant="destructive">确认操作</Button>
                   </Popconfirm>
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      notification.success({
+                        message: '通知已发送',
+                        description: 'Message-shaped notification API。',
+                      })
+                    }
+                  >
+                    通知示例
+                  </Button>
                 </Stack>
               </Stack>
             </CardContent>

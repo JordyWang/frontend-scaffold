@@ -701,6 +701,12 @@ test('overlay components keep focus, touch and safe-area behavior', async ({
   const tooltipTrigger = preview.getByRole('button', { name: '悬停或聚焦提示' })
   await tooltipTrigger.focus()
   await expect(page.getByRole('tooltip')).toBeVisible()
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await preview.getByRole('button', { name: '通知示例' }).tap()
+  } else {
+    await preview.getByRole('button', { name: '通知示例' }).click()
+  }
+  await expect(page.getByText('通知已发送')).toBeVisible()
 
   const confirmTrigger = preview.getByRole('button', { name: '确认操作' })
   if (testInfo.project.name.startsWith('mobile-')) {

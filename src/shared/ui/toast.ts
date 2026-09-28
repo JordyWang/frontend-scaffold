@@ -7,6 +7,10 @@ export type ToastOptions = {
   duration?: number
 }
 
+export type NotificationOptions = Omit<ToastOptions, 'title'> & {
+  message: string
+}
+
 export function toast({
   title,
   description,
@@ -22,4 +26,21 @@ export function toast({
 
 export function dismissToast(id?: string | number) {
   sonnerToast.dismiss(id)
+}
+
+/** Message-shaped notification API for pages that prefer Ant Design naming. */
+export const notification = {
+  open(options: NotificationOptions) {
+    return toast({ title: options.message, ...options })
+  },
+  success(options: Omit<NotificationOptions, 'variant'>) {
+    return toast({ title: options.message, ...options, variant: 'success' })
+  },
+  warning(options: Omit<NotificationOptions, 'variant'>) {
+    return toast({ title: options.message, ...options, variant: 'warning' })
+  },
+  error(options: Omit<NotificationOptions, 'variant'>) {
+    return toast({ title: options.message, ...options, variant: 'error' })
+  },
+  close: dismissToast,
 }
