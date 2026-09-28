@@ -430,6 +430,7 @@ export type TreeProps = {
   defaultExpandedKeys?: string[]
   onExpand?: (keys: string[]) => void
   selectedKey?: string
+  defaultSelectedKey?: string
   onSelect?: (key: string) => void
   label?: string
   className?: string
@@ -441,13 +442,18 @@ export function Tree({
   defaultExpandedKeys = [],
   onExpand,
   selectedKey,
+  defaultSelectedKey,
   onSelect,
   label = '树形导航',
   className,
 }: TreeProps) {
   const [internalExpanded, setInternalExpanded] = useState(defaultExpandedKeys)
+  const [internalSelected, setInternalSelected] = useState<string | undefined>(
+    defaultSelectedKey,
+  )
   const [focusedKey, setFocusedKey] = useState<string>()
   const expanded = expandedKeys ?? internalExpanded
+  const selected = selectedKey ?? internalSelected
   const id = useId()
   const treeRef = useRef<HTMLDivElement>(null)
   const focusWithinRef = useRef(false)
@@ -490,7 +496,7 @@ export function Tree({
     return nodes
   }, [expanded, treeData])
   const tabbableKey =
-    [focusedKey, selectedKey].find((key) =>
+    [focusedKey, selected].find((key) =>
       visibleNodes.some((node) => node.key === key && !node.disabled),
     ) ?? visibleNodes.find((node) => !node.disabled)?.key
 
@@ -535,6 +541,11 @@ export function Tree({
       : [...expanded, key]
     if (expandedKeys === undefined) setInternalExpanded(next)
     onExpand?.(next)
+  }
+
+  function select(key: string) {
+    if (selectedKey === undefined) setInternalSelected(key)
+    onSelect?.(key)
   }
 
   function focusNode(key: string | undefined) {
@@ -590,7 +601,7 @@ export function Tree({
       else focusNode(current.parentKey)
     } else if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
-      onSelect?.(node.key)
+      select(node.key)
     }
   }
 
@@ -609,7 +620,7 @@ export function Tree({
           className="ui-tree__item"
           tabIndex={node.disabled ? -1 : node.key === tabbableKey ? 0 : -1}
           aria-labelledby={`${panelId}-label`}
-          aria-selected={selectedKey === node.key}
+          aria-selected={selected === node.key}
           aria-expanded={hasChildren ? isExpanded : undefined}
           aria-disabled={node.disabled || undefined}
           aria-controls={hasChildren && isExpanded ? panelId : undefined}
@@ -626,7 +637,7 @@ export function Tree({
               if (node.disabled) return
               event.currentTarget.focus()
               if (event.target.closest('[data-tree-toggle]')) toggle(node.key)
-              else onSelect?.(node.key)
+              else select(node.key)
             }
           }}
           onKeyDown={(event) => handleNodeKeyDown(event, node)}
@@ -650,7 +661,7 @@ export function Tree({
               id={`${panelId}-label`}
               className={cn(
                 'ui-tree__label',
-                selectedKey === node.key && 'ui-tree__label--selected',
+                selected === node.key && 'ui-tree__label--selected',
               )}
             >
               {node.title}

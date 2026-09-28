@@ -458,6 +458,9 @@ select {
   cursor: not-allowed;
   opacity: 0.55;
 }
+.ui-input-number[aria-invalid='true'] {
+  border-color: var(--destructive);
+}
 .ui-slider {
   width: 100%;
   min-height: 44px;

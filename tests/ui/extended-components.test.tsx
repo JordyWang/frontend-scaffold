@@ -291,6 +291,55 @@ describe('Ant Design-inspired shared components', () => {
     expect(onSliderChange).toHaveBeenCalledWith(7)
   })
 
+  it('keeps uncontrolled autocomplete state and input-number errors semantic', () => {
+    const onAutoCompleteChange = vi.fn()
+    render(
+      <>
+        <AutoComplete
+          aria-label="城市"
+          defaultValue="上"
+          options={[{ value: '上海' }, { value: '北京' }]}
+          onChange={onAutoCompleteChange}
+        />
+        <FormField
+          label="数量"
+          error="数量不正确"
+          control={<InputNumber min={1} max={5} defaultValue={2} />}
+        />
+      </>,
+    )
+    const autocomplete = screen.getByRole('combobox', { name: '城市' })
+    expect(autocomplete).toHaveValue('上')
+    fireEvent.focus(autocomplete)
+    fireEvent.change(autocomplete, { target: { value: '北' } })
+    expect(autocomplete).toHaveValue('北')
+    expect(onAutoCompleteChange).toHaveBeenCalledWith('北')
+    expect(autocomplete).toHaveAttribute('aria-expanded', 'true')
+    const number = screen.getByRole('spinbutton', { name: '数量' })
+    expect(number).toHaveAttribute('aria-invalid', 'true')
+    expect(number.parentElement).toHaveAttribute('aria-invalid', 'true')
+  })
+
+  it('passes form semantics through the upload entry point', () => {
+    render(
+      <FormField
+        label="附件"
+        required
+        error="请上传附件"
+        control={<Upload label="选择附件" />}
+      />,
+    )
+    const input = document.querySelector('input[type="file"]')
+    expect(input).not.toBeNull()
+    expect(input).toBeRequired()
+    expect(input).toHaveAttribute('aria-invalid', 'true')
+    expect(input).toHaveAttribute('aria-describedby')
+    expect(screen.getByRole('button', { name: '选择附件' })).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    )
+  })
+
   it('keeps date, time, autocomplete, cascader and upload inputs semantic', () => {
     const onFiles = vi.fn()
     const onPathChange = vi.fn()
@@ -491,6 +540,24 @@ describe('Ant Design-inspired shared components', () => {
     expect(onSelect).toHaveBeenCalledTimes(2)
     fireEvent.click(root.querySelector('[data-tree-toggle]')!)
     expect(onExpand).toHaveBeenLastCalledWith([])
+  })
+
+  it('keeps tree selection in uncontrolled mode', () => {
+    render(
+      <Tree
+        defaultSelectedKey="leaf"
+        treeData={[
+          { key: 'leaf', title: '叶子' },
+          { key: 'other', title: '另一项' },
+        ]}
+      />,
+    )
+    const leaf = screen.getByRole('treeitem', { name: '叶子' })
+    const other = screen.getByRole('treeitem', { name: '另一项' })
+    expect(leaf).toHaveAttribute('aria-selected', 'true')
+    fireEvent.click(other)
+    expect(leaf).toHaveAttribute('aria-selected', 'false')
+    expect(other).toHaveAttribute('aria-selected', 'true')
   })
 
   it('keeps tree expansion controlled by expandedKeys', () => {

@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type FocusEventHandler,
   type InputHTMLAttributes,
   type ReactNode,
 } from 'react'
@@ -22,6 +23,7 @@ export type InputNumberProps = Omit<
   size?: 'default' | 'small'
   prefix?: React.ReactNode
   suffix?: React.ReactNode
+  invalid?: boolean
   onChange?: (value: number | undefined) => void
 }
 
@@ -37,6 +39,8 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
       size = 'default',
       prefix,
       suffix,
+      invalid,
+      'aria-invalid': ariaInvalid,
       className,
       onBlur,
       onChange,
@@ -80,6 +84,7 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
 
     return (
       <span
+        aria-invalid={invalid || ariaInvalid || undefined}
         className={cn('ui-input-number', `ui-input-number--${size}`, className)}
       >
         {prefix && <span className="ui-input-number__prefix">{prefix}</span>}
@@ -92,6 +97,7 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
           min={min}
           max={max}
           step={step}
+          aria-invalid={invalid || ariaInvalid || undefined}
           onChange={handleChange}
           onBlur={handleBlur}
         />
@@ -232,10 +238,12 @@ export const AutoComplete = forwardRef<HTMLInputElement, AutoCompleteProps>(
   ) {
     const id = useId()
     const [focused, setFocused] = useState(false)
+    const [internalValue, setInternalValue] = useState(defaultValue ?? '')
+    const currentValue = value ?? internalValue
     const filtered = options.filter((option) =>
       String(option.value)
         .toLocaleLowerCase()
-        .includes(String(value ?? defaultValue ?? '').toLocaleLowerCase()),
+        .includes(String(currentValue).toLocaleLowerCase()),
     )
     return (
       <>
@@ -246,10 +254,11 @@ export const AutoComplete = forwardRef<HTMLInputElement, AutoCompleteProps>(
           aria-label={props['aria-label'] ?? label}
           aria-autocomplete="list"
           aria-expanded={focused && filtered.length > 0}
+          aria-controls={focused && filtered.length > 0 ? id : undefined}
+          aria-haspopup="listbox"
           list={id}
           className={cn('ui-input', `ui-input--${size}`, className)}
-          value={value}
-          defaultValue={defaultValue}
+          value={value === undefined ? internalValue : value}
           onFocus={(event) => {
             setFocused(true)
             props.onFocus?.(event)
@@ -258,7 +267,11 @@ export const AutoComplete = forwardRef<HTMLInputElement, AutoCompleteProps>(
             setFocused(false)
             props.onBlur?.(event)
           }}
-          onChange={(event) => onChange?.(event.currentTarget.value)}
+          onChange={(event) => {
+            const next = event.currentTarget.value
+            if (value === undefined) setInternalValue(next)
+            onChange?.(next)
+          }}
         />
         <datalist id={id}>
           {options.map((option) => (
@@ -370,6 +383,15 @@ export type UploadProps = {
   disabled?: boolean
   label?: string
   children?: ReactNode
+  id?: string
+  name?: string
+  required?: boolean
+  'aria-describedby'?: string
+  'aria-invalid'?: boolean
+  'aria-label'?: string
+  onBlur?: FocusEventHandler<HTMLInputElement>
+  onFocus?: FocusEventHandler<HTMLInputElement>
+  tabIndex?: number
   beforeUpload?: (file: File) => boolean | Promise<boolean>
   onFiles?: (files: File[]) => void
   className?: string
@@ -381,6 +403,15 @@ export function Upload({
   disabled,
   label = '选择文件',
   children,
+  id,
+  name,
+  required,
+  'aria-describedby': ariaDescribedBy,
+  'aria-invalid': ariaInvalid,
+  'aria-label': ariaLabel,
+  onBlur,
+  onFocus,
+  tabIndex,
   beforeUpload,
   onFiles,
   className,
@@ -392,6 +423,15 @@ export function Upload({
         ref={inputRef}
         className="ui-upload__input"
         type="file"
+        id={id}
+        name={name}
+        required={required}
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={ariaInvalid || undefined}
+        aria-label={ariaLabel}
+        onBlur={onBlur}
+        onFocus={onFocus}
+        tabIndex={tabIndex}
         accept={accept}
         multiple={multiple}
         disabled={disabled}
@@ -409,6 +449,9 @@ export function Upload({
         type="button"
         variant="outline"
         disabled={disabled}
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={ariaInvalid || undefined}
+        aria-label={ariaLabel}
         onClick={() => inputRef.current?.click()}
       >
         {children ?? label}
