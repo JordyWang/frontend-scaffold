@@ -1,5 +1,52 @@
 import { expect, test } from '@playwright/test'
 
+test('design system controls support keyboard, touch and local themes', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const checkbox = preview.getByRole('checkbox', { name: '同意更新通知' })
+  const switchControl = preview.getByRole('switch', { name: '启用提醒' })
+  const theme = preview.getByRole('button', { name: '切换预览主题' })
+
+  if (testInfo.project.name === 'mobile-chromium') {
+    await preview.getByText('同意更新通知').tap()
+    await preview.getByText('启用提醒').tap()
+    await theme.tap()
+  } else {
+    await checkbox.focus()
+    await page.keyboard.press('Space')
+    await switchControl.focus()
+    await page.keyboard.press('Space')
+    await theme.click()
+  }
+  await expect(checkbox).toBeChecked()
+  await expect(switchControl).not.toBeChecked()
+  await expect(preview.getByText('当前：深色 · 常规')).toBeVisible()
+  await expect(preview.locator('[data-ui-theme="dark"]')).toHaveCount(1)
+
+  await preview.getByRole('button', { name: '切换预览密度' }).click()
+  await expect(preview.getByText('当前：深色 · 紧凑')).toBeVisible()
+  const radio = preview.getByRole('radio', { name: '网格' })
+  if (testInfo.project.name === 'mobile-chromium')
+    await preview.getByText('网格', { exact: true }).tap()
+  else {
+    await preview.getByRole('radio', { name: '列表' }).focus()
+    await page.keyboard.press('ArrowRight')
+  }
+  await expect(radio).toBeChecked()
+  for (const width of [360, 390, 768, 1280]) {
+    await page.setViewportSize({ width, height: 844 })
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(true)
+  }
+})
+
 test('keyboard controls retain focus and expose data states', async ({
   page,
 }, testInfo) => {
@@ -32,8 +79,14 @@ test('keyboard controls retain focus and expose data states', async ({
   )
 
   await page.getByRole('button', { name: '错误', exact: true }).click()
-  await expect(page.getByRole('alert')).toHaveCount(2)
-  await page.getByRole('button', { name: '重试' }).first().click()
+  await expect(
+    page.getByRole('region', { name: '导航与数据' }).getByRole('alert'),
+  ).toHaveCount(2)
+  await page
+    .getByRole('region', { name: '导航与数据' })
+    .getByRole('button', { name: '重试' })
+    .first()
+    .click()
   await expect(page.getByRole('list', { name: '示例任务' })).toBeVisible()
 })
 
@@ -48,7 +101,9 @@ test('file selection, cancellation and retry work in the preview', async ({
     mimeType: 'text/plain',
     buffer: Buffer.from('unsupported'),
   })
-  await expect(page.getByRole('alert')).toContainText('文件类型不受支持')
+  await expect(
+    page.getByRole('region', { name: '文件能力' }).getByRole('alert'),
+  ).toContainText('文件类型不受支持')
 
   const png = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==',

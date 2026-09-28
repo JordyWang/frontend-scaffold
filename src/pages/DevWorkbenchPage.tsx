@@ -24,6 +24,7 @@ import {
 import { VideoPlayer, VideoPoster } from '@/capabilities/video'
 import { AudioPlayer } from '@/capabilities/audio'
 import { MockWorkflowDemo } from './MockWorkflowDemo'
+import { DesignSystemPreview } from './DesignSystemPreview'
 import {
   Button,
   Card,
@@ -196,6 +197,8 @@ export function DevWorkbenchPage() {
             Tab、方向键、Enter、Space 与 Escape 验证键盘操作。
           </p>
         </header>
+
+        <DesignSystemPreview />
 
         <DemoSection
           title="基础展示与输入"

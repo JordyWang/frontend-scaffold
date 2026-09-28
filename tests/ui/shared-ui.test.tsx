@@ -2,13 +2,18 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import {
   Button,
+  Checkbox,
   ErrorBoundary,
   FormField,
+  Image,
   Input,
   List,
   Pagination,
   Portal,
+  RadioGroup,
+  Switch,
   Table,
+  ThemeScope,
 } from '@/shared/ui'
 
 describe('shared/ui contracts', () => {
@@ -125,5 +130,50 @@ describe('shared/ui contracts', () => {
     })
     expect(screen.getByText('恢复成功')).toBeInTheDocument()
     consoleError.mockRestore()
+  })
+
+  it('keeps local theme and density on their own scope', () => {
+    render(
+      <ThemeScope mode="dark" density="compact">
+        局部主题
+      </ThemeScope>,
+    )
+    const scope = screen.getByText('局部主题')
+    expect(scope).toHaveAttribute('data-ui-theme', 'dark')
+    expect(scope).toHaveAttribute('data-ui-density', 'compact')
+    expect(document.documentElement).not.toHaveAttribute('data-ui-theme')
+  })
+
+  it('uses native checkbox, radio and switch behavior', () => {
+    const onValueChange = vi.fn()
+    render(
+      <>
+        <Checkbox label="接收通知" />
+        <RadioGroup
+          label="布局"
+          options={[
+            { value: 'list', label: '列表' },
+            { value: 'grid', label: '网格' },
+          ]}
+          onValueChange={onValueChange}
+        />
+        <Switch label="启用提醒" />
+      </>,
+    )
+    fireEvent.click(screen.getByRole('checkbox', { name: '接收通知' }))
+    expect(screen.getByRole('checkbox', { name: '接收通知' })).toBeChecked()
+    fireEvent.click(screen.getByRole('radio', { name: '网格' }))
+    expect(onValueChange).toHaveBeenCalledWith('grid')
+    expect(screen.getByRole('radio', { name: '网格' })).toBeChecked()
+    fireEvent.click(screen.getByRole('switch', { name: '启用提醒' }))
+    expect(screen.getByRole('switch', { name: '启用提醒' })).toBeChecked()
+  })
+
+  it('replaces a failed image with labelled fallback', () => {
+    render(<Image src="/missing.png" alt="封面" fallback="图片不可用" />)
+    fireEvent.error(screen.getByRole('img', { name: '封面' }))
+    expect(screen.getByRole('img', { name: '封面' })).toHaveTextContent(
+      '图片不可用',
+    )
   })
 })

@@ -40,3 +40,24 @@ export { List } from './list'
 export type { ListProps } from './list'
 export { Table } from './table'
 export type { TableProps, TableColumn } from './table'
+export { ThemeScope } from './theme-scope'
+export type { ThemeScopeProps } from './theme-scope'
+export { Icon } from './icon'
+export type { IconProps } from './icon'
+export { Typography } from './typography'
+export type { TypographyProps } from './typography'
+export { Stack, Flex, Grid, Divider } from './layout'
+export type { StackProps, GridProps, DividerProps } from './layout'
+export { Checkbox, Radio, RadioGroup, Switch } from './choice'
+export type {
+  CheckboxProps,
+  RadioProps,
+  RadioGroupProps,
+  SwitchProps,
+} from './choice'
+export { Tag, Badge, Image, Skeleton } from './display'
+export type { TagProps, BadgeProps, ImageProps, SkeletonProps } from './display'
+export { Alert } from './alert'
+export type { AlertProps } from './alert'
+export { Spinner } from './spinner'
+export type { SpinnerProps } from './spinner'

@@ -1,6 +1,6 @@
 # Frontend Scaffold 设计基线
 
-本文件记录组件实现前的视觉与交互约定。它是中性的工程基线，不定义具体产品的品牌风格。实际代码中的变量以 `src/shared/styles/index.css` 为准。
+本文件记录项目组件库的视觉与交互约定。它是中性的工程基线，不定义具体产品的品牌风格。实际代码中的变量以 `src/shared/styles/index.css` 为准。主题结构参考 Ant Design 6 的 Seed、Map、Alias 与组件 Token 思路，项目没有引入 Ant Design 运行时。
 
 ## 设计变量
 
@@ -15,6 +15,8 @@
 | 危险状态 | `#b91c1c` | `#fca5a5` | `--destructive`      |
 
 字号以浏览器默认的 16px 为基础。正文行高建议至少 1.5；输入框字号不低于 16px。优先使用系统字体，组件不依赖远程字体资源。间距从 4、8、16、24、32px 扩展，圆角基准为 12px。
+
+`--ui-seed-*` 是主题输入；`--ui-map-*` 定义语义表面和状态；旧变量 `--background`、`--primary` 等是向现有组件兼容的 Alias；`--ui-button-radius`、`--ui-field-radius`、`--ui-card-radius` 是组件 Token。`ThemeScope` 可局部指定浅色、深色和紧凑模式，也可覆写 Seed。紧凑模式不缩小 44px 触控目标。
 
 ## 响应式与交互
 
