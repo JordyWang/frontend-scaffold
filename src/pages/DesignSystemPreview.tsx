@@ -531,6 +531,8 @@ export function DesignSystemPreview() {
             button: { radius: '999px', height: '48px' },
             field: { height: '48px' },
             card: { radius: '1rem' },
+            overlay: { radius: '1.25rem' },
+            menu: { radius: '0.75rem' },
           },
         }}
         className="rounded-xl border border-border p-4"
@@ -586,6 +588,16 @@ export function DesignSystemPreview() {
             <Card>
               <CardContent>继承卡片</CardContent>
             </Card>
+            <Dialog
+              title="组件 Token 对话框"
+              trigger={<Button variant="outline">打开组件 Token 对话框</Button>}
+            >
+              <Typography>Overlay Token 继承成功。</Typography>
+            </Dialog>
+            <Dropdown
+              trigger={<Button variant="outline">打开组件 Token 菜单</Button>}
+              items={[{ key: 'token', label: 'Token 菜单项' }]}
+            />
           </Stack>
         </ThemeScope>
       </ThemeScope>

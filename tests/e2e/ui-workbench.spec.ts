@@ -213,6 +213,29 @@ test('design system controls support keyboard, touch and local themes', async ({
   await expect(
     nestedScope.locator('.ui-card').filter({ hasText: '继承卡片' }),
   ).toHaveCSS('border-top-left-radius', '16px')
+  const tokenDialogTrigger = nestedScope.getByRole('button', {
+    name: '打开组件 Token 对话框',
+  })
+  if (testInfo.project.name.startsWith('mobile-'))
+    await tokenDialogTrigger.tap()
+  else await tokenDialogTrigger.click()
+  await expect(
+    page.getByRole('dialog', { name: '组件 Token 对话框' }),
+  ).toHaveCSS('border-top-left-radius', '20px')
+  await page
+    .getByRole('dialog', { name: '组件 Token 对话框' })
+    .getByRole('button', { name: '关闭对话框' })
+    .click()
+  const tokenMenuTrigger = nestedScope.getByRole('button', {
+    name: '打开组件 Token 菜单',
+  })
+  if (testInfo.project.name.startsWith('mobile-')) await tokenMenuTrigger.tap()
+  else await tokenMenuTrigger.click()
+  await expect(page.getByRole('menu', { name: '菜单' })).toHaveCSS(
+    'border-top-left-radius',
+    '12px',
+  )
+  await page.keyboard.press('Escape')
   const accentBefore = await brandedScope
     .getByText('派生高亮')
     .evaluate((element) => getComputedStyle(element).backgroundColor)

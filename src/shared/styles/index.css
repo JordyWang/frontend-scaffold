@@ -154,6 +154,8 @@
     calc(var(--radius) - var(--ui-radius-adjustment))
   );
   --ui-card-radius: var(--ui-card-radius-override, var(--radius));
+  --ui-overlay-radius: var(--ui-overlay-radius-override, var(--radius-lg));
+  --ui-menu-radius: var(--ui-menu-radius-override, var(--radius-md));
   --ui-control-height: var(--ui-field-height-override, 44px);
 }
 
@@ -658,6 +660,7 @@ select {
   background: var(--card);
   color: var(--card-foreground);
   box-shadow: 0 20px 50px rgb(0 0 0 / 0.2);
+  border-radius: var(--ui-overlay-radius);
 }
 .ui-dialog {
   top: 50%;
@@ -665,7 +668,6 @@ select {
   width: min(calc(100vw - 2rem), 32rem);
   max-height: min(90dvh, 46rem);
   transform: translate(-50%, -50%);
-  border-radius: var(--radius-lg);
 }
 .ui-dialog__head {
   display: flex;
@@ -718,7 +720,7 @@ select {
   left: 0;
   width: 100%;
   max-height: 85dvh;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-radius: var(--ui-overlay-radius) var(--ui-overlay-radius) 0 0;
 }
 .ui-sheet__body {
   flex: 1;
@@ -731,7 +733,7 @@ select {
     left: 0;
     width: 100%;
     max-height: 85dvh;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-radius: var(--ui-overlay-radius) var(--ui-overlay-radius) 0 0;
     padding-top: 0;
   }
 }
@@ -1336,11 +1338,16 @@ button.ui-steps__button {
   max-width: min(22rem, calc(100vw - 2rem));
   overflow: auto;
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
   background: var(--card);
   color: var(--card-foreground);
   box-shadow: 0 12px 30px rgb(0 0 0 / 0.16);
   padding: var(--space-xs);
+}
+.ui-dropdown__menu {
+  border-radius: var(--ui-menu-radius);
+}
+.ui-popover__content {
+  border-radius: var(--ui-overlay-radius);
 }
 .ui-dropdown__menu--bottom-start,
 .ui-popover__content--bottom-start {
@@ -1489,7 +1496,7 @@ button.ui-steps__button {
   align-items: center;
   gap: var(--space-sm);
   border: 0;
-  border-radius: var(--radius-sm);
+  border-radius: var(--ui-menu-radius);
   background: transparent;
   color: var(--foreground);
   padding: 0.625rem 0.75rem;

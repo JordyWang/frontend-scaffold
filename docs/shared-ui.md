@@ -42,7 +42,7 @@
 
 ## 主题变量
 
-设计变量按 **Seed → 语义 Map/Alias → 组件 Token** 组织。`--ui-seed-*` 控制品牌色、状态色和圆角；`--ui-map-*` 控制浅色/深色的表面、文字和边框，其中主色悬停/按下色及高亮色从主色 Seed 派生；`--ui-button-radius`、`--ui-button-height`、`--ui-field-radius`、`--ui-control-height`、`--ui-card-radius` 是组件级覆写点。既有 `--primary`、`--card` 等变量仍作为 Alias 使用，业务无需改动。
+设计变量按 **Seed → 语义 Map/Alias → 组件 Token** 组织。`--ui-seed-*` 控制品牌色、状态色和圆角；`--ui-map-*` 控制浅色/深色的表面、文字和边框，其中主色悬停/按下色及高亮色从主色 Seed 派生；`--ui-button-*`、`--ui-field-*`、`--ui-card-*`、`--ui-overlay-*`、`--ui-menu-*` 是组件级覆写点。既有 `--primary`、`--card` 等变量仍作为 Alias 使用，业务无需改动。
 
 ```tsx
 <ThemeScope mode="dark" density="compact" tokens={{ primary: '#5eead4' }}>
@@ -59,6 +59,8 @@
       button: { radius: '999px' },
       field: { height: '48px' },
       card: { radius: '1rem' },
+      overlay: { radius: '1.25rem' },
+      menu: { radius: '0.75rem' },
     },
   }}
 >

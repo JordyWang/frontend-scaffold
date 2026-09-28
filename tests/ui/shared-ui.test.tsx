@@ -210,6 +210,8 @@ describe('shared/ui contracts', () => {
             button: { radius: '999px', height: '48px' },
             field: { height: '48px' },
             card: { radius: '1rem' },
+            overlay: { radius: '1.25rem' },
+            menu: { radius: '0.75rem' },
           },
         }}
       >
@@ -226,6 +228,8 @@ describe('shared/ui contracts', () => {
     expect(scope).toHaveStyle({ '--ui-button-height-override': '48px' })
     expect(scope).toHaveStyle({ '--ui-field-height-override': '48px' })
     expect(scope).toHaveStyle({ '--ui-card-radius-override': '1rem' })
+    expect(scope).toHaveStyle({ '--ui-overlay-radius-override': '1.25rem' })
+    expect(scope).toHaveStyle({ '--ui-menu-radius-override': '0.75rem' })
     expect(document.documentElement).not.toHaveAttribute('data-ui-theme')
   })
 

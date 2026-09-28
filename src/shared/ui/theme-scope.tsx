@@ -18,6 +18,8 @@ export type ThemeTokens = {
     button?: { radius?: string; height?: string }
     field?: { radius?: string; height?: string }
     card?: { radius?: string }
+    overlay?: { radius?: string }
+    menu?: { radius?: string }
   }
 }
 
@@ -94,6 +96,12 @@ export function ThemeScope({
     }),
     ...(tokens?.components?.card?.radius && {
       '--ui-card-radius-override': tokens.components.card.radius,
+    }),
+    ...(tokens?.components?.overlay?.radius && {
+      '--ui-overlay-radius-override': tokens.components.overlay.radius,
+    }),
+    ...(tokens?.components?.menu?.radius && {
+      '--ui-menu-radius-override': tokens.components.menu.radius,
     }),
   } as CSSProperties
   return (
