@@ -8,12 +8,14 @@ import {
   Image,
   Input,
   List,
+  Modal,
   Pagination,
   Portal,
   RadioGroup,
   Switch,
   Table,
   ThemeScope,
+  Drawer,
 } from '@/shared/ui'
 
 describe('shared/ui contracts', () => {
@@ -224,6 +226,26 @@ describe('shared/ui contracts', () => {
     expect(scope).toHaveStyle({ '--ui-field-height-override': '48px' })
     expect(scope).toHaveStyle({ '--ui-card-radius-override': '1rem' })
     expect(document.documentElement).not.toHaveAttribute('data-ui-theme')
+  })
+
+  it('provides Ant Design semantic aliases without changing project APIs', () => {
+    render(
+      <>
+        <Modal
+          title="模态框"
+          trigger={<button type="button">打开模态框</button>}
+        >
+          内容
+        </Modal>
+        <Drawer title="抽屉" trigger={<button type="button">打开抽屉</button>}>
+          内容
+        </Drawer>
+      </>,
+    )
+    expect(
+      screen.getByRole('button', { name: '打开模态框' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '打开抽屉' })).toBeInTheDocument()
   })
 
   it('accepts explicit status foregrounds for non-hex theme values', () => {
