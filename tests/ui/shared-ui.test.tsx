@@ -114,6 +114,21 @@ describe('shared/ui contracts', () => {
     expect(onPageChange).toHaveBeenCalledWith(2)
   })
 
+  it('guards pagination against an invalid page size', () => {
+    const onPageChange = vi.fn()
+    render(
+      <Pagination
+        page={1}
+        pageSize={0}
+        total={2}
+        onPageChange={onPageChange}
+      />,
+    )
+    expect(screen.getByRole('button', { name: '下一页' })).toBeEnabled()
+    fireEvent.click(screen.getByRole('button', { name: '下一页' }))
+    expect(onPageChange).toHaveBeenCalledWith(2)
+  })
+
   it('shows loading, empty and error feedback for data components', () => {
     const columns = [
       {

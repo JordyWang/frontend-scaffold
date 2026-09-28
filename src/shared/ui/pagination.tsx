@@ -19,9 +19,10 @@ export function Pagination({
   loading,
   className,
 }: PaginationProps) {
-  const pages = Math.max(1, Math.ceil(total / pageSize))
+  const safePageSize = Math.max(1, pageSize)
+  const pages = Math.max(1, Math.ceil(total / safePageSize))
   const current = Math.min(Math.max(page, 1), pages)
-  if (total <= pageSize) return null
+  if (total <= safePageSize) return null
 
   if (mode === 'load-more') {
     return (

@@ -1,5 +1,9 @@
 import * as SelectPrimitive from '@radix-ui/react-select'
-import { forwardRef } from 'react'
+import {
+  forwardRef,
+  type FocusEventHandler,
+  type KeyboardEventHandler,
+} from 'react'
 import { cn } from '@/shared/lib/utils'
 import { CheckIcon } from './icons'
 import { usePortalContainer } from './portal-context'
@@ -18,6 +22,16 @@ export type SelectProps = {
   id?: string
   'aria-describedby'?: string
   'aria-invalid'?: boolean
+  'aria-label'?: string
+  'aria-labelledby'?: string
+  'aria-controls'?: string
+  autoFocus?: boolean
+  onBlur?: FocusEventHandler<HTMLButtonElement>
+  onFocus?: FocusEventHandler<HTMLButtonElement>
+  onKeyDown?: KeyboardEventHandler<HTMLButtonElement>
+  onKeyUp?: KeyboardEventHandler<HTMLButtonElement>
+  tabIndex?: number
+  title?: string
   className?: string
 }
 
