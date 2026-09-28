@@ -47,6 +47,7 @@ export function Segmented({
   'aria-invalid': ariaInvalid,
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
+  id,
   className,
   ...props
 }: SegmentedProps) {
@@ -81,10 +82,12 @@ export function Segmented({
       {options.map((option) => {
         const optionId = `${generatedName}-${encodeURIComponent(option.value)}`
         const optionDisabled = disabled || option.disabled
+        const inputId = id && option === options[0] ? id : optionId
+        const labelId = `${optionId}-label`
         return (
           <label
             key={option.value}
-            htmlFor={optionId}
+            htmlFor={inputId}
             className={cn(
               'ui-segmented__option',
               selected === option.value && 'ui-segmented__option--selected',
@@ -92,7 +95,7 @@ export function Segmented({
             )}
           >
             <input
-              id={optionId}
+              id={inputId}
               className="ui-segmented__input"
               type="radio"
               name={name ?? generatedName}
@@ -100,9 +103,18 @@ export function Segmented({
               checked={selected === option.value}
               disabled={optionDisabled}
               required={required}
+              aria-labelledby={labelId}
+              aria-describedby={
+                option === options[0] ? ariaDescribedBy : undefined
+              }
+              aria-invalid={
+                option === options[0] ? ariaInvalid || undefined : undefined
+              }
               onChange={handleChange}
             />
-            <span className="ui-segmented__label">{option.label}</span>
+            <span id={labelId} className="ui-segmented__label">
+              {option.label}
+            </span>
           </label>
         )
       })}

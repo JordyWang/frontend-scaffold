@@ -341,6 +341,28 @@ describe('Ant Design-inspired shared components', () => {
     expect(screen.getByRole('radio', { name: '列表' })).toBeChecked()
   })
 
+  it('connects segmented field semantics through FormField', () => {
+    render(
+      <FormField
+        label="展示方式"
+        error="请选择展示方式"
+        control={
+          <Segmented
+            options={[
+              { value: 'list', label: '列表' },
+              { value: 'grid', label: '网格' },
+            ]}
+          />
+        }
+      />,
+    )
+    const list = screen.getByRole('radio', { name: '列表' })
+    expect(list).toHaveAttribute('id')
+    expect(list).toHaveAttribute('aria-invalid', 'true')
+    expect(list).toHaveAttribute('aria-describedby')
+    expect(screen.getByRole('alert')).toHaveTextContent('请选择展示方式')
+  })
+
   it('keeps uncontrolled autocomplete state and input-number errors semantic', () => {
     const onAutoCompleteChange = vi.fn()
     render(
