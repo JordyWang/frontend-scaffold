@@ -19,6 +19,12 @@ test('system dark mode keeps local light surfaces and state colors distinct', as
     'background-color',
     'rgb(20, 83, 45)',
   )
+  await page.getByRole('button', { name: '普通提示' }).click()
+  const darkToast = page
+    .locator('[data-sonner-toast]')
+    .filter({ hasText: '信息提示' })
+  await expect(darkToast).toHaveCSS('background-color', 'rgb(30, 41, 59)')
+  await expect(darkToast).toHaveCSS('color', 'rgb(248, 250, 252)')
 })
 
 test('default status labels meet AA contrast in light and dark themes', async ({
@@ -536,6 +542,17 @@ test('mobile controls are touchable without horizontal overflow', async ({
 }, testInfo) => {
   test.skip(!testInfo.project.name.startsWith('mobile-'))
   await page.goto('/__ui')
+  await page.getByRole('button', { name: '普通提示' }).tap()
+  await expect
+    .poll(() =>
+      page
+        .locator('[data-sonner-toaster]')
+        .first()
+        .evaluate((element) =>
+          element.style.getPropertyValue('--mobile-offset-bottom'),
+        ),
+    )
+    .toContain('safe-area-inset-bottom')
   await page.getByRole('button', { name: '打开面板' }).tap()
   await expect(page.getByRole('dialog', { name: '详情面板' })).toBeVisible()
   await page.getByRole('button', { name: '关闭面板' }).tap()
