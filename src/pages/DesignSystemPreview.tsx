@@ -1,23 +1,34 @@
 import { useState } from 'react'
 import {
   Alert,
+  Affix,
+  Anchor,
   Avatar,
+  AutoComplete,
   Badge,
   Breadcrumb,
   Button,
   Card,
   CardContent,
   Checkbox,
+  Carousel,
   Collapse,
+  Cascader,
+  DatePicker,
   Descriptions,
   Dialog,
   Divider,
+  Dropdown,
+  FloatButton,
   FormField,
   Grid,
   Icon,
   Image,
   Input,
   InputNumber,
+  Menu,
+  Popconfirm,
+  Popover,
   Progress,
   RadioGroup,
   Result,
@@ -34,7 +45,11 @@ import {
   Tag,
   ThemeScope,
   Timeline,
+  TimePicker,
+  Tree,
+  Tooltip,
   Typography,
+  Upload,
   toast,
 } from '@/shared/ui'
 
@@ -239,6 +254,39 @@ export function DesignSystemPreview() {
                     />
                   }
                 />
+                <FormField
+                  label="开始日期"
+                  control={<DatePicker aria-label="开始日期" />}
+                />
+                <FormField
+                  label="开始时间"
+                  control={<TimePicker aria-label="开始时间" />}
+                />
+                <FormField
+                  label="城市"
+                  control={
+                    <AutoComplete
+                      aria-label="城市"
+                      options={[{ value: '上海' }, { value: '北京' }]}
+                    />
+                  }
+                />
+                <FormField
+                  label="地区"
+                  control={
+                    <Cascader
+                      label="地区"
+                      options={[
+                        {
+                          value: 'cn',
+                          label: '中国',
+                          children: [{ value: 'sh', label: '上海' }],
+                        },
+                      ]}
+                    />
+                  }
+                />
+                <Upload accept="image/*" label="上传图片" />
                 <Stack direction="row" wrap gap="sm">
                   <Dialog
                     title="局部对话框"
@@ -252,6 +300,39 @@ export function DesignSystemPreview() {
                   >
                     <Typography>面板继承当前主题。</Typography>
                   </Sheet>
+                </Stack>
+                <Stack direction="row" wrap gap="sm" align="center">
+                  <Dropdown
+                    trigger={<Button variant="outline">打开菜单</Button>}
+                    items={[
+                      {
+                        key: 'copy',
+                        label: '复制内容',
+                        onSelect: () => toast({ title: '已复制' }),
+                      },
+                      { key: 'delete', label: '删除内容', danger: true },
+                    ]}
+                  />
+                  <Popover
+                    title="补充说明"
+                    content="必要信息会直接展示，这里用于可选上下文。"
+                  >
+                    <Button variant="outline">查看说明</Button>
+                  </Popover>
+                  <Tooltip title="这是可选的上下文提示">
+                    <Button size="small" variant="ghost">
+                      悬停或聚焦提示
+                    </Button>
+                  </Tooltip>
+                  <Popconfirm
+                    title="确认删除？"
+                    description="删除后无法恢复。"
+                    onConfirm={() => {
+                      toast({ title: '已确认删除', variant: 'success' })
+                    }}
+                  >
+                    <Button variant="destructive">确认操作</Button>
+                  </Popconfirm>
                 </Stack>
               </Stack>
             </CardContent>
@@ -267,6 +348,31 @@ export function DesignSystemPreview() {
                     { title: '工作台' },
                     { title: '组件库' },
                     { title: '当前页' },
+                  ]}
+                />
+                <Affix offsetTop={8}>
+                  <Menu
+                    items={[
+                      { key: 'overview', label: '概览' },
+                      {
+                        key: 'settings',
+                        label: '设置',
+                        children: [{ key: 'theme', label: '主题' }],
+                      },
+                    ]}
+                  />
+                </Affix>
+                <Anchor
+                  activeHref="#preview-result"
+                  links={[
+                    { href: '#preview-result', title: '结果' },
+                    { href: '#preview-timeline', title: '时间线' },
+                  ]}
+                />
+                <Carousel
+                  items={[
+                    <Typography key="one">第一张预览</Typography>,
+                    <Typography key="two">第二张预览</Typography>,
                   ]}
                 />
                 <Steps
@@ -339,22 +445,24 @@ export function DesignSystemPreview() {
                   />
                   <Statistic title="完成率" value={volume} suffix="%" />
                 </Stack>
-                <Timeline
-                  items={[
-                    {
-                      key: 'submitted',
-                      title: '已提交',
-                      children: '刚刚',
-                      color: 'success',
-                    },
-                    {
-                      key: 'processing',
-                      title: '处理中',
-                      children: '等待结果',
-                      color: 'primary',
-                    },
-                  ]}
-                />
+                <div id="preview-timeline">
+                  <Timeline
+                    items={[
+                      {
+                        key: 'submitted',
+                        title: '已提交',
+                        children: '刚刚',
+                        color: 'success',
+                      },
+                      {
+                        key: 'processing',
+                        title: '处理中',
+                        children: '等待结果',
+                        color: 'primary',
+                      },
+                    ]}
+                  />
+                </div>
                 <Collapse
                   defaultActiveKey={['notes']}
                   items={[
@@ -366,16 +474,39 @@ export function DesignSystemPreview() {
                     },
                   ]}
                 />
-                <Result
-                  status={step === 2 ? 'success' : 'info'}
-                  title={step === 2 ? '流程已完成' : '流程进行中'}
-                  subTitle="点击步骤或按钮检查受控状态。"
+                <div id="preview-result">
+                  <Result
+                    status={step === 2 ? 'success' : 'info'}
+                    title={step === 2 ? '流程已完成' : '流程进行中'}
+                    subTitle="点击步骤或按钮检查受控状态。"
+                  />
+                </div>
+                <Tree
+                  treeData={[
+                    {
+                      key: 'components',
+                      title: '组件',
+                      children: [
+                        { key: 'button', title: 'Button' },
+                        { key: 'input', title: 'Input' },
+                      ],
+                    },
+                  ]}
+                  defaultExpandedKeys={['components']}
                 />
               </Stack>
             </CardContent>
           </Card>
         </Grid>
       </ThemeScope>
+      <FloatButton
+        label="回到顶部"
+        onClick={() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        }}
+      >
+        ↑
+      </FloatButton>
       <ThemeScope
         mode={mode === 'light' ? 'dark' : 'light'}
         density="compact"

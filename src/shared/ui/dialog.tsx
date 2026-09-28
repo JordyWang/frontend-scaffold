@@ -5,7 +5,7 @@ import { CloseIcon } from './icons'
 import { usePortalContainer } from './portal-context'
 
 export type DialogProps = {
-  title: string
+  title: ReactNode
   description?: string
   trigger?: ReactElement
   children: ReactNode

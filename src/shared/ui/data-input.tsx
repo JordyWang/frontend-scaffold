@@ -1,11 +1,14 @@
 import {
   forwardRef,
-  useEffect,
+  useId,
+  useRef,
   useState,
   type ChangeEvent,
   type InputHTMLAttributes,
+  type ReactNode,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { Button } from './button'
 
 export type InputNumberProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
@@ -41,15 +44,10 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
     },
     ref,
   ) {
-    const [internal, setInternal] = useState<number | undefined>(defaultValue)
-    const current = value ?? internal
     const [draft, setDraft] = useState(
-      current === undefined ? '' : String(current),
+      defaultValue === undefined ? '' : String(defaultValue),
     )
-
-    useEffect(() => {
-      setDraft(current === undefined ? '' : String(current))
-    }, [current])
+    const displayed = value === undefined ? draft : String(value)
 
     function clamp(next: number) {
       return Math.min(
@@ -64,18 +62,18 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
       const parsed = raw === '' ? undefined : Number(raw)
       if (parsed !== undefined && !Number.isFinite(parsed)) return
       const next = parsed === undefined ? undefined : clamp(parsed)
-      if (value === undefined) setInternal(next)
       onChange?.(next)
     }
 
     function handleBlur(event: React.FocusEvent<HTMLInputElement>) {
-      const parsed = draft === '' ? undefined : Number(draft)
+      const parsed = displayed === '' ? undefined : Number(displayed)
       const next =
         parsed === undefined || !Number.isFinite(parsed)
           ? undefined
           : clamp(parsed)
-      setDraft(next === undefined ? '' : String(next))
-      if (value === undefined) setInternal(next)
+      if (value === undefined) {
+        setDraft(next === undefined ? '' : String(next))
+      }
       if (next !== parsed) onChange?.(next)
       onBlur?.(event)
     }
@@ -90,7 +88,7 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
           ref={ref}
           type="number"
           className="ui-input-number__input"
-          value={draft}
+          value={displayed}
           min={min}
           max={max}
           step={step}
@@ -151,3 +149,255 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(function Slider(
     />
   )
 })
+
+type NativePickerProps = Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  'type' | 'value' | 'defaultValue' | 'onChange' | 'size'
+> & {
+  value?: string
+  defaultValue?: string
+  size?: 'default' | 'small'
+  onChange?: (value: string) => void
+}
+
+const NativePicker = forwardRef<
+  HTMLInputElement,
+  NativePickerProps & { type: 'date' | 'time' }
+>(function NativePicker(
+  {
+    type,
+    value,
+    defaultValue,
+    size = 'default',
+    onChange,
+    className,
+    ...props
+  },
+  ref,
+) {
+  return (
+    <input
+      {...props}
+      ref={ref}
+      type={type}
+      className={cn('ui-input', `ui-input--${size}`, className)}
+      value={value}
+      defaultValue={defaultValue}
+      onChange={(event) => onChange?.(event.currentTarget.value)}
+    />
+  )
+})
+
+export type DatePickerProps = NativePickerProps
+export type TimePickerProps = NativePickerProps
+
+export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
+  function DatePicker(props, ref) {
+    return <NativePicker {...props} ref={ref} type="date" />
+  },
+)
+
+export const TimePicker = forwardRef<HTMLInputElement, TimePickerProps>(
+  function TimePicker(props, ref) {
+    return <NativePicker {...props} ref={ref} type="time" />
+  },
+)
+
+export type AutoCompleteOption = { value: string; label?: ReactNode }
+export type AutoCompleteProps = Omit<
+  InputHTMLAttributes<HTMLInputElement>,
+  'value' | 'defaultValue' | 'onChange' | 'size'
+> & {
+  options: AutoCompleteOption[]
+  value?: string
+  defaultValue?: string
+  size?: 'default' | 'small'
+  onChange?: (value: string) => void
+  label?: string
+}
+
+export const AutoComplete = forwardRef<HTMLInputElement, AutoCompleteProps>(
+  function AutoComplete(
+    {
+      options,
+      value,
+      defaultValue,
+      size = 'default',
+      onChange,
+      label = '自动完成',
+      className,
+      ...props
+    },
+    ref,
+  ) {
+    const id = useId()
+    const [focused, setFocused] = useState(false)
+    const filtered = options.filter((option) =>
+      String(option.value)
+        .toLocaleLowerCase()
+        .includes(String(value ?? defaultValue ?? '').toLocaleLowerCase()),
+    )
+    return (
+      <>
+        <input
+          {...props}
+          ref={ref}
+          role="combobox"
+          aria-label={props['aria-label'] ?? label}
+          aria-autocomplete="list"
+          aria-expanded={focused && filtered.length > 0}
+          list={id}
+          className={cn('ui-input', `ui-input--${size}`, className)}
+          value={value}
+          defaultValue={defaultValue}
+          onFocus={(event) => {
+            setFocused(true)
+            props.onFocus?.(event)
+          }}
+          onBlur={(event) => {
+            setFocused(false)
+            props.onBlur?.(event)
+          }}
+          onChange={(event) => onChange?.(event.currentTarget.value)}
+        />
+        <datalist id={id}>
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </datalist>
+      </>
+    )
+  },
+)
+
+export type CascaderOption = {
+  value: string
+  label: ReactNode
+  children?: CascaderOption[]
+  disabled?: boolean
+}
+export type CascaderProps = {
+  options: CascaderOption[]
+  value?: string[]
+  defaultValue?: string[]
+  onChange?: (value: string[]) => void
+  label?: string
+  disabled?: boolean
+  className?: string
+}
+
+function optionsAt(options: CascaderOption[], path: string[], depth: number) {
+  let current = options
+  for (let index = 0; index < depth; index += 1) {
+    const selected = current.find((option) => option.value === path[index])
+    current = selected?.children ?? []
+  }
+  return current
+}
+
+export function Cascader({
+  options,
+  value,
+  defaultValue = [],
+  onChange,
+  label = '级联选择',
+  disabled,
+  className,
+}: CascaderProps) {
+  const [internal, setInternal] = useState(defaultValue)
+  const path = value ?? internal
+  const selects: ReactNode[] = []
+  let depthIndex = 0
+  while (
+    depthIndex === 0 ||
+    optionsAt(options, path, depthIndex - 1).some((item) => item.children)
+  ) {
+    const depth = depthIndex
+    const choices = optionsAt(options, path, depth)
+    if (!choices.length) break
+    const selected = path[depth] ?? ''
+    selects.push(
+      <select
+        key={depth}
+        className="ui-select ui-cascader__select"
+        aria-label={`${label}${depth ? `第${depth + 1}级` : ''}`}
+        value={selected}
+        disabled={disabled}
+        onChange={(event) => {
+          const next = [...path.slice(0, depth), event.currentTarget.value]
+          if (value === undefined) setInternal(next)
+          onChange?.(next)
+        }}
+      >
+        <option value="">请选择</option>
+        {choices.map((option) => (
+          <option
+            key={option.value}
+            value={option.value}
+            disabled={option.disabled}
+          >
+            {option.label}
+          </option>
+        ))}
+      </select>,
+    )
+    if (!selected) break
+    depthIndex += 1
+  }
+  return <div className={cn('ui-cascader', className)}>{selects}</div>
+}
+
+export type UploadProps = {
+  accept?: string
+  multiple?: boolean
+  disabled?: boolean
+  label?: string
+  children?: ReactNode
+  beforeUpload?: (file: File) => boolean | Promise<boolean>
+  onFiles?: (files: File[]) => void
+  className?: string
+}
+
+export function Upload({
+  accept,
+  multiple = false,
+  disabled,
+  label = '选择文件',
+  children,
+  beforeUpload,
+  onFiles,
+  className,
+}: UploadProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  return (
+    <div className={cn('ui-upload', className)}>
+      <input
+        ref={inputRef}
+        className="ui-upload__input"
+        type="file"
+        accept={accept}
+        multiple={multiple}
+        disabled={disabled}
+        onChange={async (event) => {
+          const files = Array.from(event.currentTarget.files ?? [])
+          const accepted: File[] = []
+          for (const file of files) {
+            if (!beforeUpload || (await beforeUpload(file))) accepted.push(file)
+          }
+          onFiles?.(accepted)
+          event.currentTarget.value = ''
+        }}
+      />
+      <Button
+        type="button"
+        variant="outline"
+        disabled={disabled}
+        onClick={() => inputRef.current?.click()}
+      >
+        {children ?? label}
+      </Button>
+    </div>
+  )
+}

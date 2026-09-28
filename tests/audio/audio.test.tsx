@@ -80,6 +80,11 @@ describe('AudioPlayer', () => {
       target: { value: '2' },
     })
     expect(audio.currentTime).toBe(2)
+    Object.defineProperty(audio, 'duration', { configurable: true, value: 0 })
+    fireEvent.change(screen.getByRole('slider', { name: /音频进度/ }), {
+      target: { value: '3' },
+    })
+    expect(audio.currentTime).toBe(3)
     fireEvent.click(screen.getByRole('button', { name: '静音音频' }))
     expect(screen.getByRole('button', { name: '取消静音' })).toBeInTheDocument()
     fireEvent.ended(audio)

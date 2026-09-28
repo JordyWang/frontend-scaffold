@@ -1,11 +1,22 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import {
+  Affix,
+  Anchor,
   Avatar,
+  AutoComplete,
+  Cascader,
   Breadcrumb,
+  Carousel,
   Collapse,
   Descriptions,
+  DatePicker,
+  Dropdown,
+  FloatButton,
   InputNumber,
+  Menu,
+  Popconfirm,
+  Popover,
   Progress,
   Result,
   Space,
@@ -13,6 +24,10 @@ import {
   Slider,
   Statistic,
   Timeline,
+  TimePicker,
+  Tree,
+  Tooltip,
+  Upload,
 } from '@/shared/ui'
 
 describe('Ant Design-inspired shared components', () => {
@@ -138,6 +153,44 @@ describe('Ant Design-inspired shared components', () => {
     expect(onSliderChange).toHaveBeenCalledWith(7)
   })
 
+  it('keeps date, time, autocomplete, cascader and upload inputs semantic', () => {
+    const onFiles = vi.fn()
+    const onPathChange = vi.fn()
+    render(
+      <>
+        <DatePicker aria-label="开始日期" defaultValue="2026-09-28" />
+        <TimePicker aria-label="开始时间" defaultValue="09:30" />
+        <AutoComplete
+          aria-label="城市"
+          options={[{ value: '上海' }, { value: '北京' }]}
+        />
+        <Cascader
+          label="地区"
+          onChange={onPathChange}
+          options={[
+            {
+              value: 'cn',
+              label: '中国',
+              children: [{ value: 'sh', label: '上海' }],
+            },
+          ]}
+        />
+        <Upload onFiles={onFiles} accept="image/*">
+          上传
+        </Upload>
+      </>,
+    )
+    expect(screen.getByLabelText('开始日期')).toHaveValue('2026-09-28')
+    expect(screen.getByLabelText('开始时间')).toHaveValue('09:30')
+    expect(screen.getByRole('combobox', { name: '城市' })).toHaveAttribute(
+      'list',
+    )
+    const region = screen.getByRole('combobox', { name: '地区' })
+    fireEvent.change(region, { target: { value: 'cn' } })
+    expect(onPathChange).toHaveBeenCalledWith(['cn'])
+    expect(screen.getByRole('button', { name: '上传' })).toBeInTheDocument()
+  })
+
   it('renders readable statistics and an ordered timeline', () => {
     render(
       <>
@@ -153,5 +206,89 @@ describe('Ant Design-inspired shared components', () => {
     expect(screen.getByText('0.99')).toBeInTheDocument()
     expect(screen.getByRole('list')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: '提交' })).toBeInTheDocument()
+  })
+
+  it('keeps overlay interactions keyboard accessible', async () => {
+    const onSelect = vi.fn()
+    const onConfirm = vi.fn()
+    render(
+      <>
+        <Dropdown
+          trigger={<button type="button">更多</button>}
+          items={[
+            { key: 'one', label: '第一项' },
+            { key: 'two', label: '第二项', onSelect },
+          ]}
+        />
+        <Popover content="上下文内容">
+          <button type="button">说明</button>
+        </Popover>
+        <Tooltip title="键盘提示">
+          <button type="button">提示</button>
+        </Tooltip>
+        <Popconfirm title="确认？" onConfirm={onConfirm}>
+          <button type="button">删除</button>
+        </Popconfirm>
+        <FloatButton label="回到顶部">↑</FloatButton>
+      </>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '更多' }))
+    expect(screen.getByRole('menu', { name: '菜单' })).toBeVisible()
+    fireEvent.click(screen.getByRole('menuitem', { name: '第二项' }))
+    expect(onSelect).toHaveBeenCalledOnce()
+
+    fireEvent.click(screen.getByRole('button', { name: '说明' }))
+    expect(screen.getByRole('dialog')).toHaveTextContent('上下文内容')
+    fireEvent.click(screen.getByRole('button', { name: '说明' }))
+    fireEvent.focus(screen.getByRole('button', { name: '提示' }))
+    expect(screen.getByRole('tooltip')).toHaveTextContent('键盘提示')
+
+    fireEvent.click(screen.getByRole('button', { name: '删除' }))
+    expect(screen.getByRole('dialog')).toHaveTextContent('确认？')
+    fireEvent.click(screen.getByRole('button', { name: '确定' }))
+    expect(onConfirm).toHaveBeenCalledOnce()
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    )
+    expect(screen.getByRole('button', { name: '回到顶部' })).toBeInTheDocument()
+  })
+
+  it('exposes navigation, carousel and tree semantics', () => {
+    const onSelect = vi.fn()
+    render(
+      <>
+        <Menu
+          onSelect={onSelect}
+          items={[
+            { key: 'home', label: '首页' },
+            { key: 'settings', label: '设置' },
+          ]}
+        />
+        <Anchor links={[{ href: '#one', title: '第一节' }]} activeHref="#one" />
+        <Affix offsetTop={12}>固定内容</Affix>
+        <Carousel items={['一', '二']} />
+        <Tree
+          defaultExpandedKeys={['root']}
+          treeData={[
+            {
+              key: 'root',
+              title: '根节点',
+              children: [{ key: 'leaf', title: '叶子' }],
+            },
+          ]}
+        />
+      </>,
+    )
+    fireEvent.click(screen.getByRole('menuitem', { name: '设置' }))
+    expect(onSelect).toHaveBeenCalledWith('settings')
+    expect(
+      screen.getByRole('navigation', { name: '页内导航' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: '轮播内容' })).toHaveAttribute(
+      'aria-roledescription',
+      'carousel',
+    )
+    expect(screen.getByRole('tree', { name: '树形导航' })).toBeInTheDocument()
+    expect(screen.getByRole('treeitem', { name: '叶子' })).toBeInTheDocument()
   })
 })

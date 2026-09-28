@@ -79,11 +79,49 @@ export type {
   DescriptionItem,
   DescriptionsProps,
 } from './display-extended'
-export { InputNumber, Slider } from './data-input'
-export type { InputNumberProps, SliderProps } from './data-input'
+export {
+  AutoComplete,
+  Cascader,
+  DatePicker,
+  InputNumber,
+  Slider,
+  TimePicker,
+  Upload,
+} from './data-input'
+export type {
+  AutoCompleteOption,
+  AutoCompleteProps,
+  CascaderOption,
+  CascaderProps,
+  DatePickerProps,
+  InputNumberProps,
+  SliderProps,
+  TimePickerProps,
+  UploadProps,
+} from './data-input'
 export { Statistic, Timeline } from './data-display'
 export type {
   StatisticProps,
   TimelineItem,
   TimelineProps,
 } from './data-display'
+export { Dropdown, FloatButton, Popconfirm, Popover, Tooltip } from './overlay'
+export type {
+  DropdownItem,
+  DropdownProps,
+  FloatButtonProps,
+  PopconfirmProps,
+  PopoverProps,
+  TooltipProps,
+} from './overlay'
+export { Affix, Anchor, Carousel, Menu, Tree } from './navigation-extended'
+export type {
+  AffixProps,
+  AnchorLink,
+  AnchorProps,
+  CarouselProps,
+  MenuItem,
+  MenuProps,
+  TreeNode,
+  TreeProps,
+} from './navigation-extended'

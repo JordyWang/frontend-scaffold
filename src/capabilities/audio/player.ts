@@ -152,18 +152,23 @@ export function useAudioPlayer({
     return true
   }, [pause, play])
 
-  const seek = useCallback((time: number) => {
-    const audio = audioRef.current
-    if (!audio) return
-    const max =
-      Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0
-    const nextTime = Math.min(
-      max,
-      Math.max(0, Number.isFinite(time) ? time : 0),
-    )
-    audio.currentTime = nextTime
-    dispatch({ type: 'time-update', currentTime: nextTime })
-  }, [])
+  const seek = useCallback(
+    (time: number) => {
+      const audio = audioRef.current
+      if (!audio) return
+      const max =
+        Number.isFinite(audio.duration) && audio.duration > 0
+          ? audio.duration
+          : state.duration
+      const nextTime = Math.min(
+        max,
+        Math.max(0, Number.isFinite(time) ? time : 0),
+      )
+      audio.currentTime = nextTime
+      dispatch({ type: 'time-update', currentTime: nextTime })
+    },
+    [state.duration],
+  )
 
   const seekBy = useCallback(
     (seconds: number) => seek((audioRef.current?.currentTime ?? 0) + seconds),

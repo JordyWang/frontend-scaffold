@@ -327,7 +327,10 @@ test('file selection, cancellation and retry work in the preview', async ({
   page,
 }) => {
   await page.goto('/__ui')
-  const input = page.locator('input[type=file]').first()
+  const input = page
+    .getByRole('region', { name: '文件能力' })
+    .locator('input[type=file]')
+    .first()
 
   await input.setInputFiles({
     name: 'note.txt',
@@ -659,4 +662,58 @@ test('extended navigation and feedback components expose responsive semantics', 
       document.documentElement.clientWidth,
   )
   expect(overflow).toBe(false)
+})
+
+test('overlay components keep focus, touch and safe-area behavior', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const openMenu = preview.getByRole('button', { name: '打开菜单' })
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await openMenu.tap()
+  } else {
+    await openMenu.click()
+  }
+  await expect(preview.getByRole('menu', { name: '菜单' })).toBeVisible()
+  const firstMenuItem = preview.getByRole('menuitem', { name: '复制内容' })
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await firstMenuItem.tap()
+  } else {
+    await firstMenuItem.click()
+  }
+
+  const popoverTrigger = preview.getByRole('button', { name: '查看说明' })
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await popoverTrigger.tap()
+  } else {
+    await popoverTrigger.click()
+  }
+  await expect(
+    page.getByRole('dialog').filter({ hasText: '必要信息会直接展示' }),
+  ).toBeVisible()
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await popoverTrigger.tap()
+  } else {
+    await popoverTrigger.click()
+  }
+
+  const tooltipTrigger = preview.getByRole('button', { name: '悬停或聚焦提示' })
+  await tooltipTrigger.focus()
+  await expect(page.getByRole('tooltip')).toBeVisible()
+
+  const confirmTrigger = preview.getByRole('button', { name: '确认操作' })
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await confirmTrigger.tap()
+  } else {
+    await confirmTrigger.click()
+  }
+  await expect(page.getByRole('dialog', { name: '确认删除？' })).toBeVisible()
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await page.getByRole('button', { name: '取消' }).tap()
+  } else {
+    await page.getByRole('button', { name: '取消' }).click()
+  }
+  await expect(page.getByRole('dialog', { name: '确认删除？' })).toHaveCount(0)
+  await expect(preview.getByRole('button', { name: '回到顶部' })).toBeVisible()
 })
