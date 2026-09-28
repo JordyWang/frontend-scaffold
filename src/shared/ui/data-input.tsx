@@ -311,6 +311,7 @@ export type CascaderProps = {
   required?: boolean
   'aria-describedby'?: string
   'aria-invalid'?: boolean
+  'aria-labelledby'?: string
   disabled?: boolean
   className?: string
 }
@@ -335,6 +336,7 @@ export function Cascader({
   required,
   'aria-describedby': ariaDescribedBy,
   'aria-invalid': ariaInvalid,
+  'aria-labelledby': ariaLabelledBy,
   disabled,
   className,
 }: CascaderProps) {
@@ -359,6 +361,7 @@ export function Cascader({
         required={depth === 0 ? required : undefined}
         aria-describedby={depth === 0 ? ariaDescribedBy : undefined}
         aria-invalid={depth === 0 ? ariaInvalid : undefined}
+        aria-labelledby={depth === 0 ? ariaLabelledBy : undefined}
         aria-label={`${label}${depth ? `第${depth + 1}级` : ''}`}
         value={selected}
         disabled={disabled}
@@ -398,6 +401,7 @@ export type UploadProps = {
   'aria-describedby'?: string
   'aria-invalid'?: boolean
   'aria-label'?: string
+  'aria-labelledby'?: string
   onBlur?: FocusEventHandler<HTMLInputElement>
   onFocus?: FocusEventHandler<HTMLInputElement>
   tabIndex?: number
@@ -418,6 +422,7 @@ export function Upload({
   'aria-describedby': ariaDescribedBy,
   'aria-invalid': ariaInvalid,
   'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
   onBlur,
   onFocus,
   tabIndex,
@@ -438,6 +443,7 @@ export function Upload({
         aria-describedby={ariaDescribedBy}
         aria-invalid={ariaInvalid || undefined}
         aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
         onBlur={onBlur}
         onFocus={onFocus}
         tabIndex={tabIndex ?? -1}

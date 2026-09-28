@@ -73,6 +73,7 @@ export type RadioGroupProps = {
   required?: boolean
   'aria-describedby'?: string
   'aria-invalid'?: boolean
+  'aria-labelledby'?: string
   disabled?: boolean
   className?: string
 }
@@ -88,6 +89,7 @@ export function RadioGroup({
   required,
   'aria-describedby': describedBy,
   'aria-invalid': invalid,
+  'aria-labelledby': labelledBy,
   disabled,
   className,
 }: RadioGroupProps) {
@@ -99,6 +101,7 @@ export function RadioGroup({
       disabled={disabled}
       aria-describedby={describedBy}
       aria-invalid={invalid || undefined}
+      aria-labelledby={labelledBy}
     >
       <legend className="ui-radio-group__legend">
         {label}

@@ -261,6 +261,13 @@ test('design system controls support keyboard, touch and local themes', async ({
   await expect(segmented.getByRole('radio', { name: '宽卡片' })).toBeChecked()
   await expect(compactView).not.toBeChecked()
 
+  const rating = preview.getByRole('radiogroup', { name: '满意度' })
+  const satisfied = rating.getByRole('radio', { name: '满意', exact: true })
+  const satisfiedOption = rating.locator('label').nth(3)
+  if (testInfo.project.name.startsWith('mobile-')) await satisfiedOption.tap()
+  else await satisfiedOption.click()
+  await expect(satisfied).toBeChecked()
+
   const scopedSelect = preview.getByRole('combobox', { name: '局部选择' })
   if (testInfo.project.name.startsWith('mobile-')) await scopedSelect.tap()
   else await scopedSelect.click()
@@ -648,7 +655,7 @@ test('mobile controls are touchable without horizontal overflow', async ({
       document.documentElement.clientWidth,
     smallTargets: [
       ...document.querySelectorAll(
-        'button,[role=combobox],[role=tab],.ui-choice,.ui-switch,.ui-segmented__option',
+        'button,[role=combobox],[role=tab],.ui-choice,.ui-switch,.ui-segmented__option,.ui-rate__option',
       ),
     ]
       .filter((element) => {

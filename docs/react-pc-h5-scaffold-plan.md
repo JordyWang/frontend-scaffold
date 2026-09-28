@@ -92,7 +92,7 @@ P0 是第一版脚手架必须提供的基础组件；P1 在出现对应业务�
 
 `FormField` 负责标签、说明和错误信息的展示；数据校验仍由 Zod 定义。`Table` 的 P0 范围是表头、行、空状态和基础加载状态。排序、筛选、固定列、虚拟滚动等能力应由实际业务需求决定，避免预先做成难以维护的通用表格。
 
-在 P0 稳定后，首批 P1 通用能力已按同一套项目 API 接入：`Space`、`Breadcrumb`、`Steps`、`Progress`、`Result`、`Collapse`、`Avatar`、`Descriptions`、`Statistic`、`Timeline`、`Dropdown`、`Tooltip`、`Popover`、`Popconfirm`、`Notification`、`FloatButton`、`InputNumber`、`Slider`、`DatePicker`、`TimePicker`、`AutoComplete`、`Cascader`、`Upload`、`Menu`、`Anchor`、`Affix`、`Carousel` 和 `Tree`。这些组件先覆盖语义、状态和响应式布局，复杂的数据编辑和远程上传策略仍按真实页面需求加入。
+在 P0 稳定后，首批 P1 通用能力已按同一套项目 API 接入：`Space`、`Breadcrumb`、`Steps`、`Progress`、`Result`、`Collapse`、`Avatar`、`Descriptions`、`Statistic`、`Timeline`、`Dropdown`、`Tooltip`、`Popover`、`Popconfirm`、`Notification`、`InputNumber`、`Slider`、`DatePicker`、`TimePicker`、`AutoComplete`、`Cascader`、`Upload`、`Segmented`、`Rate`、`Menu`、`Anchor`、`Affix`、`Carousel` 和 `Tree`。这些组件先覆盖语义、状态和响应式布局，复杂的数据编辑和远程上传策略仍按真实页面需求加入。
 
 ### 5.2 H5 组件适配要求
 

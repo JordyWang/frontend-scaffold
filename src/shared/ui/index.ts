@@ -61,6 +61,8 @@ export type {
 } from './choice'
 export { Segmented } from './segmented'
 export type { SegmentedOption, SegmentedProps } from './segmented'
+export { Rate } from './rate'
+export type { RateProps } from './rate'
 export { Tag, Badge, Image, Skeleton } from './display'
 export type { TagProps, BadgeProps, ImageProps, SkeletonProps } from './display'
 export { Alert } from './alert'

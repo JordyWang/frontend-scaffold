@@ -32,6 +32,7 @@ import {
   Progress,
   RadioGroup,
   Result,
+  Rate,
   Select,
   Segmented,
   Sheet,
@@ -196,6 +197,16 @@ export function DesignSystemPreview() {
                   }
                 />
                 <Switch label="不可用开关" disabled />
+                <FormField
+                  label="满意度"
+                  description="可点击当前评分清除选择。"
+                  control={
+                    <Rate
+                      defaultValue={3}
+                      tooltips={['很差', '较差', '一般', '满意', '非常满意']}
+                    />
+                  }
+                />
                 <Segmented
                   aria-label="数据视图"
                   value={segmentedValue}

@@ -714,6 +714,47 @@ select {
   opacity: 0.5;
 }
 
+.ui-rate {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.125rem;
+}
+.ui-rate__option {
+  position: relative;
+  display: inline-grid;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.ui-rate__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.ui-rate__option--selected,
+.ui-rate__option:has(~ .ui-rate__option--selected) {
+  color: var(--primary);
+}
+.ui-rate__option:focus-within {
+  outline: 3px solid var(--ring);
+  outline-offset: -3px;
+}
+.ui-rate--disabled .ui-rate__option {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .ui-overlay {
   position: fixed;
   inset: 0;

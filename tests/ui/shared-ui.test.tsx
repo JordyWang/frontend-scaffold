@@ -46,6 +46,7 @@ describe('shared/ui contracts', () => {
     )
     const input = screen.getByRole('textbox', { name: '名称' })
     expect(input).toHaveAttribute('id', 'custom-name')
+    expect(input).toHaveAttribute('aria-labelledby', 'custom-name-label')
     expect(input).toBeRequired()
     expect(input).toHaveAttribute('aria-invalid', 'true')
     const ids = input.getAttribute('aria-describedby')?.split(' ') ?? []

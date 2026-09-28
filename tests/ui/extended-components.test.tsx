@@ -20,6 +20,7 @@ import {
   Popover,
   Progress,
   Result,
+  Rate,
   Segmented,
   Space,
   Steps,
@@ -341,6 +342,42 @@ describe('Ant Design-inspired shared components', () => {
     expect(screen.getByRole('radio', { name: '列表' })).toBeChecked()
   })
 
+  it('supports rating selection, keyboard navigation and clearing', () => {
+    const onChange = vi.fn()
+    render(
+      <Rate
+        aria-label="满意度"
+        defaultValue={3}
+        onChange={onChange}
+        tooltips={['很差', '较差', '一般', '满意', '非常满意']}
+      />,
+    )
+    const three = screen.getByRole('radio', { name: '一般' })
+    expect(three).toBeChecked()
+    fireEvent.click(three)
+    expect(onChange).toHaveBeenCalledWith(undefined)
+    expect(three).not.toBeChecked()
+    const five = screen.getByRole('radio', { name: '非常满意' })
+    fireEvent.keyDown(five, { key: 'ArrowLeft' })
+    fireEvent.click(five)
+    expect(onChange).toHaveBeenLastCalledWith(5)
+    expect(five).toBeChecked()
+    expect(screen.getByRole('radio', { name: '一般' })).toHaveAttribute(
+      'title',
+      '一般',
+    )
+  })
+
+  it('connects rating group labels and errors through FormField', () => {
+    render(<FormField label="满意度" error="请选择评分" control={<Rate />} />)
+    const group = screen.getByRole('radiogroup', { name: '满意度' })
+    expect(group).toHaveAttribute('aria-labelledby')
+    expect(group).toHaveAttribute('aria-invalid', 'true')
+    expect(group).toHaveAttribute('aria-describedby')
+    expect(screen.getByRole('radio', { name: '1 星' })).toHaveAttribute('id')
+    expect(screen.getByRole('alert')).toHaveTextContent('请选择评分')
+  })
+
   it('connects segmented field semantics through FormField', () => {
     render(
       <FormField
@@ -360,6 +397,7 @@ describe('Ant Design-inspired shared components', () => {
     expect(list).toHaveAttribute('id')
     expect(list).toHaveAttribute('aria-invalid', 'true')
     expect(list).toHaveAttribute('aria-describedby')
+    expect(list).toHaveAttribute('aria-labelledby')
     expect(screen.getByRole('alert')).toHaveTextContent('请选择展示方式')
   })
 

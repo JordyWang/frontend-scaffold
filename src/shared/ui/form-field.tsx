@@ -6,6 +6,7 @@ type FieldControlProps = {
   required?: boolean
   'aria-describedby'?: string
   'aria-invalid'?: boolean
+  'aria-labelledby'?: string
 }
 
 export type FormFieldProps = {
@@ -31,15 +32,19 @@ export function FormField({
   const controlId = id ?? control.props.id ?? `field-${generatedId}`
   const hintId = description ? `${controlId}-hint` : undefined
   const errorId = error ? `${controlId}-error` : undefined
+  const labelId = label ? `${controlId}-label` : undefined
   const describedBy =
     [control.props['aria-describedby'], hintId, errorId]
       .filter(Boolean)
       .join(' ') || undefined
+  const labelledBy =
+    [control.props['aria-labelledby'], labelId].filter(Boolean).join(' ') ||
+    undefined
 
   return (
     <div className={cn('ui-field', className)}>
       {label && (
-        <label htmlFor={controlId} className="ui-field__label">
+        <label id={labelId} htmlFor={controlId} className="ui-field__label">
           {label}
           {required && (
             <span className="ui-field__required" aria-hidden="true">
@@ -54,6 +59,7 @@ export function FormField({
         required: required || control.props.required,
         'aria-describedby': describedBy,
         'aria-invalid': Boolean(error) || control.props['aria-invalid'],
+        'aria-labelledby': labelledBy,
       })}
       {description && (
         <p id={hintId} className="ui-field__hint">
