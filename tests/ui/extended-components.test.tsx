@@ -410,6 +410,7 @@ describe('Ant Design-inspired shared components', () => {
       'aria-invalid',
       'true',
     )
+    expect(input).toHaveAttribute('tabindex', '-1')
   })
 
   it('keeps date, time, autocomplete, cascader and upload inputs semantic', () => {

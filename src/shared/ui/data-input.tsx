@@ -440,7 +440,7 @@ export function Upload({
         aria-label={ariaLabel}
         onBlur={onBlur}
         onFocus={onFocus}
-        tabIndex={tabIndex}
+        tabIndex={tabIndex ?? -1}
         accept={accept}
         multiple={multiple}
         disabled={disabled}

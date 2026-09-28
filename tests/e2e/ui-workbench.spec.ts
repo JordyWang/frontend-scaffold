@@ -648,7 +648,7 @@ test('mobile controls are touchable without horizontal overflow', async ({
       document.documentElement.clientWidth,
     smallTargets: [
       ...document.querySelectorAll(
-        'button,[role=combobox],[role=tab],.ui-choice,.ui-switch',
+        'button,[role=combobox],[role=tab],.ui-choice,.ui-switch,.ui-segmented__option',
       ),
     ]
       .filter((element) => {
