@@ -5,7 +5,7 @@
   /* Seed tokens are the small set of values a product theme changes. */
   --ui-seed-primary: #4338ca;
   --ui-seed-success: #15803d;
-  --ui-seed-warning: #a16207;
+  --ui-seed-warning: #92400e;
   --ui-seed-error: #b91c1c;
   --ui-seed-radius: 0.75rem;
   /* Semantic map tokens describe surfaces and states. */
@@ -22,7 +22,7 @@
   --ui-map-warning-bg: #fef3c7;
   --ui-map-error-bg: #fee2e2;
   --ui-map-success-text: #ffffff;
-  --ui-map-warning-text: #111827;
+  --ui-map-warning-text: #ffffff;
   --ui-map-error-text: #ffffff;
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
@@ -83,7 +83,7 @@
   color-scheme: light;
   --ui-seed-primary: #4338ca;
   --ui-seed-success: #15803d;
-  --ui-seed-warning: #a16207;
+  --ui-seed-warning: #92400e;
   --ui-seed-error: #b91c1c;
   --ui-map-bg: #f8fafc;
   --ui-map-surface: #ffffff;
@@ -98,7 +98,7 @@
   --ui-map-warning-bg: #fef3c7;
   --ui-map-error-bg: #fee2e2;
   --ui-map-success-text: #ffffff;
-  --ui-map-warning-text: #111827;
+  --ui-map-warning-text: #ffffff;
   --ui-map-error-text: #ffffff;
 }
 

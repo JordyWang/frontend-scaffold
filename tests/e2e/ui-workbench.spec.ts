@@ -21,6 +21,50 @@ test('system dark mode keeps local light surfaces and state colors distinct', as
   )
 })
 
+test('default status labels meet AA contrast in light and dark themes', async ({
+  page,
+}) => {
+  await page.goto('/__ui')
+  const scope = page
+    .getByRole('region', { name: '设计系统补充组件' })
+    .locator('.ui-theme-scope')
+    .first()
+  const contrast = (tone: 'success' | 'warning' | 'error') =>
+    scope.locator(`.ui-tag--${tone}`).evaluate((element) => {
+      const style = getComputedStyle(element)
+      const canvas = document.createElement('canvas')
+      const context = canvas.getContext('2d')!
+      const rgb = (value: string) => {
+        context.fillStyle = value
+        context.fillRect(0, 0, 1, 1)
+        return [...context.getImageData(0, 0, 1, 1).data].slice(0, 3)
+      }
+      const luminance = (value: number[]) => {
+        const channels = value.map((channel) => {
+          const normalized = channel / 255
+          return normalized <= 0.04045
+            ? normalized / 12.92
+            : ((normalized + 0.055) / 1.055) ** 2.4
+        })
+        return (
+          channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722
+        )
+      }
+      const foreground = luminance(rgb(style.color))
+      const background = luminance(rgb(style.backgroundColor))
+      return (
+        (Math.max(foreground, background) + 0.05) /
+        (Math.min(foreground, background) + 0.05)
+      )
+    })
+
+  for (const tone of ['success', 'warning', 'error'] as const)
+    expect(await contrast(tone)).toBeGreaterThanOrEqual(4.5)
+  await page.getByRole('button', { name: '切换预览主题' }).click()
+  for (const tone of ['success', 'warning', 'error'] as const)
+    expect(await contrast(tone)).toBeGreaterThanOrEqual(4.5)
+})
+
 test('custom status seeds keep soft backgrounds and readable labels in both themes', async ({
   page,
 }) => {
