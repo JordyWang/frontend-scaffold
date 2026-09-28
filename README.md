@@ -40,3 +40,5 @@ pnpm exec playwright install chromium webkit
 Mock 模式通过 MSW 拦截 `/api/*` 请求。修改 JSON 文件后刷新页面即可查看更新；未配置的接口会明确报错。音视频 Mock 数据的地址位于 `src/mocks/data/media.json`，样例媒体文件放在 `public/mock/media`。
 
 架构与组件范围见 [完整方案](docs/react-pc-h5-scaffold-plan.md)。
+
+新增组件直接使用 Tailwind 工具类，主题颜色使用 `bg-card`、`text-foreground` 等语义类。现有复杂组件样式按功能拆分在 `src/shared/styles`；`pnpm check:styles` 会检查新增组件是否重新依赖全局 CSS。详细约定见 [组件实现约定](docs/component-conventions.md)。

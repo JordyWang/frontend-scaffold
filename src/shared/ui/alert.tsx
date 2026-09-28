@@ -2,6 +2,13 @@ import type { HTMLAttributes, ReactNode } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { Icon } from './icon'
 
+const toneStyles = {
+  info: '',
+  success: 'border-[var(--ui-color-success)] bg-[var(--ui-map-success-bg)]',
+  warning: 'border-[var(--ui-color-warning)] bg-[var(--ui-map-warning-bg)]',
+  error: 'border-[var(--ui-color-error)] bg-[var(--ui-map-error-bg)]',
+} as const
+
 export type AlertProps = Omit<HTMLAttributes<HTMLDivElement>, 'title'> & {
   title: string
   description?: ReactNode
@@ -20,7 +27,12 @@ export function Alert({
   return (
     <div
       role={tone === 'error' || tone === 'warning' ? 'alert' : 'status'}
-      className={cn('ui-alert', `ui-alert--${tone}`, className)}
+      className={cn(
+        'ui-alert flex items-start gap-[var(--space-sm)] rounded-md border border-border bg-[var(--ui-map-info-bg)] p-[var(--space-md)] text-foreground',
+        `ui-alert--${tone}`,
+        toneStyles[tone],
+        className,
+      )}
       {...props}
     >
       <Icon
@@ -32,11 +44,11 @@ export function Alert({
               : 'info'
         }
       />
-      <div className="ui-alert__content">
+      <div className="ui-alert__content min-w-0 flex-1 leading-6">
         <strong>{title}</strong>
         {description && <div>{description}</div>}
       </div>
-      {action && <div className="ui-alert__action">{action}</div>}
+      {action && <div className="ui-alert__action shrink-0">{action}</div>}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 # Frontend Scaffold 设计基线
 
-本文件记录项目组件库的视觉与交互约定。它是中性的工程基线，不定义具体产品的品牌风格。实际代码中的变量以 `src/shared/styles/index.css` 为准。主题结构参考 Ant Design 6 的 Seed、Map、Alias 与组件 Token 思路，项目没有引入 Ant Design 运行时。
+本文件记录项目组件库的视觉与交互约定。它是中性的工程基线，不定义具体产品的品牌风格。实际代码中的变量以 `src/shared/styles/tokens.css` 为准，并通过 Tailwind 4 的 `@theme inline` 暴露为语义工具类。主题结构参考 Ant Design 6 的 Seed、Map、Alias 与组件 Token 思路，项目没有引入 Ant Design 运行时。
 
 ## 设计变量
 

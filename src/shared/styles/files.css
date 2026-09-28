@@ -1,0 +1,98 @@
+.ui-file-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.ui-file-dropzone {
+  display: flex;
+  min-height: 9rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  padding: var(--space-lg);
+  text-align: center;
+}
+.ui-file-dropzone--dragging {
+  border-color: var(--primary);
+  background: var(--accent);
+}
+.ui-file-dropzone__hint {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.ui-file-preview {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  padding: var(--space-sm);
+}
+.ui-file-preview__thumb {
+  display: grid;
+  width: 4rem;
+  height: 4rem;
+  flex: none;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+.ui-file-preview__thumb img,
+.ui-file-preview__thumb video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ui-file-preview__thumb svg {
+  width: 2rem;
+  height: 2rem;
+}
+.ui-file-preview__info {
+  min-width: 0;
+  flex: 1;
+}
+.ui-file-preview__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.ui-file-preview__meta {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+.ui-upload-progress {
+  display: grid;
+  gap: var(--space-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  padding: var(--space-md);
+}
+.ui-upload-progress__row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  font-weight: 600;
+}
+.ui-upload-progress__bar {
+  width: 100%;
+  height: 0.75rem;
+  accent-color: var(--primary);
+}
+.ui-upload-progress > .ui-button {
+  justify-self: start;
+}

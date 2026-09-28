@@ -13,10 +13,11 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
+    "check:styles": "node scripts/check-tailwind-components.mjs",
     "typecheck": "tsc -b --pretty false",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "pnpm lint && pnpm typecheck && pnpm format:check && pnpm test && pnpm build",
+    "check": "pnpm lint && pnpm check:styles && pnpm typecheck && pnpm format:check && pnpm test && pnpm build",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "test:e2e": "playwright test"

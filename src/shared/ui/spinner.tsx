@@ -1,5 +1,6 @@
 import type { HTMLAttributes } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { spinnerStyles } from './tailwind-styles'
 
 export type SpinnerProps = HTMLAttributes<HTMLSpanElement> & {
   label?: string
@@ -17,13 +18,21 @@ export function Spinner({
       role="status"
       aria-label={label}
       className={cn(
-        'ui-spinner-standalone',
+        'ui-spinner-standalone inline-flex size-11 items-center justify-center text-primary',
         `ui-spinner-standalone--${size}`,
         className,
       )}
       {...props}
     >
-      <span className="ui-spinner" aria-hidden="true" />
+      <span
+        className={cn(
+          'ui-spinner',
+          spinnerStyles,
+          size === 'small' && 'size-3',
+          size === 'large' && 'size-6',
+        )}
+        aria-hidden="true"
+      />
       <span className="sr-only">{label}</span>
     </span>
   )

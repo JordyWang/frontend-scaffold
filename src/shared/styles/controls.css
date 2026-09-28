@@ -1,0 +1,196 @@
+/* Existing complex controls retain their semantic selectors while migrating to utilities. */
+.ui-select {
+  width: 100%;
+  min-height: max(44px, var(--ui-control-height));
+  border: 1px solid var(--input);
+  border-radius: var(--ui-field-radius);
+  background: var(--card);
+  color: var(--card-foreground);
+  padding: 0.625rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+.ui-select.ui-input--small {
+  padding-block: 0.5rem;
+}
+
+.ui-input-otp {
+  display: grid;
+  max-width: 100%;
+  gap: var(--space-xs);
+}
+.ui-input-otp__label {
+  font-weight: 600;
+}
+.ui-input-otp__slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+.ui-input-otp__slot {
+  width: max(44px, var(--ui-control-height));
+  height: max(44px, var(--ui-control-height));
+  flex: none;
+  border: 1px solid var(--input);
+  border-radius: var(--ui-field-radius);
+  background: var(--card);
+  color: var(--card-foreground);
+  padding: 0;
+  text-align: center;
+  font-size: 1.125rem;
+  line-height: 1;
+  touch-action: manipulation;
+}
+.ui-input-otp__slot:focus-visible {
+  border-color: var(--ring);
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.ui-input-otp[aria-invalid='true'] .ui-input-otp__slot,
+.ui-input-otp__slot[aria-invalid='true'] {
+  border-color: var(--destructive);
+}
+.ui-input-otp__slot:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.ui-input-number {
+  display: inline-flex;
+  width: 100%;
+  min-height: max(44px, var(--ui-control-height));
+  align-items: center;
+  gap: var(--space-xs);
+  border: 1px solid var(--input);
+  border-radius: var(--ui-field-radius);
+  background: var(--card);
+  color: var(--card-foreground);
+  padding: 0 0.75rem;
+}
+.ui-input-number:focus-within {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 20%, transparent);
+}
+.ui-input-number--small {
+  min-height: 44px;
+}
+.ui-input-number__input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: 1rem;
+}
+.ui-input-number__input::-webkit-inner-spin-button,
+.ui-input-number__input::-webkit-outer-spin-button {
+  margin: 0;
+}
+.ui-input-number__prefix,
+.ui-input-number__suffix {
+  color: var(--muted-foreground);
+  line-height: 1;
+}
+.ui-input-number:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.ui-input-number[aria-invalid='true'] {
+  border-color: var(--destructive);
+}
+.ui-slider {
+  width: 100%;
+  min-height: 44px;
+  accent-color: var(--primary);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.ui-slider:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.ui-cascader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+.ui-cascader__select {
+  min-width: 10rem;
+  flex: 1 1 10rem;
+}
+.ui-upload {
+  display: inline-flex;
+  max-width: 100%;
+}
+.ui-upload__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+.ui-select[aria-invalid='true'] {
+  border-color: var(--destructive);
+}
+.ui-select:disabled,
+.ui-select[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.ui-field {
+  display: grid;
+  gap: var(--space-xs);
+}
+.ui-field__label {
+  font-weight: 600;
+}
+.ui-field__required {
+  color: var(--destructive);
+  font-weight: 700;
+}
+.ui-field__hint {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.ui-field__error {
+  color: var(--destructive);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.ui-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+.ui-form--horizontal .ui-field {
+  grid-template-columns: minmax(7rem, 0.35fr) minmax(0, 1fr);
+  align-items: start;
+}
+.ui-form--horizontal .ui-field__hint,
+.ui-form--horizontal .ui-field__error {
+  grid-column: 2;
+}
+.ui-form--inline {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-md);
+}
+.ui-form--inline .ui-field {
+  min-width: min(100%, 12rem);
+  flex: 1 1 12rem;
+}
+@media (max-width: 639px) {
+  .ui-form--horizontal .ui-field {
+    grid-template-columns: 1fr;
+  }
+  .ui-form--horizontal .ui-field__hint,
+  .ui-form--horizontal .ui-field__error {
+    grid-column: 1;
+  }
+}

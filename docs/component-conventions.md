@@ -6,7 +6,9 @@
 
 - 通用组件放在 `src/shared/ui`，业务页面通过项目入口引用，不直接依赖第三方 UI 包。
 - AI、视频、音频和文件能力分别放在 `src/capabilities`，只复用 `shared`，彼此不耦合。
-- 设计变量来自 `src/shared/styles/index.css`，组件内不重复写品牌色、间距和圆角常量。
+- 设计变量定义在 `src/shared/styles/tokens.css`，通过 Tailwind 的语义工具类（如 `bg-card`、`text-foreground`、`border-border`）使用；组件内不重复写品牌色常量。
+- 新组件的外观直接写在 TSX 的 Tailwind 工具类中，复用样式放到 TS/TSX 的类名配方；不要新增 `ui-*` 样式钩子或组件 CSS 文件。仅当工具类无法表达复杂选择器或关键帧时，先明确例外再调整样式基线。
+- `src/shared/styles/index.css` 只负责按顺序引入 Tailwind、主题变量、基础样式和现有复杂组件样式。已有 `ui-*` 类是兼容旧组件和测试的钩子，新增组件不要沿用。
 - 只封装当前需要的能力；复杂组件先明确交互与数据契约，再确定底层依赖。
 
 ## API 与状态
@@ -29,4 +31,4 @@
 - 优先使用语义化 HTML，支持键盘、可见焦点、标签和错误说明。
 - 正文与背景对比度至少达到 WCAG AA 的 4.5:1；动画尊重减少动态效果设置。
 - 每个组件在开发预览入口展示默认、禁用、加载、错误及 H5 布局中适用的状态。
-- 只为有真实交互风险的组件增加测试；提交前运行 `lint`、`typecheck` 和 `build`。
+- 只为有真实交互风险的组件增加测试；提交前运行 `pnpm check`，其中 `check:styles` 会阻止新组件回到全局 CSS。

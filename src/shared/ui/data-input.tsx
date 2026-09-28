@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { inputSizeStyles, inputStyles } from './tailwind-styles'
 import { Button } from './button'
 
 export type InputNumberProps = Omit<
@@ -195,7 +196,7 @@ const NativePicker = forwardRef<
       {...props}
       ref={ref}
       type={type}
-      className={cn('ui-input', `ui-input--${size}`, className)}
+      className={cn('ui-input', inputStyles, inputSizeStyles[size], className)}
       value={value}
       defaultValue={defaultValue}
       onChange={(event) => onChange?.(event.currentTarget.value)}
@@ -266,7 +267,12 @@ export const AutoComplete = forwardRef<HTMLInputElement, AutoCompleteProps>(
           aria-controls={focused && filtered.length > 0 ? id : undefined}
           aria-haspopup="listbox"
           list={id}
-          className={cn('ui-input', `ui-input--${size}`, className)}
+          className={cn(
+            'ui-input',
+            inputStyles,
+            inputSizeStyles[size],
+            className,
+          )}
           value={value === undefined ? internalValue : value}
           onFocus={(event) => {
             setFocused(true)

@@ -1,0 +1,244 @@
+:root {
+  color-scheme: light;
+  /* Seed tokens are the small set of values a product theme changes. */
+  --ui-seed-primary: #4338ca;
+  --ui-seed-success: #15803d;
+  --ui-seed-warning: #92400e;
+  --ui-seed-error: #b91c1c;
+  --ui-seed-radius: 0.75rem;
+  /* Semantic map tokens describe surfaces and states. */
+  --ui-map-bg: #f8fafc;
+  --ui-map-surface: #ffffff;
+  --ui-map-text: #0f172a;
+  --ui-map-text-secondary: #475569;
+  --ui-map-border: #cbd5e1;
+  --ui-map-input-border: #94a3b8;
+  --ui-map-primary-text: #ffffff;
+  --ui-map-secondary: #e2e8f0;
+  --ui-map-danger-text: #ffffff;
+  --ui-map-success-bg: #dcfce7;
+  --ui-map-warning-bg: #fef3c7;
+  --ui-map-error-bg: #fee2e2;
+  --ui-map-success-text: #ffffff;
+  --ui-map-warning-text: #ffffff;
+  --ui-map-error-text: #ffffff;
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --ui-radius-adjustment: 0.125rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-ui-theme='light']) {
+    color-scheme: dark;
+    --ui-seed-primary: #a5b4fc;
+    --ui-seed-success: #86efac;
+    --ui-seed-warning: #fde68a;
+    --ui-seed-error: #fca5a5;
+    --ui-map-bg: #0f172a;
+    --ui-map-surface: #1e293b;
+    --ui-map-text: #f8fafc;
+    --ui-map-text-secondary: #cbd5e1;
+    --ui-map-border: #475569;
+    --ui-map-input-border: #64748b;
+    --ui-map-primary-text: #111827;
+    --ui-map-secondary: #334155;
+    --ui-map-danger-text: #111827;
+    --ui-map-success-bg: #14532d;
+    --ui-map-warning-bg: #713f12;
+    --ui-map-error-bg: #7f1d1d;
+    --ui-map-success-text: #111827;
+    --ui-map-warning-text: #111827;
+    --ui-map-error-text: #111827;
+  }
+}
+
+[data-ui-theme='dark'] {
+  color-scheme: dark;
+  --ui-seed-primary: #a5b4fc;
+  --ui-seed-success: #86efac;
+  --ui-seed-warning: #fde68a;
+  --ui-seed-error: #fca5a5;
+  --ui-map-bg: #0f172a;
+  --ui-map-surface: #1e293b;
+  --ui-map-text: #f8fafc;
+  --ui-map-text-secondary: #cbd5e1;
+  --ui-map-border: #475569;
+  --ui-map-input-border: #64748b;
+  --ui-map-primary-text: #111827;
+  --ui-map-secondary: #334155;
+  --ui-map-danger-text: #111827;
+  --ui-map-success-bg: #14532d;
+  --ui-map-warning-bg: #713f12;
+  --ui-map-error-bg: #7f1d1d;
+  --ui-map-success-text: #111827;
+  --ui-map-warning-text: #111827;
+  --ui-map-error-text: #111827;
+}
+
+[data-ui-theme='light'] {
+  color-scheme: light;
+  --ui-seed-primary: #4338ca;
+  --ui-seed-success: #15803d;
+  --ui-seed-warning: #92400e;
+  --ui-seed-error: #b91c1c;
+  --ui-map-bg: #f8fafc;
+  --ui-map-surface: #ffffff;
+  --ui-map-text: #0f172a;
+  --ui-map-text-secondary: #475569;
+  --ui-map-border: #cbd5e1;
+  --ui-map-input-border: #94a3b8;
+  --ui-map-primary-text: #ffffff;
+  --ui-map-secondary: #e2e8f0;
+  --ui-map-danger-text: #ffffff;
+  --ui-map-success-bg: #dcfce7;
+  --ui-map-warning-bg: #fef3c7;
+  --ui-map-error-bg: #fee2e2;
+  --ui-map-success-text: #ffffff;
+  --ui-map-warning-text: #ffffff;
+  --ui-map-error-text: #ffffff;
+}
+
+:root,
+.ui-theme-scope {
+  /* Derived map colors respond to a local primary seed. */
+  --ui-map-primary-hover: color-mix(in srgb, var(--ui-seed-primary) 88%, white);
+  --ui-map-primary-active: color-mix(
+    in srgb,
+    var(--ui-seed-primary) 88%,
+    black
+  );
+  --ui-map-accent: color-mix(
+    in srgb,
+    var(--ui-seed-primary) 15%,
+    var(--ui-map-surface)
+  );
+  --ui-map-accent-text: var(--ui-seed-primary);
+  --ui-map-info-bg: var(--ui-map-accent);
+  /* Alias tokens preserve the existing public CSS variable contract. */
+  --background: var(--ui-map-bg);
+  --foreground: var(--ui-map-text);
+  --card: var(--ui-map-surface);
+  --card-foreground: var(--ui-map-text);
+  --primary: var(--ui-seed-primary);
+  --primary-foreground: var(--ui-map-primary-text);
+  --secondary: var(--ui-map-secondary);
+  --secondary-foreground: var(--ui-map-text);
+  --muted: color-mix(in srgb, var(--ui-map-bg) 88%, var(--ui-map-border));
+  --muted-foreground: var(--ui-map-text-secondary);
+  --accent: var(--ui-map-accent);
+  --accent-foreground: var(--ui-map-accent-text);
+  --destructive: var(--ui-seed-error);
+  --border: var(--ui-map-border);
+  --input: var(--ui-map-input-border);
+  --ring: var(--ui-seed-primary);
+  --radius: var(--ui-seed-radius);
+  --ui-color-success: var(--ui-seed-success);
+  --ui-color-warning: var(--ui-seed-warning);
+  --ui-color-error: var(--ui-seed-error);
+  /* Component tokens can be overridden on any scope. */
+  --ui-button-radius: var(
+    --ui-button-radius-override,
+    calc(var(--radius) - var(--ui-radius-adjustment))
+  );
+  --ui-button-height: var(
+    --ui-button-height-override,
+    var(--ui-control-height)
+  );
+  --ui-field-radius: var(
+    --ui-field-radius-override,
+    calc(var(--radius) - var(--ui-radius-adjustment))
+  );
+  --ui-card-radius: var(--ui-card-radius-override, var(--radius));
+  --ui-overlay-radius: var(--ui-overlay-radius-override, var(--radius-lg));
+  --ui-menu-radius: var(--ui-menu-radius-override, var(--radius-md));
+  --ui-segmented-radius: var(--ui-segmented-radius-override, var(--radius-md));
+  --ui-segmented-height: var(
+    --ui-segmented-height-override,
+    var(--ui-control-height)
+  );
+  --ui-transfer-radius: var(--ui-transfer-radius-override, var(--radius-md));
+  --ui-transfer-list-height: var(--ui-transfer-list-height-override, 18rem);
+  --ui-control-height: var(--ui-field-height-override, 44px);
+}
+
+/* Recalculate custom status colors for each nested scope's surface and text. */
+.ui-theme-scope[data-ui-status-success],
+.ui-theme-scope[data-ui-status-success] .ui-theme-scope {
+  --ui-map-success-bg: color-mix(
+    in srgb,
+    var(--ui-seed-success) 15%,
+    var(--ui-map-surface)
+  );
+  --ui-color-success: color-mix(
+    in srgb,
+    var(--ui-seed-success) 40%,
+    var(--foreground)
+  );
+}
+
+.ui-theme-scope[data-ui-status-warning],
+.ui-theme-scope[data-ui-status-warning] .ui-theme-scope {
+  --ui-map-warning-bg: color-mix(
+    in srgb,
+    var(--ui-seed-warning) 15%,
+    var(--ui-map-surface)
+  );
+  --ui-color-warning: color-mix(
+    in srgb,
+    var(--ui-seed-warning) 40%,
+    var(--foreground)
+  );
+}
+
+.ui-theme-scope[data-ui-status-error],
+.ui-theme-scope[data-ui-status-error] .ui-theme-scope {
+  --ui-map-error-bg: color-mix(
+    in srgb,
+    var(--ui-seed-error) 15%,
+    var(--ui-map-surface)
+  );
+  --ui-color-error: color-mix(
+    in srgb,
+    var(--ui-seed-error) 40%,
+    var(--foreground)
+  );
+}
+
+[data-ui-density='default'] {
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --ui-radius-adjustment: 0.125rem;
+}
+
+[data-ui-density='compact'] {
+  --space-md: 0.75rem;
+  --space-lg: 1rem;
+  --space-xl: 1.5rem;
+  --ui-radius-adjustment: 0.25rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 0.25rem);
+  --radius-md: calc(var(--radius) - 0.125rem);
+  --radius-lg: var(--radius);
+}
