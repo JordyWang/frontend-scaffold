@@ -721,6 +721,31 @@ test('carousel exposes rotation controls and pauses on touch or focus', async ({
   )
 })
 
+test('menu exposes nested expansion and selected state', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const menu = page.getByRole('navigation', { name: '主导航' })
+  const settings = menu.getByRole('menuitem', { name: '设置' })
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await settings.tap()
+    await expect(settings).toHaveAttribute('aria-expanded', 'true')
+    await expect(settings).toHaveAttribute('aria-selected', 'true')
+    await expect(menu.getByRole('menuitem', { name: '主题' })).toBeVisible()
+  } else {
+    await settings.focus()
+    await page.keyboard.press('ArrowRight')
+    await expect(settings).toHaveAttribute('aria-expanded', 'true')
+    await page.keyboard.press('ArrowRight')
+    const theme = menu.getByRole('menuitem', { name: '主题' })
+    await expect(theme).toBeFocused()
+    await page.keyboard.press('ArrowLeft')
+    await expect(settings).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(settings).toHaveAttribute('aria-selected', 'true')
+  }
+})
+
 test('tree uses one tab stop and supports keyboard and touch expansion', async ({
   page,
 }, testInfo) => {

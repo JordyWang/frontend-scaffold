@@ -71,6 +71,69 @@ describe('Ant Design-inspired shared components', () => {
     }
   })
 
+  it('navigates nested menu items while skipping disabled entries', () => {
+    const onSelect = vi.fn()
+    render(
+      <Menu
+        onSelect={onSelect}
+        items={[
+          {
+            key: 'root',
+            label: '根菜单',
+            children: [
+              { key: 'disabled', label: '禁用项', disabled: true },
+              {
+                key: 'nested',
+                label: '嵌套菜单',
+                children: [{ key: 'leaf', label: '叶子项' }],
+              },
+            ],
+          },
+          { key: 'other', label: '其他菜单' },
+        ]}
+      />,
+    )
+    const root = screen.getByRole('menuitem', { name: '根菜单' })
+    root.focus()
+    fireEvent.keyDown(root, { key: 'ArrowRight' })
+    expect(root).toHaveAttribute('aria-expanded', 'true')
+    const nested = screen.getByRole('menuitem', { name: '嵌套菜单' })
+    fireEvent.keyDown(root, { key: 'ArrowDown' })
+    expect(nested).toHaveFocus()
+    fireEvent.keyDown(nested, { key: 'ArrowRight' })
+    expect(nested).toHaveAttribute('aria-expanded', 'true')
+    const leaf = screen.getByRole('menuitem', { name: '叶子项' })
+    fireEvent.keyDown(nested, { key: 'ArrowRight' })
+    expect(leaf).toHaveFocus()
+    fireEvent.keyDown(leaf, { key: 'ArrowLeft' })
+    expect(nested).toHaveFocus()
+    fireEvent.click(nested)
+    expect(onSelect).toHaveBeenCalledWith('nested')
+    expect(nested).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('supports controlled menu expansion', () => {
+    const onExpand = vi.fn()
+    const items = [
+      {
+        key: 'root',
+        label: '根菜单',
+        children: [{ key: 'child', label: '子菜单' }],
+      },
+    ]
+    const { rerender } = render(
+      <Menu items={items} expandedKeys={[]} onExpand={onExpand} />,
+    )
+    const root = screen.getByRole('menuitem', { name: '根菜单' })
+    fireEvent.keyDown(root, { key: 'ArrowRight' })
+    expect(onExpand).toHaveBeenCalledWith(['root'])
+    expect(
+      screen.queryByRole('menuitem', { name: '子菜单' }),
+    ).not.toBeInTheDocument()
+    rerender(<Menu items={items} expandedKeys={['root']} onExpand={onExpand} />)
+    expect(screen.getByRole('menuitem', { name: '子菜单' })).toBeInTheDocument()
+  })
+
   it('respects reduced motion until carousel rotation is requested', () => {
     vi.useFakeTimers()
     vi.stubGlobal(

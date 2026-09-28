@@ -65,6 +65,7 @@ export function DesignSystemPreview() {
   const [treeSelected, setTreeSelected] = useState('button')
   const [treeExpanded, setTreeExpanded] = useState(['components'])
   const [carouselAutoplay, setCarouselAutoplay] = useState(false)
+  const [menuExpanded, setMenuExpanded] = useState<string[]>([])
 
   return (
     <section className="space-y-4" aria-label="设计系统补充组件">
@@ -367,6 +368,8 @@ export function DesignSystemPreview() {
                 />
                 <Affix offsetTop={8}>
                   <Menu
+                    expandedKeys={menuExpanded}
+                    onExpand={setMenuExpanded}
                     items={[
                       { key: 'overview', label: '概览' },
                       {

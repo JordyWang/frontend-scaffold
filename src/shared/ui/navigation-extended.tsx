@@ -24,9 +24,12 @@ export type MenuProps = {
   items: MenuItem[]
   selectedKeys?: string[]
   defaultSelectedKeys?: string[]
+  expandedKeys?: string[]
+  defaultExpandedKeys?: string[]
   mode?: 'vertical' | 'horizontal'
   label?: string
   onSelect?: (key: string) => void
+  onExpand?: (keys: string[]) => void
   className?: string
 }
 
@@ -35,43 +38,103 @@ export function Menu({
   items,
   selectedKeys,
   defaultSelectedKeys = [],
+  expandedKeys,
+  defaultExpandedKeys = [],
   mode = 'vertical',
   label = '主导航',
   onSelect,
+  onExpand,
   className,
 }: MenuProps) {
   const [internalSelected, setInternalSelected] = useState(defaultSelectedKeys)
-  const [expanded, setExpanded] = useState<string[]>([])
+  const [internalExpanded, setInternalExpanded] =
+    useState<string[]>(defaultExpandedKeys)
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const selected = selectedKeys ?? internalSelected
+  const expanded = expandedKeys ?? internalExpanded
 
-  const visibleKeys = items.flatMap((item) =>
-    expanded.includes(item.key) && item.children
-      ? [item.key, ...item.children.map((child) => child.key)]
-      : [item.key],
-  )
+  const visibleItems = useMemo(() => {
+    const result: Array<{ item: MenuItem; parentKey?: string }> = []
+    function collect(current: MenuItem[], parentKey?: string) {
+      for (const item of current) {
+        result.push({ item, parentKey })
+        if (item.children?.length && expanded.includes(item.key))
+          collect(item.children, item.key)
+      }
+    }
+    collect(items)
+    return result
+  }, [expanded, items])
 
   function select(key: string) {
     if (selectedKeys === undefined) setInternalSelected([key])
     onSelect?.(key)
   }
 
+  function toggleExpanded(key: string) {
+    const next = expanded.includes(key)
+      ? expanded.filter((item) => item !== key)
+      : [...expanded, key]
+    if (expandedKeys === undefined) setInternalExpanded(next)
+    onExpand?.(next)
+  }
+
+  function focusOffset(start: number, offset: -1 | 1) {
+    for (
+      let index = start + offset;
+      index >= 0 && index < visibleItems.length;
+      index += offset
+    ) {
+      const candidate = visibleItems[index].item
+      if (!candidate.disabled) {
+        itemRefs.current[candidate.key]?.focus()
+        return
+      }
+    }
+  }
+
   function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, key: string) {
-    const index = visibleKeys.indexOf(key)
-    if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+    const index = visibleItems.findIndex(({ item }) => item.key === key)
+    const current = visibleItems[index]
+    if (!current || current.item.disabled) return
+    const nextKey = mode === 'horizontal' ? 'ArrowRight' : 'ArrowDown'
+    const previousKey = mode === 'horizontal' ? 'ArrowLeft' : 'ArrowUp'
+    const handlesNestedRight =
+      event.key === 'ArrowRight' && current.item.children?.length
+    const handlesNestedLeft =
+      event.key === 'ArrowLeft' &&
+      (Boolean(current.parentKey) ||
+        (Boolean(current.item.children?.length) && expanded.includes(key)))
+    if (event.key === nextKey && !handlesNestedRight) {
       event.preventDefault()
-      itemRefs.current[visibleKeys[(index + 1) % visibleKeys.length]]?.focus()
-    } else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
+      focusOffset(index, 1)
+    } else if (event.key === previousKey && !handlesNestedLeft) {
       event.preventDefault()
-      itemRefs.current[
-        visibleKeys[(index - 1 + visibleKeys.length) % visibleKeys.length]
-      ]?.focus()
+      focusOffset(index, -1)
+    } else if (event.key === 'ArrowRight' && current.item.children?.length) {
+      event.preventDefault()
+      if (!expanded.includes(key)) toggleExpanded(key)
+      else {
+        const child = visibleItems.find(
+          ({ item, parentKey }) => parentKey === key && !item.disabled,
+        )
+        itemRefs.current[child?.item.key ?? '']?.focus()
+      }
+    } else if (event.key === 'ArrowLeft') {
+      event.preventDefault()
+      if (current.item.children?.length && expanded.includes(key))
+        toggleExpanded(key)
+      else itemRefs.current[current.parentKey ?? '']?.focus()
     } else if (event.key === 'Home') {
       event.preventDefault()
-      itemRefs.current[visibleKeys[0]]?.focus()
+      itemRefs.current[
+        visibleItems.find(({ item }) => !item.disabled)?.item.key ?? ''
+      ]?.focus()
     } else if (event.key === 'End') {
       event.preventDefault()
-      itemRefs.current[visibleKeys.at(-1) ?? '']?.focus()
+      itemRefs.current[
+        visibleItems.filter(({ item }) => !item.disabled).at(-1)?.item.key ?? ''
+      ]?.focus()
     }
   }
 
@@ -89,6 +152,8 @@ export function Menu({
             type="button"
             role="menuitem"
             aria-current={isSelected ? 'page' : undefined}
+            aria-selected={isSelected}
+            aria-haspopup={hasChildren ? 'menu' : undefined}
             aria-expanded={hasChildren ? isExpanded : undefined}
             disabled={item.disabled}
             className={cn(
@@ -98,11 +163,7 @@ export function Menu({
             )}
             onClick={() => {
               if (hasChildren) {
-                setExpanded((keys) =>
-                  keys.includes(item.key)
-                    ? keys.filter((key) => key !== item.key)
-                    : [...keys, item.key],
-                )
+                toggleExpanded(item.key)
               }
               select(item.key)
             }}
