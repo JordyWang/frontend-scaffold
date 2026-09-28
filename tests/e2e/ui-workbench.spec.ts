@@ -622,3 +622,41 @@ test('mobile controls are touchable without horizontal overflow', async ({
   }))
   expect(geometry).toEqual({ overflow: false, smallTargets: [] })
 })
+
+test('extended navigation and feedback components expose responsive semantics', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const breadcrumb = preview.getByRole('navigation', { name: '面包屑导航' })
+  const steps = preview.getByRole('navigation', { name: '步骤进度' })
+  await expect(breadcrumb).toBeVisible()
+  await expect(steps).toBeVisible()
+  await expect(
+    preview.getByRole('progressbar', { name: '进度' }),
+  ).toHaveAttribute('aria-valuenow', '50')
+
+  const details = preview.getByRole('button', { name: '实现说明' })
+  await expect(details).toHaveAttribute('aria-expanded', 'true')
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await details.tap()
+    await preview.getByRole('button', { name: '标记完成' }).tap()
+  } else {
+    await details.click()
+    await preview.getByRole('button', { name: '标记完成' }).click()
+  }
+  await expect(details).toHaveAttribute('aria-expanded', 'false')
+  await expect(
+    preview.getByRole('progressbar', { name: '进度' }),
+  ).toHaveAttribute('aria-valuenow', '100')
+  await expect(
+    preview.getByRole('heading', { name: '流程已完成' }),
+  ).toBeVisible()
+
+  const overflow = await page.evaluate(
+    () =>
+      document.documentElement.scrollWidth >
+      document.documentElement.clientWidth,
+  )
+  expect(overflow).toBe(false)
+})

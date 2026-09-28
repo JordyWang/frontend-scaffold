@@ -1,11 +1,15 @@
 import { useState } from 'react'
 import {
   Alert,
+  Avatar,
   Badge,
+  Breadcrumb,
   Button,
   Card,
   CardContent,
   Checkbox,
+  Collapse,
+  Descriptions,
   Dialog,
   Divider,
   FormField,
@@ -13,15 +17,23 @@ import {
   Icon,
   Image,
   Input,
+  InputNumber,
+  Progress,
   RadioGroup,
+  Result,
   Select,
   Sheet,
   Skeleton,
   Spinner,
+  Space,
   Stack,
+  Steps,
+  Slider,
+  Statistic,
   Switch,
   Tag,
   ThemeScope,
+  Timeline,
   Typography,
   toast,
 } from '@/shared/ui'
@@ -32,6 +44,8 @@ export function DesignSystemPreview() {
   const [choice, setChoice] = useState('a')
   const [mode, setMode] = useState<'light' | 'dark'>('light')
   const [density, setDensity] = useState<'default' | 'compact'>('default')
+  const [step, setStep] = useState(1)
+  const [volume, setVolume] = useState(42)
 
   return (
     <section className="space-y-4" aria-label="设计系统补充组件">
@@ -239,6 +253,124 @@ export function DesignSystemPreview() {
                     <Typography>面板继承当前主题。</Typography>
                   </Sheet>
                 </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent>
+              <Stack gap="md">
+                <Typography as="h3" variant="title">
+                  导航、进度与结果
+                </Typography>
+                <Breadcrumb
+                  items={[
+                    { title: '工作台' },
+                    { title: '组件库' },
+                    { title: '当前页' },
+                  ]}
+                />
+                <Steps
+                  current={step}
+                  onChange={setStep}
+                  items={[
+                    { title: '准备' },
+                    { title: '处理中' },
+                    { title: '完成' },
+                  ]}
+                />
+                <Progress
+                  percent={step === 2 ? 100 : step * 50}
+                  status={step === 2 ? 'success' : 'active'}
+                />
+                <Space wrap size="small">
+                  <Button
+                    size="small"
+                    variant="outline"
+                    onClick={() => setStep(0)}
+                  >
+                    重置步骤
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outline"
+                    onClick={() => setStep(2)}
+                  >
+                    标记完成
+                  </Button>
+                  <Avatar label="团队成员">A</Avatar>
+                  <Avatar label="方形头像" shape="square" size="small">
+                    B
+                  </Avatar>
+                </Space>
+                <Descriptions
+                  column={2}
+                  bordered
+                  items={[
+                    { key: 'owner', label: '负责人', children: '团队 A' },
+                    {
+                      key: 'status',
+                      label: '状态',
+                      children: step === 2 ? '已完成' : '进行中',
+                    },
+                  ]}
+                />
+                <Stack direction="row" wrap gap="lg" align="center">
+                  <FormField
+                    label="数量"
+                    control={
+                      <InputNumber
+                        aria-label="数量"
+                        min={0}
+                        max={99}
+                        defaultValue={3}
+                        suffix="项"
+                      />
+                    }
+                  />
+                  <FormField
+                    label="音量"
+                    control={
+                      <Slider
+                        aria-label="音量"
+                        value={volume}
+                        onChange={setVolume}
+                      />
+                    }
+                  />
+                  <Statistic title="完成率" value={volume} suffix="%" />
+                </Stack>
+                <Timeline
+                  items={[
+                    {
+                      key: 'submitted',
+                      title: '已提交',
+                      children: '刚刚',
+                      color: 'success',
+                    },
+                    {
+                      key: 'processing',
+                      title: '处理中',
+                      children: '等待结果',
+                      color: 'primary',
+                    },
+                  ]}
+                />
+                <Collapse
+                  defaultActiveKey={['notes']}
+                  items={[
+                    {
+                      key: 'notes',
+                      label: '实现说明',
+                      children:
+                        '导航和反馈组件使用同一套语义 Token，并在窄屏保持可滚动或单列布局。',
+                    },
+                  ]}
+                />
+                <Result
+                  status={step === 2 ? 'success' : 'info'}
+                  title={step === 2 ? '流程已完成' : '流程进行中'}
+                  subTitle="点击步骤或按钮检查受控状态。"
+                />
               </Stack>
             </CardContent>
           </Card>

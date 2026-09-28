@@ -46,8 +46,8 @@ export { Icon } from './icon'
 export type { IconProps } from './icon'
 export { Typography } from './typography'
 export type { TypographyProps } from './typography'
-export { Stack, Flex, Grid, Divider } from './layout'
-export type { StackProps, GridProps, DividerProps } from './layout'
+export { Stack, Flex, Space, Grid, Divider } from './layout'
+export type { StackProps, SpaceProps, GridProps, DividerProps } from './layout'
 export { Checkbox, Radio, RadioGroup, Switch } from './choice'
 export type {
   CheckboxProps,
@@ -61,3 +61,29 @@ export { Alert } from './alert'
 export type { AlertProps } from './alert'
 export { Spinner } from './spinner'
 export type { SpinnerProps } from './spinner'
+export { Breadcrumb, Steps } from './navigation'
+export type {
+  BreadcrumbItem,
+  BreadcrumbProps,
+  StepItem,
+  StepsProps,
+  StepStatus,
+} from './navigation'
+export { Progress, Result } from './feedback'
+export type { ProgressProps, ResultProps, ResultStatus } from './feedback'
+export { Collapse } from './disclosure'
+export type { CollapseItem, CollapseProps } from './disclosure'
+export { Avatar, Descriptions } from './display-extended'
+export type {
+  AvatarProps,
+  DescriptionItem,
+  DescriptionsProps,
+} from './display-extended'
+export { InputNumber, Slider } from './data-input'
+export type { InputNumberProps, SliderProps } from './data-input'
+export { Statistic, Timeline } from './data-display'
+export type {
+  StatisticProps,
+  TimelineItem,
+  TimelineProps,
+} from './data-display'
