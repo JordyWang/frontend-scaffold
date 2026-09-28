@@ -11,6 +11,11 @@ export type ThemeTokens = {
   warning?: string
   error?: string
   radius?: string
+  components?: {
+    button?: { radius?: string; height?: string }
+    field?: { radius?: string; height?: string }
+    card?: { radius?: string }
+  }
 }
 
 export type ThemeScopeProps = HTMLAttributes<HTMLDivElement> & {
@@ -70,6 +75,21 @@ export function ThemeScope({
       '--ui-map-danger-text': errorTokens.onStatus,
     }),
     ...(tokens?.radius && { '--ui-seed-radius': tokens.radius }),
+    ...(tokens?.components?.button?.radius && {
+      '--ui-button-radius': tokens.components.button.radius,
+    }),
+    ...(tokens?.components?.button?.height && {
+      '--ui-button-height': tokens.components.button.height,
+    }),
+    ...(tokens?.components?.field?.radius && {
+      '--ui-field-radius': tokens.components.field.radius,
+    }),
+    ...(tokens?.components?.field?.height && {
+      '--ui-control-height': tokens.components.field.height,
+    }),
+    ...(tokens?.components?.card?.radius && {
+      '--ui-card-radius': tokens.components.card.radius,
+    }),
   } as CSSProperties
   return (
     <PortalContainerContext.Provider value={container}>

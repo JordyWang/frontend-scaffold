@@ -251,6 +251,10 @@ export function DesignSystemPreview() {
           success: '#34d399',
           warning: '#fbbf24',
           error: '#fb7185',
+          components: {
+            button: { radius: '999px' },
+            card: { radius: '1rem' },
+          },
         }}
         className="rounded-xl border border-border p-4"
       >

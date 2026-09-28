@@ -141,6 +141,7 @@
   --ui-color-error: var(--ui-seed-error);
   /* Component tokens can be overridden on any scope. */
   --ui-button-radius: calc(var(--radius) - 0.125rem);
+  --ui-button-height: var(--ui-control-height);
   --ui-field-radius: calc(var(--radius) - 0.125rem);
   --ui-card-radius: var(--radius);
   --ui-control-height: 44px;
@@ -296,7 +297,7 @@ select {
 
 .ui-button {
   display: inline-flex;
-  min-height: max(44px, var(--ui-control-height));
+  min-height: max(44px, var(--ui-button-height));
   min-width: 44px;
   align-items: center;
   justify-content: center;

@@ -183,7 +183,18 @@ describe('shared/ui contracts', () => {
 
   it('keeps local theme and density on their own scope', () => {
     render(
-      <ThemeScope mode="dark" density="compact" tokens={{ primary: '#5eead4' }}>
+      <ThemeScope
+        mode="dark"
+        density="compact"
+        tokens={{
+          primary: '#5eead4',
+          components: {
+            button: { radius: '999px', height: '48px' },
+            field: { height: '48px' },
+            card: { radius: '1rem' },
+          },
+        }}
+      >
         局部主题
       </ThemeScope>,
     )
@@ -193,6 +204,10 @@ describe('shared/ui contracts', () => {
     expect(scope).toHaveStyle({ '--ui-seed-primary': '#5eead4' })
     expect(scope).toHaveStyle({ '--ui-map-primary-text': '#111827' })
     expect(scope).toHaveStyle({ '--ui-map-accent-text': 'var(--foreground)' })
+    expect(scope).toHaveStyle({ '--ui-button-radius': '999px' })
+    expect(scope).toHaveStyle({ '--ui-button-height': '48px' })
+    expect(scope).toHaveStyle({ '--ui-control-height': '48px' })
+    expect(scope).toHaveStyle({ '--ui-card-radius': '1rem' })
     expect(document.documentElement).not.toHaveAttribute('data-ui-theme')
   })
 
