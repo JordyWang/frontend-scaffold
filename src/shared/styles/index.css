@@ -755,6 +755,49 @@ select {
   opacity: 0.5;
 }
 
+.ui-color-picker {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.ui-color-picker__input {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: 1px solid var(--input);
+  border-radius: var(--ui-field-radius);
+  background: var(--card);
+  padding: 0.25rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.ui-color-picker--small .ui-color-picker__input {
+  width: 44px;
+  height: 44px;
+}
+.ui-color-picker--large .ui-color-picker__input {
+  width: 48px;
+  height: 48px;
+}
+.ui-color-picker__input:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+}
+.ui-color-picker__input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.ui-color-picker:has(.ui-color-picker__input:disabled) {
+  cursor: not-allowed;
+}
+.ui-color-picker__text {
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
 .ui-overlay {
   position: fixed;
   inset: 0;

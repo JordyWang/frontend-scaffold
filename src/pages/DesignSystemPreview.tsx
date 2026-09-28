@@ -14,6 +14,7 @@ import {
   Carousel,
   Collapse,
   Cascader,
+  ColorPicker,
   DatePicker,
   Descriptions,
   Dialog,
@@ -65,6 +66,7 @@ export function DesignSystemPreview() {
   const [density, setDensity] = useState<'default' | 'compact'>('default')
   const [step, setStep] = useState(1)
   const [volume, setVolume] = useState(42)
+  const [colorValue, setColorValue] = useState('#4338ca')
   const [treeSelected, setTreeSelected] = useState('button')
   const [treeExpanded, setTreeExpanded] = useState(['components'])
   const [carouselAutoplay, setCarouselAutoplay] = useState(false)
@@ -204,6 +206,17 @@ export function DesignSystemPreview() {
                     <Rate
                       defaultValue={3}
                       tooltips={['很差', '较差', '一般', '满意', '非常满意']}
+                    />
+                  }
+                />
+                <FormField
+                  label="主题色"
+                  description="原生颜色选择器；值统一为六位小写 hex。"
+                  control={
+                    <ColorPicker
+                      value={colorValue}
+                      onChange={setColorValue}
+                      showText
                     />
                   }
                 />

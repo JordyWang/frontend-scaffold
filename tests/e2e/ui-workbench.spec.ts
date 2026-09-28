@@ -268,6 +268,12 @@ test('design system controls support keyboard, touch and local themes', async ({
   else await satisfiedOption.click()
   await expect(satisfied).toBeChecked()
 
+  const colorPicker = preview.getByLabel('主题色')
+  await expect(colorPicker).toHaveValue('#4338ca')
+  const colorPickerBox = await colorPicker.boundingBox()
+  expect(colorPickerBox?.width).toBeGreaterThanOrEqual(44)
+  expect(colorPickerBox?.height).toBeGreaterThanOrEqual(44)
+
   const scopedSelect = preview.getByRole('combobox', { name: '局部选择' })
   if (testInfo.project.name.startsWith('mobile-')) await scopedSelect.tap()
   else await scopedSelect.click()
@@ -655,7 +661,7 @@ test('mobile controls are touchable without horizontal overflow', async ({
       document.documentElement.clientWidth,
     smallTargets: [
       ...document.querySelectorAll(
-        'button,[role=combobox],[role=tab],.ui-choice,.ui-switch,.ui-segmented__option,.ui-rate__option',
+        'button,[role=combobox],[role=tab],.ui-choice,.ui-switch,.ui-segmented__option,.ui-rate__option,.ui-color-picker__input',
       ),
     ]
       .filter((element) => {

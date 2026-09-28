@@ -9,6 +9,7 @@ import {
   Breadcrumb,
   Carousel,
   Collapse,
+  ColorPicker,
   Descriptions,
   DatePicker,
   Dropdown,
@@ -376,6 +377,47 @@ describe('Ant Design-inspired shared components', () => {
     expect(group).toHaveAttribute('aria-describedby')
     expect(screen.getByRole('radio', { name: '1 星' })).toHaveAttribute('id')
     expect(screen.getByRole('alert')).toHaveTextContent('请选择评分')
+  })
+
+  it('normalizes color values and keeps the native control accessible', () => {
+    const onChange = vi.fn()
+    const { rerender } = render(
+      <ColorPicker
+        aria-label="主题色"
+        defaultValue="#abc"
+        showText
+        onChange={onChange}
+      />,
+    )
+    const picker = screen.getByLabelText('主题色')
+    expect(picker).toHaveAttribute('type', 'color')
+    expect(picker).toHaveValue('#aabbcc')
+    expect(screen.getByText('#aabbcc')).toBeInTheDocument()
+
+    fireEvent.change(picker, { target: { value: '#112233' } })
+    expect(picker).toHaveValue('#112233')
+    expect(onChange).toHaveBeenLastCalledWith('#112233')
+
+    rerender(<ColorPicker aria-label="主题色" value="#fed" showText disabled />)
+    expect(picker).toHaveValue('#ffeedd')
+    expect(picker).toBeDisabled()
+    expect(screen.getByText('#ffeedd')).toBeInTheDocument()
+  })
+
+  it('connects color picker labels and errors through FormField', () => {
+    render(
+      <FormField
+        label="主题色"
+        error="请选择主题色"
+        control={<ColorPicker defaultValue="#123456" />}
+      />,
+    )
+    const picker = screen.getByLabelText('主题色')
+    expect(picker).toHaveAttribute('id')
+    expect(picker).toHaveAttribute('aria-labelledby')
+    expect(picker).toHaveAttribute('aria-invalid', 'true')
+    expect(picker).toHaveAttribute('aria-describedby')
+    expect(screen.getByRole('alert')).toHaveTextContent('请选择主题色')
   })
 
   it('connects segmented field semantics through FormField', () => {
