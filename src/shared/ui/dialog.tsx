@@ -2,6 +2,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { type ReactElement, type ReactNode } from 'react'
 import { Button } from './button'
 import { CloseIcon } from './icons'
+import { usePortalContainer } from './portal-context'
 
 export type DialogProps = {
   title: string
@@ -26,6 +27,7 @@ export function Dialog({
   onOpenChange,
   closeLabel = '关闭对话框',
 }: DialogProps) {
+  const portalContainer = usePortalContainer()
   return (
     <DialogPrimitive.Root
       open={open}
@@ -35,7 +37,7 @@ export function Dialog({
       {trigger && (
         <DialogPrimitive.Trigger asChild>{trigger}</DialogPrimitive.Trigger>
       )}
-      <DialogPrimitive.Portal>
+      <DialogPrimitive.Portal container={portalContainer}>
         <DialogPrimitive.Overlay className="ui-overlay" />
         <DialogPrimitive.Content
           className="ui-dialog"

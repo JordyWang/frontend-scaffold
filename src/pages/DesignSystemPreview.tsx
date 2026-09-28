@@ -6,11 +6,15 @@ import {
   Card,
   CardContent,
   Checkbox,
+  Dialog,
   Divider,
+  FormField,
   Grid,
   Icon,
   Image,
   RadioGroup,
+  Select,
+  Sheet,
   Skeleton,
   Spinner,
   Stack,
@@ -176,6 +180,31 @@ export function DesignSystemPreview() {
                     </Button>
                   }
                 />
+                <FormField
+                  label="局部选择"
+                  control={
+                    <Select
+                      options={[
+                        { value: 'one', label: '选项一' },
+                        { value: 'two', label: '选项二' },
+                      ]}
+                    />
+                  }
+                />
+                <Stack direction="row" wrap gap="sm">
+                  <Dialog
+                    title="局部对话框"
+                    trigger={<Button variant="outline">打开局部对话框</Button>}
+                  >
+                    <Typography>弹层继承当前主题。</Typography>
+                  </Dialog>
+                  <Sheet
+                    title="局部面板"
+                    trigger={<Button variant="outline">打开局部面板</Button>}
+                  >
+                    <Typography>面板继承当前主题。</Typography>
+                  </Sheet>
+                </Stack>
               </Stack>
             </CardContent>
           </Card>
@@ -184,13 +213,31 @@ export function DesignSystemPreview() {
       <ThemeScope
         mode={mode === 'light' ? 'dark' : 'light'}
         density="compact"
+        tokens={
+          mode === 'light'
+            ? { primary: '#5eead4', onPrimary: '#111827' }
+            : { primary: '#0f766e', onPrimary: '#ffffff' }
+        }
         className="rounded-xl border border-border p-4"
       >
         <Stack direction="row" align="center" wrap gap="sm">
           <Typography as="span" variant="caption">
-            局部反色主题
+            局部反色与品牌主题
           </Typography>
-          <Button size="small">主要操作</Button>
+          <Button
+            size="small"
+            onClick={() => toast({ title: '品牌主题操作已点击' })}
+          >
+            主要操作
+          </Button>
+          <Tag
+            style={{
+              background: 'var(--accent)',
+              color: 'var(--accent-foreground)',
+            }}
+          >
+            派生高亮
+          </Tag>
           <Tag tone="success">正常</Tag>
         </Stack>
       </ThemeScope>

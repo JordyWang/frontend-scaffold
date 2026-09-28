@@ -134,14 +134,34 @@ describe('shared/ui contracts', () => {
 
   it('keeps local theme and density on their own scope', () => {
     render(
-      <ThemeScope mode="dark" density="compact">
+      <ThemeScope
+        mode="dark"
+        density="compact"
+        tokens={{ primary: '#5eead4', onPrimary: '#111827' }}
+      >
         局部主题
       </ThemeScope>,
     )
     const scope = screen.getByText('局部主题')
     expect(scope).toHaveAttribute('data-ui-theme', 'dark')
     expect(scope).toHaveAttribute('data-ui-density', 'compact')
+    expect(scope).toHaveStyle({ '--ui-seed-primary': '#5eead4' })
+    expect(scope).toHaveStyle({ '--ui-map-primary-text': '#111827' })
     expect(document.documentElement).not.toHaveAttribute('data-ui-theme')
+  })
+
+  it('mounts a portal inside its nearest theme scope', () => {
+    render(
+      <ThemeScope mode="dark">
+        <Portal>
+          <span>局部弹出内容</span>
+        </Portal>
+      </ThemeScope>,
+    )
+    expect(screen.getByText('局部弹出内容').parentElement).toHaveAttribute(
+      'data-ui-theme',
+      'dark',
+    )
   })
 
   it('uses native checkbox, radio and switch behavior', () => {

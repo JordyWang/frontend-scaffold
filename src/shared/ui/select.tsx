@@ -2,6 +2,7 @@ import * as SelectPrimitive from '@radix-ui/react-select'
 import { forwardRef } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { CheckIcon } from './icons'
+import { usePortalContainer } from './portal-context'
 
 export type SelectOption = { value: string; label: string; disabled?: boolean }
 export type SelectProps = {
@@ -38,6 +39,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
     },
     ref,
   ) {
+    const portalContainer = usePortalContainer()
     return (
       <SelectPrimitive.Root
         value={value}
@@ -66,7 +68,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
             </svg>
           </SelectPrimitive.Icon>
         </SelectPrimitive.Trigger>
-        <SelectPrimitive.Portal>
+        <SelectPrimitive.Portal container={portalContainer}>
           <SelectPrimitive.Content
             className="ui-select__content"
             position="popper"

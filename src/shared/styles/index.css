@@ -17,13 +17,10 @@
   --ui-map-input-border: #94a3b8;
   --ui-map-primary-text: #ffffff;
   --ui-map-secondary: #e2e8f0;
-  --ui-map-accent: #e0e7ff;
-  --ui-map-accent-text: #312e81;
   --ui-map-danger-text: #ffffff;
   --ui-map-success-bg: #dcfce7;
   --ui-map-warning-bg: #fef3c7;
   --ui-map-error-bg: #fee2e2;
-  --ui-map-info-bg: #e0e7ff;
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
   --space-md: 1rem;
@@ -46,13 +43,10 @@
     --ui-map-input-border: #64748b;
     --ui-map-primary-text: #111827;
     --ui-map-secondary: #334155;
-    --ui-map-accent: #312e81;
-    --ui-map-accent-text: #e0e7ff;
     --ui-map-danger-text: #111827;
     --ui-map-success-bg: #14532d;
     --ui-map-warning-bg: #713f12;
     --ui-map-error-bg: #7f1d1d;
-    --ui-map-info-bg: #312e81;
   }
 }
 
@@ -70,13 +64,10 @@
   --ui-map-input-border: #64748b;
   --ui-map-primary-text: #111827;
   --ui-map-secondary: #334155;
-  --ui-map-accent: #312e81;
-  --ui-map-accent-text: #e0e7ff;
   --ui-map-danger-text: #111827;
   --ui-map-success-bg: #14532d;
   --ui-map-warning-bg: #713f12;
   --ui-map-error-bg: #7f1d1d;
-  --ui-map-info-bg: #312e81;
 }
 
 [data-ui-theme='light'] {
@@ -93,17 +84,28 @@
   --ui-map-input-border: #94a3b8;
   --ui-map-primary-text: #ffffff;
   --ui-map-secondary: #e2e8f0;
-  --ui-map-accent: #e0e7ff;
-  --ui-map-accent-text: #312e81;
   --ui-map-danger-text: #ffffff;
   --ui-map-success-bg: #dcfce7;
   --ui-map-warning-bg: #fef3c7;
   --ui-map-error-bg: #fee2e2;
-  --ui-map-info-bg: #e0e7ff;
 }
 
 :root,
 .ui-theme-scope {
+  /* Derived map colors respond to a local primary seed. */
+  --ui-map-primary-hover: color-mix(in srgb, var(--ui-seed-primary) 88%, white);
+  --ui-map-primary-active: color-mix(
+    in srgb,
+    var(--ui-seed-primary) 88%,
+    black
+  );
+  --ui-map-accent: color-mix(
+    in srgb,
+    var(--ui-seed-primary) 15%,
+    var(--ui-map-surface)
+  );
+  --ui-map-accent-text: var(--ui-seed-primary);
+  --ui-map-info-bg: var(--ui-map-accent);
   /* Alias tokens preserve the existing public CSS variable contract. */
   --background: var(--ui-map-bg);
   --foreground: var(--ui-map-text);
@@ -270,6 +272,16 @@ select {
 .ui-button--primary {
   background: var(--primary);
   color: var(--primary-foreground);
+}
+@media (hover: hover) {
+  .ui-button--primary:hover:not(:disabled) {
+    background: var(--ui-map-primary-hover);
+    opacity: 1;
+  }
+}
+.ui-button--primary:active:not(:disabled) {
+  background: var(--ui-map-primary-active);
+  opacity: 1;
 }
 .ui-button--secondary {
   background: var(--secondary);
@@ -779,6 +791,11 @@ select {
   cursor: pointer;
   touch-action: manipulation;
 }
+.ui-choice--small,
+.ui-switch--small {
+  gap: var(--space-xs);
+  font-size: 0.875rem;
+}
 .ui-choice input,
 .ui-switch input {
   position: absolute;
@@ -1169,12 +1186,12 @@ select {
   color: var(--accent-foreground);
 }
 .ui-ai-status--completed {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--ui-map-success-bg);
+  color: var(--ui-color-success);
 }
 .ui-ai-status--failed {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--ui-map-error-bg);
+  color: var(--ui-color-error);
 }
 .ui-ai-status--cancelled {
   background: var(--secondary);

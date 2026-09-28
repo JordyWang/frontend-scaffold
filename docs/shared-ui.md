@@ -27,19 +27,19 @@
 
 ## 主题变量
 
-设计变量按 **Seed → 语义 Map/Alias → 组件 Token** 组织。`--ui-seed-*` 控制品牌色、状态色和圆角；`--ui-map-*` 控制浅色/深色的表面、文字和边框；`--ui-button-radius`、`--ui-field-radius`、`--ui-card-radius` 是组件级覆写点。既有 `--primary`、`--card` 等变量仍作为 Alias 使用，业务无需改动。
+设计变量按 **Seed → 语义 Map/Alias → 组件 Token** 组织。`--ui-seed-*` 控制品牌色、状态色和圆角；`--ui-map-*` 控制浅色/深色的表面、文字和边框，其中主色悬停/按下色及高亮色从主色 Seed 派生；`--ui-button-radius`、`--ui-field-radius`、`--ui-card-radius` 是组件级覆写点。既有 `--primary`、`--card` 等变量仍作为 Alias 使用，业务无需改动。
 
 ```tsx
 <ThemeScope
   mode="dark"
   density="compact"
-  style={{ '--ui-seed-primary': '#5eead4' } as React.CSSProperties}
+  tokens={{ primary: '#5eead4', onPrimary: '#111827' }}
 >
   <Button>局部主题按钮</Button>
 </ThemeScope>
 ```
 
-`auto` 跟随系统深浅色；`light` 和 `dark` 仅作用于当前 `ThemeScope`。紧凑模式缩小内容间距，交互控件仍保持至少 44px 的触控高度。完整状态可在 `/__ui` 中切换查看。
+`auto` 跟随系统深浅色；`light` 和 `dark` 仅作用于当前 `ThemeScope`。定制主色时同时指定 `onPrimary` 以保证按钮文字对比度。Dialog、Sheet、Select 和项目的 `Portal` 会挂载到最近的主题作用域，继承其变量。Toast 由应用根部的 Provider 统一管理。紧凑模式缩小内容间距，交互控件仍保持至少 44px 的触控高度。完整状态可在 `/__ui` 中切换查看。
 
 ## 使用示例
 

@@ -24,6 +24,13 @@ test('design system controls support keyboard, touch and local themes', async ({
   await expect(switchControl).not.toBeChecked()
   await expect(preview.getByText('当前：深色 · 常规')).toBeVisible()
   await expect(preview.locator('[data-ui-theme="dark"]')).toHaveCount(1)
+  const brandedScope = preview.locator('[data-ui-theme="light"]')
+  await expect(
+    brandedScope.getByRole('button', { name: '主要操作' }),
+  ).toHaveCSS('background-color', 'rgb(15, 118, 110)')
+  const accentBefore = await brandedScope
+    .getByText('派生高亮')
+    .evaluate((element) => getComputedStyle(element).backgroundColor)
 
   await preview.getByRole('button', { name: '切换预览密度' }).click()
   await expect(preview.getByText('当前：深色 · 紧凑')).toBeVisible()
@@ -35,6 +42,41 @@ test('design system controls support keyboard, touch and local themes', async ({
     await page.keyboard.press('ArrowRight')
   }
   await expect(radio).toBeChecked()
+
+  const scopedSelect = preview.getByRole('combobox', { name: '局部选择' })
+  if (testInfo.project.name === 'mobile-chromium') await scopedSelect.tap()
+  else await scopedSelect.click()
+  const selectContent = page.locator('.ui-select__content')
+  await expect(selectContent).toHaveCSS('background-color', 'rgb(30, 41, 59)')
+  await expect
+    .poll(() =>
+      selectContent.evaluate((element) =>
+        element.closest('[data-ui-theme]')?.getAttribute('data-ui-theme'),
+      ),
+    )
+    .toBe('dark')
+  await page.getByRole('option', { name: '选项一' }).click()
+
+  const dialogTrigger = preview.getByRole('button', { name: '打开局部对话框' })
+  if (testInfo.project.name === 'mobile-chromium') await dialogTrigger.tap()
+  else await dialogTrigger.click()
+  const scopedDialog = page.getByRole('dialog', { name: '局部对话框' })
+  await expect(scopedDialog).toHaveCSS('background-color', 'rgb(30, 41, 59)')
+  await scopedDialog.getByRole('button', { name: '关闭对话框' }).click()
+
+  const sheetTrigger = preview.getByRole('button', { name: '打开局部面板' })
+  if (testInfo.project.name === 'mobile-chromium') await sheetTrigger.tap()
+  else await sheetTrigger.click()
+  const scopedSheet = page.getByRole('dialog', { name: '局部面板' })
+  await expect(scopedSheet).toHaveCSS('background-color', 'rgb(30, 41, 59)')
+  await scopedSheet.getByRole('button', { name: '关闭面板' }).click()
+
+  await theme.click()
+  const accentAfter = await preview
+    .getByText('派生高亮')
+    .evaluate((element) => getComputedStyle(element).backgroundColor)
+  expect(accentAfter).not.toBe(accentBefore)
+
   for (const width of [360, 390, 768, 1280]) {
     await page.setViewportSize({ width, height: 844 })
     expect(

@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { usePortalContainer } from './portal-context'
 
 export function Portal({
   children,
@@ -8,6 +9,7 @@ export function Portal({
   children: ReactNode
   container?: Element | DocumentFragment
 }) {
+  const scopedContainer = usePortalContainer()
   if (typeof document === 'undefined') return null
-  return createPortal(children, container ?? document.body)
+  return createPortal(children, container ?? scopedContainer ?? document.body)
 }

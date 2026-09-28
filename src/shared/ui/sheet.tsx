@@ -2,6 +2,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { type ReactElement, type ReactNode } from 'react'
 import { Button } from './button'
 import { CloseIcon } from './icons'
+import { usePortalContainer } from './portal-context'
 
 export type SheetProps = {
   title: string
@@ -28,6 +29,7 @@ export function Sheet({
   side = 'right',
   closeLabel = '关闭面板',
 }: SheetProps) {
+  const portalContainer = usePortalContainer()
   return (
     <DialogPrimitive.Root
       open={open}
@@ -37,7 +39,7 @@ export function Sheet({
       {trigger && (
         <DialogPrimitive.Trigger asChild>{trigger}</DialogPrimitive.Trigger>
       )}
-      <DialogPrimitive.Portal>
+      <DialogPrimitive.Portal container={portalContainer}>
         <DialogPrimitive.Overlay className="ui-overlay" />
         <DialogPrimitive.Content
           className={`ui-sheet ui-sheet--${side}`}
