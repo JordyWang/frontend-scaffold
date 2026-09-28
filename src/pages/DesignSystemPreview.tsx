@@ -231,9 +231,12 @@ export function DesignSystemPreview() {
       <ThemeScope
         mode={mode === 'light' ? 'dark' : 'light'}
         density="compact"
-        tokens={
-          mode === 'light' ? { primary: '#5eead4' } : { primary: '#0f766e' }
-        }
+        tokens={{
+          primary: mode === 'light' ? '#5eead4' : '#0f766e',
+          success: '#34d399',
+          warning: '#fbbf24',
+          error: '#fb7185',
+        }}
         className="rounded-xl border border-border p-4"
       >
         <Stack direction="row" align="center" wrap gap="sm">
@@ -255,6 +258,8 @@ export function DesignSystemPreview() {
             派生高亮
           </Tag>
           <Tag tone="success">正常</Tag>
+          <Tag tone="warning">提醒</Tag>
+          <Tag tone="error">异常</Tag>
         </Stack>
       </ThemeScope>
     </section>

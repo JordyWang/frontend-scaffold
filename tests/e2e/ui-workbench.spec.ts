@@ -21,6 +21,78 @@ test('system dark mode keeps local light surfaces and state colors distinct', as
   )
 })
 
+test('custom status seeds keep soft backgrounds and readable labels in both themes', async ({
+  page,
+}) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const scope = preview.locator('.ui-theme-scope').nth(1)
+  const colors = async (
+    tone: 'success' | 'warning' | 'error',
+    tag = scope.locator(`.ui-tag--${tone}`).first(),
+  ) =>
+    tag.evaluate((element) => {
+      const style = getComputedStyle(element)
+      const canvas = document.createElement('canvas')
+      const context = canvas.getContext('2d')!
+      const rgb = (value: string) => {
+        context.fillStyle = value
+        context.fillRect(0, 0, 1, 1)
+        return [...context.getImageData(0, 0, 1, 1).data].slice(0, 3)
+      }
+      const luminance = (value: number[]) => {
+        const channels = value.map((channel) => {
+          const normalized = channel / 255
+          return normalized <= 0.04045
+            ? normalized / 12.92
+            : ((normalized + 0.055) / 1.055) ** 2.4
+        })
+        return (
+          channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722
+        )
+      }
+      const foreground = luminance(rgb(style.color))
+      const background = luminance(rgb(style.backgroundColor))
+      return {
+        background: style.backgroundColor,
+        contrast:
+          (Math.max(foreground, background) + 0.05) /
+          (Math.min(foreground, background) + 0.05),
+      }
+    })
+
+  for (const theme of ['dark', 'light']) {
+    await expect(scope).toHaveAttribute('data-ui-theme', theme)
+    for (const tone of ['success', 'warning', 'error'] as const) {
+      expect((await colors(tone)).contrast).toBeGreaterThanOrEqual(4.5)
+    }
+    const original = (await colors('success')).background
+    await scope.evaluate((element) =>
+      element.style.setProperty('--ui-seed-success', '#ffffff'),
+    )
+    expect((await colors('success')).background).not.toBe(original)
+    expect((await colors('success')).contrast).toBeGreaterThanOrEqual(4.5)
+    await scope.evaluate((element) =>
+      element.style.setProperty('--ui-seed-success', '#000000'),
+    )
+    expect((await colors('success')).contrast).toBeGreaterThanOrEqual(4.5)
+    await preview.getByRole('button', { name: '切换预览主题' }).click()
+  }
+
+  await scope.evaluate((element) => {
+    const nested = document.createElement('div')
+    nested.className = 'ui-theme-scope'
+    nested.dataset.uiTheme = 'light'
+    nested.innerHTML = '<span class="ui-tag ui-tag--success">嵌套状态</span>'
+    element.append(nested)
+  })
+  const nested = scope.locator('[data-ui-theme="light"] .ui-tag--success')
+  expect((await colors('success', nested)).contrast).toBeGreaterThanOrEqual(4.5)
+  expect((await colors('success', nested)).background).not.toBe(
+    (await colors('success')).background,
+  )
+})
+
 test('design system controls support keyboard, touch and local themes', async ({
   page,
 }, testInfo) => {

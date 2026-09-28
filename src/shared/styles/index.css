@@ -134,6 +134,49 @@
   --ui-control-height: 44px;
 }
 
+/* Recalculate custom status colors for each nested scope's surface and text. */
+.ui-theme-scope[data-ui-status-success],
+.ui-theme-scope[data-ui-status-success] .ui-theme-scope {
+  --ui-map-success-bg: color-mix(
+    in srgb,
+    var(--ui-seed-success) 15%,
+    var(--ui-map-surface)
+  );
+  --ui-color-success: color-mix(
+    in srgb,
+    var(--ui-seed-success) 40%,
+    var(--foreground)
+  );
+}
+
+.ui-theme-scope[data-ui-status-warning],
+.ui-theme-scope[data-ui-status-warning] .ui-theme-scope {
+  --ui-map-warning-bg: color-mix(
+    in srgb,
+    var(--ui-seed-warning) 15%,
+    var(--ui-map-surface)
+  );
+  --ui-color-warning: color-mix(
+    in srgb,
+    var(--ui-seed-warning) 40%,
+    var(--foreground)
+  );
+}
+
+.ui-theme-scope[data-ui-status-error],
+.ui-theme-scope[data-ui-status-error] .ui-theme-scope {
+  --ui-map-error-bg: color-mix(
+    in srgb,
+    var(--ui-seed-error) 15%,
+    var(--ui-map-surface)
+  );
+  --ui-color-error: color-mix(
+    in srgb,
+    var(--ui-seed-error) 40%,
+    var(--foreground)
+  );
+}
+
 [data-ui-density='compact'] {
   --space-md: 0.75rem;
   --space-lg: 1rem;

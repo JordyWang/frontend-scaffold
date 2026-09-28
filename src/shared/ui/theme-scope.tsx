@@ -57,6 +57,9 @@ export function ThemeScope({
         ref={setContainer}
         data-ui-theme={mode === 'auto' ? undefined : mode}
         data-ui-density={density}
+        data-ui-status-success={tokens?.success ? '' : undefined}
+        data-ui-status-warning={tokens?.warning ? '' : undefined}
+        data-ui-status-error={tokens?.error ? '' : undefined}
         className={cn('ui-theme-scope', className)}
         style={{ ...tokenStyle, ...style }}
         {...props}
