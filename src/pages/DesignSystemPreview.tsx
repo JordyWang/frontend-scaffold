@@ -28,6 +28,7 @@ import {
   Icon,
   Image,
   Input,
+  InputOTP,
   InputNumber,
   Menu,
   Popconfirm,
@@ -92,6 +93,8 @@ export function DesignSystemPreview() {
   const [volume, setVolume] = useState(42)
   const [colorValue, setColorValue] = useState('#4338ca')
   const [formStatus, setFormStatus] = useState('尚未提交')
+  const [otpValue, setOtpValue] = useState('')
+  const [otpComplete, setOtpComplete] = useState(false)
   const [treeSelected, setTreeSelected] = useState('button')
   const [treeExpanded, setTreeExpanded] = useState(['components'])
   const [carouselAutoplay, setCarouselAutoplay] = useState(false)
@@ -256,6 +259,32 @@ export function DesignSystemPreview() {
                     { value: 'grid', label: '宽卡片' },
                     { value: 'disabled', label: '不可用', disabled: true },
                   ]}
+                />
+                <InputOTP
+                  label="一次性验证码"
+                  value={otpValue}
+                  onChange={(nextValue) => {
+                    setOtpValue(nextValue)
+                    setOtpComplete(false)
+                  }}
+                  onComplete={() => setOtpComplete(true)}
+                />
+                <Typography variant="caption" tone="muted">
+                  {otpComplete
+                    ? '验证码已填写完整'
+                    : `已填写 ${otpValue.length} / 6 位`}
+                </Typography>
+                <InputOTP
+                  label="不可用验证码"
+                  length={4}
+                  defaultValue="12"
+                  disabled
+                />
+                <InputOTP
+                  label="错误验证码"
+                  length={4}
+                  defaultValue="12"
+                  invalid
                 />
                 <Form
                   initialValues={{ email: '', view: 'list' }}

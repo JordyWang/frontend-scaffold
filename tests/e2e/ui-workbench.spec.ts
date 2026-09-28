@@ -342,6 +342,36 @@ test('form preview validates and submits through the project contract', async ({
   await expect(form.getByText('已提交：person@example.com')).toBeVisible()
 })
 
+test('one-time-code input supports entry, correction and touch-sized slots', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const group = preview.getByRole('group', { name: '一次性验证码' })
+  const slots = group.locator('.ui-input-otp__slot')
+  await expect(slots).toHaveCount(6)
+  await expect(slots.first()).toHaveAttribute('inputmode', 'numeric')
+  if (testInfo.project.name.startsWith('mobile')) await slots.first().tap()
+  else await slots.first().click()
+  await slots.first().fill('123456')
+  await expect(preview.getByText('验证码已填写完整')).toBeVisible()
+  await slots.last().press('Backspace')
+  await expect(preview.getByText('已填写 5 / 6 位')).toBeVisible()
+  const bounds = await slots.first().boundingBox()
+  expect(bounds).not.toBeNull()
+  expect(bounds!.width).toBeGreaterThanOrEqual(44)
+  expect(bounds!.height).toBeGreaterThanOrEqual(44)
+  await expect(
+    preview
+      .getByRole('group', { name: '不可用验证码' })
+      .locator('input')
+      .first(),
+  ).toBeDisabled()
+  await expect(
+    preview.getByRole('group', { name: '错误验证码' }),
+  ).toHaveAttribute('aria-invalid', 'true')
+})
+
 test('tree select searches collapsed branches with keyboard and touch', async ({
   page,
 }, testInfo) => {
