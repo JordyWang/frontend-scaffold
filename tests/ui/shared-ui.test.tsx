@@ -183,11 +183,7 @@ describe('shared/ui contracts', () => {
 
   it('keeps local theme and density on their own scope', () => {
     render(
-      <ThemeScope
-        mode="dark"
-        density="compact"
-        tokens={{ primary: '#5eead4', onPrimary: '#111827' }}
-      >
+      <ThemeScope mode="dark" density="compact" tokens={{ primary: '#5eead4' }}>
         局部主题
       </ThemeScope>,
     )
@@ -196,6 +192,7 @@ describe('shared/ui contracts', () => {
     expect(scope).toHaveAttribute('data-ui-density', 'compact')
     expect(scope).toHaveStyle({ '--ui-seed-primary': '#5eead4' })
     expect(scope).toHaveStyle({ '--ui-map-primary-text': '#111827' })
+    expect(scope).toHaveStyle({ '--ui-map-accent-text': 'var(--foreground)' })
     expect(document.documentElement).not.toHaveAttribute('data-ui-theme')
   })
 

@@ -1,10 +1,12 @@
 import { useState, type CSSProperties, type HTMLAttributes } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { PortalContainerContext } from './portal-context'
+import { derivePrimaryTokens } from './theme-colors'
 
 export type ThemeTokens = {
   primary?: string
   onPrimary?: string
+  onAccent?: string
   success?: string
   warning?: string
   error?: string
@@ -27,9 +29,23 @@ export function ThemeScope({
   ...props
 }: ThemeScopeProps) {
   const [container, setContainer] = useState<HTMLDivElement | null>(null)
+  const primaryTokens = tokens?.primary
+    ? derivePrimaryTokens(tokens.primary, tokens.onPrimary)
+    : null
   const tokenStyle = {
     ...(tokens?.primary && { '--ui-seed-primary': tokens.primary }),
-    ...(tokens?.onPrimary && { '--ui-map-primary-text': tokens.onPrimary }),
+    ...((tokens?.onPrimary || primaryTokens?.onPrimary) && {
+      '--ui-map-primary-text': tokens?.onPrimary ?? primaryTokens?.onPrimary,
+    }),
+    ...(primaryTokens?.hover && {
+      '--ui-map-primary-hover': primaryTokens.hover,
+    }),
+    ...(primaryTokens?.active && {
+      '--ui-map-primary-active': primaryTokens.active,
+    }),
+    ...((tokens?.onAccent || tokens?.primary) && {
+      '--ui-map-accent-text': tokens?.onAccent ?? 'var(--foreground)',
+    }),
     ...(tokens?.success && { '--ui-seed-success': tokens.success }),
     ...(tokens?.warning && { '--ui-seed-warning': tokens.warning }),
     ...(tokens?.error && { '--ui-seed-error': tokens.error }),

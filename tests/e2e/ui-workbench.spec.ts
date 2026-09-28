@@ -52,6 +52,9 @@ test('design system controls support keyboard, touch and local themes', async ({
   await expect(
     brandedScope.getByRole('button', { name: '主要操作' }),
   ).toHaveCSS('background-color', 'rgb(15, 118, 110)')
+  await expect(
+    brandedScope.getByRole('button', { name: '主要操作' }),
+  ).toHaveCSS('color', 'rgb(255, 255, 255)')
   const accentBefore = await brandedScope
     .getByText('派生高亮')
     .evaluate((element) => getComputedStyle(element).backgroundColor)
@@ -100,6 +103,10 @@ test('design system controls support keyboard, touch and local themes', async ({
     .getByText('派生高亮')
     .evaluate((element) => getComputedStyle(element).backgroundColor)
   expect(accentAfter).not.toBe(accentBefore)
+  await expect(preview.getByRole('button', { name: '主要操作' })).toHaveCSS(
+    'color',
+    'rgb(17, 24, 39)',
+  )
 
   for (const width of [360, 390, 768, 1280]) {
     await page.setViewportSize({ width, height: 844 })

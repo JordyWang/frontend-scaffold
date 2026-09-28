@@ -232,9 +232,7 @@ export function DesignSystemPreview() {
         mode={mode === 'light' ? 'dark' : 'light'}
         density="compact"
         tokens={
-          mode === 'light'
-            ? { primary: '#5eead4', onPrimary: '#111827' }
-            : { primary: '#0f766e', onPrimary: '#ffffff' }
+          mode === 'light' ? { primary: '#5eead4' } : { primary: '#0f766e' }
         }
         className="rounded-xl border border-border p-4"
       >
