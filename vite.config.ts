@@ -15,6 +15,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      headers: mode === 'mock' ? { 'Accept-Ranges': 'bytes' } : undefined,
       proxy: proxyTarget
         ? {
             '/api': {

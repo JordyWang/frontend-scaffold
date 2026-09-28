@@ -64,6 +64,7 @@ describe('AudioPlayer', () => {
     )
     const audio = container.querySelector('audio')!
     Object.defineProperty(audio, 'duration', { configurable: true, value: 4 })
+    Object.defineProperty(audio, 'readyState', { configurable: true, value: 4 })
     Object.defineProperty(audio, 'currentTime', {
       configurable: true,
       writable: true,
@@ -93,5 +94,34 @@ describe('AudioPlayer', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('音频加载失败')
     fireEvent.click(screen.getByRole('button', { name: '重试播放' }))
     expect(HTMLMediaElement.prototype.load).toHaveBeenCalled()
+  })
+
+  it('applies a seek after media data becomes available', () => {
+    const { container } = render(
+      <AudioPlayer source={source} title="测试音频" />,
+    )
+    const audio = container.querySelector('audio')!
+    let readyState = 1
+    Object.defineProperty(audio, 'readyState', {
+      configurable: true,
+      get: () => readyState,
+    })
+    Object.defineProperty(audio, 'duration', { configurable: true, value: 4 })
+    Object.defineProperty(audio, 'currentTime', {
+      configurable: true,
+      writable: true,
+      value: 0,
+    })
+    fireEvent.loadedMetadata(audio)
+    const seek = screen.getByRole('slider', { name: /音频进度/ })
+    fireEvent.change(seek, { target: { value: '2' } })
+    fireEvent.timeUpdate(audio)
+    expect(audio.currentTime).toBe(0)
+    expect(seek).toHaveValue('2')
+
+    readyState = 4
+    fireEvent.loadedData(audio)
+    expect(audio.currentTime).toBe(2)
+    expect(seek).toHaveValue('2')
   })
 })

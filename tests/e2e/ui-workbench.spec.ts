@@ -522,6 +522,13 @@ test('audio player supports playback, seeking and error retry', async ({
   const seek = player.getByRole('slider', { name: /音频进度/ })
   await seek.fill('1')
   await expect(seek).toHaveValue('1')
+  await expect
+    .poll(() =>
+      player
+        .locator('audio')
+        .evaluate((audio: HTMLAudioElement) => audio.currentTime),
+    )
+    .toBeGreaterThan(0.9)
   await page.getByRole('button', { name: '演示音频错误' }).click()
   const errorPlayer = page.getByRole('region', { name: '错误音频示例' })
   await expect(errorPlayer.getByRole('alert')).toContainText('音频')
@@ -720,9 +727,18 @@ test('tree uses one tab stop and supports keyboard and touch expansion', async (
     await expect(root).toHaveAttribute('aria-expanded', 'true')
     await page.keyboard.press('Tab')
     await expect(root).not.toBeFocused()
-    await expect(
-      tree.getByRole('treeitem', { name: 'Button' }),
-    ).not.toBeFocused()
+    await expect(input).not.toBeFocused()
+    await root.focus()
+    await page.keyboard.press('ArrowRight')
+    await page.keyboard.press('ArrowDown')
+    await expect(input).toBeFocused()
+    await page
+      .getByRole('button', { name: '切换树展开' })
+      .evaluate((element) => (element as HTMLButtonElement).click())
+    await expect(root).toBeFocused()
+    await expect(root).toHaveAttribute('aria-expanded', 'false')
+    await page.keyboard.press('Tab')
+    await expect(root).not.toBeFocused()
   }
 })
 

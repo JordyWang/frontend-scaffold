@@ -350,17 +350,33 @@ describe('Ant Design-inspired shared components', () => {
         children: [{ key: 'child', title: '子节点' }],
       },
     ]
-    const { rerender } = render(
-      <Tree treeData={treeData} expandedKeys={[]} onExpand={onExpand} />,
+    const view = (expandedKeys: string[]) => (
+      <>
+        <button type="button">树外按钮</button>
+        <Tree
+          treeData={treeData}
+          expandedKeys={expandedKeys}
+          onExpand={onExpand}
+        />
+      </>
     )
+    const { rerender } = render(view([]))
     const root = screen.getByRole('treeitem', { name: '根节点' })
     root.focus()
     fireEvent.keyDown(root, { key: 'ArrowRight' })
     expect(onExpand).toHaveBeenCalledWith(['root'])
     expect(root).toHaveAttribute('aria-expanded', 'false')
-    rerender(
-      <Tree treeData={treeData} expandedKeys={['root']} onExpand={onExpand} />,
-    )
-    expect(screen.getByRole('treeitem', { name: '子节点' })).toBeInTheDocument()
+    rerender(view(['root']))
+    const child = screen.getByRole('treeitem', { name: '子节点' })
+    child.focus()
+    rerender(view([]))
+    expect(root).toHaveFocus()
+
+    rerender(view(['root']))
+    screen.getByRole('treeitem', { name: '子节点' }).focus()
+    const outside = screen.getByRole('button', { name: '树外按钮' })
+    outside.focus()
+    rerender(view([]))
+    expect(outside).toHaveFocus()
   })
 })

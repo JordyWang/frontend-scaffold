@@ -63,6 +63,7 @@ export function DesignSystemPreview() {
   const [step, setStep] = useState(1)
   const [volume, setVolume] = useState(42)
   const [treeSelected, setTreeSelected] = useState('button')
+  const [treeExpanded, setTreeExpanded] = useState(['components'])
 
   return (
     <section className="space-y-4" aria-label="设计系统补充组件">
@@ -494,6 +495,14 @@ export function DesignSystemPreview() {
                     subTitle="点击步骤或按钮检查受控状态。"
                   />
                 </div>
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    setTreeExpanded(treeExpanded.length ? [] : ['components'])
+                  }
+                >
+                  切换树展开
+                </Button>
                 <Tree
                   treeData={[
                     {
@@ -505,7 +514,8 @@ export function DesignSystemPreview() {
                       ],
                     },
                   ]}
-                  defaultExpandedKeys={['components']}
+                  expandedKeys={treeExpanded}
+                  onExpand={setTreeExpanded}
                   selectedKey={treeSelected}
                   onSelect={setTreeSelected}
                 />

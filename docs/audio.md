@@ -13,4 +13,6 @@
 
 `useAudioPlayer(options)` 返回 `audioRef`、`status`、`currentTime`、`duration`、`volume`、`muted`、`error`，以及 `play`、`pause`、`togglePlay`、`seek`、`seekBy`、`setVolume`、`setMuted`、`toggleMuted` 和 `reload`。状态由浏览器媒体事件推进，组件卸载时移除监听。
 
+浏览器仅加载元数据时可能暂时无法执行跳转。模块会保留这次跳转目标，在媒体数据可读取后应用。媒体地址需要支持 HTTP Range，并在响应中声明 `Accept-Ranges: bytes`；否则浏览器可能把 `seekable` 区间保持为 `0–0`，无法真正跳转。Mock 模式的 Vite 服务已提供该响应头。
+
 状态为 `idle`、`loading`、`ready`、`playing`、`paused`、`ended`、`error`。加载失败或格式不支持时会显示可重试提示。`/__ui` 包含本地 WAV、错误资源和触控操作示例。

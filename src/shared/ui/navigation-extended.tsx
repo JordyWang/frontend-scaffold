@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -307,7 +308,22 @@ export function Tree({
   const [focusedKey, setFocusedKey] = useState<string>()
   const expanded = expandedKeys ?? internalExpanded
   const id = useId()
+  const treeRef = useRef<HTMLDivElement>(null)
+  const focusWithinRef = useRef(false)
   const nodeRefs = useRef<Record<string, HTMLLIElement | null>>({})
+
+  useEffect(() => {
+    function handlePointerDown(event: PointerEvent) {
+      if (
+        event.target instanceof Node &&
+        !treeRef.current?.contains(event.target)
+      )
+        focusWithinRef.current = false
+    }
+    document.addEventListener('pointerdown', handlePointerDown, true)
+    return () =>
+      document.removeEventListener('pointerdown', handlePointerDown, true)
+  }, [])
 
   const visibleNodes = useMemo(() => {
     const nodes: Array<{
@@ -336,6 +352,41 @@ export function Tree({
     [focusedKey, selectedKey].find((key) =>
       visibleNodes.some((node) => node.key === key && !node.disabled),
     ) ?? visibleNodes.find((node) => !node.disabled)?.key
+
+  useLayoutEffect(() => {
+    if (
+      !focusedKey ||
+      visibleNodes.some((node) => node.key === focusedKey && !node.disabled)
+    )
+      return
+
+    function findAncestors(nodes: TreeNode[], ancestors: string[]): string[] {
+      for (const node of nodes) {
+        if (node.key === focusedKey) return ancestors
+        const found = findAncestors(node.children ?? [], [
+          ...ancestors,
+          node.key,
+        ])
+        if (found.length) return found
+      }
+      return []
+    }
+
+    const ancestor = findAncestors(treeData, [])
+      .reverse()
+      .find((key) =>
+        visibleNodes.some((node) => node.key === key && !node.disabled),
+      )
+    const fallback =
+      ancestor ?? visibleNodes.find((node) => !node.disabled)?.key
+    if (
+      focusWithinRef.current &&
+      fallback &&
+      (document.activeElement === document.body ||
+        treeRef.current?.contains(document.activeElement))
+    )
+      nodeRefs.current[fallback]?.focus()
+  }, [focusedKey, treeData, visibleNodes])
 
   function toggle(key: string) {
     const next = expanded.includes(key)
@@ -475,7 +526,23 @@ export function Tree({
   }
 
   return (
-    <div role="tree" aria-label={label} className={cn('ui-tree', className)}>
+    <div
+      ref={treeRef}
+      role="tree"
+      aria-label={label}
+      className={cn('ui-tree', className)}
+      onFocusCapture={() => {
+        focusWithinRef.current = true
+      }}
+      onBlurCapture={(event) => {
+        if (
+          event.target.isConnected &&
+          event.relatedTarget instanceof Node &&
+          !event.currentTarget.contains(event.relatedTarget)
+        )
+          focusWithinRef.current = false
+      }}
+    >
       <ul role="none" className="ui-tree__list">
         {renderNodes(treeData)}
       </ul>

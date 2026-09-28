@@ -50,6 +50,19 @@ export function useAudioPlayer({
       muted: initialMuted,
     }),
   )
+  const pendingSeekRef = useRef<number | null>(null)
+
+  const applyPendingSeek = useCallback(() => {
+    const audio = audioRef.current
+    const target = pendingSeekRef.current
+    if (!audio || target === null || audio.readyState < audio.HAVE_CURRENT_DATA)
+      return
+    audio.currentTime = target
+    if (Math.abs(audio.currentTime - target) < 0.05) {
+      pendingSeekRef.current = null
+      dispatch({ type: 'time-update', currentTime: audio.currentTime })
+    }
+  }, [])
 
   useEffect(() => {
     const audio = audioRef.current
@@ -57,6 +70,7 @@ export function useAudioPlayer({
 
     const sourceChanged = state.source?.src !== source?.src
     if (!source) {
+      pendingSeekRef.current = null
       audio.pause()
       audio.removeAttribute('src')
       audio.load()
@@ -65,6 +79,7 @@ export function useAudioPlayer({
     }
     if (!sourceChanged && state.source) return
 
+    pendingSeekRef.current = null
     audio.pause()
     dispatch({ type: 'load-start', source })
     audio.src = source.src
@@ -86,13 +101,22 @@ export function useAudioPlayer({
     const onLoadStart = () => dispatch({ type: 'load-start', source })
     const onLoadedMetadata = () =>
       dispatch({ type: 'loaded-metadata', duration: audio.duration })
+    const onLoadedData = () => applyPendingSeek()
+    const onCanPlay = () => applyPendingSeek()
     const onPlay = () => dispatch({ type: 'play' })
     const onPause = () => dispatch({ type: 'pause' })
-    const onTimeUpdate = () =>
-      dispatch({ type: 'time-update', currentTime: audio.currentTime })
-    const onEnded = () => dispatch({ type: 'ended' })
-    const onError = () =>
+    const onTimeUpdate = () => {
+      if (pendingSeekRef.current === null)
+        dispatch({ type: 'time-update', currentTime: audio.currentTime })
+    }
+    const onEnded = () => {
+      pendingSeekRef.current = null
+      dispatch({ type: 'ended' })
+    }
+    const onError = () => {
+      pendingSeekRef.current = null
       dispatch({ type: 'error', error: readMediaError(audio) })
+    }
     const onVolumeChange = () =>
       dispatch({
         type: 'volume-change',
@@ -102,6 +126,8 @@ export function useAudioPlayer({
 
     audio.addEventListener('loadstart', onLoadStart)
     audio.addEventListener('loadedmetadata', onLoadedMetadata)
+    audio.addEventListener('loadeddata', onLoadedData)
+    audio.addEventListener('canplay', onCanPlay)
     audio.addEventListener('play', onPlay)
     audio.addEventListener('pause', onPause)
     audio.addEventListener('timeupdate', onTimeUpdate)
@@ -111,6 +137,8 @@ export function useAudioPlayer({
     return () => {
       audio.removeEventListener('loadstart', onLoadStart)
       audio.removeEventListener('loadedmetadata', onLoadedMetadata)
+      audio.removeEventListener('loadeddata', onLoadedData)
+      audio.removeEventListener('canplay', onCanPlay)
       audio.removeEventListener('play', onPlay)
       audio.removeEventListener('pause', onPause)
       audio.removeEventListener('timeupdate', onTimeUpdate)
@@ -118,7 +146,7 @@ export function useAudioPlayer({
       audio.removeEventListener('error', onError)
       audio.removeEventListener('volumechange', onVolumeChange)
     }
-  }, [source])
+  }, [applyPendingSeek, source])
 
   const play = useCallback(async () => {
     const audio = audioRef.current
@@ -164,14 +192,19 @@ export function useAudioPlayer({
         max,
         Math.max(0, Number.isFinite(time) ? time : 0),
       )
-      audio.currentTime = nextTime
+      pendingSeekRef.current = nextTime
       dispatch({ type: 'time-update', currentTime: nextTime })
+      applyPendingSeek()
     },
-    [state.duration],
+    [applyPendingSeek, state.duration],
   )
 
   const seekBy = useCallback(
-    (seconds: number) => seek((audioRef.current?.currentTime ?? 0) + seconds),
+    (seconds: number) =>
+      seek(
+        (pendingSeekRef.current ?? audioRef.current?.currentTime ?? 0) +
+          seconds,
+      ),
     [seek],
   )
 
@@ -201,6 +234,7 @@ export function useAudioPlayer({
   const reload = useCallback(() => {
     const audio = audioRef.current
     if (!audio || !source) return
+    pendingSeekRef.current = null
     dispatch({ type: 'load-start', source })
     audio.load()
   }, [source])
