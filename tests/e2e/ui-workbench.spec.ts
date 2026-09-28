@@ -31,7 +31,10 @@ test('design system controls support keyboard, touch and local themes', async ({
   const theme = preview.getByRole('button', { name: '切换预览主题' })
 
   if (testInfo.project.name === 'mobile-chromium') {
-    await preview.getByText('同意更新通知').tap()
+    await preview
+      .locator('label.ui-choice')
+      .filter({ hasText: '同意更新通知' })
+      .tap()
     await preview.getByText('启用提醒').tap()
     await theme.tap()
   } else {

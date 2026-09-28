@@ -9,7 +9,7 @@ type FieldControlProps = {
 }
 
 export type FormFieldProps = {
-  label: string
+  label?: string
   control: ReactElement<FieldControlProps>
   id?: string
   description?: string
@@ -28,7 +28,7 @@ export function FormField({
   className,
 }: FormFieldProps) {
   const generatedId = useId()
-  const controlId = id ?? `field-${generatedId}`
+  const controlId = id ?? control.props.id ?? `field-${generatedId}`
   const hintId = description ? `${controlId}-hint` : undefined
   const errorId = error ? `${controlId}-error` : undefined
   const describedBy =
@@ -38,10 +38,17 @@ export function FormField({
 
   return (
     <div className={cn('ui-field', className)}>
-      <label htmlFor={controlId} className="ui-field__label">
-        {label}
-        {required && <span aria-hidden="true"> *</span>}
-      </label>
+      {label && (
+        <label htmlFor={controlId} className="ui-field__label">
+          {label}
+          {required && (
+            <span className="ui-field__required" aria-hidden="true">
+              {' '}
+              *
+            </span>
+          )}
+        </label>
+      )}
       {cloneElement(control, {
         id: controlId,
         required: required || control.props.required,
@@ -54,7 +61,7 @@ export function FormField({
         </p>
       )}
       {error && (
-        <p id={errorId} className="ui-field__error">
+        <p id={errorId} role="alert" className="ui-field__error">
           {error}
         </p>
       )}

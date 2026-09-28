@@ -38,16 +38,65 @@ describe('shared/ui contracts', () => {
         required
         description="至少两个字符"
         error="名称太短"
-        control={<Input />}
+        control={<Input id="custom-name" />}
       />,
     )
     const input = screen.getByRole('textbox', { name: '名称' })
+    expect(input).toHaveAttribute('id', 'custom-name')
     expect(input).toBeRequired()
     expect(input).toHaveAttribute('aria-invalid', 'true')
     const ids = input.getAttribute('aria-describedby')?.split(' ') ?? []
     expect(ids).toHaveLength(2)
     expect(document.getElementById(ids[0])).toHaveTextContent('至少两个字符')
     expect(document.getElementById(ids[1])).toHaveTextContent('名称太短')
+  })
+
+  it('connects self-labelled checkbox errors without nesting labels', () => {
+    const { container } = render(
+      <FormField
+        required
+        description="确认后才能继续"
+        error="请同意条款"
+        control={<Checkbox label="同意条款" />}
+      />,
+    )
+    const checkbox = screen.getByRole('checkbox', { name: '同意条款' })
+    expect(checkbox).toBeRequired()
+    expect(checkbox).toHaveAttribute('aria-invalid', 'true')
+    expect(container.querySelectorAll('label')).toHaveLength(1)
+    expect(screen.getByRole('alert')).toHaveTextContent('请同意条款')
+    const ids = checkbox.getAttribute('aria-describedby')?.split(' ') ?? []
+    expect(ids).toHaveLength(2)
+    expect(document.getElementById(ids[0])).toHaveTextContent('确认后才能继续')
+    expect(document.getElementById(ids[1])).toHaveTextContent('请同意条款')
+  })
+
+  it('connects a radio group legend, required state and error', () => {
+    render(
+      <FormField
+        required
+        error="请选择展示方式"
+        control={
+          <RadioGroup
+            label="展示方式"
+            options={[
+              { value: 'list', label: '列表' },
+              { value: 'grid', label: '网格' },
+            ]}
+          />
+        }
+      />,
+    )
+    const group = screen.getByRole('group', { name: '展示方式' })
+    expect(group).toHaveAttribute('aria-invalid', 'true')
+    expect(
+      document.getElementById(group.getAttribute('aria-describedby') ?? ''),
+    ).toHaveTextContent('请选择展示方式')
+    expect(screen.getByRole('radio', { name: '列表' })).toBeRequired()
+    expect(screen.getByRole('radio', { name: '列表' })).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    )
   })
 
   it('keeps pagination in range', () => {

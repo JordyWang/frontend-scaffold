@@ -104,26 +104,44 @@ export function DesignSystemPreview() {
                 <Typography as="h3" variant="title">
                   数据录入
                 </Typography>
-                <Checkbox
-                  label="同意更新通知"
-                  checked={checked}
-                  onChange={(event) => setChecked(event.target.checked)}
+                <FormField
+                  required
+                  description="提交前需要同意通知。"
+                  error={checked ? undefined : '请同意更新通知'}
+                  control={
+                    <Checkbox
+                      label="同意更新通知"
+                      checked={checked}
+                      onChange={(event) => setChecked(event.target.checked)}
+                    />
+                  }
                 />
                 <Checkbox label="不可用复选框" disabled />
-                <RadioGroup
-                  label="展示方式"
-                  value={choice}
-                  onValueChange={setChoice}
-                  options={[
-                    { value: 'a', label: '列表' },
-                    { value: 'b', label: '网格' },
-                    { value: 'c', label: '不可用', disabled: true },
-                  ]}
+                <FormField
+                  required
+                  error={choice === 'a' ? '请选择网格展示以继续' : undefined}
+                  control={
+                    <RadioGroup
+                      label="展示方式"
+                      value={choice}
+                      onValueChange={setChoice}
+                      options={[
+                        { value: 'a', label: '列表' },
+                        { value: 'b', label: '网格' },
+                        { value: 'c', label: '不可用', disabled: true },
+                      ]}
+                    />
+                  }
                 />
-                <Switch
-                  label="启用提醒"
-                  checked={enabled}
-                  onChange={(event) => setEnabled(event.target.checked)}
+                <FormField
+                  error={enabled ? undefined : '请启用提醒'}
+                  control={
+                    <Switch
+                      label="启用提醒"
+                      checked={enabled}
+                      onChange={(event) => setEnabled(event.target.checked)}
+                    />
+                  }
                 />
                 <Switch label="不可用开关" disabled />
               </Stack>

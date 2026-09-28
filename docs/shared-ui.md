@@ -6,7 +6,7 @@
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | Button                        | `variant`、`size`、`loading`、原生 button 属性                                                                         | 默认 `type="button"`；加载时禁用，避免重复提交                   |
 | Input / Textarea              | 原生属性、`invalid`、`size`                                                                                            | 转发 ref；`size` 为 default / small，输入字号为 16px             |
-| FormField                     | `label`、`control`、`description`、`error`、`required`、`id`                                                           | 自动连接 label、说明和错误；校验规则由调用方提供                 |
+| FormField                     | `label?`、`control`、`description`、`error`、`required`、`id`                                                          | 自动连接标签、说明和错误；自带标签的控件省略 `label`             |
 | Card                          | `Card`、`CardHeader`、`CardTitle`、`CardDescription`、`CardContent`、`CardFooter`                                      | 仅负责内容容器                                                   |
 | Empty                         | `title`、`description`、`action`                                                                                       | 适用于无数据状态                                                 |
 | Select                        | `options`、`value` / `defaultValue`、`onValueChange`、`placeholder`、`disabled`、`name`、`required`、`size`            | 选项 `{ value, label, disabled? }`；Radix 处理方向键、搜索和焦点 |
@@ -20,7 +20,7 @@
 | ThemeScope                    | `mode`、`density`、`tokens`、原生 div 属性                                                                             | 局部浅色/深色、品牌 Token 和紧凑预览；`auto` 继承上级主题        |
 | Icon / Typography             | `Icon(name, size, label)`；`Typography(as, variant, tone)`                                                             | 图标默认装饰性；有语义时传 `label`；标题通过 `as` 保持正确层级   |
 | Stack / Flex / Grid / Divider | `Stack(direction, gap, align, justify, wrap)`；`Flex` 为 Stack 别名；`Grid(minItemWidth, gap)`；`Divider(orientation)` | Grid 根据容器宽度自动换列；竖向分隔线仅用于水平布局              |
-| Checkbox / Radio / Switch     | 原生 input 属性、`label`、`size`、`invalid`；`RadioGroup(options, value, onValueChange)`                               | 原生键盘行为和表单提交；标签提供 44px 触控区域                   |
+| Checkbox / Radio / Switch     | 原生 input 属性、`label`、`size`、`invalid`；`RadioGroup(options, value, onValueChange, required)`                     | 原生键盘行为和表单提交；标签提供 44px 触控区域                   |
 | Tag / Badge                   | `tone`；`Badge(count, max, dot, label)`                                                                                | 状态同时提供文字；徽标数量或标签可被辅助技术读取                 |
 | Image / Skeleton              | 原生 img 属性、必填 `alt`、`fallback`；`Skeleton(shape, width, height, label)`                                         | 图片懒加载，加载失败展示替代内容；骨架屏有状态标签               |
 | Alert / Spinner               | `Alert(title, description, tone, action)`；`Spinner(label, size)`                                                      | 错误与警告用 alert，其他状态用 status；加载状态有可访问名称      |
@@ -40,6 +40,8 @@
 ```
 
 `auto` 跟随系统深浅色；`light` 和 `dark` 仅作用于当前 `ThemeScope`。定制主色时同时指定 `onPrimary` 以保证按钮文字对比度。Dialog、Sheet、Select 和项目的 `Portal` 会挂载到最近的主题作用域，继承其变量。Toast 由应用根部的 Provider 统一管理。紧凑模式缩小内容间距，交互控件仍保持至少 44px 的触控高度。完整状态可在 `/__ui` 中切换查看。
+
+Checkbox、Switch 和 RadioGroup 自带可访问标签。需要显示校验错误时，用 `FormField` 包裹它们并省略外层 `label`，避免重复或嵌套的标签；`description` 和 `error` 会关联到 input 或单选组。普通 Input、Textarea、Select 仍由 `FormField.label` 提供可见标签。
 
 ## 使用示例
 

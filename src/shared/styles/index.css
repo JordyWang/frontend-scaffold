@@ -363,6 +363,10 @@ select {
 .ui-field__label {
   font-weight: 600;
 }
+.ui-field__required {
+  color: var(--destructive);
+  font-weight: 700;
+}
 .ui-field__hint {
   color: var(--muted-foreground);
   font-size: 0.875rem;
