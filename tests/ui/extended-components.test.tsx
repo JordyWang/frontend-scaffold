@@ -94,12 +94,15 @@ describe('Ant Design-inspired shared components', () => {
       />,
     )
     const root = screen.getByRole('menuitem', { name: '根菜单' })
+    expect(root).toHaveAttribute('tabindex', '0')
     root.focus()
     fireEvent.keyDown(root, { key: 'ArrowRight' })
     expect(root).toHaveAttribute('aria-expanded', 'true')
     const nested = screen.getByRole('menuitem', { name: '嵌套菜单' })
     fireEvent.keyDown(root, { key: 'ArrowDown' })
     expect(nested).toHaveFocus()
+    expect(nested).toHaveAttribute('tabindex', '0')
+    expect(root).toHaveAttribute('tabindex', '-1')
     fireEvent.keyDown(nested, { key: 'ArrowRight' })
     expect(nested).toHaveAttribute('aria-expanded', 'true')
     const leaf = screen.getByRole('menuitem', { name: '叶子项' })
@@ -132,6 +135,30 @@ describe('Ant Design-inspired shared components', () => {
     ).not.toBeInTheDocument()
     rerender(<Menu items={items} expandedKeys={['root']} onExpand={onExpand} />)
     expect(screen.getByRole('menuitem', { name: '子菜单' })).toBeInTheDocument()
+  })
+
+  it('keeps one menu item in the tab order', () => {
+    render(
+      <Menu
+        items={[
+          { key: 'one', label: '第一项' },
+          { key: 'disabled', label: '禁用项', disabled: true },
+          { key: 'two', label: '第二项' },
+        ]}
+      />,
+    )
+    expect(screen.getByRole('menuitem', { name: '第一项' })).toHaveAttribute(
+      'tabindex',
+      '0',
+    )
+    expect(screen.getByRole('menuitem', { name: '禁用项' })).toHaveAttribute(
+      'tabindex',
+      '-1',
+    )
+    expect(screen.getByRole('menuitem', { name: '第二项' })).toHaveAttribute(
+      'tabindex',
+      '-1',
+    )
   })
 
   it('respects reduced motion until carousel rotation is requested', () => {

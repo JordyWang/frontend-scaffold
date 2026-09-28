@@ -727,6 +727,11 @@ test('menu exposes nested expansion and selected state', async ({
   await page.goto('/__ui')
   const menu = page.getByRole('navigation', { name: '主导航' })
   const settings = menu.getByRole('menuitem', { name: '设置' })
+  await expect(menu.getByRole('menuitem', { name: '概览' })).toHaveAttribute(
+    'tabindex',
+    '0',
+  )
+  await expect(settings).toHaveAttribute('tabindex', '-1')
   if (testInfo.project.name.startsWith('mobile-')) {
     await settings.tap()
     await expect(settings).toHaveAttribute('aria-expanded', 'true')
@@ -739,6 +744,8 @@ test('menu exposes nested expansion and selected state', async ({
     await page.keyboard.press('ArrowRight')
     const theme = menu.getByRole('menuitem', { name: '主题' })
     await expect(theme).toBeFocused()
+    await expect(theme).toHaveAttribute('tabindex', '0')
+    await expect(settings).toHaveAttribute('tabindex', '-1')
     await page.keyboard.press('ArrowLeft')
     await expect(settings).toBeFocused()
     await page.keyboard.press('Enter')

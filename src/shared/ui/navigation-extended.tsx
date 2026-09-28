@@ -49,6 +49,7 @@ export function Menu({
   const [internalSelected, setInternalSelected] = useState(defaultSelectedKeys)
   const [internalExpanded, setInternalExpanded] =
     useState<string[]>(defaultExpandedKeys)
+  const [focusedKey, setFocusedKey] = useState<string>()
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({})
   const selected = selectedKeys ?? internalSelected
   const expanded = expandedKeys ?? internalExpanded
@@ -65,6 +66,10 @@ export function Menu({
     collect(items)
     return result
   }, [expanded, items])
+  const tabbableKey =
+    [focusedKey, ...selected].find((key) =>
+      visibleItems.some(({ item }) => item.key === key && !item.disabled),
+    ) ?? visibleItems.find(({ item }) => !item.disabled)?.item.key
 
   function select(key: string) {
     if (selectedKeys === undefined) setInternalSelected([key])
@@ -156,6 +161,7 @@ export function Menu({
             aria-haspopup={hasChildren ? 'menu' : undefined}
             aria-expanded={hasChildren ? isExpanded : undefined}
             disabled={item.disabled}
+            tabIndex={item.disabled || item.key !== tabbableKey ? -1 : 0}
             className={cn(
               'ui-menu__item',
               isSelected && 'ui-menu__item--selected',
@@ -167,6 +173,7 @@ export function Menu({
               }
               select(item.key)
             }}
+            onFocus={() => setFocusedKey(item.key)}
             onKeyDown={(event) => handleKeyDown(event, item.key)}
           >
             {item.icon && <span aria-hidden="true">{item.icon}</span>}
