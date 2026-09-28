@@ -118,6 +118,8 @@ export type {
   TreeSelectProps,
   TreeSelectValue,
 } from './tree-select'
+export { Transfer } from './transfer'
+export type { TransferDirection, TransferItem, TransferProps } from './transfer'
 export { Statistic, Timeline } from './data-display'
 export type {
   StatisticProps,

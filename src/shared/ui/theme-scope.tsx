@@ -21,6 +21,7 @@ export type ThemeTokens = {
     overlay?: { radius?: string }
     menu?: { radius?: string }
     segmented?: { radius?: string; height?: string }
+    transfer?: { radius?: string; listHeight?: string }
   }
 }
 
@@ -109,6 +110,13 @@ export function ThemeScope({
     }),
     ...(tokens?.components?.segmented?.height && {
       '--ui-segmented-height-override': tokens.components.segmented.height,
+    }),
+    ...(tokens?.components?.transfer?.radius && {
+      '--ui-transfer-radius-override': tokens.components.transfer.radius,
+    }),
+    ...(tokens?.components?.transfer?.listHeight && {
+      '--ui-transfer-list-height-override':
+        tokens.components.transfer.listHeight,
     }),
   } as CSSProperties
   return (

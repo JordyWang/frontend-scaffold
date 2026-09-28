@@ -372,6 +372,54 @@ test('tree select searches collapsed branches with keyboard and touch', async ({
   await expect(trigger).toHaveCSS('min-height', '44px')
 })
 
+test('transfer moves filtered choices with keyboard and touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const transfer = preview.getByRole('group', { name: '模块分配' })
+  const source = transfer.getByRole('region', { name: '可用模块' })
+  const target = transfer.getByRole('region', { name: '已启用模块' })
+  const design = source.getByRole('checkbox', { name: /设计规范/ })
+  const move = transfer.getByRole('button', { name: '移至已启用模块' })
+  await expect(
+    source.getByRole('checkbox', { name: '归档模块' }),
+  ).toBeDisabled()
+
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await design.locator('..').tap()
+    await move.tap()
+  } else {
+    await design.focus()
+    await page.keyboard.press('Space')
+    await move.focus()
+    await page.keyboard.press('Enter')
+  }
+  await expect(target.getByRole('checkbox', { name: /设计规范/ })).toBeVisible()
+
+  await source.getByRole('searchbox', { name: '搜索可用模块' }).fill('音频')
+  const selectAll = source.getByRole('checkbox', {
+    name: '全选可用模块可见项',
+  })
+  if (testInfo.project.name.startsWith('mobile-'))
+    await selectAll.locator('..').tap()
+  else await selectAll.check()
+  if (testInfo.project.name.startsWith('mobile-')) await move.tap()
+  else await move.click()
+  await expect(target.getByRole('checkbox', { name: /音频预览/ })).toBeVisible()
+
+  await preview.getByRole('button', { name: '禁用穿梭框' }).click()
+  await expect(
+    target.getByRole('checkbox', { name: /音频预览/ }),
+  ).toBeDisabled()
+  await expect(move).toBeDisabled()
+  const row = await target
+    .getByRole('checkbox', { name: /音频预览/ })
+    .locator('..')
+    .boundingBox()
+  expect(row?.height).toBeGreaterThanOrEqual(44)
+})
+
 test('keyboard controls retain focus and expose data states', async ({
   page,
 }, testInfo) => {

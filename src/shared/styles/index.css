@@ -161,6 +161,8 @@
     --ui-segmented-height-override,
     var(--ui-control-height)
   );
+  --ui-transfer-radius: var(--ui-transfer-radius-override, var(--radius-md));
+  --ui-transfer-list-height: var(--ui-transfer-list-height-override, 18rem);
   --ui-control-height: var(--ui-field-height-override, 44px);
 }
 
@@ -866,6 +868,166 @@ select {
   padding: var(--space-md);
   color: var(--muted-foreground);
   text-align: center;
+}
+
+.ui-transfer {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-md);
+}
+.ui-transfer__panel {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--ui-transfer-radius);
+  background: var(--card);
+  color: var(--card-foreground);
+}
+.ui-transfer[aria-invalid='true'] .ui-transfer__panel {
+  border-color: var(--destructive);
+}
+.ui-transfer__header {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  gap: var(--space-xs);
+  border-bottom: 1px solid var(--border);
+  padding-right: var(--space-sm);
+}
+.ui-transfer__select-all {
+  display: inline-grid;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  place-items: center;
+  cursor: pointer;
+}
+.ui-transfer__select-all:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.ui-transfer__count {
+  margin-left: auto;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+.ui-transfer__search {
+  min-height: 44px;
+  width: calc(100% - 2 * var(--space-sm));
+  margin: var(--space-sm);
+  border: 1px solid var(--input);
+  border-radius: var(--ui-field-radius);
+  background: var(--card);
+  color: var(--foreground);
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+}
+.ui-transfer__list {
+  height: var(--ui-transfer-list-height);
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overscroll-behavior: contain;
+}
+.ui-transfer__item + .ui-transfer__item {
+  border-top: 1px solid var(--border);
+}
+.ui-transfer__row {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0.5rem var(--space-sm);
+  cursor: pointer;
+}
+.ui-transfer__row:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.ui-transfer__row--disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.ui-transfer__row--disabled:hover {
+  background: transparent;
+  color: inherit;
+}
+.ui-transfer input[type='checkbox'] {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: none;
+  accent-color: var(--primary);
+}
+.ui-transfer__item-text {
+  display: grid;
+  min-width: 0;
+  gap: 0.125rem;
+  line-height: 1.4;
+}
+.ui-transfer__description {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+.ui-transfer__empty {
+  display: grid;
+  min-height: var(--ui-transfer-list-height);
+  margin: 0;
+  place-items: center;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+.ui-transfer__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.ui-transfer__action {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  border: 1px solid var(--border);
+  border-radius: var(--ui-button-radius);
+  background: var(--card);
+  color: var(--foreground);
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ui-transfer__action:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.ui-transfer__action:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+@media (max-width: 639px) {
+  .ui-transfer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ui-transfer__actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .ui-transfer__action {
+    flex: 1 1 8rem;
+  }
+  .ui-transfer__list,
+  .ui-transfer__empty {
+    height: auto;
+    min-height: 6rem;
+    max-height: 12rem;
+  }
 }
 
 .ui-segmented {

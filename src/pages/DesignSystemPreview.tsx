@@ -53,6 +53,7 @@ import {
   TimePicker,
   Tree,
   TreeSelect,
+  Transfer,
   Tooltip,
   Typography,
   Upload,
@@ -72,6 +73,14 @@ const teamTreeData = [
   { value: 'engineering', label: '研发团队' },
 ]
 
+const transferItems = [
+  { key: 'design', title: '设计规范', description: '组件与主题' },
+  { key: 'video', title: '视频预览', description: '播放与字幕' },
+  { key: 'audio', title: '音频预览', description: '播放与进度' },
+  { key: 'analysis', title: '数据分析', description: '图表和报表' },
+  { key: 'archived', title: '归档模块', disabled: true },
+]
+
 export function DesignSystemPreview() {
   const [checked, setChecked] = useState(false)
   const [enabled, setEnabled] = useState(true)
@@ -87,6 +96,7 @@ export function DesignSystemPreview() {
   const [treeExpanded, setTreeExpanded] = useState(['components'])
   const [carouselAutoplay, setCarouselAutoplay] = useState(false)
   const [menuExpanded, setMenuExpanded] = useState<string[]>([])
+  const [transferDisabled, setTransferDisabled] = useState(false)
 
   return (
     <section className="space-y-4" aria-label="设计系统补充组件">
@@ -657,6 +667,32 @@ export function DesignSystemPreview() {
                 <Typography as="p" variant="caption" tone="muted">
                   当前树节点：{treeSelected}
                 </Typography>
+              </Stack>
+            </CardContent>
+          </Card>
+          <Card className="col-span-full">
+            <CardContent>
+              <Stack gap="md">
+                <Stack direction="row" wrap align="center" justify="between">
+                  <Typography as="h3" variant="title">
+                    双栏穿梭框
+                  </Typography>
+                  <Button
+                    variant="outline"
+                    size="small"
+                    onClick={() => setTransferDisabled((current) => !current)}
+                  >
+                    {transferDisabled ? '启用穿梭框' : '禁用穿梭框'}
+                  </Button>
+                </Stack>
+                <Transfer
+                  label="模块分配"
+                  items={transferItems}
+                  defaultTargetKeys={['analysis']}
+                  titles={['可用模块', '已启用模块']}
+                  showSearch
+                  disabled={transferDisabled}
+                />
               </Stack>
             </CardContent>
           </Card>
