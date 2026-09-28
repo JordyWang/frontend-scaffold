@@ -1,0 +1,191 @@
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { Form, FormItem, useForm } from '@/shared/ui'
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((complete) => {
+    resolve = complete
+  })
+  return { promise, resolve }
+}
+
+describe('Form coordinator', () => {
+  it('discards stale asynchronous field errors after a newer value validates', async () => {
+    const oldResult = deferred<string | undefined>()
+    const validator = vi.fn((value: unknown) =>
+      value === 'old' ? oldResult.promise : Promise.resolve(undefined),
+    )
+    render(
+      <Form validateOn="change">
+        <FormItem
+          name="name"
+          label="名称"
+          rules={[{ validator }]}
+          control={<input />}
+        />
+      </Form>,
+    )
+
+    const input = screen.getByRole('textbox', { name: '名称' })
+    fireEvent.change(input, { target: { value: 'old' } })
+    fireEvent.change(input, { target: { value: 'new' } })
+    await waitFor(() => expect(validator).toHaveBeenCalledTimes(2))
+    await act(async () => oldResult.resolve('旧值无效'))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('validates the latest values before completing a pending submit', async () => {
+    const firstResult = deferred<string | undefined>()
+    const onFinish = vi.fn()
+    const validator = vi.fn((value: unknown) =>
+      value === 'old' ? firstResult.promise : Promise.resolve(undefined),
+    )
+    render(
+      <Form onFinish={onFinish}>
+        <FormItem
+          name="name"
+          label="名称"
+          rules={[{ validator }]}
+          control={<input />}
+        />
+        <button type="submit">提交</button>
+      </Form>,
+    )
+
+    const input = screen.getByRole('textbox', { name: '名称' })
+    fireEvent.change(input, { target: { value: 'old' } })
+    fireEvent.click(screen.getByRole('button', { name: '提交' }))
+    await waitFor(() =>
+      expect(validator).toHaveBeenCalledWith('old', { name: 'old' }),
+    )
+    fireEvent.change(input, { target: { value: 'new' } })
+    await act(async () => firstResult.resolve('旧值无效'))
+
+    await waitFor(() => expect(onFinish).toHaveBeenCalledWith({ name: 'new' }))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('reports submit callback errors separately from validation failures', async () => {
+    const error = new Error('保存失败')
+    const onFinishFailed = vi.fn()
+    const onFinishError = vi.fn()
+    render(
+      <Form
+        initialValues={{ name: '有效名称' }}
+        onFinish={async () => {
+          throw error
+        }}
+        onFinishFailed={onFinishFailed}
+        onFinishError={onFinishError}
+      >
+        <FormItem name="name" label="名称" control={<input />} />
+        <button type="submit">提交</button>
+      </Form>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '提交' }))
+    await waitFor(() =>
+      expect(onFinishError).toHaveBeenCalledWith(error, { name: '有效名称' }),
+    )
+    expect(onFinishFailed).not.toHaveBeenCalled()
+  })
+
+  it('resets fields introduced after initial values', async () => {
+    function Example() {
+      const form = useForm()
+      return (
+        <Form form={form} initialValues={{ original: '初始值' }}>
+          <FormItem name="original" label="原字段" control={<input />} />
+          <FormItem name="added" label="新增字段" control={<input />} />
+          <button type="button" onClick={() => form.resetFields()}>
+            重置
+          </button>
+        </Form>
+      )
+    }
+    render(<Example />)
+    fireEvent.change(screen.getByRole('textbox', { name: '原字段' }), {
+      target: { value: '已更改' },
+    })
+    fireEvent.change(screen.getByRole('textbox', { name: '新增字段' }), {
+      target: { value: '后来加入' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '重置' }))
+
+    expect(screen.getByRole('textbox', { name: '原字段' })).toHaveValue(
+      '初始值',
+    )
+    expect(screen.getByRole('textbox', { name: '新增字段' })).toHaveValue('')
+  })
+
+  it('cancels pending validation and submit when reset is requested', async () => {
+    const pendingResult = deferred<string | undefined>()
+    const onFinish = vi.fn()
+    const onFinishFailed = vi.fn()
+    function Example() {
+      const form = useForm()
+      return (
+        <Form
+          form={form}
+          initialValues={{ name: '' }}
+          onFinish={onFinish}
+          onFinishFailed={onFinishFailed}
+        >
+          <FormItem
+            name="name"
+            label="名称"
+            rules={[{ validator: () => pendingResult.promise }]}
+            control={<input />}
+          />
+          <button type="submit">提交</button>
+          <button type="button" onClick={() => form.resetFields()}>
+            重置
+          </button>
+        </Form>
+      )
+    }
+    render(<Example />)
+    fireEvent.change(screen.getByRole('textbox', { name: '名称' }), {
+      target: { value: 'old' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '提交' }))
+    fireEvent.click(screen.getByRole('button', { name: '重置' }))
+    await act(async () => pendingResult.resolve('旧校验错误'))
+
+    expect(onFinish).not.toHaveBeenCalled()
+    expect(onFinishFailed).not.toHaveBeenCalled()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: '名称' })).toHaveValue('')
+  })
+
+  it('supports blur as a custom value trigger without losing blur validation', async () => {
+    const onFinish = vi.fn()
+    render(
+      <Form validateOn="blur" onFinish={onFinish}>
+        <FormItem
+          name="name"
+          label="名称"
+          trigger="onBlur"
+          valuePropName="data-value"
+          getValueFromEvent={(event) =>
+            (event as React.FocusEvent<HTMLButtonElement>).target.value
+          }
+          rules={[{ required: true, message: '请输入名称' }]}
+          control={
+            <button type="button" value="已输入">
+              字段
+            </button>
+          }
+        />
+        <button type="submit">提交</button>
+      </Form>,
+    )
+
+    fireEvent.blur(screen.getByRole('button', { name: '名称' }))
+    fireEvent.click(screen.getByRole('button', { name: '提交' }))
+    await waitFor(() =>
+      expect(onFinish).toHaveBeenCalledWith({ name: '已输入' }),
+    )
+  })
+})

@@ -35,14 +35,17 @@ export type FormInstance<TValues extends FormValues = FormValues> = {
 }
 
 type FieldRegistration<TValues extends FormValues> = {
-  rules: FormRule<TValues>[]
+  getRules: () => FormRule<TValues>[]
 }
 
 type FormContextValue<TValues extends FormValues> = {
   values: Partial<TValues>
   errors: Record<string, string>
   validateOn: 'submit' | 'change' | 'blur'
-  registerField: (name: string, rules: FormRule<TValues>[]) => () => void
+  registerField: (
+    name: string,
+    getRules: () => FormRule<TValues>[],
+  ) => () => void
   setFieldValue: (name: string, value: unknown) => void
   validateField: (name: string) => Promise<string | undefined>
 }
@@ -63,6 +66,7 @@ export type FormProps<TValues extends FormValues = FormValues> = Omit<
     values: Partial<TValues>,
   ) => void
   onFinish?: (values: TValues) => void | Promise<void>
+  onFinishError?: (error: unknown, values: TValues) => void
   onFinishFailed?: (
     errors: Record<string, string>,
     values: Partial<TValues>,
@@ -80,6 +84,13 @@ function isEmptyValue(value: unknown) {
   )
 }
 
+class FormValidationCancelled extends Error {
+  constructor() {
+    super('Form validation was cancelled by reset')
+    this.name = 'AbortError'
+  }
+}
+
 /** A project-owned form coordinator for values, rules and accessible FormField errors. */
 export function Form<TValues extends FormValues = FormValues>({
   initialValues = {},
@@ -89,6 +100,7 @@ export function Form<TValues extends FormValues = FormValues>({
   validateOn = 'submit',
   onValuesChange,
   onFinish,
+  onFinishError,
   onFinishFailed,
   onReset,
   className,
@@ -100,78 +112,147 @@ export function Form<TValues extends FormValues = FormValues>({
   const [errors, setErrors] = useState<Record<string, string>>({})
   const valuesRef = useRef<Partial<TValues>>(controlledValues ?? internalValues)
   const fieldsRef = useRef(new Map<string, FieldRegistration<TValues>>())
+  const valuesVersionRef = useRef(0)
+  const fieldsVersionRef = useRef(0)
+  const resetVersionRef = useRef(0)
   useEffect(() => {
-    valuesRef.current = controlledValues ?? internalValues
-  }, [controlledValues, internalValues])
+    if (controlledValues === undefined) return
+    valuesRef.current = controlledValues
+    valuesVersionRef.current += 1
+  }, [controlledValues])
 
   const setValues = useCallback(
     (changedValues: Partial<TValues>) => {
       const nextValues = { ...valuesRef.current, ...changedValues }
       valuesRef.current = nextValues as Partial<TValues>
+      valuesVersionRef.current += 1
       if (controlledValues === undefined)
         setInternalValues(nextValues as Partial<TValues>)
+      setErrors((current) => {
+        const next = { ...current }
+        for (const name of Object.keys(changedValues)) delete next[name]
+        return next
+      })
       onValuesChange?.(changedValues, nextValues)
     },
     [controlledValues, onValuesChange],
   )
 
-  const runValidation = useCallback(async (name: string) => {
-    const registration = fieldsRef.current.get(name)
-    if (!registration) return undefined
-    const value = valuesRef.current[name]
-    for (const rule of registration.rules) {
-      if (rule.required && isEmptyValue(value))
-        return rule.message ?? '此项为必填项'
-      if (!rule.validator) continue
-      try {
-        const message = await rule.validator(value, valuesRef.current)
-        if (message) return message
-      } catch (error) {
-        if (error instanceof Error && error.message) return error.message
-        return rule.message ?? '输入值无效'
+  const registerField = useCallback(
+    (name: string, getRules: () => FormRule<TValues>[]) => {
+      const registration = { getRules }
+      fieldsRef.current.set(name, registration)
+      fieldsVersionRef.current += 1
+      return () => {
+        if (fieldsRef.current.get(name) !== registration) return
+        fieldsRef.current.delete(name)
+        fieldsVersionRef.current += 1
       }
-    }
-    return undefined
-  }, [])
+    },
+    [],
+  )
+
+  const runValidation = useCallback(
+    async (name: string, snapshot: Partial<TValues>) => {
+      const registration = fieldsRef.current.get(name)
+      if (!registration) return undefined
+      const value = snapshot[name]
+      for (const rule of registration.getRules()) {
+        if (rule.required && isEmptyValue(value))
+          return rule.message ?? '此项为必填项'
+        if (!rule.validator) continue
+        try {
+          const message = await rule.validator(value, snapshot)
+          if (message) return message
+        } catch (error) {
+          if (error instanceof Error && error.message) return error.message
+          return rule.message ?? '输入值无效'
+        }
+      }
+      return undefined
+    },
+    [],
+  )
 
   const validateField = useCallback(
     async (name: string) => {
-      const message = await runValidation(name)
-      setErrors((current) => {
-        if (!message) {
-          if (!(name in current)) return current
-          const next = { ...current }
-          delete next[name]
-          return next
-        }
-        return { ...current, [name]: message }
-      })
-      return message
+      const resetVersion = resetVersionRef.current
+      while (fieldsRef.current.has(name)) {
+        const valuesVersion = valuesVersionRef.current
+        const fieldsVersion = fieldsVersionRef.current
+        const snapshot = { ...valuesRef.current }
+        const message = await runValidation(name, snapshot)
+        if (resetVersion !== resetVersionRef.current) return undefined
+        if (
+          valuesVersion !== valuesVersionRef.current ||
+          fieldsVersion !== fieldsVersionRef.current
+        )
+          continue
+        setErrors((current) => {
+          if (!message) {
+            if (!(name in current)) return current
+            const next = { ...current }
+            delete next[name]
+            return next
+          }
+          return { ...current, [name]: message }
+        })
+        return message
+      }
+      return undefined
     },
     [runValidation],
   )
 
   const validateFields = useCallback(async () => {
-    const nextErrors: Record<string, string> = {}
-    for (const name of fieldsRef.current.keys()) {
-      const message = await runValidation(name)
-      if (message) nextErrors[name] = message
+    const resetVersion = resetVersionRef.current
+    while (true) {
+      const valuesVersion = valuesVersionRef.current
+      const fieldsVersion = fieldsVersionRef.current
+      const snapshot = { ...valuesRef.current }
+      const results = await Promise.all(
+        [...fieldsRef.current.keys()].map(
+          async (name) => [name, await runValidation(name, snapshot)] as const,
+        ),
+      )
+      if (resetVersion !== resetVersionRef.current)
+        throw new FormValidationCancelled()
+      if (
+        valuesVersion !== valuesVersionRef.current ||
+        fieldsVersion !== fieldsVersionRef.current
+      )
+        continue
+      const nextErrors: Record<string, string> = {}
+      for (const [name, message] of results)
+        if (message) nextErrors[name] = message
+      setErrors(nextErrors)
+      if (Object.keys(nextErrors).length > 0) throw nextErrors
+      return snapshot as TValues
     }
-    setErrors(nextErrors)
-    if (Object.keys(nextErrors).length > 0) throw nextErrors
-    return valuesRef.current as TValues
   }, [runValidation])
 
   const resetFields = useCallback(
     (names?: string[]) => {
-      const targetNames = names ?? Object.keys(initialValues)
+      const targetNames = names ?? [
+        ...new Set([
+          ...Object.keys(valuesRef.current),
+          ...Object.keys(initialValues),
+        ]),
+      ]
       const nextValues = { ...valuesRef.current } as Record<string, unknown>
+      const changedValues: Record<string, unknown> = {}
       for (const name of targetNames) {
-        if (Object.prototype.hasOwnProperty.call(initialValues, name))
+        if (Object.prototype.hasOwnProperty.call(initialValues, name)) {
           nextValues[name] = initialValues[name]
-        else delete nextValues[name]
+          changedValues[name] = initialValues[name]
+        } else {
+          delete nextValues[name]
+          changedValues[name] = undefined
+        }
       }
       valuesRef.current = nextValues as Partial<TValues>
+      valuesVersionRef.current += 1
+      resetVersionRef.current += 1
       if (controlledValues === undefined)
         setInternalValues(nextValues as Partial<TValues>)
       setErrors((current) => {
@@ -180,7 +261,7 @@ export function Form<TValues extends FormValues = FormValues>({
         return next
       })
       onValuesChange?.(
-        nextValues as Partial<TValues>,
+        changedValues as Partial<TValues>,
         nextValues as Partial<TValues>,
       )
     },
@@ -207,10 +288,7 @@ export function Form<TValues extends FormValues = FormValues>({
     values: controlledValues ?? internalValues,
     errors,
     validateOn,
-    registerField: (name, rules) => {
-      fieldsRef.current.set(name, { rules })
-      return () => fieldsRef.current.delete(name)
-    },
+    registerField,
     setFieldValue: (name, value) =>
       setValues({ [name]: value } as Partial<TValues>),
     validateField,
@@ -218,14 +296,22 @@ export function Form<TValues extends FormValues = FormValues>({
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    let nextValues: TValues
     try {
-      const nextValues = await validateFields()
-      await onFinish?.(nextValues)
+      nextValues = await validateFields()
     } catch (error) {
+      if (error instanceof FormValidationCancelled) return
       onFinishFailed?.(
         (error as Record<string, string>) ?? {},
         valuesRef.current,
       )
+      return
+    }
+    try {
+      await onFinish?.(nextValues)
+    } catch (error) {
+      if (!onFinishError) throw error
+      onFinishError(error, nextValues)
     }
   }
 
@@ -330,7 +416,11 @@ function ConnectedFormItem<TValues extends FormValues>({
   getValueFromEvent,
   fieldProps,
 }: ConnectedFormItemProps<TValues>) {
-  useEffect(() => context.registerField(name, rules), [context, name, rules])
+  const registerField = context.registerField
+  useEffect(
+    () => registerField(name, () => rules),
+    [registerField, name, rules],
+  )
 
   const controlProps = control.props as Record<string, unknown>
   const hasValue = Object.prototype.hasOwnProperty.call(context.values, name)
@@ -344,14 +434,21 @@ function ConnectedFormItem<TValues extends FormValues>({
         ? getValueFromEvent(...args)
         : defaultValueFromEvent(valuePropName, args[0])
       context.setFieldValue(name, nextValue)
-      if (context.validateOn === 'change') void context.validateField(name)
-    },
-    onBlur: (event: unknown) => {
-      if (typeof originalBlur === 'function') originalBlur(event)
-      if (context.validateOn === 'blur') void context.validateField(name)
+      if (
+        context.validateOn === 'change' ||
+        (trigger === 'onBlur' && context.validateOn === 'blur')
+      )
+        void context.validateField(name)
     },
   }
-  if (hasValue) injectedProps[valuePropName] = currentValue
+  if (trigger !== 'onBlur')
+    injectedProps.onBlur = (event: unknown) => {
+      if (typeof originalBlur === 'function') originalBlur(event)
+      if (context.validateOn === 'blur') void context.validateField(name)
+    }
+  if (hasValue || valuePropName === 'value' || valuePropName === 'checked')
+    injectedProps[valuePropName] =
+      currentValue ?? (valuePropName === 'checked' ? false : '')
 
   const connectedControl = cloneElement(control, injectedProps)
   const required = rules.some((rule) => rule.required)
