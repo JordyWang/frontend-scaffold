@@ -66,6 +66,21 @@ test('custom status seeds keep soft backgrounds and readable labels in both them
     for (const tone of ['success', 'warning', 'error'] as const) {
       expect((await colors(tone)).contrast).toBeGreaterThanOrEqual(4.5)
     }
+    expect(
+      (
+        await colors(
+          'error',
+          scope.getByRole('button', { name: '局部危险操作' }),
+        )
+      ).contrast,
+    ).toBeGreaterThanOrEqual(4.5)
+    for (const tone of ['success', 'warning', 'error'] as const) {
+      const badgeColor = await colors(
+        tone,
+        scope.locator(`.ui-badge__count--${tone}`).first(),
+      )
+      expect(badgeColor.contrast).toBeGreaterThanOrEqual(4.5)
+    }
     const original = (await colors('success')).background
     await scope.evaluate((element) =>
       element.style.setProperty('--ui-seed-success', '#ffffff'),
@@ -76,6 +91,9 @@ test('custom status seeds keep soft backgrounds and readable labels in both them
       element.style.setProperty('--ui-seed-success', '#000000'),
     )
     expect((await colors('success')).contrast).toBeGreaterThanOrEqual(4.5)
+    await scope.evaluate((element) =>
+      element.style.setProperty('--ui-seed-success', '#34d399'),
+    )
     await preview.getByRole('button', { name: '切换预览主题' }).click()
   }
 

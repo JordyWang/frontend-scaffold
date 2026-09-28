@@ -1,7 +1,7 @@
 import { useState, type CSSProperties, type HTMLAttributes } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { PortalContainerContext } from './portal-context'
-import { derivePrimaryTokens } from './theme-colors'
+import { derivePrimaryTokens, deriveStatusTokens } from './theme-colors'
 
 export type ThemeTokens = {
   primary?: string
@@ -32,6 +32,13 @@ export function ThemeScope({
   const primaryTokens = tokens?.primary
     ? derivePrimaryTokens(tokens.primary, tokens.onPrimary)
     : null
+  const errorTokens = tokens?.error ? deriveStatusTokens(tokens.error) : null
+  const successTokens = tokens?.success
+    ? deriveStatusTokens(tokens.success)
+    : null
+  const warningTokens = tokens?.warning
+    ? deriveStatusTokens(tokens.warning)
+    : null
   const tokenStyle = {
     ...(tokens?.primary && { '--ui-seed-primary': tokens.primary }),
     ...((tokens?.onPrimary || primaryTokens?.onPrimary) && {
@@ -47,8 +54,21 @@ export function ThemeScope({
       '--ui-map-accent-text': tokens?.onAccent ?? 'var(--foreground)',
     }),
     ...(tokens?.success && { '--ui-seed-success': tokens.success }),
+    ...(successTokens?.onStatus && {
+      '--ui-map-success-text': successTokens.onStatus,
+    }),
     ...(tokens?.warning && { '--ui-seed-warning': tokens.warning }),
+    ...(warningTokens?.onStatus && {
+      '--ui-map-warning-text': warningTokens.onStatus,
+    }),
     ...(tokens?.error && { '--ui-seed-error': tokens.error }),
+    ...(errorTokens?.onStatus && {
+      '--ui-map-error-text': errorTokens.onStatus,
+    }),
+    ...(tokens?.error && { '--destructive': tokens.error }),
+    ...(errorTokens?.onStatus && {
+      '--ui-map-danger-text': errorTokens.onStatus,
+    }),
     ...(tokens?.radius && { '--ui-seed-radius': tokens.radius }),
   } as CSSProperties
   return (

@@ -80,3 +80,10 @@ export function derivePrimaryTokens(primary: string, onPrimary?: string) {
       : undefined,
   }
 }
+
+/** Derive a readable foreground for a status or destructive surface. */
+export function deriveStatusTokens(seed: string, onStatus?: string) {
+  const background = parseHex(seed)
+  if (!background) return null
+  return { onStatus: onStatus ?? chooseForeground(background) }
+}

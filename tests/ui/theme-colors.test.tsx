@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { derivePrimaryTokens } from '@/shared/ui/theme-colors'
+import {
+  derivePrimaryTokens,
+  deriveStatusTokens,
+} from '@/shared/ui/theme-colors'
 
 function contrastRatio(first: string, second: string) {
   const luminance = (color: string) => {
@@ -40,5 +43,11 @@ describe('primary theme derivation', () => {
     expect(derivePrimaryTokens('#5eead4', '#ffffff')?.onPrimary).toBe('#ffffff')
     expect(derivePrimaryTokens('var(--brand)')).toBeNull()
     expect(derivePrimaryTokens('0f766e')).toBeNull()
+  })
+
+  it('derives readable status foregrounds for custom destructive colors', () => {
+    expect(deriveStatusTokens('#fb7185')?.onStatus).toBe('#111827')
+    expect(deriveStatusTokens('#b91c1c')?.onStatus).toBe('#ffffff')
+    expect(deriveStatusTokens('var(--error)')).toBeNull()
   })
 })

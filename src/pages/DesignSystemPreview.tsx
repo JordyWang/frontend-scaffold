@@ -90,6 +90,21 @@ export function DesignSystemPreview() {
                       <Icon name="info" />
                     </Button>
                   </Badge>
+                  <Badge count={3} tone="success" label="3 条成功通知">
+                    <Button size="icon" variant="outline" aria-label="成功通知">
+                      <Icon name="check" />
+                    </Button>
+                  </Badge>
+                  <Badge count={2} tone="warning" label="2 条提醒">
+                    <Button size="icon" variant="outline" aria-label="提醒">
+                      <Icon name="warning" />
+                    </Button>
+                  </Badge>
+                  <Badge count={1} tone="error" label="1 条错误通知">
+                    <Button size="icon" variant="outline" aria-label="错误通知">
+                      <Icon name="warning" />
+                    </Button>
+                  </Badge>
                 </Stack>
                 <Divider />
                 <Typography variant="caption" tone="muted">
@@ -260,6 +275,22 @@ export function DesignSystemPreview() {
           <Tag tone="success">正常</Tag>
           <Tag tone="warning">提醒</Tag>
           <Tag tone="error">异常</Tag>
+          <Button variant="destructive">局部危险操作</Button>
+          <Badge count={3} tone="success" label="3 条成功通知">
+            <Button size="icon" variant="outline" aria-label="局部成功通知">
+              <Icon name="check" />
+            </Button>
+          </Badge>
+          <Badge count={2} tone="warning" label="2 条提醒">
+            <Button size="icon" variant="outline" aria-label="局部提醒">
+              <Icon name="warning" />
+            </Button>
+          </Badge>
+          <Badge count={1} tone="error" label="1 条错误通知">
+            <Button size="icon" variant="outline" aria-label="局部错误通知">
+              <Icon name="warning" />
+            </Button>
+          </Badge>
         </Stack>
       </ThemeScope>
     </section>
