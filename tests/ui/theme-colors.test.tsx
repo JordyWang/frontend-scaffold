@@ -49,5 +49,8 @@ describe('primary theme derivation', () => {
     expect(deriveStatusTokens('#fb7185')?.onStatus).toBe('#111827')
     expect(deriveStatusTokens('#b91c1c')?.onStatus).toBe('#ffffff')
     expect(deriveStatusTokens('var(--error)')).toBeNull()
+    expect(deriveStatusTokens('var(--error)', '#ffffff')?.onStatus).toBe(
+      '#ffffff',
+    )
   })
 })

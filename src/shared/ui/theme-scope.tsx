@@ -8,8 +8,11 @@ export type ThemeTokens = {
   onPrimary?: string
   onAccent?: string
   success?: string
+  onSuccess?: string
   warning?: string
+  onWarning?: string
   error?: string
+  onError?: string
   radius?: string
   components?: {
     button?: { radius?: string; height?: string }
@@ -37,12 +40,14 @@ export function ThemeScope({
   const primaryTokens = tokens?.primary
     ? derivePrimaryTokens(tokens.primary, tokens.onPrimary)
     : null
-  const errorTokens = tokens?.error ? deriveStatusTokens(tokens.error) : null
+  const errorTokens = tokens?.error
+    ? deriveStatusTokens(tokens.error, tokens.onError)
+    : null
   const successTokens = tokens?.success
-    ? deriveStatusTokens(tokens.success)
+    ? deriveStatusTokens(tokens.success, tokens.onSuccess)
     : null
   const warningTokens = tokens?.warning
-    ? deriveStatusTokens(tokens.warning)
+    ? deriveStatusTokens(tokens.warning, tokens.onWarning)
     : null
   const tokenStyle = {
     ...(tokens?.primary && { '--ui-seed-primary': tokens.primary }),

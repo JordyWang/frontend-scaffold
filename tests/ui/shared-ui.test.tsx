@@ -211,6 +211,28 @@ describe('shared/ui contracts', () => {
     expect(document.documentElement).not.toHaveAttribute('data-ui-theme')
   })
 
+  it('accepts explicit status foregrounds for non-hex theme values', () => {
+    render(
+      <ThemeScope
+        tokens={{
+          success: 'var(--brand-success)',
+          onSuccess: '#ffffff',
+          warning: 'rgb(240 180 20)',
+          onWarning: '#111827',
+          error: 'var(--brand-error)',
+          onError: '#ffffff',
+        }}
+      >
+        非十六进制状态主题
+      </ThemeScope>,
+    )
+    const scope = screen.getByText('非十六进制状态主题')
+    expect(scope).toHaveStyle({ '--ui-map-success-text': '#ffffff' })
+    expect(scope).toHaveStyle({ '--ui-map-warning-text': '#111827' })
+    expect(scope).toHaveStyle({ '--ui-map-error-text': '#ffffff' })
+    expect(scope).toHaveStyle({ '--ui-map-danger-text': '#ffffff' })
+  })
+
   it('mounts a portal inside its nearest theme scope', () => {
     render(
       <ThemeScope mode="dark">
