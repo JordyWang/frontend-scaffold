@@ -1,5 +1,26 @@
 import { expect, test } from '@playwright/test'
 
+test('system dark mode keeps local light surfaces and state colors distinct', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium')
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.goto('/__ui')
+  await expect(page.locator('main').locator('..')).toHaveCSS(
+    'background-color',
+    'rgb(15, 23, 42)',
+  )
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  await expect(preview.locator('[data-ui-theme="light"]')).toHaveCSS(
+    'background-color',
+    'rgb(248, 250, 252)',
+  )
+  await expect(page.locator('.ui-ai-status--completed').first()).toHaveCSS(
+    'background-color',
+    'rgb(20, 83, 45)',
+  )
+})
+
 test('design system controls support keyboard, touch and local themes', async ({
   page,
 }, testInfo) => {

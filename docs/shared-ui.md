@@ -17,7 +17,7 @@
 | List                          | `items`、`getKey`、`renderItem`、`loading`、`error`、`onRetry`、`emptyTitle`、`label`                                  | 语义化列表，加载、空和错误状态内置                               |
 | Table                         | `columns`、`rows`、`getRowKey`、`caption`、`loading`、`error`、`onRetry`、`emptyTitle`、`renderMobileRow`              | 传入 `renderMobileRow` 后，手机展示业务定义的卡片行              |
 | 公共能力                      | `Portal`、`ErrorBoundary`、`Container`、`LoadingState`、`ErrorState`                                                   | 弹层挂载、异常兜底、响应式容器和统一反馈                         |
-| ThemeScope                    | `mode`、`density`、原生 div 属性                                                                                       | 局部浅色/深色和紧凑预览；`auto` 继承系统主题                     |
+| ThemeScope                    | `mode`、`density`、`tokens`、原生 div 属性                                                                             | 局部浅色/深色、品牌 Token 和紧凑预览；`auto` 继承上级主题        |
 | Icon / Typography             | `Icon(name, size, label)`；`Typography(as, variant, tone)`                                                             | 图标默认装饰性；有语义时传 `label`；标题通过 `as` 保持正确层级   |
 | Stack / Flex / Grid / Divider | `Stack(direction, gap, align, justify, wrap)`；`Flex` 为 Stack 别名；`Grid(minItemWidth, gap)`；`Divider(orientation)` | Grid 根据容器宽度自动换列；竖向分隔线仅用于水平布局              |
 | Checkbox / Radio / Switch     | 原生 input 属性、`label`、`size`、`invalid`；`RadioGroup(options, value, onValueChange)`                               | 原生键盘行为和表单提交；标签提供 44px 触控区域                   |
