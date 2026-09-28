@@ -304,20 +304,27 @@ export function Tree({
   className,
 }: TreeProps) {
   const [internalExpanded, setInternalExpanded] = useState(defaultExpandedKeys)
+  const [focusedKey, setFocusedKey] = useState<string>()
   const expanded = expandedKeys ?? internalExpanded
   const id = useId()
-  const nodeRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const nodeRefs = useRef<Record<string, HTMLLIElement | null>>({})
 
   const visibleNodes = useMemo(() => {
     const nodes: Array<{
       key: string
       parentKey?: string
       hasChildren: boolean
+      disabled: boolean
     }> = []
     function collect(current: TreeNode[], parentKey?: string) {
       for (const node of current) {
         const hasChildren = Boolean(node.children?.length)
-        nodes.push({ key: node.key, parentKey, hasChildren })
+        nodes.push({
+          key: node.key,
+          parentKey,
+          hasChildren,
+          disabled: Boolean(node.disabled),
+        })
         if (hasChildren && expanded.includes(node.key))
           collect(node.children ?? [], node.key)
       }
@@ -325,6 +332,10 @@ export function Tree({
     collect(treeData)
     return nodes
   }, [expanded, treeData])
+  const tabbableKey =
+    [focusedKey, selectedKey].find((key) =>
+      visibleNodes.some((node) => node.key === key && !node.disabled),
+    ) ?? visibleNodes.find((node) => !node.disabled)?.key
 
   function toggle(key: string) {
     const next = expanded.includes(key)
@@ -335,36 +346,59 @@ export function Tree({
   }
 
   function focusNode(key: string | undefined) {
-    if (key) nodeRefs.current[key]?.focus()
+    if (key && visibleNodes.some((node) => node.key === key && !node.disabled))
+      nodeRefs.current[key]?.focus()
+  }
+
+  function focusByOffset(start: number, offset: -1 | 1) {
+    for (
+      let index = start + offset;
+      index >= 0 && index < visibleNodes.length;
+      index += offset
+    ) {
+      if (!visibleNodes[index].disabled) {
+        focusNode(visibleNodes[index].key)
+        return
+      }
+    }
   }
 
   function handleNodeKeyDown(
-    event: KeyboardEvent<HTMLButtonElement>,
+    event: KeyboardEvent<HTMLLIElement>,
     node: TreeNode,
   ) {
+    if (event.target !== event.currentTarget) return
     const currentIndex = visibleNodes.findIndex((item) => item.key === node.key)
     const current = visibleNodes[currentIndex]
     if (!current) return
     if (event.key === 'ArrowDown') {
       event.preventDefault()
-      focusNode(visibleNodes[currentIndex + 1]?.key)
+      focusByOffset(currentIndex, 1)
     } else if (event.key === 'ArrowUp') {
       event.preventDefault()
-      focusNode(visibleNodes[currentIndex - 1]?.key)
+      focusByOffset(currentIndex, -1)
     } else if (event.key === 'Home') {
       event.preventDefault()
-      focusNode(visibleNodes[0]?.key)
+      focusNode(visibleNodes.find((item) => !item.disabled)?.key)
     } else if (event.key === 'End') {
       event.preventDefault()
-      focusNode(visibleNodes.at(-1)?.key)
+      focusNode(visibleNodes.filter((item) => !item.disabled).at(-1)?.key)
     } else if (event.key === 'ArrowRight' && current.hasChildren) {
       event.preventDefault()
       if (!expanded.includes(node.key)) toggle(node.key)
-      else focusNode(visibleNodes[currentIndex + 1]?.key)
+      else {
+        const child = visibleNodes.find(
+          (item) => item.parentKey === node.key && !item.disabled,
+        )
+        focusNode(child?.key)
+      }
     } else if (event.key === 'ArrowLeft') {
       event.preventDefault()
       if (current.hasChildren && expanded.includes(node.key)) toggle(node.key)
       else focusNode(current.parentKey)
+    } else if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      onSelect?.(node.key)
     }
   }
 
@@ -372,49 +406,63 @@ export function Tree({
     return nodes.map((node) => {
       const hasChildren = Boolean(node.children?.length)
       const isExpanded = expanded.includes(node.key)
-      const panelId = `${id}-${node.key}`
+      const panelId = `${id}-${encodeURIComponent(node.key)}`
       return (
-        <li key={node.key} role="none" className="ui-tree__item">
+        <li
+          key={node.key}
+          role="treeitem"
+          ref={(element) => {
+            nodeRefs.current[node.key] = element
+          }}
+          className="ui-tree__item"
+          tabIndex={node.disabled ? -1 : node.key === tabbableKey ? 0 : -1}
+          aria-labelledby={`${panelId}-label`}
+          aria-selected={selectedKey === node.key}
+          aria-expanded={hasChildren ? isExpanded : undefined}
+          aria-disabled={node.disabled || undefined}
+          aria-controls={hasChildren && isExpanded ? panelId : undefined}
+          onFocus={(event) => {
+            if (event.target === event.currentTarget) setFocusedKey(node.key)
+          }}
+          onClick={(event) => {
+            if (event.target instanceof Element) {
+              if (
+                event.target.closest('[role="treeitem"]') !==
+                event.currentTarget
+              )
+                return
+              if (node.disabled) return
+              event.currentTarget.focus()
+              if (event.target.closest('[data-tree-toggle]')) toggle(node.key)
+              else onSelect?.(node.key)
+            }
+          }}
+          onKeyDown={(event) => handleNodeKeyDown(event, node)}
+        >
           <div
             className="ui-tree__row"
             style={{ '--ui-tree-level': level } as CSSProperties}
           >
             {hasChildren ? (
-              <button
-                type="button"
+              <span
                 className="ui-tree__toggle"
-                aria-label={
-                  isExpanded
-                    ? `收起 ${String(node.title)}`
-                    : `展开 ${String(node.title)}`
-                }
-                aria-expanded={isExpanded}
-                aria-controls={isExpanded ? panelId : undefined}
-                onClick={() => toggle(node.key)}
+                data-tree-toggle=""
+                aria-hidden="true"
               >
                 {isExpanded ? '−' : '+'}
-              </button>
+              </span>
             ) : (
               <span className="ui-tree__toggle" aria-hidden="true" />
             )}
-            <button
-              type="button"
-              role="treeitem"
-              ref={(element) => {
-                nodeRefs.current[node.key] = element
-              }}
+            <span
+              id={`${panelId}-label`}
               className={cn(
                 'ui-tree__label',
                 selectedKey === node.key && 'ui-tree__label--selected',
               )}
-              aria-selected={selectedKey === node.key}
-              aria-expanded={hasChildren ? isExpanded : undefined}
-              disabled={node.disabled}
-              onClick={() => onSelect?.(node.key)}
-              onKeyDown={(event) => handleNodeKeyDown(event, node)}
             >
               {node.title}
-            </button>
+            </span>
           </div>
           {hasChildren && isExpanded && (
             <ul id={panelId} role="group" className="ui-tree__group">
@@ -428,7 +476,9 @@ export function Tree({
 
   return (
     <div role="tree" aria-label={label} className={cn('ui-tree', className)}>
-      <ul className="ui-tree__list">{renderNodes(treeData)}</ul>
+      <ul role="none" className="ui-tree__list">
+        {renderNodes(treeData)}
+      </ul>
     </div>
   )
 }

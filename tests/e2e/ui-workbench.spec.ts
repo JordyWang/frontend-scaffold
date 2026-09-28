@@ -687,6 +687,45 @@ test('extended navigation and feedback components expose responsive semantics', 
   expect(overflow).toBe(false)
 })
 
+test('tree uses one tab stop and supports keyboard and touch expansion', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const tree = page.getByRole('tree', { name: '树形导航' })
+  const root = tree.getByRole('treeitem', { name: '组件' })
+  const input = tree.getByRole('treeitem', { name: 'Input' })
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await input.tap()
+    await expect(input).toHaveAttribute('aria-selected', 'true')
+    await root.locator('[data-tree-toggle]').tap()
+    await expect(root).toHaveAttribute('aria-expanded', 'false')
+    await expect(input).toHaveCount(0)
+  } else {
+    await root.focus()
+    await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('ArrowDown')
+    await expect(input).toBeFocused()
+    expect(
+      await input
+        .locator('.ui-tree__label')
+        .evaluate((element) => getComputedStyle(element).outlineStyle),
+    ).toBe('solid')
+    await page.keyboard.press('Enter')
+    await expect(input).toHaveAttribute('aria-selected', 'true')
+    await page.keyboard.press('ArrowLeft')
+    await expect(root).toBeFocused()
+    await page.keyboard.press('ArrowLeft')
+    await expect(root).toHaveAttribute('aria-expanded', 'false')
+    await page.keyboard.press('ArrowRight')
+    await expect(root).toHaveAttribute('aria-expanded', 'true')
+    await page.keyboard.press('Tab')
+    await expect(root).not.toBeFocused()
+    await expect(
+      tree.getByRole('treeitem', { name: 'Button' }),
+    ).not.toBeFocused()
+  }
+})
+
 test('overlay components keep focus, touch and safe-area behavior', async ({
   page,
 }, testInfo) => {

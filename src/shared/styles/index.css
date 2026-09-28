@@ -1629,8 +1629,6 @@ button.ui-steps__button {
   height: 44px;
   flex: none;
   place-items: center;
-  border: 0;
-  background: transparent;
   color: var(--muted-foreground);
   cursor: pointer;
 }
@@ -1638,21 +1636,29 @@ button.ui-steps__button {
   min-height: 44px;
   min-width: 0;
   flex: 1;
-  border: 0;
   border-radius: var(--radius-sm);
-  background: transparent;
   color: var(--foreground);
   padding: 0.5rem;
   text-align: left;
   cursor: pointer;
 }
-.ui-tree__label:hover,
-.ui-tree__label:focus-visible,
+.ui-tree__item:not([aria-disabled='true'])
+  > .ui-tree__row:hover
+  .ui-tree__label,
+.ui-tree__item:focus-visible > .ui-tree__row .ui-tree__label,
 .ui-tree__label--selected {
   background: var(--accent);
   color: var(--accent-foreground);
 }
-.ui-tree__label:disabled {
+.ui-tree__item:focus {
+  outline: none;
+}
+.ui-tree__item:focus-visible > .ui-tree__row .ui-tree__label {
+  outline: 3px solid var(--ring);
+  outline-offset: -3px;
+}
+.ui-tree__item[aria-disabled='true'] .ui-tree__label,
+.ui-tree__item[aria-disabled='true'] .ui-tree__toggle {
   cursor: not-allowed;
   opacity: 0.5;
 }

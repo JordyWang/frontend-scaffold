@@ -62,6 +62,7 @@ export function DesignSystemPreview() {
   const [density, setDensity] = useState<'default' | 'compact'>('default')
   const [step, setStep] = useState(1)
   const [volume, setVolume] = useState(42)
+  const [treeSelected, setTreeSelected] = useState('button')
 
   return (
     <section className="space-y-4" aria-label="设计系统补充组件">
@@ -505,7 +506,12 @@ export function DesignSystemPreview() {
                     },
                   ]}
                   defaultExpandedKeys={['components']}
+                  selectedKey={treeSelected}
+                  onSelect={setTreeSelected}
                 />
+                <Typography as="p" variant="caption" tone="muted">
+                  当前树节点：{treeSelected}
+                </Typography>
               </Stack>
             </CardContent>
           </Card>

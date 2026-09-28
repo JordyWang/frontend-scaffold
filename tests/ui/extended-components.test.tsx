@@ -292,18 +292,21 @@ describe('Ant Design-inspired shared components', () => {
     expect(screen.getByRole('treeitem', { name: '叶子' })).toBeInTheDocument()
   })
 
-  it('moves tree focus with arrows and reports controlled expansion', () => {
+  it('moves tree focus with arrows and reports expansion', () => {
     const onExpand = vi.fn()
+    const onSelect = vi.fn()
     render(
       <Tree
         defaultExpandedKeys={['root']}
         onExpand={onExpand}
+        onSelect={onSelect}
         treeData={[
           {
             key: 'root',
             title: '根节点',
             children: [
               { key: 'one', title: '第一项' },
+              { key: 'disabled', title: '禁用项', disabled: true },
               { key: 'two', title: '第二项' },
             ],
           },
@@ -312,8 +315,18 @@ describe('Ant Design-inspired shared components', () => {
     )
     const root = screen.getByRole('treeitem', { name: '根节点' })
     const first = screen.getByRole('treeitem', { name: '第一项' })
+    const second = screen.getByRole('treeitem', { name: '第二项' })
+    expect(root).toHaveAttribute('tabindex', '0')
+    expect(first).toHaveAttribute('tabindex', '-1')
     root.focus()
     fireEvent.keyDown(root, { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(first)
+    expect(first).toHaveAttribute('tabindex', '0')
+    fireEvent.keyDown(first, { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(second)
+    fireEvent.keyDown(second, { key: 'Enter' })
+    expect(onSelect).toHaveBeenCalledWith('two')
+    fireEvent.keyDown(second, { key: 'ArrowUp' })
     expect(document.activeElement).toBe(first)
     fireEvent.keyDown(first, { key: 'ArrowUp' })
     expect(document.activeElement).toBe(root)
@@ -321,5 +334,33 @@ describe('Ant Design-inspired shared components', () => {
     expect(onExpand).toHaveBeenCalledWith([])
     fireEvent.keyDown(root, { key: 'ArrowRight' })
     expect(onExpand).toHaveBeenLastCalledWith(['root'])
+    fireEvent.click(screen.getByRole('treeitem', { name: '第一项' }))
+    expect(onSelect).toHaveBeenLastCalledWith('one')
+    expect(onSelect).toHaveBeenCalledTimes(2)
+    fireEvent.click(root.querySelector('[data-tree-toggle]')!)
+    expect(onExpand).toHaveBeenLastCalledWith([])
+  })
+
+  it('keeps tree expansion controlled by expandedKeys', () => {
+    const onExpand = vi.fn()
+    const treeData = [
+      {
+        key: 'root',
+        title: '根节点',
+        children: [{ key: 'child', title: '子节点' }],
+      },
+    ]
+    const { rerender } = render(
+      <Tree treeData={treeData} expandedKeys={[]} onExpand={onExpand} />,
+    )
+    const root = screen.getByRole('treeitem', { name: '根节点' })
+    root.focus()
+    fireEvent.keyDown(root, { key: 'ArrowRight' })
+    expect(onExpand).toHaveBeenCalledWith(['root'])
+    expect(root).toHaveAttribute('aria-expanded', 'false')
+    rerender(
+      <Tree treeData={treeData} expandedKeys={['root']} onExpand={onExpand} />,
+    )
+    expect(screen.getByRole('treeitem', { name: '子节点' })).toBeInTheDocument()
   })
 })

@@ -38,7 +38,7 @@
 | Collapse                        | `Collapse(items, activeKey, defaultActiveKey, accordion, onChange)`                                                                              | 使用按钮控制 region，支持受控/非受控和单开模式                                                                |
 | Avatar / Descriptions           | `Avatar(src, alt, label, size, shape)`；`Descriptions(items, column, bordered, layout)`                                                          | 头像始终有可访问名称；描述使用 `dl/dt/dd` 并在小屏自动单列                                                    |
 | Statistic / Timeline            | `Statistic(title, value, precision, prefix, suffix)`；`Timeline(items)`                                                                          | 统计值保留文本语义；时间线使用有序列表并提供状态颜色和文字                                                    |
-| Carousel / Tree                 | `Carousel(items, index, autoplay, onChange)`；`Tree(treeData, expandedKeys, defaultExpandedKeys, onExpand, selectedKey, onSelect)`               | 轮播提供上一项/下一项和 live 状态；树节点使用 tree/treeitem/group 语义，方向键可展开、收起和移动焦点          |
+| Carousel / Tree                 | `Carousel(items, index, autoplay, onChange)`；`Tree(treeData, expandedKeys, defaultExpandedKeys, onExpand, selectedKey, onSelect)`               | 轮播提供上一项/下一项和 live 状态；树只有一个 Tab 入口，方向键移动及展开/收起，Enter/空格选择；触控可点展开区 |
 
 ## 主题变量
 
