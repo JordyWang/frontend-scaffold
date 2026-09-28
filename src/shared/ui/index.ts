@@ -59,6 +59,8 @@ export type {
   RadioGroupProps,
   SwitchProps,
 } from './choice'
+export { Segmented } from './segmented'
+export type { SegmentedOption, SegmentedProps } from './segmented'
 export { Tag, Badge, Image, Skeleton } from './display'
 export type { TagProps, BadgeProps, ImageProps, SkeletonProps } from './display'
 export { Alert } from './alert'

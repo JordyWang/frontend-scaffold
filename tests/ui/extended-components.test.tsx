@@ -20,6 +20,7 @@ import {
   Popover,
   Progress,
   Result,
+  Segmented,
   Space,
   Steps,
   Slider,
@@ -304,6 +305,40 @@ describe('Ant Design-inspired shared components', () => {
     const slider = screen.getByRole('slider', { name: '音量' })
     fireEvent.change(slider, { target: { value: '7' } })
     expect(onSliderChange).toHaveBeenCalledWith(7)
+  })
+
+  it('supports controlled and uncontrolled segmented choices', () => {
+    const onChange = vi.fn()
+    const { rerender } = render(
+      <Segmented
+        aria-label="视图"
+        defaultValue="list"
+        onChange={onChange}
+        options={[
+          { value: 'list', label: '列表' },
+          { value: 'grid', label: '网格' },
+          { value: 'disabled', label: '不可用', disabled: true },
+        ]}
+      />,
+    )
+    expect(screen.getByRole('radio', { name: '列表' })).toBeChecked()
+    fireEvent.click(screen.getByRole('radio', { name: '网格' }))
+    expect(screen.getByRole('radio', { name: '网格' })).toBeChecked()
+    expect(onChange).toHaveBeenCalledWith('grid')
+    expect(screen.getByRole('radio', { name: '不可用' })).toBeDisabled()
+    rerender(
+      <Segmented
+        aria-label="视图"
+        value="list"
+        options={[
+          { value: 'list', label: '列表' },
+          { value: 'grid', label: '网格' },
+        ]}
+      />,
+    )
+    expect(screen.getByRole('radio', { name: '列表' })).toBeChecked()
+    fireEvent.click(screen.getByRole('radio', { name: '网格' }))
+    expect(screen.getByRole('radio', { name: '列表' })).toBeChecked()
   })
 
   it('keeps uncontrolled autocomplete state and input-number errors semantic', () => {

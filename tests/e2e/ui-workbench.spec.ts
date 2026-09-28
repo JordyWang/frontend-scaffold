@@ -248,10 +248,18 @@ test('design system controls support keyboard, touch and local themes', async ({
   if (testInfo.project.name.startsWith('mobile-'))
     await preview.getByText('网格', { exact: true }).tap()
   else {
-    await preview.getByRole('radio', { name: '列表' }).focus()
+    await preview.getByRole('radio', { name: '列表', exact: true }).focus()
     await page.keyboard.press('ArrowRight')
   }
   await expect(radio).toBeChecked()
+
+  const segmented = preview.getByRole('group', { name: '数据视图' })
+  const compactView = segmented.getByRole('radio', { name: '紧凑列表' })
+  const wideView = segmented.locator('label').filter({ hasText: '宽卡片' })
+  if (testInfo.project.name.startsWith('mobile-')) await wideView.tap()
+  else await wideView.click()
+  await expect(segmented.getByRole('radio', { name: '宽卡片' })).toBeChecked()
+  await expect(compactView).not.toBeChecked()
 
   const scopedSelect = preview.getByRole('combobox', { name: '局部选择' })
   if (testInfo.project.name.startsWith('mobile-')) await scopedSelect.tap()

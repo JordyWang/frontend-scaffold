@@ -33,6 +33,7 @@ import {
   RadioGroup,
   Result,
   Select,
+  Segmented,
   Sheet,
   Skeleton,
   Spinner,
@@ -58,6 +59,7 @@ export function DesignSystemPreview() {
   const [checked, setChecked] = useState(false)
   const [enabled, setEnabled] = useState(true)
   const [choice, setChoice] = useState('a')
+  const [segmentedValue, setSegmentedValue] = useState('list')
   const [mode, setMode] = useState<'light' | 'dark'>('light')
   const [density, setDensity] = useState<'default' | 'compact'>('default')
   const [step, setStep] = useState(1)
@@ -194,6 +196,17 @@ export function DesignSystemPreview() {
                   }
                 />
                 <Switch label="不可用开关" disabled />
+                <Segmented
+                  aria-label="数据视图"
+                  value={segmentedValue}
+                  onChange={setSegmentedValue}
+                  block
+                  options={[
+                    { value: 'list', label: '紧凑列表' },
+                    { value: 'grid', label: '宽卡片' },
+                    { value: 'disabled', label: '不可用', disabled: true },
+                  ]}
+                />
               </Stack>
             </CardContent>
           </Card>

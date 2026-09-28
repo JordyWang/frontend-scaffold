@@ -647,6 +647,68 @@ select {
   right: 0.75rem;
 }
 
+.ui-segmented {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: stretch;
+  gap: 0.125rem;
+  overflow-x: auto;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--muted);
+  padding: 0.25rem;
+}
+.ui-segmented--block {
+  display: flex;
+  width: 100%;
+}
+.ui-segmented__option {
+  position: relative;
+  display: inline-flex;
+  min-width: 4rem;
+  min-height: 44px;
+  flex: 1 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--muted-foreground);
+  padding: 0.625rem 0.875rem;
+  cursor: pointer;
+  text-align: center;
+  white-space: nowrap;
+}
+.ui-segmented--small .ui-segmented__option {
+  min-height: 44px;
+  padding-inline: 0.625rem;
+}
+.ui-segmented--large .ui-segmented__option {
+  min-height: 48px;
+  padding-inline: 1rem;
+}
+.ui-segmented__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.ui-segmented__option--selected {
+  background: var(--card);
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.16);
+  color: var(--foreground);
+  font-weight: 600;
+}
+.ui-segmented__option:focus-within {
+  outline: 3px solid var(--ring);
+  outline-offset: -3px;
+}
+.ui-segmented__option--disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .ui-overlay {
   position: fixed;
   inset: 0;
