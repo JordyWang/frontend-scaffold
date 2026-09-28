@@ -284,6 +284,11 @@ export type CascaderProps = {
   defaultValue?: string[]
   onChange?: (value: string[]) => void
   label?: string
+  id?: string
+  name?: string
+  required?: boolean
+  'aria-describedby'?: string
+  'aria-invalid'?: boolean
   disabled?: boolean
   className?: string
 }
@@ -303,6 +308,11 @@ export function Cascader({
   defaultValue = [],
   onChange,
   label = '级联选择',
+  id,
+  name,
+  required,
+  'aria-describedby': ariaDescribedBy,
+  'aria-invalid': ariaInvalid,
   disabled,
   className,
 }: CascaderProps) {
@@ -322,6 +332,11 @@ export function Cascader({
       <select
         key={depth}
         className="ui-select ui-cascader__select"
+        id={depth === 0 ? id : undefined}
+        name={depth === 0 ? name : undefined}
+        required={depth === 0 ? required : undefined}
+        aria-describedby={depth === 0 ? ariaDescribedBy : undefined}
+        aria-invalid={depth === 0 ? ariaInvalid : undefined}
         aria-label={`${label}${depth ? `第${depth + 1}级` : ''}`}
         value={selected}
         disabled={disabled}

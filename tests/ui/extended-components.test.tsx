@@ -13,6 +13,7 @@ import {
   DatePicker,
   Dropdown,
   FloatButton,
+  FormField,
   InputNumber,
   Menu,
   Popconfirm,
@@ -326,6 +327,20 @@ describe('Ant Design-inspired shared components', () => {
     fireEvent.change(region, { target: { value: 'cn' } })
     expect(onPathChange).toHaveBeenCalledWith(['cn'])
     expect(screen.getByRole('button', { name: '上传' })).toBeInTheDocument()
+  })
+
+  it('connects cascader semantics when wrapped by FormField', () => {
+    render(
+      <FormField
+        label="地区"
+        error="请选择地区"
+        control={<Cascader options={[{ value: 'cn', label: '中国' }]} />}
+      />,
+    )
+    const field = screen.getByLabelText('地区')
+    expect(field).toHaveAttribute('aria-invalid', 'true')
+    expect(field).toHaveAttribute('aria-describedby')
+    expect(screen.getByRole('alert')).toHaveTextContent('请选择地区')
   })
 
   it('renders readable statistics and an ordered timeline', () => {

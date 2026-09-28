@@ -168,7 +168,9 @@ test('design system controls support keyboard, touch and local themes', async ({
   const preview = page.getByRole('region', { name: '设计系统补充组件' })
   const checkbox = preview.getByRole('checkbox', { name: '同意更新通知' })
   const switchControl = preview.getByRole('switch', { name: '启用提醒' })
+  const cascader = preview.getByRole('combobox', { name: '地区' })
   const theme = preview.getByRole('button', { name: '切换预览主题' })
+  await expect(cascader).toHaveAttribute('id')
 
   if (testInfo.project.name.startsWith('mobile-')) {
     await preview
