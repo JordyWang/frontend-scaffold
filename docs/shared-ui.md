@@ -68,6 +68,7 @@ Menu 的受控展开 API 为 `expandedKeys`、`defaultExpandedKeys` 和 `onExpan
       card: { radius: '1rem' },
       overlay: { radius: '1.25rem' },
       menu: { radius: '0.75rem' },
+      segmented: { radius: '0.5rem', height: '46px' },
     },
   }}
 >

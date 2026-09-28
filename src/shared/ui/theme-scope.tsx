@@ -20,6 +20,7 @@ export type ThemeTokens = {
     card?: { radius?: string }
     overlay?: { radius?: string }
     menu?: { radius?: string }
+    segmented?: { radius?: string; height?: string }
   }
 }
 
@@ -102,6 +103,12 @@ export function ThemeScope({
     }),
     ...(tokens?.components?.menu?.radius && {
       '--ui-menu-radius-override': tokens.components.menu.radius,
+    }),
+    ...(tokens?.components?.segmented?.radius && {
+      '--ui-segmented-radius-override': tokens.components.segmented.radius,
+    }),
+    ...(tokens?.components?.segmented?.height && {
+      '--ui-segmented-height-override': tokens.components.segmented.height,
     }),
   } as CSSProperties
   return (

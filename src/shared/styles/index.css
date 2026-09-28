@@ -156,6 +156,11 @@
   --ui-card-radius: var(--ui-card-radius-override, var(--radius));
   --ui-overlay-radius: var(--ui-overlay-radius-override, var(--radius-lg));
   --ui-menu-radius: var(--ui-menu-radius-override, var(--radius-md));
+  --ui-segmented-radius: var(--ui-segmented-radius-override, var(--radius-md));
+  --ui-segmented-height: var(
+    --ui-segmented-height-override,
+    var(--ui-control-height)
+  );
   --ui-control-height: var(--ui-field-height-override, 44px);
 }
 
@@ -654,7 +659,7 @@ select {
   gap: 0.125rem;
   overflow-x: auto;
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: var(--ui-segmented-radius);
   background: var(--muted);
   padding: 0.25rem;
 }
@@ -666,7 +671,7 @@ select {
   position: relative;
   display: inline-flex;
   min-width: 4rem;
-  min-height: 44px;
+  min-height: max(44px, var(--ui-segmented-height));
   flex: 1 0 auto;
   align-items: center;
   justify-content: center;
