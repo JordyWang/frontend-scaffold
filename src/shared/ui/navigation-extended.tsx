@@ -213,6 +213,15 @@ export function Carousel({
   className,
 }: CarouselProps) {
   const [internalIndex, setInternalIndex] = useState(defaultIndex)
+  const [rotationPaused, setRotationPaused] = useState(false)
+  const [manualRotation, setManualRotation] = useState(false)
+  const rotationWasRunningRef = useRef(false)
+  const rotationPointerRef = useRef(false)
+  const [reducedMotion, setReducedMotion] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches),
+  )
   const current = Math.max(
     0,
     Math.min(index ?? internalIndex, Math.max(items.length - 1, 0)),
@@ -225,18 +234,49 @@ export function Carousel({
     },
     [index, items.length, onChange],
   )
+  const rotating =
+    autoplay &&
+    items.length > 1 &&
+    !rotationPaused &&
+    (!reducedMotion || manualRotation)
 
   useEffect(() => {
-    if (!autoplay || items.length < 2) return
+    const media = window.matchMedia?.('(prefers-reduced-motion: reduce)')
+    if (!media) return
+    const update = () => setReducedMotion(media.matches)
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+
+  useEffect(() => {
+    if (!rotating) return
     const timer = window.setInterval(() => setIndex(current + 1), interval)
     return () => window.clearInterval(timer)
-  }, [autoplay, current, interval, items.length, setIndex])
+  }, [current, interval, rotating, setIndex])
+
+  function pauseRotation() {
+    if (autoplay && !rotationPaused) setRotationPaused(true)
+  }
+
+  function moveTo(next: number) {
+    pauseRotation()
+    setIndex(next)
+  }
 
   return (
     <section
       aria-label={label}
       aria-roledescription="carousel"
       className={cn('ui-carousel', className)}
+      onMouseEnter={pauseRotation}
+      onFocusCapture={pauseRotation}
+      onTouchStart={(event) => {
+        if (
+          event.target instanceof Element &&
+          !event.target.closest('[data-carousel-rotation]')
+        )
+          pauseRotation()
+      }}
     >
       <div className="ui-carousel__viewport">
         {items.map((item, itemIndex) => (
@@ -254,20 +294,53 @@ export function Carousel({
       </div>
       {items.length > 1 && (
         <div className="ui-carousel__controls">
+          {autoplay && (
+            <button
+              type="button"
+              data-carousel-rotation=""
+              className="ui-carousel__control"
+              onPointerDown={() => {
+                rotationWasRunningRef.current = rotating
+                rotationPointerRef.current = true
+              }}
+              onFocus={() => {
+                if (!rotationPointerRef.current)
+                  rotationWasRunningRef.current = rotating
+                pauseRotation()
+              }}
+              onClick={() => {
+                const wasRunning = rotationPointerRef.current
+                  ? rotationWasRunningRef.current
+                  : rotating
+                if (wasRunning) setRotationPaused(true)
+                else {
+                  setManualRotation(true)
+                  setRotationPaused(false)
+                }
+                rotationWasRunningRef.current = false
+                rotationPointerRef.current = false
+              }}
+            >
+              {rotating ? '停止自动播放' : '开始自动播放'}
+            </button>
+          )}
           <button
             type="button"
             className="ui-carousel__control"
-            onClick={() => setIndex(current - 1)}
+            onClick={() => moveTo(current - 1)}
           >
             上一项
           </button>
-          <span className="ui-carousel__status" aria-live="polite">
+          <span
+            className="ui-carousel__status"
+            aria-live={rotating ? 'off' : 'polite'}
+          >
             {current + 1} / {items.length}
           </span>
           <button
             type="button"
             className="ui-carousel__control"
-            onClick={() => setIndex(current + 1)}
+            onClick={() => moveTo(current + 1)}
           >
             下一项
           </button>

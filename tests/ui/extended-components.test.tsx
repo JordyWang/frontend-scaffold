@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import {
   Affix,
@@ -45,6 +45,53 @@ describe('Ant Design-inspired shared components', () => {
       '/',
     )
     expect(screen.getByText('当前页面')).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('pauses carousel rotation when focus enters and resumes on request', () => {
+    vi.useFakeTimers()
+    try {
+      render(<Carousel items={['第一张', '第二张']} autoplay interval={1000} />)
+      const carousel = screen.getByRole('region', { name: '轮播内容' })
+      const status = carousel.querySelector('.ui-carousel__status')
+      expect(status).toHaveAttribute('aria-live', 'off')
+      act(() => vi.advanceTimersByTime(1000))
+      expect(screen.getByText('第二张')).toBeVisible()
+
+      act(() => screen.getByRole('button', { name: '停止自动播放' }).focus())
+      expect(status).toHaveAttribute('aria-live', 'polite')
+      act(() => vi.advanceTimersByTime(3000))
+      expect(screen.getByText('第二张')).toBeVisible()
+
+      fireEvent.click(screen.getByRole('button', { name: '开始自动播放' }))
+      expect(status).toHaveAttribute('aria-live', 'off')
+      act(() => vi.advanceTimersByTime(1000))
+      expect(screen.getByText('第一张')).toBeVisible()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('respects reduced motion until carousel rotation is requested', () => {
+    vi.useFakeTimers()
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({
+        matches: true,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    )
+    try {
+      render(<Carousel items={['第一张', '第二张']} autoplay interval={1000} />)
+      act(() => vi.advanceTimersByTime(3000))
+      expect(screen.getByText('第一张')).toBeVisible()
+      fireEvent.click(screen.getByRole('button', { name: '开始自动播放' }))
+      act(() => vi.advanceTimersByTime(1000))
+      expect(screen.getByText('第二张')).toBeVisible()
+    } finally {
+      vi.unstubAllGlobals()
+      vi.useRealTimers()
+    }
   })
 
   it('reports step status and supports keyboard-activated changes', () => {

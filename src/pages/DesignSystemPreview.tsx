@@ -64,6 +64,7 @@ export function DesignSystemPreview() {
   const [volume, setVolume] = useState(42)
   const [treeSelected, setTreeSelected] = useState('button')
   const [treeExpanded, setTreeExpanded] = useState(['components'])
+  const [carouselAutoplay, setCarouselAutoplay] = useState(false)
 
   return (
     <section className="space-y-4" aria-label="设计系统补充组件">
@@ -383,11 +384,20 @@ export function DesignSystemPreview() {
                     { href: '#preview-timeline', title: '时间线' },
                   ]}
                 />
+                <Button
+                  variant="outline"
+                  disabled={carouselAutoplay}
+                  onClick={() => setCarouselAutoplay(true)}
+                >
+                  启用自动轮播
+                </Button>
                 <Carousel
                   items={[
                     <Typography key="one">第一张预览</Typography>,
                     <Typography key="two">第二张预览</Typography>,
                   ]}
+                  autoplay={carouselAutoplay}
+                  interval={2000}
                 />
                 <Steps
                   current={step}

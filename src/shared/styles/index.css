@@ -1582,6 +1582,7 @@ button.ui-steps__button {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: var(--space-sm);
   border-top: 1px solid var(--border);
   padding: var(--space-sm) var(--space-md);

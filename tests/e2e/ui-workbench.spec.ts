@@ -694,6 +694,33 @@ test('extended navigation and feedback components expose responsive semantics', 
   expect(overflow).toBe(false)
 })
 
+test('carousel exposes rotation controls and pauses on touch or focus', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const carousel = preview.getByRole('region', { name: '轮播内容' })
+  await expect(carousel).toBeVisible()
+  const enable = preview.getByRole('button', { name: '启用自动轮播' })
+  if (testInfo.project.name.startsWith('mobile-')) await enable.tap()
+  else await enable.click()
+  const pause = carousel.getByRole('button', { name: '停止自动播放' })
+  await expect(pause).toBeVisible()
+  await expect(carousel.locator('.ui-carousel__status')).toHaveAttribute(
+    'aria-live',
+    'off',
+  )
+  if (testInfo.project.name.startsWith('mobile-')) await pause.tap()
+  else await pause.focus()
+  await expect(
+    carousel.getByRole('button', { name: '开始自动播放' }),
+  ).toBeVisible()
+  await expect(carousel.locator('.ui-carousel__status')).toHaveAttribute(
+    'aria-live',
+    'polite',
+  )
+})
+
 test('tree uses one tab stop and supports keyboard and touch expansion', async ({
   page,
 }, testInfo) => {
