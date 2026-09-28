@@ -19,7 +19,7 @@
 
 ```text
 pnpm check       # lint、typecheck、format:check、test、build
-pnpm test:e2e    # 桌面与移动 Chromium 流程
+pnpm test:e2e    # 桌面 Chromium、移动 Chromium 与移动 WebKit 流程
 ```
 
 浏览器验收覆盖桌面键盘交互、移动端触控、360/390/768/1280px 宽度和页面横向溢出检查。E2E 中按设备条件跳过的用例必须保持明确标注，不能静默失败。
