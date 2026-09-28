@@ -245,17 +245,16 @@ test('design system controls support keyboard, touch and local themes', async ({
   await preview.getByRole('button', { name: '切换预览密度' }).click()
   await expect(preview.getByText('当前：深色 · 紧凑')).toBeVisible()
   const radio = preview.getByRole('radio', { name: '网格' })
+  const segmented = preview.getByRole('group', { name: '数据视图' })
+  const compactView = segmented.getByRole('radio', { name: '紧凑列表' })
+  const wideView = segmented.locator('label').filter({ hasText: '宽卡片' })
   if (testInfo.project.name.startsWith('mobile-'))
-    await preview.getByText('网格', { exact: true }).tap()
+    await radio.locator('..').tap()
   else {
     await preview.getByRole('radio', { name: '列表', exact: true }).focus()
     await page.keyboard.press('ArrowRight')
   }
   await expect(radio).toBeChecked()
-
-  const segmented = preview.getByRole('group', { name: '数据视图' })
-  const compactView = segmented.getByRole('radio', { name: '紧凑列表' })
-  const wideView = segmented.locator('label').filter({ hasText: '宽卡片' })
   if (testInfo.project.name.startsWith('mobile-')) await wideView.tap()
   else await wideView.click()
   await expect(segmented.getByRole('radio', { name: '宽卡片' })).toBeChecked()
@@ -322,6 +321,25 @@ test('design system controls support keyboard, touch and local themes', async ({
       ),
     ).toBe(true)
   }
+})
+
+test('form preview validates and submits through the project contract', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const form = preview.locator('form').filter({ hasText: '联系邮箱' })
+  const email = form.getByRole('textbox', { name: '联系邮箱' })
+  const submit = form.getByRole('button', { name: '提交表单' })
+
+  if (testInfo.project.name.startsWith('mobile-')) await submit.tap()
+  else await submit.click()
+  await expect(form.getByRole('alert')).toHaveText('请输入联系邮箱')
+
+  await email.fill('person@example.com')
+  if (testInfo.project.name.startsWith('mobile-')) await submit.tap()
+  else await submit.click()
+  await expect(form.getByText('已提交：person@example.com')).toBeVisible()
 })
 
 test('keyboard controls retain focus and expose data states', async ({

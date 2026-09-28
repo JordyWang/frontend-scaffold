@@ -21,7 +21,9 @@ import {
   Divider,
   Dropdown,
   FloatButton,
+  Form,
   FormField,
+  FormItem,
   Grid,
   Icon,
   Image,
@@ -67,6 +69,7 @@ export function DesignSystemPreview() {
   const [step, setStep] = useState(1)
   const [volume, setVolume] = useState(42)
   const [colorValue, setColorValue] = useState('#4338ca')
+  const [formStatus, setFormStatus] = useState('尚未提交')
   const [treeSelected, setTreeSelected] = useState('button')
   const [treeExpanded, setTreeExpanded] = useState(['components'])
   const [carouselAutoplay, setCarouselAutoplay] = useState(false)
@@ -231,6 +234,50 @@ export function DesignSystemPreview() {
                     { value: 'disabled', label: '不可用', disabled: true },
                   ]}
                 />
+                <Form
+                  initialValues={{ email: '', view: 'list' }}
+                  onFinish={(values) =>
+                    setFormStatus(`已提交：${String(values.email)}`)
+                  }
+                  onFinishFailed={() => setFormStatus('请修正表单错误')}
+                >
+                  <FormItem
+                    name="email"
+                    label="联系邮箱"
+                    rules={[
+                      { required: true, message: '请输入联系邮箱' },
+                      {
+                        validator: (value) =>
+                          typeof value === 'string' && value.includes('@')
+                            ? undefined
+                            : '请输入有效邮箱',
+                      },
+                    ]}
+                    control={<Input placeholder="name@example.com" />}
+                  />
+                  <FormItem
+                    name="view"
+                    label="表单视图"
+                    trigger="onValueChange"
+                    rules={[{ required: true, message: '请选择表单视图' }]}
+                    control={
+                      <Select
+                        options={[
+                          { value: 'list', label: '列表' },
+                          { value: 'grid', label: '网格' },
+                        ]}
+                      />
+                    }
+                  />
+                  <Stack direction="row" align="center" wrap gap="sm">
+                    <Button type="submit" size="small">
+                      提交表单
+                    </Button>
+                    <Typography variant="caption" tone="muted">
+                      {formStatus}
+                    </Typography>
+                  </Stack>
+                </Form>
               </Stack>
             </CardContent>
           </Card>

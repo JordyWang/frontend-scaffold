@@ -535,6 +535,39 @@ select {
   line-height: 1.5;
 }
 
+.ui-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+.ui-form--horizontal .ui-field {
+  grid-template-columns: minmax(7rem, 0.35fr) minmax(0, 1fr);
+  align-items: start;
+}
+.ui-form--horizontal .ui-field__hint,
+.ui-form--horizontal .ui-field__error {
+  grid-column: 2;
+}
+.ui-form--inline {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-md);
+}
+.ui-form--inline .ui-field {
+  min-width: min(100%, 12rem);
+  flex: 1 1 12rem;
+}
+@media (max-width: 639px) {
+  .ui-form--horizontal .ui-field {
+    grid-template-columns: 1fr;
+  }
+  .ui-form--horizontal .ui-field__hint,
+  .ui-form--horizontal .ui-field__error {
+    grid-column: 1;
+  }
+}
+
 .ui-card {
   overflow: hidden;
   border: 1px solid var(--border);

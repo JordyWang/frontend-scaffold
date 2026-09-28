@@ -9,12 +9,15 @@ import {
   Breadcrumb,
   Carousel,
   Collapse,
+  Checkbox,
   ColorPicker,
   Descriptions,
   DatePicker,
   Dropdown,
   FloatButton,
+  Form,
   FormField,
+  FormItem,
   InputNumber,
   Menu,
   Popconfirm,
@@ -418,6 +421,46 @@ describe('Ant Design-inspired shared components', () => {
     expect(picker).toHaveAttribute('aria-invalid', 'true')
     expect(picker).toHaveAttribute('aria-describedby')
     expect(screen.getByRole('alert')).toHaveTextContent('请选择主题色')
+  })
+
+  it('coordinates values and validation across project controls', async () => {
+    const onFinish = vi.fn()
+    const onFinishFailed = vi.fn()
+    render(
+      <Form
+        initialValues={{ email: '', enabled: false }}
+        onFinish={onFinish}
+        onFinishFailed={onFinishFailed}
+      >
+        <FormItem
+          name="email"
+          label="邮箱"
+          rules={[{ required: true, message: '请输入邮箱' }]}
+          control={<input aria-label="邮箱输入" />}
+        />
+        <FormItem
+          name="enabled"
+          valuePropName="checked"
+          control={<Checkbox label="启用通知" />}
+        />
+        <button type="submit">提交</button>
+      </Form>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '提交' }))
+    await waitFor(() => expect(onFinishFailed).toHaveBeenCalledTimes(1))
+    expect(screen.getByRole('alert')).toHaveTextContent('请输入邮箱')
+
+    fireEvent.change(screen.getByRole('textbox', { name: '邮箱' }), {
+      target: { value: 'person@example.com' },
+    })
+    fireEvent.click(screen.getByRole('checkbox', { name: '启用通知' }))
+    fireEvent.click(screen.getByRole('button', { name: '提交' }))
+    await waitFor(() => expect(onFinish).toHaveBeenCalledTimes(1))
+    expect(onFinish).toHaveBeenLastCalledWith({
+      email: 'person@example.com',
+      enabled: true,
+    })
   })
 
   it('connects segmented field semantics through FormField', () => {

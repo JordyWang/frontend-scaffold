@@ -6,6 +6,9 @@ export { Textarea } from './textarea'
 export type { TextareaProps } from './textarea'
 export { FormField } from './form-field'
 export type { FormFieldProps } from './form-field'
+export { Form, FormItem } from './form'
+export { useForm } from './form-hooks'
+export type { FormInstance, FormItemProps, FormProps, FormRule } from './form'
 export {
   Card,
   CardHeader,
