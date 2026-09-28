@@ -135,7 +135,13 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(function Slider(
   ref,
 ) {
   const [internal, setInternal] = useState(defaultValue)
-  const current = value ?? internal
+  const safeMin = Number.isFinite(min) ? min : 0
+  const safeMax = Number.isFinite(max) ? Math.max(safeMin, max) : safeMin
+  const safeStep = Number.isFinite(step) && step > 0 ? step : 1
+  const rawCurrent = value ?? internal
+  const current = Number.isFinite(rawCurrent)
+    ? Math.min(safeMax, Math.max(safeMin, rawCurrent))
+    : safeMin
   return (
     <input
       {...props}
@@ -144,11 +150,14 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(function Slider(
       className={cn('ui-slider', className)}
       aria-label={props['aria-label'] ?? label}
       value={current}
-      min={min}
-      max={max}
-      step={step}
+      min={safeMin}
+      max={safeMax}
+      step={safeStep}
       onChange={(event) => {
-        const next = Number(event.currentTarget.value)
+        const next = Math.min(
+          safeMax,
+          Math.max(safeMin, Number(event.currentTarget.value)),
+        )
         if (value === undefined) setInternal(next)
         onChange?.(next)
       }}

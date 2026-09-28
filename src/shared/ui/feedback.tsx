@@ -24,7 +24,11 @@ export function Progress({
   format,
   className,
 }: ProgressProps) {
-  const value = Math.max(0, Math.min(percent, 100))
+  const safePercent = Number.isFinite(percent) ? percent : 0
+  const value = Math.max(0, Math.min(safePercent, 100))
+  const safeStrokeWidth = Number.isFinite(strokeWidth)
+    ? Math.max(1, strokeWidth)
+    : 8
   const text = format ? format(value) : `${value}%`
   const style = { '--ui-progress-value': `${value}%` } as CSSProperties
   if (type === 'circle') {
@@ -38,7 +42,7 @@ export function Progress({
         style={
           {
             ...style,
-            '--ui-progress-stroke': `${strokeWidth}px`,
+            '--ui-progress-stroke': `${safeStrokeWidth}px`,
           } as CSSProperties
         }
       >
@@ -65,7 +69,7 @@ export function Progress({
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={value}
-          style={{ minHeight: strokeWidth }}
+          style={{ minHeight: safeStrokeWidth }}
         >
           <span className="ui-progress__bar" style={style} />
         </div>

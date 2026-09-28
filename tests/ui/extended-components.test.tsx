@@ -210,6 +210,21 @@ describe('Ant Design-inspired shared components', () => {
     ).toHaveAttribute('aria-valuenow', '100')
   })
 
+  it('normalizes invalid progress and slider values', () => {
+    render(
+      <>
+        <Progress percent={Number.NaN} strokeWidth={0} />
+        <Slider aria-label="音量" min={0} max={10} value={99} step={0} />
+      </>,
+    )
+    expect(screen.getByRole('progressbar', { name: '进度' })).toHaveAttribute(
+      'aria-valuenow',
+      '0',
+    )
+    const slider = screen.getByRole('slider', { name: '音量' })
+    expect(slider).toHaveValue('10')
+  })
+
   it('toggles collapse panels and preserves disabled items', () => {
     const onChange = vi.fn()
     render(
