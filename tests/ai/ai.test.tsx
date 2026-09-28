@@ -7,11 +7,17 @@ import {
 } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import {
+  aiChatReducer,
   aiTaskReducer,
+  createMockAiChatClient,
   createMockAiTaskClient,
+  getActiveConversation,
+  initialAiChatState,
   initialAiTaskState,
   TaskProgress,
+  useAiChat,
   useAiTask,
+  type AiChatState,
   type AiTaskClient,
   type AiTaskSnapshot,
 } from '@/capabilities/ai'
@@ -84,6 +90,118 @@ describe('AI task state machine', () => {
     })
     state = aiTaskReducer(state, { type: 'cancelled' })
     expect(state.phase).toBe('cancelled')
+  })
+})
+
+describe('AI conversation state machine', () => {
+  it('appends messages and applies stream events without losing earlier content', () => {
+    const conversation = {
+      id: 'conversation-1',
+      title: '新对话',
+      messages: [],
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+    const userMessage = {
+      id: 'user-1',
+      conversationId: conversation.id,
+      role: 'user' as const,
+      content: '你好',
+      status: 'complete' as const,
+      createdAt: conversation.updatedAt,
+    }
+    const assistantMessage = {
+      id: 'assistant-1',
+      conversationId: conversation.id,
+      role: 'assistant' as const,
+      content: '',
+      status: 'thinking' as const,
+      createdAt: conversation.updatedAt,
+    }
+    let state: AiChatState = aiChatReducer(initialAiChatState, {
+      type: 'loaded',
+      conversations: [conversation],
+    })
+    state = aiChatReducer(state, {
+      type: 'send-start',
+      conversationId: conversation.id,
+      userMessage,
+      assistantMessage,
+    })
+    state = aiChatReducer(state, {
+      type: 'stream-event',
+      conversationId: conversation.id,
+      event: { type: 'delta', messageId: assistantMessage.id, delta: '你好，' },
+    })
+    state = aiChatReducer(state, {
+      type: 'stream-event',
+      conversationId: conversation.id,
+      event: {
+        type: 'delta',
+        messageId: assistantMessage.id,
+        delta: '我是 AI。',
+      },
+    })
+    state = aiChatReducer(state, {
+      type: 'stream-event',
+      conversationId: conversation.id,
+      event: { type: 'complete', messageId: assistantMessage.id },
+    })
+    const active = getActiveConversation(state)
+    expect(active?.title).toBe('你好')
+    expect(active?.messages.at(-1)).toMatchObject({
+      content: '你好，我是 AI。',
+      status: 'complete',
+    })
+    expect(state.phase).toBe('ready')
+  })
+
+  it('marks an assistant message as failed and keeps it retryable', () => {
+    const conversation = {
+      id: 'conversation-1',
+      title: '失败示例',
+      messages: [],
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }
+    const assistant = {
+      id: 'assistant-1',
+      conversationId: conversation.id,
+      role: 'assistant' as const,
+      content: '',
+      status: 'thinking' as const,
+      createdAt: conversation.updatedAt,
+    }
+    const user = {
+      id: 'user-1',
+      conversationId: conversation.id,
+      role: 'user' as const,
+      content: '失败',
+      status: 'complete' as const,
+      createdAt: conversation.updatedAt,
+    }
+    let state = aiChatReducer(initialAiChatState, {
+      type: 'loaded',
+      conversations: [conversation],
+    })
+    state = aiChatReducer(state, {
+      type: 'send-start',
+      conversationId: conversation.id,
+      userMessage: user,
+      assistantMessage: assistant,
+    })
+    state = aiChatReducer(state, {
+      type: 'stream-event',
+      conversationId: conversation.id,
+      event: {
+        type: 'error',
+        messageId: assistant.id,
+        error: '请求失败',
+      },
+    })
+    expect(state.phase).toBe('error')
+    expect(getActiveConversation(state)?.messages.at(-1)).toMatchObject({
+      status: 'error',
+      error: '请求失败',
+    })
   })
 })
 
@@ -162,5 +280,58 @@ describe('useAiTask', () => {
     expect(second.result.current.task?.input.prompt).toBe('恢复任务')
     second.unmount()
     localStorage.clear()
+  })
+})
+
+describe('useAiChat', () => {
+  it('streams a mock reply and supports cancellation', async () => {
+    const client = createMockAiChatClient()
+    const { result } = renderHook(() => useAiChat(client))
+    await waitFor(() => expect(result.current.phase).toBe('ready'))
+    await act(async () => {
+      await result.current.send('给我一个摘要')
+    })
+    await waitFor(() => expect(result.current.phase).toBe('ready'))
+    expect(result.current.activeConversation?.messages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ role: 'user', content: '给我一个摘要' }),
+        expect.objectContaining({
+          role: 'assistant',
+          status: 'complete',
+          content: expect.stringContaining('Mock 流式回复'),
+        }),
+      ]),
+    )
+
+    act(() => {
+      void result.current.send('这次取消')
+    })
+    await waitFor(() => expect(result.current.phase).toBe('streaming'))
+    act(() => result.current.cancel())
+    await waitFor(() => expect(result.current.phase).toBe('ready'))
+    expect(result.current.activeConversation?.messages.at(-1)).toMatchObject({
+      status: 'cancelled',
+    })
+  })
+
+  it('exposes a failed message that can be retried', async () => {
+    const client = createMockAiChatClient()
+    const { result } = renderHook(() => useAiChat(client))
+    await waitFor(() => expect(result.current.phase).toBe('ready'))
+    await act(async () => {
+      await result.current.send('失败')
+    })
+    await waitFor(() => expect(result.current.phase).toBe('error'))
+    const failed = result.current.activeConversation?.messages.at(-1)
+    expect(failed).toMatchObject({ status: 'error' })
+    const failedId = failed?.id
+    expect(failedId).toBeTruthy()
+    await act(async () => {
+      await result.current.retry(failedId!)
+    })
+    await waitFor(() => expect(result.current.phase).toBe('ready'))
+    expect(result.current.activeConversation?.messages.at(-1)).toMatchObject({
+      status: 'complete',
+    })
   })
 })

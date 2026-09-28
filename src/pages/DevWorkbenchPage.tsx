@@ -12,6 +12,8 @@ import {
   type FileValidationResult,
 } from '@/capabilities/files'
 import {
+  AiChatWorkbench,
+  createMockAiChatClient,
   createMockAiTaskClient,
   PromptInput,
   TaskActions,
@@ -154,6 +156,7 @@ export function DevWorkbenchPage() {
   const [showVideoError, setShowVideoError] = useState(false)
   const [showAudioError, setShowAudioError] = useState(false)
   const upload = useFileUpload(demoUpload)
+  const aiChatClient = useMemo(() => createMockAiChatClient(), [])
   const aiClient = useMemo(() => createMockAiTaskClient(), [])
   const aiTask = useAiTask(aiClient, {
     pollIntervalMs: 300,
@@ -729,6 +732,13 @@ export function DevWorkbenchPage() {
               </CardContent>
             </Card>
           </div>
+        </DemoSection>
+
+        <DemoSection
+          title="AI 对话能力"
+          note="会话列表、欢迎态、快捷提示、思考中、流式输出、取消、失败和重试"
+        >
+          <AiChatWorkbench client={aiChatClient} />
         </DemoSection>
 
         <DemoSection

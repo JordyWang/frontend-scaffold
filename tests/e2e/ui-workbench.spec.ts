@@ -106,6 +106,41 @@ test('AI tasks show progress, cancellation, failure and retry', async ({
   ).toBeVisible({ timeout: 5_000 })
 })
 
+test('AI conversation workbench streams, cancels and retries messages', async ({
+  page,
+}, testInfo) => {
+  const activate = async (locator: ReturnType<typeof page.getByRole>) => {
+    if (testInfo.project.name === 'mobile-chromium') await locator.tap()
+    else await locator.click()
+  }
+  await page.goto('/__ui')
+  const chat = page.getByRole('region', { name: 'AI 对话工作台' })
+  await expect(
+    chat.getByRole('heading', { name: '你好，我是 AI 助手' }),
+  ).toBeVisible()
+
+  const composer = chat.getByRole('textbox', { name: '发送消息' })
+  await composer.fill('整理一份摘要')
+  await composer.press('Enter')
+  await expect(chat.getByText('AI 正在思考')).toBeVisible()
+  await expect(chat.getByText(/Mock 流式回复/)).toBeVisible({ timeout: 5_000 })
+
+  await composer.fill('失败')
+  await composer.press('Enter')
+  await expect(chat.getByRole('alert').first()).toContainText('Mock 对话失败', {
+    timeout: 5_000,
+  })
+  await activate(chat.getByRole('button', { name: '重试' }))
+  await expect(chat.getByText(/Mock 流式回复/).last()).toBeVisible({
+    timeout: 5_000,
+  })
+
+  await composer.fill('取消这次生成')
+  await composer.press('Enter')
+  await activate(chat.getByRole('button', { name: '停止生成' }))
+  await expect(chat.getByText('已取消生成')).toBeVisible({ timeout: 5_000 })
+})
+
 test('video player supports playback, touch controls and media errors', async ({
   page,
 }, testInfo) => {

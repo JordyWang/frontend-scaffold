@@ -14,7 +14,7 @@ pnpm install
 pnpm dev:mock
 ```
 
-打开终端输出的地址。开发环境中的 `/__ui` 用于查看组件状态、文件能力、AI 任务、视频与音频能力、完整 Mock 流程、设计变量和 JSON Mock；生产构建不会注册这个路由。组件 API 见 [docs/shared-ui.md](docs/shared-ui.md)，能力模块约定见 [files](docs/files.md)、[AI](docs/ai.md)、[video](docs/video.md)、[audio](docs/audio.md) 与 [Mock 流程](docs/mock-workflow.md)。
+打开终端输出的地址。开发环境中的 `/__ui` 用于查看组件状态、文件能力、AI 任务与 AI 对话、视频与音频能力、完整 Mock 流程、设计变量和 JSON Mock；生产构建不会注册这个路由。组件 API 见 [docs/shared-ui.md](docs/shared-ui.md)，能力模块约定见 [files](docs/files.md)、[AI](docs/ai.md)、[video](docs/video.md)、[audio](docs/audio.md) 与 [Mock 流程](docs/mock-workflow.md)。
 
 首次运行端到端测试前安装固定版本浏览器：
 
