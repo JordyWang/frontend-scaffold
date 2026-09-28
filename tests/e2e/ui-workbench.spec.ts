@@ -423,7 +423,9 @@ test('mobile controls are touchable without horizontal overflow', async ({
       document.documentElement.scrollWidth >
       document.documentElement.clientWidth,
     smallTargets: [
-      ...document.querySelectorAll('button,[role=combobox],[role=tab]'),
+      ...document.querySelectorAll(
+        'button,[role=combobox],[role=tab],.ui-choice,.ui-switch',
+      ),
     ]
       .filter((element) => {
         const rect = element.getBoundingClientRect()
@@ -431,6 +433,7 @@ test('mobile controls are touchable without horizontal overflow', async ({
           rect.width > 0 &&
           rect.height > 0 &&
           !element.hasAttribute('disabled') &&
+          !element.querySelector('input:disabled') &&
           (rect.width < 44 || rect.height < 44)
         )
       })
