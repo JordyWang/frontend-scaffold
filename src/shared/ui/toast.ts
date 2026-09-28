@@ -11,6 +11,15 @@ export type NotificationOptions = Omit<ToastOptions, 'title'> & {
   message: string
 }
 
+export type MessageContent =
+  string | (Omit<ToastOptions, 'title'> & { content: string })
+
+function messageOptions(content: MessageContent): ToastOptions {
+  return typeof content === 'string'
+    ? { title: content }
+    : { title: content.content, ...content }
+}
+
 export function toast({
   title,
   description,
@@ -43,4 +52,24 @@ export const notification = {
     return toast({ title: options.message, ...options, variant: 'error' })
   },
   close: dismissToast,
+}
+
+/** Compact message API for one-line feedback, backed by the same ToastProvider. */
+export const message = {
+  open(content: MessageContent) {
+    return toast(messageOptions(content))
+  },
+  success(content: MessageContent) {
+    return toast({ ...messageOptions(content), variant: 'success' })
+  },
+  warning(content: MessageContent) {
+    return toast({ ...messageOptions(content), variant: 'warning' })
+  },
+  error(content: MessageContent) {
+    return toast({ ...messageOptions(content), variant: 'error' })
+  },
+  loading(content: MessageContent) {
+    return toast({ ...messageOptions(content), duration: 0 })
+  },
+  destroy: dismissToast,
 }

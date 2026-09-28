@@ -8,6 +8,7 @@ import {
   Image,
   Input,
   List,
+  message,
   Modal,
   Pagination,
   Portal,
@@ -246,6 +247,12 @@ describe('shared/ui contracts', () => {
       screen.getByRole('button', { name: '打开模态框' }),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '打开抽屉' })).toBeInTheDocument()
+  })
+
+  it('exposes message helpers alongside the project toast API', () => {
+    expect(typeof message.success).toBe('function')
+    expect(typeof message.loading).toBe('function')
+    expect(typeof message.destroy).toBe('function')
   })
 
   it('accepts explicit status foregrounds for non-hex theme values', () => {
