@@ -342,6 +342,36 @@ test('form preview validates and submits through the project contract', async ({
   await expect(form.getByText('已提交：person@example.com')).toBeVisible()
 })
 
+test('tree select searches collapsed branches with keyboard and touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const trigger = preview.getByRole('combobox', {
+    name: '团队选择',
+    exact: true,
+  })
+  if (testInfo.project.name.startsWith('mobile-')) await trigger.tap()
+  else {
+    await trigger.focus()
+    await page.keyboard.press('ArrowDown')
+  }
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+  const search = page.getByRole('searchbox', { name: '搜索团队选择' })
+  await search.fill('用户研究')
+  const result = page.getByRole('treeitem', { name: '用户研究组' })
+  await expect(result).toBeVisible()
+  if (testInfo.project.name.startsWith('mobile-')) await result.tap()
+  else {
+    await search.press('ArrowDown')
+    await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('Enter')
+  }
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+  await expect(trigger).toContainText('用户研究组')
+  await expect(trigger).toHaveCSS('min-height', '44px')
+})
+
 test('keyboard controls retain focus and expose data states', async ({
   page,
 }, testInfo) => {

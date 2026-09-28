@@ -52,12 +52,25 @@ import {
   Timeline,
   TimePicker,
   Tree,
+  TreeSelect,
   Tooltip,
   Typography,
   Upload,
   notification,
   toast,
 } from '@/shared/ui'
+
+const teamTreeData = [
+  {
+    value: 'product',
+    label: '产品团队',
+    children: [
+      { value: 'design', label: '设计组' },
+      { value: 'research', label: '用户研究组' },
+    ],
+  },
+  { value: 'engineering', label: '研发团队' },
+]
 
 export function DesignSystemPreview() {
   const [checked, setChecked] = useState(false)
@@ -374,6 +387,31 @@ export function DesignSystemPreview() {
                       ]}
                     />
                   }
+                />
+                <FormField
+                  label="团队选择"
+                  description="可搜索折叠分支；方向键浏览，Enter 选择。"
+                  control={
+                    <TreeSelect
+                      label="团队选择"
+                      showSearch
+                      allowClear
+                      treeData={teamTreeData}
+                    />
+                  }
+                />
+                <TreeSelect
+                  label="多选团队"
+                  multiple
+                  allowClear
+                  defaultValue={['design']}
+                  defaultExpandedValues={['product']}
+                  treeData={teamTreeData}
+                />
+                <TreeSelect
+                  label="不可用团队选择"
+                  disabled
+                  treeData={[{ value: 'disabled', label: '不可用' }]}
                 />
                 <Upload accept="image/*" label="上传图片" />
                 <Stack direction="row" wrap gap="sm">

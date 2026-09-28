@@ -81,18 +81,18 @@ tests/
 
 P0 是第一版脚手架必须提供的基础组件；P1 在出现对应业务页面时加入，不作为第一版的空组件占位。
 
-| 分类     | P0：第一版实现                                                    | P1：按业务接入                                                                                 |
-| -------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| 通用     | Button、Icon、Typography                                          | FloatButton                                                                                    |
-| 布局     | Container、Stack/Flex、Grid、Divider                              | Space、Affix                                                                                   |
-| 导航     | Tabs、Pagination                                                  | Breadcrumb、Dropdown、Menu、Steps、Anchor                                                      |
-| 数据录入 | FormField、Input、Textarea、Checkbox、Radio、Switch、Select       | Form、InputNumber、DatePicker、TimePicker、ColorPicker、Upload、AutoComplete、Slider、Cascader |
-| 数据展示 | Card、List、Table（基础表格）、Tag、Badge、Image、Empty、Skeleton | Avatar、Descriptions、Collapse、Tooltip、Popover、Carousel、Tree、Timeline、Statistic          |
-| 反馈     | Alert、Dialog/Modal、Drawer/Sheet、Toast/Message、Spinner/Spin    | Popconfirm、Notification、Progress、Result                                                     |
+| 分类     | P0：第一版实现                                                    | P1：按业务接入                                                                                             |
+| -------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 通用     | Button、Icon、Typography                                          | FloatButton                                                                                                |
+| 布局     | Container、Stack/Flex、Grid、Divider                              | Space、Affix                                                                                               |
+| 导航     | Tabs、Pagination                                                  | Breadcrumb、Dropdown、Menu、Steps、Anchor                                                                  |
+| 数据录入 | FormField、Input、Textarea、Checkbox、Radio、Switch、Select       | Form、InputNumber、DatePicker、TimePicker、ColorPicker、Upload、AutoComplete、Slider、Cascader、TreeSelect |
+| 数据展示 | Card、List、Table（基础表格）、Tag、Badge、Image、Empty、Skeleton | Avatar、Descriptions、Collapse、Tooltip、Popover、Carousel、Tree、Timeline、Statistic                      |
+| 反馈     | Alert、Dialog/Modal、Drawer/Sheet、Toast/Message、Spinner/Spin    | Popconfirm、Notification、Progress、Result                                                                 |
 
 `FormField` 负责标签、说明和错误信息的展示；数据校验仍由 Zod 定义。`Table` 的 P0 范围是表头、行、空状态和基础加载状态。排序、筛选、固定列、虚拟滚动等能力应由实际业务需求决定，避免预先做成难以维护的通用表格。
 
-在 P0 稳定后，首批 P1 通用能力已按同一套项目 API 接入：`Space`、`Breadcrumb`、`Steps`、`Progress`、`Result`、`Collapse`、`Avatar`、`Descriptions`、`Statistic`、`Timeline`、`Dropdown`、`Tooltip`、`Popover`、`Popconfirm`、`Notification`、`Form`、`InputNumber`、`Slider`、`DatePicker`、`TimePicker`、`ColorPicker`、`AutoComplete`、`Cascader`、`Upload`、`Segmented`、`Rate`、`Menu`、`Anchor`、`Affix`、`Carousel` 和 `Tree`。这些组件先覆盖语义、状态和响应式布局，复杂的数据编辑和远程上传策略仍按真实页面需求加入。
+在 P0 稳定后，首批 P1 通用能力已按同一套项目 API 接入：`Space`、`Breadcrumb`、`Steps`、`Progress`、`Result`、`Collapse`、`Avatar`、`Descriptions`、`Statistic`、`Timeline`、`Dropdown`、`Tooltip`、`Popover`、`Popconfirm`、`Notification`、`Form`、`InputNumber`、`Slider`、`DatePicker`、`TimePicker`、`ColorPicker`、`AutoComplete`、`Cascader`、`TreeSelect`、`Upload`、`Segmented`、`Rate`、`Menu`、`Anchor`、`Affix`、`Carousel` 和 `Tree`。这些组件先覆盖语义、状态和响应式布局，复杂的数据编辑和远程上传策略仍按真实页面需求加入。
 
 ### 5.2 H5 组件适配要求
 

@@ -112,6 +112,12 @@ export type {
   TimePickerProps,
   UploadProps,
 } from './data-input'
+export { TreeSelect } from './tree-select'
+export type {
+  TreeSelectOption,
+  TreeSelectProps,
+  TreeSelectValue,
+} from './tree-select'
 export { Statistic, Timeline } from './data-display'
 export type {
   StatisticProps,
