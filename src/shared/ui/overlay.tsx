@@ -8,6 +8,7 @@ import {
   type FocusEvent,
   type KeyboardEvent,
   type MouseEvent,
+  type PointerEvent as ReactPointerEvent,
   type ReactElement,
   type ReactNode,
 } from 'react'
@@ -20,6 +21,7 @@ type TriggerElement = ReactElement<{
   onKeyDown?: (event: KeyboardEvent) => void
   onFocus?: (event: FocusEvent) => void
   onBlur?: (event: FocusEvent) => void
+  onPointerDown?: (event: ReactPointerEvent) => void
   'aria-expanded'?: boolean
   'aria-controls'?: string
   'aria-haspopup'?: string
@@ -220,6 +222,13 @@ export function Tooltip({
     onBlur: (event) => {
       children.props.onBlur?.(event)
       setOpen(false)
+    },
+    onPointerDown: (event) => {
+      children.props.onPointerDown?.(event)
+      // Pointer down is the reliable activation signal on touch browsers;
+      // opening for mouse down as well keeps the control usable before hover
+      // styles are applied and does not change the focus/hover close rules.
+      setOpen(true)
     },
   })
   return (

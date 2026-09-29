@@ -686,6 +686,11 @@ describe('Ant Design-inspired shared components', () => {
     expect(screen.getByRole('button', { name: '说明' })).toHaveFocus()
     fireEvent.focus(screen.getByRole('button', { name: '提示' }))
     expect(screen.getByRole('tooltip')).toHaveTextContent('键盘提示')
+    fireEvent.blur(screen.getByRole('button', { name: '提示' }))
+    fireEvent.pointerDown(screen.getByRole('button', { name: '提示' }), {
+      pointerType: 'touch',
+    })
+    expect(screen.getByRole('tooltip')).toHaveTextContent('键盘提示')
 
     fireEvent.click(screen.getByRole('button', { name: '删除' }))
     expect(screen.getByRole('dialog')).toHaveTextContent('确认？')
