@@ -178,10 +178,7 @@ test('design system controls support keyboard, touch and local themes', async ({
   await expect(cascader).toHaveAttribute('id')
 
   if (testInfo.project.name.startsWith('mobile-')) {
-    await preview
-      .locator('label.ui-choice')
-      .filter({ hasText: '同意更新通知' })
-      .tap()
+    await preview.locator('label').filter({ hasText: '同意更新通知' }).tap()
     await preview.getByText('启用提醒').tap()
     await theme.tap()
   } else {
@@ -1303,7 +1300,7 @@ test('mobile controls are touchable without horizontal overflow', async ({
       document.documentElement.clientWidth,
     smallTargets: [
       ...document.querySelectorAll(
-        'button,[role=combobox],[role=tab],.ui-choice,.ui-switch,.ui-segmented__option,.ui-rate__option,.ui-color-picker__input',
+        'button,[role=combobox],[role=tab],label:has(input[type="checkbox"]),label:has(input[type="radio"]),.ui-segmented__option,.ui-rate__option,.ui-color-picker__input',
       ),
     ]
       .filter((element) => {

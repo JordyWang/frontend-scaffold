@@ -10,6 +10,19 @@ type ChoiceProps = Omit<
   invalid?: boolean
 }
 
+const choiceSizeStyles = {
+  default: 'gap-2',
+  small: 'gap-1 text-sm',
+} as const
+
+const choiceLabelStyles =
+  'relative inline-flex min-h-11 touch-manipulation items-center has-[input:disabled]:cursor-not-allowed has-[input:disabled]:opacity-[0.55]'
+
+const choiceInputStyles = 'peer absolute size-px opacity-0'
+
+const choiceMarkStyles =
+  'grid size-5 shrink-0 place-items-center rounded border-2 border-input bg-card transition-colors peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring peer-aria-[invalid=true]:border-destructive'
+
 export type CheckboxProps = ChoiceProps
 export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
   function Checkbox(
@@ -17,19 +30,24 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     ref,
   ) {
     return (
-      <label className={cn('ui-choice', `ui-choice--${size}`, className)}>
+      <label
+        className={cn(choiceLabelStyles, choiceSizeStyles[size], className)}
+      >
         <input
           ref={ref}
           type="checkbox"
+          className={choiceInputStyles}
           aria-invalid={invalid || undefined}
           required={required}
           {...props}
         />
-        <span className="ui-choice__mark" aria-hidden="true" />
+        <span className={choiceMarkStyles} aria-hidden="true">
+          <span className="size-2.5 -translate-y-px rotate-45 border-b-2 border-r-2 border-primary-foreground opacity-0 transition-opacity peer-checked:opacity-100" />
+        </span>
         <span>
           {label}
           {required && (
-            <span className="ui-field__required" aria-hidden="true">
+            <span className="text-destructive" aria-hidden="true">
               {' '}
               *
             </span>
@@ -46,17 +64,17 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(function Radio(
   ref,
 ) {
   return (
-    <label className={cn('ui-choice', `ui-choice--${size}`, className)}>
+    <label className={cn(choiceLabelStyles, choiceSizeStyles[size], className)}>
       <input
         ref={ref}
         type="radio"
+        className={choiceInputStyles}
         aria-invalid={invalid || undefined}
         {...props}
       />
-      <span
-        className="ui-choice__mark ui-choice__mark--radio"
-        aria-hidden="true"
-      />
+      <span className={cn(choiceMarkStyles, 'rounded-full')} aria-hidden="true">
+        <span className="size-2 rounded-full bg-primary-foreground opacity-0 transition-opacity peer-checked:opacity-100" />
+      </span>
       <span>{label}</span>
     </label>
   )
@@ -97,22 +115,22 @@ export function RadioGroup({
   return (
     <fieldset
       id={id}
-      className={cn('ui-radio-group', className)}
+      className={cn('min-w-0 border-0 p-0', className)}
       disabled={disabled}
       aria-describedby={describedBy}
       aria-invalid={invalid || undefined}
       aria-labelledby={labelledBy}
     >
-      <legend className="ui-radio-group__legend">
+      <legend className="mb-1 font-semibold">
         {label}
         {required && (
-          <span className="ui-field__required" aria-hidden="true">
+          <span className="text-destructive" aria-hidden="true">
             {' '}
             *
           </span>
         )}
       </legend>
-      <div className="ui-radio-group__options">
+      <div className="flex flex-wrap gap-x-6 gap-y-2">
         {options.map((option) => (
           <Radio
             key={option.value}
@@ -139,20 +157,26 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(function Switch(
   ref,
 ) {
   return (
-    <label className={cn('ui-switch', `ui-switch--${size}`, className)}>
+    <label className={cn(choiceLabelStyles, choiceSizeStyles[size], className)}>
       <input
         ref={ref}
         type="checkbox"
         role="switch"
+        className={choiceInputStyles}
         aria-invalid={invalid || undefined}
         required={required}
         {...props}
       />
-      <span className="ui-switch__track" aria-hidden="true" />
+      <span
+        className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-input bg-secondary p-0.5 transition-colors peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring peer-aria-[invalid=true]:border-destructive [&>span]:size-4 [&>span]:rounded-full [&>span]:bg-card-foreground [&>span]:transition-transform peer-checked:[&>span]:translate-x-[1.2rem] peer-checked:[&>span]:bg-primary-foreground"
+        aria-hidden="true"
+      >
+        <span />
+      </span>
       <span>
         {label}
         {required && (
-          <span className="ui-field__required" aria-hidden="true">
+          <span className="text-destructive" aria-hidden="true">
             {' '}
             *
           </span>
