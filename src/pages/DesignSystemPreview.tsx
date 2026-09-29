@@ -864,6 +864,19 @@ export function DesignSystemPreview() {
                     ]}
                   />
                 </Affix>
+                <Menu
+                  mode="horizontal"
+                  label="横向导航"
+                  items={[
+                    {
+                      key: 'catalog',
+                      label: '目录',
+                      children: [{ key: 'all-components', label: '全部组件' }],
+                    },
+                    { key: 'examples', label: '示例' },
+                    { key: 'unavailable', label: '暂不可用', disabled: true },
+                  ]}
+                />
                 <Anchor
                   links={[
                     { href: '#preview-timeline', title: '时间线' },

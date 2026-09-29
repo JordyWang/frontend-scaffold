@@ -1658,7 +1658,7 @@ test('carousel exposes rotation controls and pauses on touch or focus', async ({
   else await enable.click()
   const pause = carousel.getByRole('button', { name: '停止自动播放' })
   await expect(pause).toBeVisible()
-  await expect(carousel.locator('.ui-carousel__status')).toHaveAttribute(
+  await expect(carousel.locator('[data-carousel-status]')).toHaveAttribute(
     'aria-live',
     'off',
   )
@@ -1667,7 +1667,7 @@ test('carousel exposes rotation controls and pauses on touch or focus', async ({
   await expect(
     carousel.getByRole('button', { name: '开始自动播放' }),
   ).toBeVisible()
-  await expect(carousel.locator('.ui-carousel__status')).toHaveAttribute(
+  await expect(carousel.locator('[data-carousel-status]')).toHaveAttribute(
     'aria-live',
     'polite',
   )
@@ -1705,6 +1705,30 @@ test('menu exposes nested expansion and selected state', async ({
   }
 })
 
+test('horizontal menu keeps its submenu visible and touch targets usable', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const menu = page.getByRole('navigation', { name: '横向导航' })
+  const catalog = menu.getByRole('menuitem', { name: '目录' })
+  await expect(menu.getByRole('menu')).toHaveAttribute(
+    'aria-orientation',
+    'horizontal',
+  )
+  if (testInfo.project.name.startsWith('mobile-')) await catalog.tap()
+  else await catalog.click()
+  const child = menu.getByRole('menuitem', { name: '全部组件' })
+  await expect(child).toBeVisible()
+  const box = await child.boundingBox()
+  expect(box).not.toBeNull()
+  expect(box!.height).toBeGreaterThanOrEqual(44)
+  expect(box!.x).toBeGreaterThanOrEqual(0)
+  expect(box!.x + box!.width).toBeLessThanOrEqual(
+    await page.evaluate(() => window.innerWidth),
+  )
+  await expect(menu.getByRole('menuitem', { name: '暂不可用' })).toBeDisabled()
+})
+
 test('tree uses one tab stop and supports keyboard and touch expansion', async ({
   page,
 }, testInfo) => {
@@ -1725,7 +1749,7 @@ test('tree uses one tab stop and supports keyboard and touch expansion', async (
     await expect(input).toBeFocused()
     expect(
       await input
-        .locator('.ui-tree__label')
+        .locator('[data-tree-label]')
         .evaluate((element) => getComputedStyle(element).outlineStyle),
     ).toBe('solid')
     await page.keyboard.press('Enter')

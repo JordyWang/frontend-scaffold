@@ -21,7 +21,6 @@
     "src/capabilities/video/video-poster.tsx",
     "src/pages/DevWorkbenchPage.tsx",
     "src/pages/MockWorkflowDemo.tsx",
-    "src/shared/ui/navigation-extended.tsx",
     "src/shared/ui/theme-scope.tsx"
   ],
   "styleFiles": [
@@ -30,7 +29,6 @@
     "src/shared/styles/base.css",
     "src/shared/styles/files.css",
     "src/shared/styles/index.css",
-    "src/shared/styles/navigation.css",
     "src/shared/styles/tokens.css",
     "src/shared/styles/video.css",
     "src/shared/styles/workflow.css"

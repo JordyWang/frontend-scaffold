@@ -108,7 +108,7 @@ describe('Ant Design-inspired shared components', () => {
     try {
       render(<Carousel items={['第一张', '第二张']} autoplay interval={1000} />)
       const carousel = screen.getByRole('region', { name: '轮播内容' })
-      const status = carousel.querySelector('.ui-carousel__status')
+      const status = carousel.querySelector('[data-carousel-status]')
       expect(status).toHaveAttribute('aria-live', 'off')
       act(() => vi.advanceTimersByTime(1000))
       expect(screen.getByText('第二张')).toBeVisible()

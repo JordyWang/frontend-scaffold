@@ -213,7 +213,7 @@ export function Menu({
       const isExpanded = expanded.includes(item.key)
       const isSelected = selected.includes(item.key)
       return (
-        <li key={item.key} role="none" className="ui-menu__item-wrap">
+        <li key={item.key} role="none" className="relative min-w-0">
           <button
             ref={(element) => {
               itemRefs.current[item.key] = element
@@ -228,9 +228,9 @@ export function Menu({
             disabled={item.disabled}
             tabIndex={item.disabled || item.key !== tabbableKey ? -1 : 0}
             className={cn(
-              'ui-menu__item',
-              isSelected && 'ui-menu__item--selected',
-              level > 0 && 'ui-menu__item--nested',
+              'flex min-h-11 w-full touch-manipulation cursor-pointer items-center gap-[var(--space-sm)] rounded-[var(--ui-menu-radius)] border-0 bg-transparent px-3 py-2.5 text-start text-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50',
+              isSelected && 'bg-accent text-accent-foreground',
+              level > 0 && 'text-[0.9375rem]',
             )}
             onClick={() => {
               if (hasChildren) {
@@ -247,13 +247,24 @@ export function Menu({
             {item.icon && <span aria-hidden="true">{item.icon}</span>}
             <span>{item.label}</span>
             {hasChildren && (
-              <span className="ui-menu__expand" aria-hidden="true">
+              <span
+                className="ms-auto text-muted-foreground"
+                aria-hidden="true"
+              >
                 {isExpanded ? '−' : '+'}
               </span>
             )}
           </button>
           {hasChildren && isExpanded && (
-            <ul role="menu" className="ui-menu__submenu">
+            <ul
+              role="menu"
+              className={cn(
+                'm-0 list-none',
+                mode === 'horizontal' && level === 0
+                  ? 'absolute start-0 top-full z-[70] mt-[var(--space-xs)] min-w-48 rounded-[var(--radius-md)] border border-border bg-card p-[var(--space-xs)] shadow-[0_12px_30px_rgb(0_0_0_/_0.16)]'
+                  : 'ps-[var(--space-md)]',
+              )}
+            >
               {renderItems(item.children ?? [], level + 1)}
             </ul>
           )}
@@ -268,9 +279,16 @@ export function Menu({
         menuRef.current = element
       }}
       aria-label={label}
-      className={cn('ui-menu', `ui-menu--${mode}`, className)}
+      className={cn('w-full', mode === 'vertical' && 'max-w-80', className)}
     >
-      <ul role="menu" aria-orientation={mode} className="ui-menu__list">
+      <ul
+        role="menu"
+        aria-orientation={mode}
+        className={cn(
+          'm-0 list-none p-0',
+          mode === 'horizontal' && 'flex flex-wrap gap-[var(--space-sm)]',
+        )}
+      >
         {renderItems(items)}
       </ul>
     </nav>
@@ -385,7 +403,7 @@ export type AffixProps = {
 export function Affix({ offsetTop = 0, children, className }: AffixProps) {
   return (
     <div
-      className={cn('ui-affix', className)}
+      className={cn('sticky z-20 top-[var(--ui-affix-offset)]', className)}
       style={{ '--ui-affix-offset': `${offsetTop}px` } as CSSProperties}
     >
       {children}
@@ -469,7 +487,10 @@ export function Carousel({
     <section
       aria-label={label}
       aria-roledescription="carousel"
-      className={cn('ui-carousel', className)}
+      className={cn(
+        'overflow-hidden rounded-[var(--radius-lg)] border border-border bg-card',
+        className,
+      )}
       onMouseEnter={pauseRotation}
       onFocusCapture={pauseRotation}
       onTouchStart={(event) => {
@@ -480,7 +501,7 @@ export function Carousel({
           pauseRotation()
       }}
     >
-      <div className="ui-carousel__viewport">
+      <div className="min-h-28">
         {items.map((item, itemIndex) => (
           <div
             key={itemIndex}
@@ -488,19 +509,19 @@ export function Carousel({
             aria-roledescription="slide"
             aria-label={`${itemIndex + 1} / ${items.length}`}
             hidden={itemIndex !== current}
-            className="ui-carousel__slide"
+            className="min-h-28 p-[var(--space-lg)]"
           >
             {item}
           </div>
         ))}
       </div>
       {items.length > 1 && (
-        <div className="ui-carousel__controls">
+        <div className="flex flex-wrap items-center justify-between gap-[var(--space-sm)] border-t border-border px-[var(--space-md)] py-[var(--space-sm)]">
           {autoplay && (
             <button
               type="button"
               data-carousel-rotation=""
-              className="ui-carousel__control"
+              className="min-h-11 touch-manipulation cursor-pointer rounded-[var(--radius-sm)] border border-border bg-card px-3 py-2 text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               onPointerDown={() => {
                 rotationWasRunningRef.current = rotating
                 rotationPointerRef.current = true
@@ -528,20 +549,21 @@ export function Carousel({
           )}
           <button
             type="button"
-            className="ui-carousel__control"
+            className="min-h-11 touch-manipulation cursor-pointer rounded-[var(--radius-sm)] border border-border bg-card px-3 py-2 text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             onClick={() => moveTo(current - 1)}
           >
             上一项
           </button>
           <span
-            className="ui-carousel__status"
+            data-carousel-status=""
+            className="text-sm text-muted-foreground"
             aria-live={rotating ? 'off' : 'polite'}
           >
             {current + 1} / {items.length}
           </span>
           <button
             type="button"
-            className="ui-carousel__control"
+            className="min-h-11 touch-manipulation cursor-pointer rounded-[var(--radius-sm)] border border-border bg-card px-3 py-2 text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             onClick={() => moveTo(current + 1)}
           >
             下一项
@@ -751,7 +773,7 @@ export function Tree({
           ref={(element) => {
             nodeRefs.current[node.key] = element
           }}
-          className="ui-tree__item"
+          className="group/treeitem"
           tabIndex={node.disabled ? -1 : node.key === tabbableKey ? 0 : -1}
           aria-labelledby={`${panelId}-label`}
           aria-selected={selected === node.key}
@@ -777,32 +799,39 @@ export function Tree({
           onKeyDown={(event) => handleNodeKeyDown(event, node)}
         >
           <div
-            className="ui-tree__row"
+            className="group/treerow flex min-h-11 items-center gap-[var(--space-xs)] ps-[calc(var(--ui-tree-level)*var(--space-lg))]"
             style={{ '--ui-tree-level': level } as CSSProperties}
           >
             {hasChildren ? (
               <span
-                className="ui-tree__toggle"
+                className={cn(
+                  'grid size-11 shrink-0 touch-manipulation cursor-pointer place-items-center text-muted-foreground',
+                  node.disabled && 'cursor-not-allowed opacity-50',
+                )}
                 data-tree-toggle=""
                 aria-hidden="true"
               >
                 {isExpanded ? '−' : '+'}
               </span>
             ) : (
-              <span className="ui-tree__toggle" aria-hidden="true" />
+              <span className="size-11 shrink-0" aria-hidden="true" />
             )}
             <span
               id={`${panelId}-label`}
+              data-tree-label=""
               className={cn(
-                'ui-tree__label',
-                selected === node.key && 'ui-tree__label--selected',
+                'min-h-11 min-w-0 flex-1 rounded-[var(--radius-sm)] p-2 text-start text-foreground group-focus-visible/treeitem:bg-accent group-focus-visible/treeitem:text-accent-foreground group-focus-visible/treeitem:outline-[3px] group-focus-visible/treeitem:outline-offset-[-3px] group-focus-visible/treeitem:outline-ring',
+                node.disabled
+                  ? 'cursor-not-allowed opacity-50'
+                  : 'cursor-pointer group-hover/treerow:bg-accent group-hover/treerow:text-accent-foreground',
+                selected === node.key && 'bg-accent text-accent-foreground',
               )}
             >
               {node.title}
             </span>
           </div>
           {hasChildren && isExpanded && (
-            <ul id={panelId} role="group" className="ui-tree__group">
+            <ul id={panelId} role="group" className="m-0 list-none p-0">
               {renderNodes(node.children ?? [], level + 1)}
             </ul>
           )}
@@ -816,7 +845,10 @@ export function Tree({
       ref={treeRef}
       role="tree"
       aria-label={label}
-      className={cn('ui-tree', className)}
+      className={cn(
+        'w-full overflow-auto rounded-[var(--radius-md)] border border-border bg-card p-[var(--space-xs)]',
+        className,
+      )}
       onFocusCapture={() => {
         focusWithinRef.current = true
       }}
@@ -829,7 +861,7 @@ export function Tree({
           focusWithinRef.current = false
       }}
     >
-      <ul role="none" className="ui-tree__list">
+      <ul role="none" className="m-0 list-none p-0">
         {renderNodes(treeData)}
       </ul>
     </div>
