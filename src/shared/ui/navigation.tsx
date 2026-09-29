@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { cn } from '@/shared/lib/utils'
 
 export type BreadcrumbItem = {
@@ -88,6 +88,7 @@ export type StepItem = {
 export type StepsProps = {
   items: StepItem[]
   current?: number
+  defaultCurrent?: number
   status?: StepStatus
   direction?: 'horizontal' | 'vertical'
   label?: string
@@ -117,17 +118,19 @@ const stepStatusLabels: Record<StepStatus, string> = {
 /** A progress sequence that exposes the current step to assistive technology. */
 export function Steps({
   items,
-  current = 0,
+  current,
+  defaultCurrent = 0,
   status = 'process',
   direction = 'horizontal',
   label = '步骤进度',
   onChange,
   className,
 }: StepsProps) {
-  const safeCurrent = Math.max(
-    0,
-    Math.min(current, Math.max(items.length - 1, 0)),
-  )
+  const [internalCurrent, setInternalCurrent] = useState(defaultCurrent)
+  const requestedCurrent = current ?? internalCurrent
+  const safeCurrent = Number.isFinite(requestedCurrent)
+    ? Math.max(0, Math.min(Math.trunc(requestedCurrent), items.length - 1))
+    : 0
   const id = useId()
   return (
     <nav
@@ -194,7 +197,10 @@ export function Steps({
                   aria-describedby={statusId}
                   className="relative z-[1] flex min-h-11 w-full touch-manipulation items-start gap-2 border-0 bg-transparent p-0 text-left text-inherit outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={item.disabled}
-                  onClick={() => onChange?.(index)}
+                  onClick={() => {
+                    if (current === undefined) setInternalCurrent(index)
+                    onChange?.(index)
+                  }}
                 >
                   {content}
                 </button>

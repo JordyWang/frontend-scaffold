@@ -300,6 +300,33 @@ describe('Ant Design-inspired shared components', () => {
     expect(onChange).toHaveBeenCalledWith(2)
   })
 
+  it('updates uncontrolled steps and leaves controlled steps to their owner', () => {
+    const onChange = vi.fn()
+    const items = [{ title: '准备' }, { title: '完成' }]
+    const { rerender } = render(
+      <Steps items={items} defaultCurrent={0} onChange={onChange} />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '完成' }))
+    expect(onChange).toHaveBeenCalledWith(1)
+    expect(screen.getByText('完成').closest('li')).toHaveAttribute(
+      'aria-current',
+      'step',
+    )
+
+    rerender(<Steps items={items} current={0} onChange={onChange} />)
+    fireEvent.click(screen.getByRole('button', { name: '完成' }))
+    expect(screen.getByText('准备').closest('li')).toHaveAttribute(
+      'aria-current',
+      'step',
+    )
+
+    rerender(<Steps items={items} current={Number.NaN} />)
+    expect(screen.getByText('准备').closest('li')).toHaveAttribute(
+      'aria-current',
+      'step',
+    )
+  })
+
   it('exposes step status descriptions and disabled semantics', () => {
     const { rerender } = render(
       <Steps

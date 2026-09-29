@@ -114,6 +114,7 @@ export function DesignSystemPreview() {
   const [mode, setMode] = useState<'light' | 'dark'>('light')
   const [density, setDensity] = useState<'default' | 'compact'>('default')
   const [step, setStep] = useState(1)
+  const [uncontrolledStepEvent, setUncontrolledStepEvent] = useState(0)
   const [volume, setVolume] = useState(42)
   const [colorValue, setColorValue] = useState('#1677ff')
   const [formStatus, setFormStatus] = useState('尚未提交')
@@ -830,6 +831,23 @@ export function DesignSystemPreview() {
                     { title: '完成' },
                   ]}
                 />
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold">非受控垂直步骤</p>
+                  <Steps
+                    label="非受控垂直步骤"
+                    direction="vertical"
+                    defaultCurrent={0}
+                    onChange={setUncontrolledStepEvent}
+                    items={[
+                      { title: '收集信息' },
+                      { title: '确认内容' },
+                      { title: '暂不可用', disabled: true },
+                    ]}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    最近切换：第 {uncontrolledStepEvent + 1} 步
+                  </p>
+                </div>
                 <Progress
                   percent={step === 2 ? 100 : step * 50}
                   status={step === 2 ? 'success' : 'active'}

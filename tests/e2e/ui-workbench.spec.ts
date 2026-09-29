@@ -1350,6 +1350,26 @@ test('anchor follows page sections with keyboard and touch navigation', async ({
   ).toBe(true)
 })
 
+test('uncontrolled vertical steps support keyboard and touch changes', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const steps = preview.getByRole('navigation', { name: '非受控垂直步骤' })
+  const first = steps.getByRole('button', { name: '收集信息' })
+  const second = steps.getByRole('button', { name: '确认内容' })
+  const disabled = steps.getByRole('button', { name: '暂不可用' })
+  await expect(first.locator('..')).toHaveAttribute('aria-current', 'step')
+  await expect(disabled).toBeDisabled()
+  if (testInfo.project.name.startsWith('mobile-')) await second.tap()
+  else {
+    await second.focus()
+    await page.keyboard.press('Enter')
+  }
+  await expect(second.locator('..')).toHaveAttribute('aria-current', 'step')
+  await expect(preview.getByText('最近切换：第 2 步')).toBeVisible()
+})
+
 test('carousel exposes rotation controls and pauses on touch or focus', async ({
   page,
 }, testInfo) => {
