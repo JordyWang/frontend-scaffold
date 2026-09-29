@@ -25,6 +25,13 @@ test('system dark mode keeps local light surfaces and state colors distinct', as
     .filter({ hasText: '信息提示' })
   await expect(darkToast).toHaveCSS('background-color', 'rgb(30, 41, 59)')
   await expect(darkToast).toHaveCSS('color', 'rgb(248, 250, 252)')
+  await expect(darkToast).toHaveCSS('border-color', 'rgb(71, 85, 105)')
+  const closeToast = darkToast.getByRole('button', { name: '关闭提示' })
+  await expect(closeToast).toHaveCSS('background-color', 'rgb(30, 41, 59)')
+  const closeBox = await closeToast.boundingBox()
+  expect(closeBox).not.toBeNull()
+  expect(closeBox!.width).toBeGreaterThanOrEqual(44)
+  expect(closeBox!.height).toBeGreaterThanOrEqual(44)
 })
 
 test('default status labels meet AA contrast in light and dark themes', async ({
@@ -1421,6 +1428,13 @@ test('mobile controls are touchable without horizontal overflow', async ({
         ),
     )
     .toContain('safe-area-inset-bottom')
+  const toastClose = page
+    .locator('[data-sonner-toast]')
+    .getByRole('button', { name: '关闭提示' })
+  await expect(toastClose).toHaveCSS('width', '44px')
+  await expect(toastClose).toHaveCSS('height', '44px')
+  await toastClose.tap()
+  await expect(page.locator('[data-sonner-toast]')).toHaveCount(0)
   await page.getByRole('button', { name: '打开面板' }).tap()
   await expect(page.getByRole('dialog', { name: '详情面板' })).toBeVisible()
   await page.getByRole('button', { name: '关闭面板' }).tap()

@@ -12,7 +12,13 @@ export function ToastProvider() {
       }}
       closeButton
       visibleToasts={3}
-      toastOptions={{ className: 'ui-toast' }}
+      toastOptions={{
+        closeButtonAriaLabel: '关闭提示',
+        classNames: {
+          toast: 'border! border-border! bg-card! text-card-foreground!',
+          closeButton: 'size-11! border-border! bg-card! text-card-foreground!',
+        },
+      }}
     />
   )
 }

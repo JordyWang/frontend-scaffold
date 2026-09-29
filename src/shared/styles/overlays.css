@@ -1,9 +1,0 @@
-[data-sonner-toaster] [data-sonner-toast].ui-toast {
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--card-foreground);
-}
-[data-sonner-toaster] [data-sonner-toast].ui-toast [data-close-button] {
-  width: 44px;
-  height: 44px;
-}

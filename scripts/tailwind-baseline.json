@@ -28,7 +28,6 @@
     "src/shared/ui/spinner.tsx",
     "src/shared/ui/tabs.tsx",
     "src/shared/ui/theme-scope.tsx",
-    "src/shared/ui/toast-provider.tsx",
     "src/shared/ui/transfer.tsx",
     "src/shared/ui/tree-select.tsx"
   ],
@@ -40,7 +39,6 @@
     "src/shared/styles/files.css",
     "src/shared/styles/index.css",
     "src/shared/styles/navigation.css",
-    "src/shared/styles/overlays.css",
     "src/shared/styles/tokens.css",
     "src/shared/styles/video.css",
     "src/shared/styles/workflow.css"
