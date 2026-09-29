@@ -8,7 +8,8 @@
 - AI、视频、音频和文件能力分别放在 `src/capabilities`，只复用 `shared`，彼此不耦合。
 - 设计变量定义在 `src/shared/styles/tokens.css`，通过 Tailwind 的语义工具类（如 `bg-card`、`text-foreground`、`border-border`）使用；组件内不重复写品牌色常量。
 - 新组件的外观直接写在 TSX 的 Tailwind 工具类中，复用样式放到 TS/TSX 的类名配方；不要新增 `ui-*` 样式钩子或组件 CSS 文件。仅当工具类无法表达复杂选择器或关键帧时，先明确例外再调整样式基线。
-- `src/shared/styles/index.css` 只负责按顺序引入 Tailwind、主题变量、基础样式和现有复杂组件样式。已有 `ui-*` 类是兼容旧组件和测试的钩子，新增组件不要沿用。
+- `src/shared/styles/index.css` 只引入 Tailwind、主题变量和浏览器基础规则。组件与页面外观使用 Tailwind 工具类；主题作用域以 `data-ui-scope` 标记，避免依赖组件 CSS 类。
+- 业务代码通过 `@/shared/ui` 使用项目 API；应用启动入口可直接导入少量 Provider，避免总出口连带打入开发预览组件。
 - 只封装当前需要的能力；复杂组件先明确交互与数据契约，再确定底层依赖。
 
 ## API 与状态
