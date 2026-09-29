@@ -42,6 +42,7 @@ export function PromptComposer({
     <form className="ui-ai-composer" onSubmit={submit}>
       <Textarea
         aria-label="发送消息"
+        className="min-h-20 resize-y border-0 p-2 focus-visible:outline-offset-[-2px]"
         value={value}
         onChange={(event) => setValue(event.target.value)}
         onKeyDown={onKeyDown}

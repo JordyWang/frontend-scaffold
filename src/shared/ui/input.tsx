@@ -25,12 +25,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       ref={ref}
       type={type}
       aria-invalid={invalid || undefined}
-      className={cn(
-        'ui-input',
-        inputStyles,
-        inputSizeStyles[resolvedSize],
-        className,
-      )}
+      className={cn(inputStyles, inputSizeStyles[resolvedSize], className)}
       {...props}
     />
   )

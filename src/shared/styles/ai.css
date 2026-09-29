@@ -294,15 +294,6 @@
   background: var(--card);
   padding: var(--space-sm);
 }
-.ui-ai-composer .ui-textarea {
-  min-height: 5rem;
-  border: 0;
-  padding: 0.5rem;
-  resize: vertical;
-}
-.ui-ai-composer .ui-textarea:focus-visible {
-  outline-offset: -2px;
-}
 .ui-ai-composer__footer {
   padding: 0 0.5rem 0.25rem;
 }
