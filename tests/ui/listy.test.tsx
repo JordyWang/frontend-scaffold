@@ -109,4 +109,55 @@ describe('Listy', () => {
     )
     expect(screen.getByText('暂无内容')).toBeInTheDocument()
   })
+
+  it('preserves its labelled height and resets the visible window after loading', () => {
+    const props = {
+      items,
+      itemHeight: 40,
+      height: 120,
+      overscan: 0,
+      label: '虚拟任务',
+      className: 'custom-virtual-list',
+      getKey: (item: (typeof items)[number]) => item.id,
+      renderItem: (item: (typeof items)[number]) => <span>{item.label}</span>,
+    }
+    const { rerender } = render(<Listy {...props} />)
+    const list = screen.getByRole('list', { name: '虚拟任务' })
+    Object.defineProperty(list, 'clientHeight', {
+      configurable: true,
+      value: 120,
+    })
+    Object.defineProperty(list, 'scrollTop', {
+      configurable: true,
+      value: 800,
+    })
+    fireEvent.scroll(list)
+    expect(screen.getByText('项目 20')).toBeInTheDocument()
+
+    rerender(<Listy {...props} loading />)
+    expect(screen.getByRole('list', { name: '虚拟任务' })).toHaveStyle({
+      height: '120px',
+    })
+    expect(screen.getByRole('list', { name: '虚拟任务' })).toHaveClass(
+      'custom-virtual-list',
+    )
+    expect(screen.getByRole('list', { name: '虚拟任务' })).toHaveAttribute(
+      'aria-busy',
+      'true',
+    )
+    expect(screen.getByRole('status')).toHaveTextContent('正在加载')
+
+    rerender(<Listy {...props} error="请求失败" />)
+    expect(screen.getByRole('list', { name: '虚拟任务' })).not.toHaveAttribute(
+      'aria-busy',
+    )
+    expect(screen.getByRole('alert')).toHaveTextContent('请求失败')
+
+    rerender(<Listy {...props} items={[]} />)
+    expect(screen.getByRole('status')).toHaveTextContent('暂无内容')
+
+    rerender(<Listy {...props} />)
+    expect(screen.getByText('项目 0')).toBeInTheDocument()
+    expect(screen.queryByText('项目 20')).not.toBeInTheDocument()
+  })
 })

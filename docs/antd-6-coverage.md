@@ -19,3 +19,5 @@
 ConfigProvider 的 RTL 方向已覆盖 Select、Dialog、Sheet、Dropdown、Popover、Tooltip 的弹层容器，Select 的触发器和选项使用 Tailwind 逻辑方向样式；`/__ui` 提供键盘与 H5 触控预览。
 
 Dropdown、Popover、Tooltip 的浮层已在裁切容器、RTL、桌面与 H5 中验证。Dropdown 的上下方向键、Enter、空格和正反向 Tab，以及 Popover 中交互内容的 Tab 顺序已有浏览器回归。
+
+List 与 Listy 的加载、空、错误状态保留可访问名称和容器尺寸；Listy 从加载状态恢复时会重置可见窗口。`/__ui` 可切换这些状态，桌面和 H5 浏览器均有回归。

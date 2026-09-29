@@ -134,6 +134,9 @@ export function DesignSystemPreview() {
   const [menuExpanded, setMenuExpanded] = useState<string[]>([])
   const [transferDisabled, setTransferDisabled] = useState(false)
   const [masonryCount, setMasonryCount] = useState(7)
+  const [virtualListState, setVirtualListState] = useState<
+    'filled' | 'loading' | 'empty' | 'error'
+  >('filled')
   const [regionLoading, setRegionLoading] = useState(true)
   const [fullscreenLoading, setFullscreenLoading] = useState(false)
   const [watermarkImage, setWatermarkImage] = useState(false)
@@ -1169,12 +1172,44 @@ export function DesignSystemPreview() {
                     100 条数据，仅渲染可见行
                   </Typography>
                 </Stack>
+                <div
+                  role="group"
+                  aria-label="虚拟列表状态"
+                  className="flex flex-wrap gap-2"
+                >
+                  {(
+                    [
+                      ['filled', '有数据'],
+                      ['loading', '加载中'],
+                      ['empty', '空数据'],
+                      ['error', '错误'],
+                    ] as const
+                  ).map(([state, label]) => (
+                    <Button
+                      key={state}
+                      variant={
+                        virtualListState === state ? 'primary' : 'outline'
+                      }
+                      aria-pressed={virtualListState === state}
+                      onClick={() => setVirtualListState(state)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
                 <Listy
-                  items={virtualListItems}
+                  items={virtualListState === 'empty' ? [] : virtualListItems}
                   itemHeight={52}
                   height={260}
                   overscan={4}
                   label="虚拟任务列表"
+                  loading={virtualListState === 'loading'}
+                  error={
+                    virtualListState === 'error'
+                      ? '虚拟列表加载失败'
+                      : undefined
+                  }
+                  onRetry={() => setVirtualListState('filled')}
                   getKey={(item) => item.id}
                   renderItem={(item, index) => (
                     <div className="flex w-full items-center justify-between gap-3 px-4">

@@ -29,8 +29,10 @@ export type ListyProps<T> = {
   onScroll?: UIEventHandler<HTMLDivElement>
 }
 
-/** Fixed-height virtual list for dense data sets; the row renderer stays project-owned. */
-export function Listy<T>({
+const listyStyles =
+  'relative min-w-0 touch-pan-y overflow-y-auto overscroll-contain rounded-[var(--ui-card-radius)] border border-border bg-card text-card-foreground'
+
+function ListyViewport<T>({
   items,
   getKey,
   renderItem,
@@ -39,10 +41,6 @@ export function Listy<T>({
   overscan = 3,
   endReachedThreshold = 160,
   onEndReached,
-  loading,
-  error,
-  onRetry,
-  emptyTitle = '暂无内容',
   className,
   label,
   onScroll,
@@ -82,10 +80,6 @@ export function Listy<T>({
     return () => observer.disconnect()
   }, [height])
 
-  if (loading) return <LoadingState />
-  if (error) return <ErrorState description={error} onRetry={onRetry} />
-  if (items.length === 0) return <Empty title={emptyTitle} />
-
   const handleScroll: UIEventHandler<HTMLDivElement> = (event) => {
     const nextScrollTop = event.currentTarget.scrollTop
     setMeasuredHeight(event.currentTarget.clientHeight)
@@ -108,11 +102,7 @@ export function Listy<T>({
       role="list"
       ref={listRef}
       aria-label={label}
-      aria-busy={loading || undefined}
-      className={cn(
-        'relative min-w-0 touch-pan-y overflow-y-auto overscroll-contain rounded-[var(--ui-card-radius)] border border-border bg-card text-card-foreground',
-        className,
-      )}
+      className={cn(listyStyles, className)}
       style={{ height }}
       onScroll={handleScroll}
     >
@@ -133,4 +123,43 @@ export function Listy<T>({
       </div>
     </div>
   )
+}
+
+/** Fixed-height virtual list for dense data sets; the row renderer stays project-owned. */
+export function Listy<T>(props: ListyProps<T>) {
+  const {
+    items,
+    height,
+    loading,
+    error,
+    onRetry,
+    emptyTitle = '暂无内容',
+    className,
+    label,
+  } = props
+
+  if (loading || error || items.length === 0)
+    return (
+      <div
+        role="list"
+        aria-label={label}
+        aria-busy={loading || undefined}
+        className={cn(listyStyles, className)}
+        style={{ height }}
+      >
+        <div className="p-4">
+          {loading ? (
+            <LoadingState />
+          ) : error ? (
+            <ErrorState description={error} onRetry={onRetry} />
+          ) : (
+            <div role="status">
+              <Empty title={emptyTitle} />
+            </div>
+          )}
+        </div>
+      </div>
+    )
+
+  return <ListyViewport {...props} />
 }

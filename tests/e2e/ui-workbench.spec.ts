@@ -1048,12 +1048,20 @@ test('qrcode renders in the design system and supports expired refresh on touch'
   await expect(preview.getByText('二维码已失效')).toHaveCount(0)
 })
 
-test('listy keeps a bounded DOM window while scrolling on narrow layouts', async ({
+test('listy keeps a bounded window and stable states on desktop and H5', async ({
   page,
-}) => {
+}, testInfo) => {
   await page.goto('/__ui')
   const list = page.getByRole('list', { name: '虚拟任务列表' })
+  const controls = page.getByRole('group', { name: '虚拟列表状态' })
+  const activate = async (name: string) => {
+    const button = controls.getByRole('button', { name })
+    if (testInfo.project.name.startsWith('mobile-')) await button.tap()
+    else await button.click()
+  }
   await expect(list).toBeVisible()
+  const initialBox = await list.boundingBox()
+  expect(initialBox).not.toBeNull()
   const initialCount = await list.getByRole('listitem').count()
   expect(initialCount).toBeLessThan(20)
   await list.evaluate((element) => {
@@ -1062,6 +1070,23 @@ test('listy keeps a bounded DOM window while scrolling on narrow layouts', async
   })
   await expect(list.getByText('虚拟列表项目 51')).toBeVisible()
   expect(await list.getByRole('listitem').count()).toBeLessThan(20)
+
+  await activate('加载中')
+  await expect(list).toHaveAttribute('aria-busy', 'true')
+  await expect(list.getByRole('status')).toContainText('正在加载')
+  expect((await list.boundingBox())?.height).toBeCloseTo(initialBox!.height, 0)
+  await activate('有数据')
+  await expect(list.getByText('虚拟列表项目 1')).toBeVisible()
+  await expect(list.getByText('虚拟列表项目 51')).toHaveCount(0)
+
+  await activate('空数据')
+  await expect(list.getByRole('status')).toContainText('暂无内容')
+  await activate('错误')
+  await expect(list.getByRole('alert')).toContainText('虚拟列表加载失败')
+  const retry = list.getByRole('button', { name: '重试' })
+  if (testInfo.project.name.startsWith('mobile-')) await retry.tap()
+  else await retry.click()
+  await expect(list.getByText('虚拟列表项目 1')).toBeVisible()
 })
 
 test('border beam keeps content accessible and stops motion when requested', async ({
@@ -1189,7 +1214,10 @@ test('keyboard controls retain focus and expose data states', async ({
     'true',
   )
 
-  await page.getByRole('button', { name: '错误', exact: true }).click()
+  await page
+    .getByRole('region', { name: '导航与数据' })
+    .getByRole('button', { name: '错误', exact: true })
+    .click()
   await expect(
     page.getByRole('region', { name: '导航与数据' }).getByRole('alert'),
   ).toHaveCount(2)
