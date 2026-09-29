@@ -123,15 +123,13 @@ export function ThemeScope({
     <PortalContainerContext.Provider value={container}>
       <div
         ref={setContainer}
+        data-ui-scope=""
         data-ui-theme={mode === 'auto' ? undefined : mode}
         data-ui-density={density}
         data-ui-status-success={tokens?.success ? '' : undefined}
         data-ui-status-warning={tokens?.warning ? '' : undefined}
         data-ui-status-error={tokens?.error ? '' : undefined}
-        className={cn(
-          'ui-theme-scope bg-background text-foreground',
-          className,
-        )}
+        className={cn('bg-background text-foreground', className)}
         style={{ ...tokenStyle, ...style }}
         {...props}
       />

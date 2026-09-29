@@ -1,5 +1,5 @@
 {
-  "legacyComponentFiles": ["src/shared/ui/theme-scope.tsx"],
+  "legacyComponentFiles": [],
   "styleFiles": [
     "src/shared/styles/base.css",
     "src/shared/styles/index.css",

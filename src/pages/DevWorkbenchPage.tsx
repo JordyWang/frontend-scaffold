@@ -1,6 +1,11 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
+import {
+  pageShellStyles,
+  skipLinkStyles,
+  textLinkStyles,
+} from '@/shared/ui/tailwind-styles'
 import { apiGet } from '@/shared/api/request'
 import {
   FileDropzone,
@@ -181,12 +186,18 @@ export function DevWorkbenchPage() {
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
-      <a className="skip-link" href="#main">
+      <a className={skipLinkStyles} href="#main">
         跳到主要内容
       </a>
-      <main id="main" className="page-shell space-y-12 py-10 sm:py-16">
+      <main
+        id="main"
+        className={`${pageShellStyles} space-y-12 py-10 sm:py-16`}
+      >
         <header className="space-y-3">
-          <Link className="text-link inline-flex min-h-11 items-center" to="/">
+          <Link
+            className={`${textLinkStyles} inline-flex min-h-11 items-center`}
+            to="/"
+          >
             返回首页
           </Link>
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">

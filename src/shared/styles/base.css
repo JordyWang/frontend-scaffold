@@ -26,39 +26,6 @@ select {
   outline-offset: 2px;
 }
 
-.page-shell {
-  width: min(100%, 80rem);
-  margin-inline: auto;
-  padding-left: max(1rem, env(safe-area-inset-left));
-  padding-right: max(1rem, env(safe-area-inset-right));
-  padding-bottom: env(safe-area-inset-bottom);
-}
-.skip-link {
-  position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
-  z-index: 50;
-  transform: translateY(-200%);
-  border-radius: 0.5rem;
-  background: var(--card);
-  color: var(--card-foreground);
-  padding: 0.75rem 1rem;
-}
-
-.skip-link:focus {
-  transform: translateY(0);
-}
-
-.text-link {
-  color: var(--primary);
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-}
-
-.text-link:hover {
-  text-decoration-thickness: 0.13em;
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

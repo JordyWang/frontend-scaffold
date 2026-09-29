@@ -1,12 +1,20 @@
 import { Link } from 'react-router'
+import {
+  pageShellStyles,
+  skipLinkStyles,
+  textLinkStyles,
+} from '@/shared/ui/tailwind-styles'
 
 export function HomePage() {
   return (
     <div className="min-h-dvh bg-background text-foreground">
-      <a className="skip-link" href="#main">
+      <a className={skipLinkStyles} href="#main">
         跳到主要内容
       </a>
-      <main id="main" className="page-shell flex min-h-dvh items-center">
+      <main
+        id="main"
+        className={`${pageShellStyles} flex min-h-dvh items-center`}
+      >
         <div className="max-w-2xl space-y-6">
           <p className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
             React · PC / H5
@@ -20,7 +28,7 @@ export function HomePage() {
           </p>
           {import.meta.env.DEV ? (
             <Link
-              className="text-link inline-flex min-h-11 items-center font-medium"
+              className={`${textLinkStyles} inline-flex min-h-11 items-center font-medium`}
               to="/__ui"
             >
               打开开发预览

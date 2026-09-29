@@ -131,7 +131,7 @@ describe('Transfer', () => {
         <Transfer items={items} disabled />
       </ThemeScope>,
     )
-    const scope = document.querySelector('.ui-theme-scope')
+    const scope = document.querySelector('[data-ui-scope]')
     expect(scope).toHaveStyle({ '--ui-transfer-radius-override': '1rem' })
     expect(scope).toHaveStyle({ '--ui-transfer-list-height-override': '12rem' })
     expect(screen.getByRole('button', { name: '移至已选' })).toBeDisabled()

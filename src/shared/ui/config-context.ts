@@ -44,7 +44,7 @@ export type ConfigContextValue = {
 }
 
 const defaultPopupContainer = (trigger?: HTMLElement) =>
-  trigger?.closest<HTMLElement>('.ui-theme-scope') ?? document.body
+  trigger?.closest<HTMLElement>('[data-ui-scope]') ?? document.body
 
 export const ConfigContext = createContext<ConfigContextValue>({
   prefixCls: 'ui',

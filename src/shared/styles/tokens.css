@@ -104,7 +104,7 @@
 }
 
 :root,
-.ui-theme-scope {
+[data-ui-scope] {
   /* Derived map colors respond to a local primary seed. */
   --ui-map-primary-hover: color-mix(in srgb, var(--ui-seed-primary) 88%, white);
   --ui-map-primary-active: color-mix(
@@ -167,8 +167,8 @@
 }
 
 /* Recalculate custom status colors for each nested scope's surface and text. */
-.ui-theme-scope[data-ui-status-success],
-.ui-theme-scope[data-ui-status-success] .ui-theme-scope {
+[data-ui-scope][data-ui-status-success],
+[data-ui-scope][data-ui-status-success] [data-ui-scope] {
   --ui-map-success-bg: color-mix(
     in srgb,
     var(--ui-seed-success) 15%,
@@ -181,8 +181,8 @@
   );
 }
 
-.ui-theme-scope[data-ui-status-warning],
-.ui-theme-scope[data-ui-status-warning] .ui-theme-scope {
+[data-ui-scope][data-ui-status-warning],
+[data-ui-scope][data-ui-status-warning] [data-ui-scope] {
   --ui-map-warning-bg: color-mix(
     in srgb,
     var(--ui-seed-warning) 15%,
@@ -195,8 +195,8 @@
   );
 }
 
-.ui-theme-scope[data-ui-status-error],
-.ui-theme-scope[data-ui-status-error] .ui-theme-scope {
+[data-ui-scope][data-ui-status-error],
+[data-ui-scope][data-ui-status-error] [data-ui-scope] {
   --ui-map-error-bg: color-mix(
     in srgb,
     var(--ui-seed-error) 15%,

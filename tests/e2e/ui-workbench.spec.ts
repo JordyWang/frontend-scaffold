@@ -1,5 +1,34 @@
 import { expect, test } from '@playwright/test'
 
+test('page shell keeps safe padding and the skip link is keyboard reachable', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium')
+  await page.goto('/__ui')
+  const skip = page.getByRole('link', { name: '跳到主要内容' })
+  await expect(skip).toBeAttached()
+  await page.keyboard.press('Tab')
+  await expect(skip).toBeFocused()
+  await expect(skip).toBeInViewport()
+  for (const width of [360, 1280]) {
+    await page.setViewportSize({ width, height: 844 })
+    const padding = await page.locator('main').evaluate((element) => {
+      const style = getComputedStyle(element)
+      return {
+        left: Number.parseFloat(style.paddingLeft),
+        right: Number.parseFloat(style.paddingRight),
+      }
+    })
+    expect(padding.left).toBeGreaterThanOrEqual(16)
+    expect(padding.right).toBeGreaterThanOrEqual(16)
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true)
+  }
+})
+
 test('system dark mode keeps local light surfaces and state colors distinct', async ({
   page,
 }, testInfo) => {
@@ -39,7 +68,7 @@ test('default status labels meet AA contrast in light and dark themes', async ({
   await page.goto('/__ui')
   const scope = page
     .getByRole('region', { name: '设计系统补充组件' })
-    .locator('.ui-theme-scope')
+    .locator('[data-ui-scope]')
     .first()
   const contrast = (tone: 'success' | 'warning' | 'error') =>
     scope.locator(`[data-ui-tone="${tone}"]`).evaluate((element) => {
@@ -82,7 +111,7 @@ test('custom status seeds keep soft backgrounds and readable labels in both them
 }) => {
   await page.goto('/__ui')
   const preview = page.getByRole('region', { name: '设计系统补充组件' })
-  const scope = preview.locator('.ui-theme-scope[data-ui-theme]').nth(1)
+  const scope = preview.locator('[data-ui-scope][data-ui-theme]').nth(1)
   const colors = async (
     tone: 'success' | 'warning' | 'error',
     tag = scope.locator(`[data-ui-tone="${tone}"]`).first(),
@@ -155,7 +184,7 @@ test('custom status seeds keep soft backgrounds and readable labels in both them
 
   await scope.evaluate((element) => {
     const nested = document.createElement('div')
-    nested.className = 'ui-theme-scope'
+    nested.dataset.uiScope = ''
     nested.dataset.uiTheme = 'light'
     nested.innerHTML =
       '<span data-ui-tone="success" class="inline-flex items-center rounded-[0.35rem] border border-[var(--ui-color-success)] bg-[var(--ui-map-success-bg)] px-2 py-0.5 text-sm font-semibold text-[var(--ui-color-success)]">嵌套状态</span>'
