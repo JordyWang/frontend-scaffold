@@ -48,6 +48,7 @@
 | Image / Skeleton                | 原生 img 属性、必填 `alt`、`fallback`；`Skeleton(shape, width, height, label)`                                                                   | 图片懒加载，加载失败展示替代内容；骨架屏有状态标签                                                            |
 | Alert / Spinner                 | `Alert(title, description, tone, action)`；`Spinner(label, size)`                                                                                | 错误与警告用 alert，其他状态用 status；加载状态有可访问名称                                                   |
 | Spin                            | `spinning`、`delay`、`tip`、`label`、`size`、`fullscreen`                                                                                        | 可包裹局部内容或全屏展示；加载时内容不可操作，延迟用于避免短任务闪烁                                          |
+| Watermark                       | `content`、`image`、`markSize`、`gap`、`offset`、`rotate`、`opacity`、`fontSize`、`onRemove`                                                     | 在内容上重复绘制非交互水印；文字颜色跟随语义变量，图片加载失败时回退文字                                      |
 | Progress / Result               | `Progress(percent, status, type, showInfo)`；`Result(status, title, subTitle, extra)`                                                            | 进度值限制在 0–100 并暴露 progressbar；结果状态提供明确文本和可选操作                                         |
 | Toast / Message / Notification  | `toast(options)`；`message.open/success/warning/error(content)`；`notification.open/success/warning/error({ message, description?, duration? })` | 共用 Provider 和安全区配置；页面不直接依赖 Sonner                                                             |
 | Collapse                        | `Collapse(items, activeKey, defaultActiveKey, accordion, onChange)`                                                                              | 使用按钮控制 region，支持受控/非受控和单开模式                                                                |
@@ -110,6 +111,8 @@ Checkbox、Switch 和 RadioGroup 自带可访问标签。需要显示校验错�
 `Layout` 在直接包含 `Layout.Sider` 时使用横向排列，其余情况纵向排列。`Layout.Content` 默认渲染 `main`；在已有 `main` 的预览或嵌套区域中设 `as="div"`。`Layout.Sider` 的断点使用 Tailwind 的 640/768/1024/1280px；低于断点时折叠，展开后借助 `Sheet` 显示导航。`onCollapse(collapsed, source)` 的 source 为 `trigger` 或 `breakpoint`；受控模式需同步更新 `collapsed`。
 
 `Masonry.items` 使用 `{ key, content, column?, estimatedHeight?, className? }`。`columns` 接受固定列数或 `{ base, sm, md, lg, xl }`，断点按组件容器宽度计算；默认 1 / 2 / 3 列。`gap` 接受一个像素值或 `[水平, 垂直]`。组件以最短列分配项目，`column` 可固定某项所在列；`onLayoutChange` 返回每项的 `{ key, column }`。动态内容通过 ResizeObserver 重新排布，DOM 顺序和键盘顺序保持 `items` 顺序。
+
+`Watermark` 只作内容来源提示，不作为防截图或保密机制。`image` 支持同源地址、data URL 或允许跨域读取的地址；图片加载或画布导出失败时优先显示 `content`。覆盖层不可接收指针事件，也不进入辅助技术阅读顺序。主题变化会重新生成水印；覆盖层被移除后会恢复，并调用 `onRemove`。
 
 ## 使用示例
 

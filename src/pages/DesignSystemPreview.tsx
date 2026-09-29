@@ -66,6 +66,7 @@ import {
   Tooltip,
   Typography,
   Upload,
+  Watermark,
   notification,
   toast,
 } from '@/shared/ui'
@@ -91,6 +92,9 @@ const transferItems = [
 ]
 
 const masonryHeights = ['h-24', 'h-36', 'h-28', 'h-44', 'h-32', 'h-40']
+const demoWatermarkImage = `data:image/svg+xml,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="64" viewBox="0 0 120 64"><circle cx="60" cy="32" r="27" fill="none" stroke="#334155" stroke-width="4"/><text x="60" y="38" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#334155">DEMO</text></svg>',
+)}`
 
 export function DesignSystemPreview() {
   const [checked, setChecked] = useState(false)
@@ -120,6 +124,7 @@ export function DesignSystemPreview() {
   const [masonryCount, setMasonryCount] = useState(7)
   const [regionLoading, setRegionLoading] = useState(true)
   const [fullscreenLoading, setFullscreenLoading] = useState(false)
+  const [watermarkImage, setWatermarkImage] = useState(false)
 
   useEffect(() => {
     if (!fullscreenLoading) return
@@ -1049,6 +1054,40 @@ export function DesignSystemPreview() {
                   spinning={fullscreenLoading}
                   label="页面加载中"
                 />
+              </Stack>
+            </CardContent>
+          </Card>
+          <Card className="col-span-full">
+            <CardContent>
+              <Stack gap="md">
+                <Stack direction="row" wrap align="center" justify="between">
+                  <Typography as="h3" variant="title">
+                    内容水印
+                  </Typography>
+                  <Button
+                    variant="outline"
+                    size="small"
+                    onClick={() => setWatermarkImage((current) => !current)}
+                  >
+                    {watermarkImage ? '显示文字水印' : '显示图片水印'}
+                  </Button>
+                </Stack>
+                <Watermark
+                  role="group"
+                  aria-label="水印示例"
+                  content={['仅供预览', '示例内容']}
+                  image={watermarkImage ? demoWatermarkImage : undefined}
+                  className="rounded-lg border border-border bg-muted/30"
+                >
+                  <div className="space-y-3 p-6">
+                    <Typography>
+                      水印覆盖内容区域，下面的操作仍可通过键盘和触控使用。
+                    </Typography>
+                    <Button variant="outline" size="small">
+                      水印内操作
+                    </Button>
+                  </div>
+                </Watermark>
               </Stack>
             </CardContent>
           </Card>

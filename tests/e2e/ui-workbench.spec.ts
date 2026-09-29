@@ -715,6 +715,49 @@ test('spin overlays regions and full screen without trapping inactive content', 
   )
 })
 
+test('watermark follows theme and keeps covered controls touchable', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const watermark = preview.getByRole('group', { name: '水印示例' })
+  const overlay = watermark.locator('[data-watermark-overlay]')
+  await expect(overlay).toBeVisible()
+  await expect(overlay).toHaveCSS('pointer-events', 'none')
+  const textPattern = await overlay.evaluate(
+    (element) => getComputedStyle(element).backgroundImage,
+  )
+  expect(textPattern).toContain('data:image/png')
+
+  const innerAction = watermark.getByRole('button', { name: '水印内操作' })
+  if (testInfo.project.name.startsWith('mobile-')) await innerAction.tap()
+  else await innerAction.click()
+  const imageSwitch = preview.getByRole('button', { name: '显示图片水印' })
+  if (testInfo.project.name.startsWith('mobile-')) await imageSwitch.tap()
+  else await imageSwitch.click()
+  await expect
+    .poll(() =>
+      overlay.evaluate((element) => getComputedStyle(element).backgroundImage),
+    )
+    .not.toBe(textPattern)
+
+  await preview.getByRole('button', { name: '显示文字水印' }).click()
+  await expect
+    .poll(() =>
+      overlay.evaluate((element) => getComputedStyle(element).backgroundImage),
+    )
+    .toBe(textPattern)
+  await preview.getByRole('button', { name: '切换预览主题' }).click()
+  await expect
+    .poll(() =>
+      overlay.evaluate((element) => getComputedStyle(element).backgroundImage),
+    )
+    .not.toBe(textPattern)
+
+  await overlay.evaluate((element) => element.remove())
+  await expect(overlay).toBeVisible()
+})
+
 test('tree select searches collapsed branches with keyboard and touch', async ({
   page,
 }, testInfo) => {

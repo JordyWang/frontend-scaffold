@@ -9,7 +9,7 @@
 | 导航     | Anchor、Breadcrumb、Dropdown、Menu、Pagination、Steps、Tabs                                                                                                                  | 核对复杂键盘路径和 H5 导航                                                    |
 | 数据录入 | AutoComplete、Cascader、Checkbox、ColorPicker、DatePicker、Form、Input、InputNumber、Mentions、Radio、Rate、Select、Slider、Switch、TimePicker、Transfer、TreeSelect、Upload | 核对组合表单、错误反馈和移动端输入                                            |
 | 数据展示 | Avatar、Badge、Calendar、Card、Carousel、Collapse、Descriptions、Empty、Image、List、Popover、Segmented、Statistic、Table、Tag、Timeline、Tooltip、Tree                      | QRCode、Tour、Listy 虚拟列表；List 在上游已标记废弃，本项目暂保留基础列表 API |
-| 反馈     | Alert、Drawer、Message、Modal、Notification、Popconfirm、Progress、Result、Skeleton、Spin、Spinner                                                                           | Watermark；核对独立 Spinner 与包裹式 Spin 的视觉一致性                        |
+| 反馈     | Alert、Drawer、Message、Modal、Notification、Popconfirm、Progress、Result、Skeleton、Spin、Spinner、Watermark                                                                | 核对独立 Spinner 与包裹式 Spin 的视觉一致性                                   |
 | 其他     | Affix；ThemeScope、ToastProvider 提供部分配置与应用上下文能力                                                                                                                | BorderBeam、App、ConfigProvider、Util 的项目 API 与边界                       |
 
 后续应先补真实缺口，再逐类检查现有入口的状态预览、可访问性、PC/H5 响应式和测试覆盖。AI、音视频与文件能力保持在 `capabilities`，不为追求组件名对齐而移入 `shared/ui`。
