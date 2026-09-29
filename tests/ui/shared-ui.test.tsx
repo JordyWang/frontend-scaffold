@@ -15,6 +15,7 @@ import {
   RadioGroup,
   Switch,
   Table,
+  Tabs,
   ThemeScope,
   Drawer,
 } from '@/shared/ui'
@@ -188,6 +189,97 @@ describe('shared/ui contracts', () => {
       />,
     )
     expect(screen.getByRole('alert')).toHaveTextContent('接口失败')
+  })
+
+  it('keeps table semantics and region context across data states', () => {
+    const columns = [
+      {
+        key: 'name',
+        header: '名称',
+        rowScope: 'row' as const,
+        render: (row: { id: string; name: string }) => row.name,
+      },
+      {
+        key: 'status',
+        header: '状态',
+        render: (row: { id: string; name: string; status: string }) =>
+          row.status,
+      },
+    ]
+    const rows = [{ id: '1', name: '任务一', status: '进行中' }]
+    const { rerender } = render(
+      <Table
+        caption="任务表"
+        columns={columns}
+        rows={rows}
+        getRowKey={(row) => row.id}
+        className="test-table"
+      />,
+    )
+    expect(screen.getByRole('region', { name: '任务表' })).toHaveClass(
+      'test-table',
+    )
+    expect(screen.getByRole('rowheader', { name: '任务一' })).toHaveAttribute(
+      'scope',
+      'row',
+    )
+
+    rerender(
+      <Table
+        caption="任务表"
+        columns={columns}
+        rows={[]}
+        getRowKey={(row) => row.id}
+        className="test-table"
+      />,
+    )
+    expect(screen.getByRole('region', { name: '任务表' })).toHaveClass(
+      'test-table',
+    )
+    expect(screen.getByRole('status')).toHaveTextContent('暂无数据')
+  })
+
+  it('supports controlled tabs, disabled entries and vertical orientation', () => {
+    const onValueChange = vi.fn()
+    const items = [
+      {
+        value: 'disabled',
+        label: '不可用',
+        content: '不可用内容',
+        disabled: true,
+      },
+      { value: 'first', label: '第一项', content: '第一项内容' },
+      { value: 'second', label: '第二项', content: '第二项内容' },
+    ]
+    const { rerender } = render(
+      <Tabs
+        items={items}
+        value="first"
+        onValueChange={onValueChange}
+        orientation="vertical"
+        activationMode="manual"
+      />,
+    )
+    expect(screen.getByRole('tablist')).toHaveAttribute(
+      'aria-orientation',
+      'vertical',
+    )
+    expect(screen.getByRole('tab', { name: '不可用' })).toBeDisabled()
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('第一项内容')
+    const secondTab = screen.getByRole('tab', { name: '第二项' })
+    secondTab.focus()
+    fireEvent.keyDown(secondTab, { key: 'Enter' })
+    expect(onValueChange).toHaveBeenCalledWith('second')
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('第一项内容')
+    rerender(
+      <Tabs
+        items={items}
+        value="second"
+        onValueChange={onValueChange}
+        orientation="vertical"
+      />,
+    )
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('第二项内容')
   })
 
   it('renders portals outside the local parent', () => {

@@ -5,9 +5,11 @@ import { ErrorState, LoadingState } from './feedback-state'
 
 export type TableColumn<T> = {
   key: string
-  header: string
+  header: ReactNode
   render: (row: T) => ReactNode
   align?: 'left' | 'center' | 'right'
+  /** Render this data cell as a row header for assistive technology. */
+  rowScope?: 'row' | 'rowgroup'
 }
 export type TableProps<T> = {
   columns: TableColumn<T>[]
@@ -34,58 +36,111 @@ export function Table<T>({
   renderMobileRow,
   className,
 }: TableProps<T>) {
-  if (loading) return <LoadingState />
-  if (error) return <ErrorState description={error} onRetry={onRetry} />
-  if (rows.length === 0) return <Empty title={emptyTitle} />
-  return (
-    <div className={cn('ui-table-wrap', className)}>
-      <div
-        className={
-          renderMobileRow
-            ? 'ui-table-scroll ui-table-scroll--desktop'
-            : 'ui-table-scroll'
-        }
+  const regionClassName = cn(
+    'overflow-hidden rounded-[var(--radius)] border border-border bg-card text-card-foreground',
+    className,
+  )
+  const stateClassName = 'p-[var(--space-lg)]'
+
+  if (loading)
+    return (
+      <section
+        aria-busy="true"
+        aria-label={caption}
+        className={regionClassName}
       >
-        <table className="ui-table">
+        <div className={stateClassName}>
+          <LoadingState />
+        </div>
+      </section>
+    )
+  if (error)
+    return (
+      <section aria-label={caption} className={regionClassName}>
+        <div className={stateClassName}>
+          <ErrorState description={error} onRetry={onRetry} />
+        </div>
+      </section>
+    )
+  if (rows.length === 0)
+    return (
+      <section aria-label={caption} className={regionClassName}>
+        <div role="status" className={stateClassName}>
+          <Empty title={emptyTitle} />
+        </div>
+      </section>
+    )
+
+  return (
+    <section aria-label={caption} className={regionClassName}>
+      <div
+        className={cn('overflow-x-auto', renderMobileRow && 'hidden sm:block')}
+      >
+        <table className="min-w-full border-collapse text-left">
           <caption className="sr-only">{caption}</caption>
-          <thead>
-            <tr>
+          <thead className="bg-muted">
+            <tr className="border-b border-border">
               {columns.map((column) => (
                 <th
                   key={column.key}
                   scope="col"
-                  className={`ui-table__${column.align ?? 'left'}`}
+                  className={cn(
+                    'px-4 py-3 text-sm font-semibold',
+                    column.align === 'center' && 'text-center',
+                    column.align === 'right' && 'text-right',
+                  )}
                 >
                   {column.header}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-border">
             {rows.map((row) => (
               <tr key={getRowKey(row)}>
-                {columns.map((column) => (
-                  <td
-                    key={column.key}
-                    className={`ui-table__${column.align ?? 'left'}`}
-                  >
-                    {column.render(row)}
-                  </td>
-                ))}
+                {columns.map((column) =>
+                  column.rowScope ? (
+                    <th
+                      key={column.key}
+                      scope={column.rowScope}
+                      className={cn(
+                        'px-4 py-3 align-middle font-medium',
+                        column.align === 'center' && 'text-center',
+                        column.align === 'right' && 'text-right',
+                      )}
+                    >
+                      {column.render(row)}
+                    </th>
+                  ) : (
+                    <td
+                      key={column.key}
+                      className={cn(
+                        'px-4 py-3 align-middle',
+                        column.align === 'center' && 'text-center',
+                        column.align === 'right' && 'text-right',
+                      )}
+                    >
+                      {column.render(row)}
+                    </td>
+                  ),
+                )}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       {renderMobileRow && (
-        <ul aria-label={caption} className="ui-table-mobile">
+        <ul
+          aria-label={caption}
+          className="m-0 list-none divide-y divide-border p-0 sm:hidden"
+        >
           {rows.map((row) => (
-            <li key={getRowKey(row)} className="ui-table-mobile__item">
+            <li key={getRowKey(row)} className="p-[var(--space-md)]">
               {renderMobileRow(row)}
             </li>
           ))}
         </ul>
       )}
-    </div>
+    </section>
   )
 }
