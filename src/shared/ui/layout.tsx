@@ -9,6 +9,28 @@ import { cn } from '@/shared/lib/utils'
 type Gap = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 type Alignment = 'start' | 'center' | 'end' | 'stretch'
 
+const gapStyles = {
+  xs: 'gap-1',
+  sm: 'gap-2',
+  md: 'gap-4',
+  lg: 'gap-6',
+  xl: 'gap-8',
+} as const
+
+const alignStyles = {
+  start: 'items-start',
+  center: 'items-center',
+  end: 'items-end',
+  stretch: 'items-stretch',
+} as const
+
+const justifyStyles = {
+  start: 'justify-start',
+  center: 'justify-center',
+  end: 'justify-end',
+  between: 'justify-between',
+} as const
+
 export type StackProps = HTMLAttributes<HTMLDivElement> & {
   direction?: 'row' | 'column'
   gap?: Gap
@@ -29,14 +51,16 @@ export function Stack({
 }: StackProps) {
   return (
     <div
-      className={cn('ui-stack', className)}
-      data-direction={direction}
-      data-align={align}
-      data-justify={justify}
-      data-wrap={wrap || undefined}
-      style={
-        { '--ui-stack-gap': `var(--space-${gap})`, ...style } as CSSProperties
-      }
+      className={cn(
+        'flex',
+        direction === 'row' ? 'flex-row' : 'flex-col',
+        gapStyles[gap],
+        alignStyles[align],
+        justifyStyles[justify],
+        wrap && 'flex-wrap',
+        className,
+      )}
+      style={style}
       {...props}
     />
   )
@@ -78,18 +102,24 @@ export function Space({
   const content = Children.toArray(children)
   return (
     <div
-      className={cn('ui-space', className)}
-      data-direction={direction}
-      data-align={align}
-      data-wrap={wrap || undefined}
+      className={cn(
+        'inline-flex max-w-full gap-[var(--ui-space-gap)]',
+        direction === 'vertical' ? 'flex-col' : 'flex-row',
+        alignStyles[align],
+        wrap && 'flex-wrap',
+        className,
+      )}
       style={{ '--ui-space-gap': gap, ...style } as CSSProperties}
       {...props}
     >
       {content.map((child, index) => (
-        <span className="ui-space__item" key={`space-${index}`}>
+        <span
+          className="inline-flex min-w-0 items-center gap-[var(--ui-space-gap)]"
+          key={`space-${index}`}
+        >
           {child}
           {split && index < content.length - 1 && (
-            <span className="ui-space__split" aria-hidden="true">
+            <span className="text-muted-foreground" aria-hidden="true">
               {split}
             </span>
           )}
@@ -113,11 +143,14 @@ export function Grid({
 }: GridProps) {
   return (
     <div
-      className={cn('ui-grid', className)}
+      className={cn(
+        'grid grid-cols-[repeat(auto-fit,minmax(min(100%,var(--ui-grid-min)),1fr))]',
+        gapStyles[gap],
+        className,
+      )}
       style={
         {
           '--ui-grid-min': minItemWidth,
-          '--ui-grid-gap': `var(--space-${gap})`,
           ...style,
         } as CSSProperties
       }
@@ -138,7 +171,12 @@ export function Divider({
   return (
     <hr
       aria-orientation={orientation}
-      className={cn('ui-divider', `ui-divider--${orientation}`, className)}
+      className={cn(
+        orientation === 'vertical'
+          ? 'mx-2 my-0 w-px self-stretch border-0 border-s border-border'
+          : 'mx-0 my-4 border-0 border-t border-border',
+        className,
+      )}
       {...props}
     />
   )
