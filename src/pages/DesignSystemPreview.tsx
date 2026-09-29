@@ -411,6 +411,21 @@ export function DesignSystemPreview() {
                     />
                   }
                 />
+                <Stack direction="row" wrap gap="md" align="center">
+                  <ColorPicker
+                    label="不可用颜色"
+                    defaultValue="#1677ff"
+                    disabled
+                    showText
+                  />
+                  <FormField
+                    label="错误颜色"
+                    error="请选择有效颜色"
+                    control={<ColorPicker defaultValue="#b91c1c" />}
+                  />
+                  <Rate aria-label="十星评分" count={10} defaultValue={7} />
+                  <Rate aria-label="不可用评分" defaultValue={3} disabled />
+                </Stack>
                 <Segmented
                   aria-label="数据视图"
                   value={segmentedValue}
@@ -420,6 +435,14 @@ export function DesignSystemPreview() {
                     { value: 'list', label: '紧凑列表' },
                     { value: 'grid', label: '宽卡片' },
                     { value: 'disabled', label: '不可用', disabled: true },
+                  ]}
+                />
+                <Segmented
+                  aria-label="不可用数据视图"
+                  disabled
+                  options={[
+                    { value: 'list', label: '列表' },
+                    { value: 'grid', label: '网格' },
                   ]}
                 />
                 <InputOTP

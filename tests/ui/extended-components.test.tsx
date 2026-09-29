@@ -62,9 +62,7 @@ describe('Ant Design-inspired shared components', () => {
     expect(screen.getByRole('combobox', { name: '大号级联' })).toHaveClass(
       'min-h-12',
     )
-    expect(screen.getByLabelText('大号颜色').parentElement).toHaveClass(
-      'ui-color-picker--large',
-    )
+    expect(screen.getByLabelText('大号颜色')).toHaveClass('size-12')
   })
 
   it('renders a semantic breadcrumb with a current page', () => {
@@ -532,9 +530,9 @@ describe('Ant Design-inspired shared components', () => {
         />
       </ConfigProvider>,
     )
-    expect(screen.getByRole('group', { name: '大号视图' })).toHaveClass(
-      'ui-segmented--large',
-    )
+    expect(
+      screen.getByRole('group', { name: '大号视图' }).querySelector('label'),
+    ).toHaveClass('min-h-12')
   })
 
   it('supports rating selection, keyboard navigation and clearing', () => {

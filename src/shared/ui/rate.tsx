@@ -76,7 +76,10 @@ export function Rate({
       aria-labelledby={ariaLabelledBy}
       aria-describedby={ariaDescribedBy}
       aria-invalid={ariaInvalid || undefined}
-      className={cn('ui-rate', disabled && 'ui-rate--disabled', className)}
+      className={cn(
+        'inline-flex max-w-full items-center gap-0.5 overflow-x-auto overscroll-x-contain rounded-[var(--radius-sm)] aria-invalid:ring-1 aria-invalid:ring-destructive',
+        className,
+      )}
     >
       {Array.from({ length: safeCount }, (_, index) => {
         const score = index + 1
@@ -88,14 +91,15 @@ export function Rate({
             key={score}
             htmlFor={inputId}
             className={cn(
-              'ui-rate__option',
-              score <= selected && 'ui-rate__option--selected',
+              'relative inline-grid size-11 shrink-0 cursor-pointer place-items-center rounded-[var(--radius-sm)] text-2xl leading-none text-muted-foreground focus-within:outline-3 focus-within:outline-offset-[-3px] focus-within:outline-ring',
+              score <= selected && 'text-primary',
+              disabled && 'cursor-not-allowed opacity-50',
             )}
             title={optionLabel}
           >
             <input
               id={inputId}
-              className="ui-rate__input"
+              className="sr-only"
               type="radio"
               name={name ?? generatedName}
               value={score}
@@ -114,9 +118,7 @@ export function Rate({
               }}
               onChange={handleChange}
             />
-            <span aria-hidden="true" className="ui-rate__star">
-              {character}
-            </span>
+            <span aria-hidden="true">{character}</span>
           </label>
         )
       })}

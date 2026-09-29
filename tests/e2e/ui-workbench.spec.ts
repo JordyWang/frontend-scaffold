@@ -249,14 +249,15 @@ test('design system controls support keyboard, touch and local themes', async ({
 
   await preview.getByRole('button', { name: '切换预览密度' }).click()
   await expect(preview.getByText('当前：深色 · 紧凑')).toBeVisible()
-  const radio = preview.getByRole('radio', { name: '网格' })
+  const choiceGroup = preview.getByRole('group', { name: '展示方式' })
+  const radio = choiceGroup.getByRole('radio', { name: '网格' })
   const segmented = preview.getByRole('group', { name: '数据视图' })
   const compactView = segmented.getByRole('radio', { name: '紧凑列表' })
   const wideView = segmented.locator('label').filter({ hasText: '宽卡片' })
   if (testInfo.project.name.startsWith('mobile-'))
     await radio.locator('..').tap()
   else {
-    await preview.getByRole('radio', { name: '列表', exact: true }).focus()
+    await choiceGroup.getByRole('radio', { name: '列表' }).focus()
     await page.keyboard.press('ArrowRight')
   }
   await expect(radio).toBeChecked()
@@ -264,6 +265,14 @@ test('design system controls support keyboard, touch and local themes', async ({
   else await wideView.click()
   await expect(segmented.getByRole('radio', { name: '宽卡片' })).toBeChecked()
   await expect(compactView).not.toBeChecked()
+  await expect(wideView).toHaveCSS('background-color', 'rgb(30, 41, 59)')
+  await segmented.getByRole('radio', { name: '宽卡片' }).focus()
+  await expect(wideView).toHaveCSS('outline-width', '3px')
+  await expect(
+    preview
+      .getByRole('group', { name: '不可用数据视图' })
+      .getByRole('radio', { name: '列表' }),
+  ).toBeDisabled()
 
   const rating = preview.getByRole('radiogroup', { name: '满意度' })
   const satisfied = rating.getByRole('radio', { name: '满意', exact: true })
@@ -271,12 +280,36 @@ test('design system controls support keyboard, touch and local themes', async ({
   if (testInfo.project.name.startsWith('mobile-')) await satisfiedOption.tap()
   else await satisfiedOption.click()
   await expect(satisfied).toBeChecked()
+  await expect(satisfiedOption).toHaveCSS('color', 'rgb(105, 177, 255)')
+  await satisfied.focus()
+  await expect(satisfiedOption).toHaveCSS('outline-width', '3px')
+  await expect(
+    preview
+      .getByRole('radiogroup', { name: '不可用评分' })
+      .getByRole('radio', { name: '1 星' }),
+  ).toBeDisabled()
 
   const colorPicker = preview.getByLabel('主题色')
   await expect(colorPicker).toHaveValue('#1677ff')
   const colorPickerBox = await colorPicker.boundingBox()
   expect(colorPickerBox?.width).toBeGreaterThanOrEqual(44)
   expect(colorPickerBox?.height).toBeGreaterThanOrEqual(44)
+  await expect(preview.getByLabel('不可用颜色')).toBeDisabled()
+  await expect(preview.getByLabel('错误颜色')).toHaveAttribute(
+    'aria-invalid',
+    'true',
+  )
+  await expect(preview.getByLabel('错误颜色')).toHaveCSS(
+    'border-color',
+    'rgb(252, 165, 165)',
+  )
+  if (testInfo.project.name.startsWith('mobile-')) {
+    expect(
+      await preview
+        .getByRole('radiogroup', { name: '十星评分' })
+        .evaluate((element) => element.scrollWidth > element.clientWidth),
+    ).toBe(true)
+  }
 
   const scopedSelect = preview.getByRole('combobox', { name: '局部选择' })
   if (testInfo.project.name.startsWith('mobile-')) await scopedSelect.tap()
@@ -1363,7 +1396,7 @@ test('mobile controls are touchable without horizontal overflow', async ({
       document.documentElement.clientWidth,
     smallTargets: [
       ...document.querySelectorAll(
-        'button,[role=combobox],[role=tab],label:has(input[type="checkbox"]),label:has(input[type="radio"]),.ui-segmented__option,.ui-rate__option,.ui-color-picker__input',
+        'button,[role=combobox],[role=tab],label:has(input[type="checkbox"]),label:has(input[type="radio"]),input[type="color"]',
       ),
     ]
       .filter((element) => {

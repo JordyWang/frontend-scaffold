@@ -55,12 +55,7 @@ export const ColorPicker = forwardRef<HTMLInputElement, ColorPickerProps>(
     const current = normalizeColor(value ?? internalValue)
     return (
       <span
-        className={cn(
-          'ui-color-picker',
-          `ui-color-picker--${resolvedSize}`,
-          showText && 'ui-color-picker--with-text',
-          className,
-        )}
+        className={cn('inline-flex max-w-full items-center gap-2', className)}
       >
         <input
           {...props}
@@ -70,7 +65,10 @@ export const ColorPicker = forwardRef<HTMLInputElement, ColorPickerProps>(
           aria-label={
             ariaLabel ?? (props['aria-labelledby'] ? undefined : label)
           }
-          className="ui-color-picker__input"
+          className={cn(
+            'size-11 shrink-0 cursor-pointer touch-manipulation rounded-[var(--ui-field-radius)] border border-input bg-card p-1 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-[0.55]',
+            resolvedSize === 'large' && 'size-12',
+          )}
           value={current}
           onFocus={onFocus}
           onBlur={onBlur}
@@ -81,7 +79,10 @@ export const ColorPicker = forwardRef<HTMLInputElement, ColorPickerProps>(
           }}
         />
         {showText && (
-          <span aria-hidden="true" className="ui-color-picker__text">
+          <span
+            aria-hidden="true"
+            className="text-sm leading-6 text-foreground tabular-nums"
+          >
             {current}
           </span>
         )}

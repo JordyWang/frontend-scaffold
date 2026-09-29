@@ -77,9 +77,8 @@ export function Segmented({
     <fieldset
       {...props}
       className={cn(
-        'ui-segmented',
-        `ui-segmented--${resolvedSize}`,
-        block && 'ui-segmented--block',
+        'inline-flex max-w-full items-stretch gap-0.5 overflow-x-auto rounded-[var(--ui-segmented-radius)] border-0 bg-muted p-1 aria-invalid:ring-1 aria-invalid:ring-destructive',
+        block && 'flex w-full',
         className,
       )}
       disabled={disabled}
@@ -98,14 +97,17 @@ export function Segmented({
             key={option.value}
             htmlFor={inputId}
             className={cn(
-              'ui-segmented__option',
-              selected === option.value && 'ui-segmented__option--selected',
-              optionDisabled && 'ui-segmented__option--disabled',
+              'relative inline-flex min-w-16 min-h-[max(44px,var(--ui-segmented-height))] grow shrink-0 basis-auto cursor-pointer items-center justify-center rounded-[var(--radius-sm)] px-3.5 py-2.5 text-center whitespace-nowrap text-muted-foreground focus-within:outline-3 focus-within:outline-offset-[-3px] focus-within:outline-ring',
+              resolvedSize === 'small' && 'min-h-11 px-2.5',
+              resolvedSize === 'large' && 'min-h-12 px-4',
+              selected === option.value &&
+                'bg-card font-semibold text-foreground shadow-sm',
+              optionDisabled && 'cursor-not-allowed opacity-50',
             )}
           >
             <input
               id={inputId}
-              className="ui-segmented__input"
+              className="sr-only"
               type="radio"
               name={name ?? generatedName}
               value={option.value}
@@ -121,9 +123,7 @@ export function Segmented({
               }
               onChange={handleChange}
             />
-            <span id={labelId} className="ui-segmented__label">
-              {option.label}
-            </span>
+            <span id={labelId}>{option.label}</span>
           </label>
         )
       })}
