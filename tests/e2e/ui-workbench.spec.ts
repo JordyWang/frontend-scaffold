@@ -1201,6 +1201,40 @@ test('keyboard controls retain focus and expose data states', async ({
   await expect(page.getByRole('list', { name: '示例任务' })).toBeVisible()
 })
 
+test('list keeps its labelled container through loading, empty and retry states', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '导航与数据' })
+  const list = preview.getByRole('region', {
+    name: '示例任务',
+    exact: true,
+  })
+  const activate = async (name: string) => {
+    const button = preview.getByRole('button', { name, exact: true })
+    if (testInfo.project.name.startsWith('mobile-')) await button.tap()
+    else await button.click()
+  }
+
+  await expect(
+    list.getByRole('list', { name: '示例任务', exact: true }),
+  ).toBeVisible()
+  await activate('加载中')
+  await expect(list).toHaveAttribute('aria-busy', 'true')
+  await expect(list.getByRole('status')).toContainText('正在加载')
+  await activate('空数据')
+  await expect(list).not.toHaveAttribute('aria-busy')
+  await expect(list.getByRole('status')).toContainText('暂无内容')
+  await activate('错误')
+  await expect(list.getByRole('alert')).toContainText('示例列表加载失败')
+  if (testInfo.project.name.startsWith('mobile-'))
+    await list.getByRole('button', { name: '重试' }).tap()
+  else await list.getByRole('button', { name: '重试' }).click()
+  await expect(
+    list.getByRole('list', { name: '示例任务', exact: true }),
+  ).toBeVisible()
+})
+
 test('file selection, cancellation and retry work in the preview', async ({
   page,
 }) => {

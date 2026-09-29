@@ -191,6 +191,35 @@ describe('shared/ui contracts', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('接口失败')
   })
 
+  it('keeps list context and custom layout across data states', () => {
+    const props = {
+      items: [{ id: 'one', name: '任务一' }],
+      getKey: (row: { id: string; name: string }) => row.id,
+      renderItem: (row: { id: string; name: string }) => row.name,
+      label: '任务列表',
+      className: 'custom-list',
+    }
+    const { rerender } = render(<List {...props} loading />)
+    const region = screen.getByRole('region', { name: '任务列表' })
+    expect(region).toHaveClass('custom-list')
+    expect(region).toHaveAttribute('aria-busy', 'true')
+    expect(region).toContainElement(screen.getByRole('status'))
+
+    rerender(<List {...props} error="加载失败" />)
+    expect(region).not.toHaveAttribute('aria-busy')
+    expect(region).toContainElement(screen.getByRole('alert'))
+
+    rerender(<List {...props} items={[]} />)
+    expect(region).toContainElement(screen.getByRole('status'))
+    expect(screen.getByText('暂无内容')).toBeInTheDocument()
+
+    rerender(<List {...props} />)
+    expect(screen.getByRole('list', { name: '任务列表' })).toHaveTextContent(
+      '任务一',
+    )
+    expect(region).toHaveClass('custom-list')
+  })
+
   it('keeps table semantics and region context across data states', () => {
     const columns = [
       {
