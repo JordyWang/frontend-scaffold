@@ -720,6 +720,43 @@ test('spin overlays regions and full screen without trapping inactive content', 
   )
 })
 
+test('spinner and spin share sizes and respect reduced motion', async ({
+  page,
+}) => {
+  await page.goto('/__ui')
+  const group = page.getByRole('group', { name: '加载指示器尺寸' })
+  for (const [label, pixels] of [
+    ['小号', 16],
+    ['默认', 24],
+    ['大号', 36],
+  ] as const) {
+    const standalone = group
+      .getByRole('status', { name: `${label}独立加载` })
+      .locator('[aria-hidden="true"]')
+    const wrapped = group
+      .getByRole('status', { name: `${label}区域加载` })
+      .locator('[aria-hidden="true"]')
+    for (const indicator of [standalone, wrapped]) {
+      await expect(indicator).toHaveCSS('width', `${pixels}px`)
+      await expect(indicator).toHaveCSS('height', `${pixels}px`)
+    }
+    expect(await standalone.evaluate((el) => getComputedStyle(el).color)).toBe(
+      await wrapped.evaluate((el) => getComputedStyle(el).color),
+    )
+  }
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await expect(
+    group
+      .getByRole('status', { name: '默认独立加载' })
+      .locator('[aria-hidden="true"]'),
+  ).toHaveCSS('animation-name', 'none')
+  await expect(
+    group
+      .getByRole('status', { name: '默认区域加载' })
+      .locator('[aria-hidden="true"]'),
+  ).toHaveCSS('animation-name', 'none')
+})
+
 test('watermark follows theme and keeps covered controls touchable', async ({
   page,
 }, testInfo) => {

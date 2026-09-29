@@ -618,6 +618,27 @@ export function DesignSystemPreview() {
                   <Spinner label="正在处理" />
                   <Typography variant="caption">处理中</Typography>
                 </Stack>
+                <div
+                  role="group"
+                  aria-label="加载指示器尺寸"
+                  className="flex flex-wrap items-center gap-3"
+                >
+                  <div className="flex items-center gap-1">
+                    <Spinner size="small" label="小号独立加载" />
+                    <Spin size="small" label="小号区域加载" />
+                    <span className="text-sm text-muted-foreground">小号</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Spinner size="default" label="默认独立加载" />
+                    <Spin size="default" label="默认区域加载" />
+                    <span className="text-sm text-muted-foreground">默认</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Spinner size="large" label="大号独立加载" />
+                    <Spin size="large" label="大号区域加载" />
+                    <span className="text-sm text-muted-foreground">大号</span>
+                  </div>
+                </div>
               </Stack>
             </CardContent>
           </Card>

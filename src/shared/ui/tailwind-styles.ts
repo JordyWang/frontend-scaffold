@@ -8,8 +8,16 @@ export const inputSizeStyles = {
   large: 'min-h-12 px-3.5 py-3',
 } as const
 
-export const spinnerStyles =
-  'size-4 shrink-0 animate-[spin_0.7s_linear_infinite] rounded-full border-2 border-current border-r-transparent'
+export const spinnerIndicatorStyles =
+  'shrink-0 animate-[spin_0.7s_linear_infinite] rounded-full border-current border-r-transparent motion-reduce:animate-none'
+
+export const spinnerSizeStyles = {
+  small: 'size-4 border-2',
+  default: 'size-6 border-[3px]',
+  large: 'size-9 border-[3px]',
+} as const
+
+export const spinnerStyles = `${spinnerIndicatorStyles} ${spinnerSizeStyles.small}`
 
 export const affixShellStyles =
   'flex w-full min-h-[max(44px,var(--ui-control-height))] items-center rounded-[var(--ui-field-radius)] border border-input bg-card text-card-foreground focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20 data-[invalid=true]:border-destructive data-[disabled=true]:opacity-[0.55]'

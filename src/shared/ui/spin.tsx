@@ -8,6 +8,7 @@ import {
 import { cn } from '@/shared/lib/utils'
 import { resolveComponentSize, useConfig } from './config-context'
 import { Portal } from './portal'
+import { spinnerIndicatorStyles, spinnerSizeStyles } from './tailwind-styles'
 
 export type SpinProps = HTMLAttributes<HTMLDivElement> & {
   spinning?: boolean
@@ -17,12 +18,6 @@ export type SpinProps = HTMLAttributes<HTMLDivElement> & {
   size?: 'small' | 'default' | 'large'
   fullscreen?: boolean
 }
-
-const indicatorSizes = {
-  small: 'size-4',
-  default: 'size-6',
-  large: 'size-9',
-} as const
 
 /** Loading status for a single control, a content region, or the full screen. */
 export const Spin = forwardRef<HTMLDivElement, SpinProps>(function Spin(
@@ -67,10 +62,7 @@ export const Spin = forwardRef<HTMLDivElement, SpinProps>(function Spin(
     >
       <span
         aria-hidden="true"
-        className={cn(
-          'shrink-0 animate-spin rounded-full border-[3px] border-current border-r-transparent motion-reduce:animate-none',
-          indicatorSizes[resolvedSize],
-        )}
+        className={cn(spinnerIndicatorStyles, spinnerSizeStyles[resolvedSize])}
       />
       {tip && (
         <span className="text-center text-sm text-foreground">{tip}</span>

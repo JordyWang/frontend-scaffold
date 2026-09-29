@@ -72,13 +72,18 @@ describe('display and feedback semantics', () => {
         <Spin label="大号包裹加载" />
       </ConfigProvider>,
     )
-    expect(screen.getByRole('status', { name: '大号加载' })).toHaveClass(
-      'ui-spinner-standalone--large',
+    const standalone = screen.getByRole('status', { name: '大号加载' })
+    const wrapped = screen.getByRole('status', { name: '大号包裹加载' })
+    expect(standalone).toHaveAttribute('aria-live', 'polite')
+    expect(standalone.querySelector('[aria-hidden="true"]')).toHaveClass(
+      'size-9',
+      'border-[3px]',
+      'motion-reduce:animate-none',
     )
-    expect(
-      screen
-        .getByRole('status', { name: '大号包裹加载' })
-        .querySelector('.size-9'),
-    ).toBeInTheDocument()
+    expect(wrapped.querySelector('[aria-hidden="true"]')).toHaveClass(
+      'size-9',
+      'border-[3px]',
+      'motion-reduce:animate-none',
+    )
   })
 })
