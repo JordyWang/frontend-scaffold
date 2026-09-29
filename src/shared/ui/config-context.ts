@@ -21,6 +21,18 @@ export type ConfigProviderProps = {
   style?: CSSProperties
 }
 
+export type ControlSize = 'default' | 'small' | 'large'
+
+export function resolveComponentSize(
+  componentSize: ConfigProviderProps['componentSize'],
+  explicit?: ControlSize,
+): ControlSize {
+  if (explicit) return explicit
+  if (componentSize === 'small') return 'small'
+  if (componentSize === 'large') return 'large'
+  return 'default'
+}
+
 export type ConfigContextValue = {
   prefixCls: string
   iconPrefixCls: string

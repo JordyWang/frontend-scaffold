@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
-import { useConfig } from './config-context'
+import { resolveComponentSize, useConfig } from './config-context'
 
 export type CalendarProps = Omit<
   HTMLAttributes<HTMLDivElement>,
@@ -108,7 +108,7 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
       getDateDescription,
       locale,
       label = '日历',
-      size = 'default',
+      size,
       disabled = false,
       invalid = false,
       className,
@@ -118,7 +118,8 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
     },
     ref,
   ) {
-    const { locale: configLocale } = useConfig()
+    const { componentSize, locale: configLocale } = useConfig()
+    const resolvedSize = resolveComponentSize(componentSize, size)
     const resolvedLocale = locale ?? configLocale ?? 'zh-CN'
     const today = new Date()
     const todayISO = toISO(today)
@@ -279,7 +280,7 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
         aria-invalid={isInvalid || undefined}
         className={cn(
           'w-full min-w-0 rounded-[var(--ui-card-radius)] border border-border bg-card p-3 text-card-foreground',
-          size === 'default' && 'sm:p-4',
+          resolvedSize === 'default' && 'sm:p-4',
           isInvalid && 'border-destructive',
           className,
         )}

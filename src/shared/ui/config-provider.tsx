@@ -58,6 +58,7 @@ export function ConfigProvider({
 }
 
 export type {
+  ControlSize,
   ConfigContextValue,
   ConfigProviderProps,
   ConfigProviderTheme,

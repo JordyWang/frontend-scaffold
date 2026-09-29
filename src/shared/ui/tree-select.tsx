@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { resolveComponentSize, useConfig } from './config-context'
 import { Portal } from './portal'
 
 export type TreeSelectOption = {
@@ -134,7 +135,7 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
       required,
       name,
       label = '树形选择',
-      size = 'default',
+      size,
       id,
       className,
       'aria-describedby': ariaDescribedBy,
@@ -144,6 +145,8 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
     },
     forwardedRef,
   ) {
+    const { componentSize } = useConfig()
+    const resolvedSize = resolveComponentSize(componentSize, size)
     const generatedId = useId()
     const triggerId = id ?? `tree-select-${generatedId}`
     const valueId = `${triggerId}-value`
@@ -502,7 +505,7 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
           disabled={disabled}
           className={cn(
             'ui-tree-select__trigger',
-            `ui-tree-select--${size}`,
+            `ui-tree-select--${resolvedSize}`,
             selectedLabels.length === 0 && 'ui-tree-select__trigger--empty',
             allowClear &&
               selected.length > 0 &&

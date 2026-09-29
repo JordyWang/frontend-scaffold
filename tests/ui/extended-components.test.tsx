@@ -39,6 +39,34 @@ import {
 } from '@/shared/ui'
 
 describe('Ant Design-inspired shared components', () => {
+  it('applies the provider size to native data-entry controls', () => {
+    render(
+      <ConfigProvider componentSize="large">
+        <InputNumber aria-label="大号数字" defaultValue={1} />
+        <DatePicker aria-label="大号日期" />
+        <TimePicker aria-label="大号时间" />
+        <AutoComplete aria-label="大号自动完成" options={[]} />
+        <Cascader label="大号级联" options={[{ value: 'cn', label: '中国' }]} />
+        <ColorPicker aria-label="大号颜色" />
+      </ConfigProvider>,
+    )
+
+    expect(
+      screen.getByRole('spinbutton', { name: '大号数字' }).parentElement,
+    ).toHaveClass('ui-input-number--large')
+    expect(screen.getByLabelText('大号日期')).toHaveClass('min-h-12')
+    expect(screen.getByLabelText('大号时间')).toHaveClass('min-h-12')
+    expect(screen.getByRole('combobox', { name: '大号自动完成' })).toHaveClass(
+      'min-h-12',
+    )
+    expect(screen.getByRole('combobox', { name: '大号级联' })).toHaveClass(
+      'ui-input--large',
+    )
+    expect(screen.getByLabelText('大号颜色').parentElement).toHaveClass(
+      'ui-color-picker--large',
+    )
+  })
+
   it('renders a semantic breadcrumb with a current page', () => {
     render(
       <Breadcrumb

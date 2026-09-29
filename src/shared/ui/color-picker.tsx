@@ -1,5 +1,6 @@
 import { forwardRef, useState, type InputHTMLAttributes } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { resolveComponentSize, useConfig } from './config-context'
 
 export type ColorPickerProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
@@ -34,7 +35,7 @@ export const ColorPicker = forwardRef<HTMLInputElement, ColorPickerProps>(
       defaultValue,
       onChange,
       showText = false,
-      size = 'default',
+      size,
       label = '颜色',
       invalid,
       'aria-invalid': ariaInvalid,
@@ -46,6 +47,8 @@ export const ColorPicker = forwardRef<HTMLInputElement, ColorPickerProps>(
     },
     ref,
   ) {
+    const { componentSize } = useConfig()
+    const resolvedSize = resolveComponentSize(componentSize, size)
     const [internalValue, setInternalValue] = useState(
       normalizeColor(defaultValue),
     )
@@ -54,7 +57,7 @@ export const ColorPicker = forwardRef<HTMLInputElement, ColorPickerProps>(
       <span
         className={cn(
           'ui-color-picker',
-          `ui-color-picker--${size}`,
+          `ui-color-picker--${resolvedSize}`,
           showText && 'ui-color-picker--with-text',
           className,
         )}

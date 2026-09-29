@@ -9,6 +9,11 @@ import {
   type ReactNode,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
+import {
+  resolveComponentSize,
+  useConfig,
+  type ControlSize,
+} from './config-context'
 import { inputSizeStyles, inputStyles } from './tailwind-styles'
 import { Button } from './button'
 
@@ -21,7 +26,7 @@ export type InputNumberProps = Omit<
   min?: number
   max?: number
   step?: number
-  size?: 'default' | 'small'
+  size?: ControlSize
   prefix?: React.ReactNode
   suffix?: React.ReactNode
   invalid?: boolean
@@ -37,7 +42,7 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
       min,
       max,
       step = 1,
-      size = 'default',
+      size,
       prefix,
       suffix,
       invalid,
@@ -49,6 +54,8 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
     },
     ref,
   ) {
+    const { componentSize } = useConfig()
+    const resolvedSize = resolveComponentSize(componentSize, size)
     const [draft, setDraft] = useState(
       defaultValue === undefined ? '' : String(defaultValue),
     )
@@ -86,7 +93,11 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
     return (
       <span
         aria-invalid={invalid || ariaInvalid || undefined}
-        className={cn('ui-input-number', `ui-input-number--${size}`, className)}
+        className={cn(
+          'ui-input-number',
+          `ui-input-number--${resolvedSize}`,
+          className,
+        )}
       >
         {prefix && <span className="ui-input-number__prefix">{prefix}</span>}
         <input
@@ -172,7 +183,7 @@ type NativePickerProps = Omit<
 > & {
   value?: string
   defaultValue?: string
-  size?: 'default' | 'small'
+  size?: ControlSize
   onChange?: (value: string) => void
 }
 
@@ -180,23 +191,22 @@ const NativePicker = forwardRef<
   HTMLInputElement,
   NativePickerProps & { type: 'date' | 'time' }
 >(function NativePicker(
-  {
-    type,
-    value,
-    defaultValue,
-    size = 'default',
-    onChange,
-    className,
-    ...props
-  },
+  { type, value, defaultValue, size, onChange, className, ...props },
   ref,
 ) {
+  const { componentSize } = useConfig()
+  const resolvedSize = resolveComponentSize(componentSize, size)
   return (
     <input
       {...props}
       ref={ref}
       type={type}
-      className={cn('ui-input', inputStyles, inputSizeStyles[size], className)}
+      className={cn(
+        'ui-input',
+        inputStyles,
+        inputSizeStyles[resolvedSize],
+        className,
+      )}
       value={value}
       defaultValue={defaultValue}
       onChange={(event) => onChange?.(event.currentTarget.value)}
@@ -227,7 +237,7 @@ export type AutoCompleteProps = Omit<
   options: AutoCompleteOption[]
   value?: string
   defaultValue?: string
-  size?: 'default' | 'small'
+  size?: ControlSize
   onChange?: (value: string) => void
   label?: string
 }
@@ -238,7 +248,7 @@ export const AutoComplete = forwardRef<HTMLInputElement, AutoCompleteProps>(
       options,
       value,
       defaultValue,
-      size = 'default',
+      size,
       onChange,
       label = '自动完成',
       className,
@@ -246,6 +256,8 @@ export const AutoComplete = forwardRef<HTMLInputElement, AutoCompleteProps>(
     },
     ref,
   ) {
+    const { componentSize } = useConfig()
+    const resolvedSize = resolveComponentSize(componentSize, size)
     const id = useId()
     const [focused, setFocused] = useState(false)
     const [internalValue, setInternalValue] = useState(defaultValue ?? '')
@@ -270,7 +282,7 @@ export const AutoComplete = forwardRef<HTMLInputElement, AutoCompleteProps>(
           className={cn(
             'ui-input',
             inputStyles,
-            inputSizeStyles[size],
+            inputSizeStyles[resolvedSize],
             className,
           )}
           value={value === undefined ? internalValue : value}
@@ -319,6 +331,7 @@ export type CascaderProps = {
   'aria-invalid'?: boolean
   'aria-labelledby'?: string
   disabled?: boolean
+  size?: ControlSize
   className?: string
 }
 
@@ -344,8 +357,11 @@ export function Cascader({
   'aria-invalid': ariaInvalid,
   'aria-labelledby': ariaLabelledBy,
   disabled,
+  size,
   className,
 }: CascaderProps) {
+  const { componentSize } = useConfig()
+  const resolvedSize = resolveComponentSize(componentSize, size)
   const [internal, setInternal] = useState(defaultValue)
   const path = value ?? internal
   const selects: ReactNode[] = []
@@ -361,7 +377,7 @@ export function Cascader({
     selects.push(
       <select
         key={depth}
-        className="ui-select ui-cascader__select"
+        className={`ui-select ui-input--${resolvedSize} ui-cascader__select`}
         id={depth === 0 ? id : undefined}
         name={depth === 0 ? name : undefined}
         required={depth === 0 ? required : undefined}

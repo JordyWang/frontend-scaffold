@@ -41,8 +41,9 @@ export type {
   AppProps,
 } from './app'
 export { ConfigProvider } from './config-provider'
-export { useConfig } from './config-context'
+export { resolveComponentSize, useConfig } from './config-context'
 export type {
+  ControlSize,
   ConfigContextValue,
   ConfigProviderProps,
   ConfigProviderTheme,

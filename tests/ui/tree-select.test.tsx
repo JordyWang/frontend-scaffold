@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { FormField, TreeSelect } from '@/shared/ui'
+import { ConfigProvider, FormField, TreeSelect } from '@/shared/ui'
 
 const treeData = [
   {
@@ -16,6 +16,17 @@ const treeData = [
 ]
 
 describe('TreeSelect', () => {
+  it('applies the provider size to the trigger', () => {
+    render(
+      <ConfigProvider componentSize="large">
+        <TreeSelect aria-label="大号树选择" treeData={treeData} />
+      </ConfigProvider>,
+    )
+    expect(screen.getByRole('combobox', { name: '大号树选择' })).toHaveClass(
+      'ui-tree-select--large',
+    )
+  })
+
   it('opens with keyboard focus, navigates branches, selects and restores focus', () => {
     const onChange = vi.fn()
     render(<TreeSelect treeData={treeData} onChange={onChange} />)
