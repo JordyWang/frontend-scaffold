@@ -83,6 +83,28 @@ describe('Ant Design-inspired shared components', () => {
     expect(screen.getByText('当前页面')).toHaveAttribute('aria-current', 'page')
   })
 
+  it('keeps breadcrumb text inert and activates only actionable items', () => {
+    const onClick = vi.fn()
+    render(
+      <Breadcrumb
+        items={[
+          { title: '纯文本' },
+          { title: '跳转', href: '#target', onClick },
+          { title: '执行', onClick },
+          { title: '不可用', href: '/blocked', disabled: true },
+          { title: '当前页' },
+        ]}
+      />,
+    )
+    expect(screen.getByText('纯文本')).not.toHaveAttribute('role', 'button')
+    expect(screen.queryByRole('button', { name: '纯文本' })).toBeNull()
+    expect(screen.getByText('不可用')).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.queryByRole('link', { name: '不可用' })).toBeNull()
+    fireEvent.click(screen.getByRole('link', { name: '跳转' }))
+    fireEvent.click(screen.getByRole('button', { name: '执行' }))
+    expect(onClick).toHaveBeenCalledTimes(2)
+  })
+
   it('pauses carousel rotation when focus enters and resumes on request', () => {
     vi.useFakeTimers()
     try {

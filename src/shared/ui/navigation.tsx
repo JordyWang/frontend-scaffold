@@ -16,6 +16,12 @@ export type BreadcrumbProps = {
   className?: string
 }
 
+const breadcrumbItemStyles =
+  'inline-flex min-h-11 max-w-full items-center rounded-[var(--radius-sm)] px-2 py-2 leading-[1.4] text-inherit no-underline'
+
+const breadcrumbActionStyles =
+  'touch-manipulation cursor-pointer border-0 bg-transparent hover:bg-accent hover:text-accent-foreground'
+
 /** A semantic breadcrumb trail with touch-sized links and a named landmark. */
 export function Breadcrumb({
   items,
@@ -24,45 +30,57 @@ export function Breadcrumb({
   className,
 }: BreadcrumbProps) {
   return (
-    <nav aria-label={label} className={cn('ui-breadcrumb', className)}>
-      <ol className="ui-breadcrumb__list">
+    <nav
+      aria-label={label}
+      className={cn('text-sm text-muted-foreground', className)}
+    >
+      <ol className="m-0 flex list-none flex-wrap items-center gap-1 p-0">
         {items.map((item, index) => {
           const current = index === items.length - 1
           const key = item.key ?? String(index)
           return (
-            <li key={key} className="ui-breadcrumb__item">
+            <li key={key} className="inline-flex min-w-0 items-center gap-1">
               {current ? (
-                <span aria-current="page" className="ui-breadcrumb__current">
+                <span
+                  aria-current="page"
+                  className={cn(
+                    breadcrumbItemStyles,
+                    'font-semibold text-foreground',
+                  )}
+                >
+                  {item.title}
+                </span>
+              ) : item.disabled ? (
+                <span
+                  aria-disabled="true"
+                  className={cn(breadcrumbItemStyles, 'opacity-50')}
+                >
                   {item.title}
                 </span>
               ) : item.href ? (
                 <a
-                  className={cn(
-                    'ui-breadcrumb__link',
-                    item.disabled && 'ui-breadcrumb__link--disabled',
-                  )}
-                  href={item.disabled ? undefined : item.href}
-                  aria-disabled={item.disabled || undefined}
-                  onClick={
-                    item.disabled
-                      ? (event) => event.preventDefault()
-                      : undefined
-                  }
+                  className={cn(breadcrumbItemStyles, breadcrumbActionStyles)}
+                  href={item.href}
+                  onClick={() => item.onClick?.()}
                 >
                   {item.title}
                 </a>
-              ) : (
+              ) : item.onClick ? (
                 <button
                   type="button"
-                  className="ui-breadcrumb__link"
-                  disabled={item.disabled}
+                  className={cn(breadcrumbItemStyles, breadcrumbActionStyles)}
                   onClick={item.onClick}
                 >
                   {item.title}
                 </button>
+              ) : (
+                <span className={breadcrumbItemStyles}>{item.title}</span>
               )}
               {!current && (
-                <span className="ui-breadcrumb__separator" aria-hidden="true">
+                <span
+                  className="select-none text-muted-foreground"
+                  aria-hidden="true"
+                >
                   {separator}
                 </span>
               )}

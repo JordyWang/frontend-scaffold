@@ -128,7 +128,10 @@ export function ThemeScope({
         data-ui-status-success={tokens?.success ? '' : undefined}
         data-ui-status-warning={tokens?.warning ? '' : undefined}
         data-ui-status-error={tokens?.error ? '' : undefined}
-        className={cn('ui-theme-scope', className)}
+        className={cn(
+          'ui-theme-scope bg-background text-foreground',
+          className,
+        )}
         style={{ ...tokenStyle, ...style }}
         {...props}
       />
