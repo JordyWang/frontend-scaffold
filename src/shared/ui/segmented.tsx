@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { useConfig } from './config-context'
 
 export type SegmentedOption = {
   value: string
@@ -38,7 +39,7 @@ export function Segmented({
   value,
   defaultValue,
   onChange,
-  size = 'default',
+  size,
   block = false,
   disabled = false,
   name,
@@ -51,6 +52,14 @@ export function Segmented({
   className,
   ...props
 }: SegmentedProps) {
+  const { componentSize } = useConfig()
+  const resolvedSize =
+    size ??
+    (componentSize === 'small'
+      ? 'small'
+      : componentSize === 'large'
+        ? 'large'
+        : 'default')
   const generatedName = useId()
   const fallback = options.find((option) => !option.disabled)?.value
   const [internalValue, setInternalValue] = useState(
@@ -69,7 +78,7 @@ export function Segmented({
       {...props}
       className={cn(
         'ui-segmented',
-        `ui-segmented--${size}`,
+        `ui-segmented--${resolvedSize}`,
         block && 'ui-segmented--block',
         className,
       )}

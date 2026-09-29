@@ -5,11 +5,31 @@ import {
   Form,
   FormField,
   FormItem,
+  ConfigProvider,
+  Mentions,
   PasswordInput,
   SearchInput,
 } from '@/shared/ui'
 
 describe('input variants', () => {
+  it('inherits the global component size for input variants and mentions', () => {
+    render(
+      <ConfigProvider componentSize="large">
+        <SearchInput aria-label="大号搜索" />
+        <PasswordInput aria-label="大号密码" />
+        <Mentions aria-label="大号提及" options={[]} />
+      </ConfigProvider>,
+    )
+
+    expect(screen.getByRole('searchbox', { name: '大号搜索' })).toHaveClass(
+      'min-h-12',
+    )
+    expect(screen.getByLabelText('大号密码')).toHaveClass('min-h-12')
+    expect(screen.getByRole('combobox', { name: '大号提及' })).toHaveClass(
+      'py-3',
+    )
+  })
+
   it('searches by Enter and button, then clears without submitting a parent form', () => {
     const onSearch = vi.fn()
     const onValueChange = vi.fn()

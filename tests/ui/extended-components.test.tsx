@@ -11,6 +11,7 @@ import {
   Collapse,
   Checkbox,
   ColorPicker,
+  ConfigProvider,
   Descriptions,
   DatePicker,
   Dropdown,
@@ -344,6 +345,20 @@ describe('Ant Design-inspired shared components', () => {
     expect(screen.getByRole('radio', { name: '列表' })).toBeChecked()
     fireEvent.click(screen.getByRole('radio', { name: '网格' }))
     expect(screen.getByRole('radio', { name: '列表' })).toBeChecked()
+  })
+
+  it('applies the provider size to segmented controls', () => {
+    render(
+      <ConfigProvider componentSize="large">
+        <Segmented
+          aria-label="大号视图"
+          options={[{ value: 'list', label: '列表' }]}
+        />
+      </ConfigProvider>,
+    )
+    expect(screen.getByRole('group', { name: '大号视图' })).toHaveClass(
+      'ui-segmented--large',
+    )
   })
 
   it('supports rating selection, keyboard navigation and clearing', () => {

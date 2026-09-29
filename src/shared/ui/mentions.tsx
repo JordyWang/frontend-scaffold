@@ -11,6 +11,7 @@ import {
   type TextareaHTMLAttributes,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { useConfig } from './config-context'
 import { inputSizeStyles, inputStyles } from './tailwind-styles'
 import { Portal } from './portal'
 
@@ -30,7 +31,7 @@ export type MentionsProps = Omit<
   onChange?: (value: string) => void
   onSelect?: (option: MentionOption) => void
   prefix?: string
-  size?: 'default' | 'small'
+  size?: 'default' | 'small' | 'large'
   invalid?: boolean
 }
 
@@ -61,7 +62,7 @@ export const Mentions = forwardRef<HTMLTextAreaElement, MentionsProps>(
       onChange,
       onSelect,
       prefix = '@',
-      size = 'default',
+      size,
       invalid = false,
       disabled = false,
       readOnly = false,
@@ -79,6 +80,14 @@ export const Mentions = forwardRef<HTMLTextAreaElement, MentionsProps>(
     },
     forwardedRef,
   ) {
+    const { componentSize } = useConfig()
+    const resolvedSize =
+      size ??
+      (componentSize === 'small'
+        ? 'small'
+        : componentSize === 'large'
+          ? 'large'
+          : 'default')
     const [internalValue, setInternalValue] = useState(defaultValue)
     const currentValue = value ?? internalValue
     const [focused, setFocused] = useState(false)
@@ -281,7 +290,7 @@ export const Mentions = forwardRef<HTMLTextAreaElement, MentionsProps>(
           aria-invalid={invalid || ariaInvalid || undefined}
           className={cn(
             inputStyles,
-            inputSizeStyles[size],
+            inputSizeStyles[resolvedSize],
             'min-h-28 resize-y focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20',
             className,
           )}

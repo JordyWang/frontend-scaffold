@@ -1,14 +1,16 @@
 import { forwardRef, useRef, useState, type InputHTMLAttributes } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { useConfig } from './config-context'
 import { Icon } from './icon'
 import {
   affixActionStyles,
   affixInputStyles,
   affixShellStyles,
+  inputSizeStyles,
   spinnerStyles,
 } from './tailwind-styles'
 
-type InputSize = 'default' | 'small'
+type InputSize = 'default' | 'small' | 'large'
 
 export type SearchInputProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
@@ -37,7 +39,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
       allowClear = false,
       loading = false,
       invalid = false,
-      size = 'default',
+      size,
       searchLabel = '搜索',
       clearLabel = '清空搜索',
       disabled = false,
@@ -48,6 +50,14 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
     },
     ref,
   ) {
+    const { componentSize } = useConfig()
+    const resolvedSize =
+      size ??
+      (componentSize === 'small'
+        ? 'small'
+        : componentSize === 'large'
+          ? 'large'
+          : 'default')
     const [internalValue, setInternalValue] = useState(defaultValue)
     const currentValue = value ?? internalValue
     const inputRef = useRef<HTMLInputElement | null>(null)
@@ -82,7 +92,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           aria-invalid={isInvalid || undefined}
           className={cn(
             affixInputStyles,
-            size === 'small' && 'py-2',
+            inputSizeStyles[resolvedSize],
             '[&::-webkit-search-cancel-button]:hidden',
           )}
           onChange={(event) => change(event.target.value)}
@@ -154,7 +164,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
       onVisibleChange,
       visibilityToggle = true,
       invalid = false,
-      size = 'default',
+      size,
       disabled = false,
       className,
       'aria-invalid': ariaInvalid,
@@ -162,6 +172,14 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
     },
     ref,
   ) {
+    const { componentSize } = useConfig()
+    const resolvedSize =
+      size ??
+      (componentSize === 'small'
+        ? 'small'
+        : componentSize === 'large'
+          ? 'large'
+          : 'default')
     const [internalVisible, setInternalVisible] = useState(defaultVisible)
     const isVisible = visible ?? internalVisible
     const isInvalid = invalid || ariaInvalid === true || ariaInvalid === 'true'
@@ -178,7 +196,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
           type={isVisible ? 'text' : 'password'}
           disabled={disabled}
           aria-invalid={isInvalid || undefined}
-          className={cn(affixInputStyles, size === 'small' && 'py-2')}
+          className={cn(affixInputStyles, inputSizeStyles[resolvedSize])}
         />
         {visibilityToggle && (
           <button
