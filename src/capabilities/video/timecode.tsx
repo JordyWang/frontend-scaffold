@@ -8,7 +8,7 @@ export function Timecode({
   ...props
 }: { seconds: number } & HTMLAttributes<HTMLTimeElement>) {
   return (
-    <time className={cn('ui-video-timecode', className)} {...props}>
+    <time className={cn('tabular-nums', className)} {...props}>
       {formatTimecode(seconds)}
     </time>
   )

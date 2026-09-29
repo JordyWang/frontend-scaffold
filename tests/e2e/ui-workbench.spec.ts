@@ -1364,6 +1364,26 @@ test('audio player supports playback, seeking and error retry', async ({
   ).toBeVisible()
 })
 
+test('media controls fit within narrow player cards', async ({ page }) => {
+  await page.goto('/__ui')
+  for (const width of [360, 390]) {
+    await page.setViewportSize({ width, height: 844 })
+    for (const name of ['视频能力示例', '音频能力示例']) {
+      const player = page.getByRole('region', { name })
+      const playerBox = await player.boundingBox()
+      expect(playerBox).not.toBeNull()
+      for (const button of await player.getByRole('button').all()) {
+        const buttonBox = await button.boundingBox()
+        expect(buttonBox).not.toBeNull()
+        expect(buttonBox!.x).toBeGreaterThanOrEqual(playerBox!.x - 1)
+        expect(buttonBox!.x + buttonBox!.width).toBeLessThanOrEqual(
+          playerBox!.x + playerBox!.width + 1,
+        )
+      }
+    }
+  }
+})
+
 test('mock workflow connects upload, task retry, cancellation and media preview', async ({
   page,
 }) => {

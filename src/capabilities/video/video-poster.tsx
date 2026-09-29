@@ -13,7 +13,10 @@ export function VideoPoster({
 }: VideoPosterProps) {
   return (
     <img
-      className={cn('ui-video-poster', className)}
+      className={cn(
+        'block max-w-full rounded-[var(--radius-md)] object-cover',
+        className,
+      )}
       alt={alt}
       loading="lazy"
       {...props}

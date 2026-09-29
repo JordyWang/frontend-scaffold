@@ -168,15 +168,21 @@ export function VideoControls({
     : '无法获取时长'
 
   return (
-    <div className={cn('ui-video-controls', className)} aria-label="视频控制栏">
-      <div className="ui-video-controls__progress">
+    <div
+      className={cn(
+        'grid gap-[var(--space-xs)] border-t border-border bg-card px-[var(--space-sm)] pt-[var(--space-xs)] pb-[max(var(--space-xs),env(safe-area-inset-bottom))]',
+        className,
+      )}
+      aria-label="视频控制栏"
+    >
+      <div className="relative flex min-h-11 items-center">
         <div
-          className="ui-video-controls__buffered"
+          className="pointer-events-none absolute start-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-border"
           aria-hidden="true"
           style={{ width: `${formatPercent(buffered, duration)}%` }}
         />
         <input
-          className="ui-video-controls__seek"
+          className="relative z-[1] min-h-11 w-full cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-[0.55]"
           type="range"
           min={0}
           max={duration || 0}
@@ -187,8 +193,8 @@ export function VideoControls({
           aria-label={`视频进度，当前 ${progressLabel}`}
         />
       </div>
-      <div className="ui-video-controls__row">
-        <div className="ui-video-controls__cluster">
+      <div className="flex items-center justify-between gap-[var(--space-sm)] max-[480px]:flex-wrap max-[480px]:items-start">
+        <div className="flex min-w-0 items-center gap-0.5 max-[480px]:w-full max-[480px]:justify-between">
           <Button
             size="icon"
             variant="ghost"
@@ -214,13 +220,16 @@ export function VideoControls({
           >
             <SeekIcon direction="forward" />
           </Button>
-          <span className="ui-video-controls__time" aria-label="播放时间">
+          <span
+            className="ms-[var(--space-xs)] whitespace-nowrap text-sm text-muted-foreground tabular-nums max-[480px]:self-center"
+            aria-label="播放时间"
+          >
             <Timecode seconds={currentTime} />
             <span aria-hidden="true"> / </span>
             <Timecode seconds={duration} />
           </span>
         </div>
-        <div className="ui-video-controls__cluster">
+        <div className="flex min-w-0 items-center gap-0.5 max-[480px]:w-full max-[480px]:justify-end">
           <Button
             size="icon"
             variant="ghost"
@@ -230,7 +239,7 @@ export function VideoControls({
           >
             <VolumeIcon muted={muted} />
           </Button>
-          <label className="ui-video-controls__volume">
+          <label className="relative z-[1] flex min-h-11 w-[5.5rem] items-center max-[480px]:hidden">
             <span className="sr-only">音量</span>
             <input
               type="range"
@@ -240,6 +249,7 @@ export function VideoControls({
               value={muted ? 0 : volume}
               onChange={(event) => onVolumeChange(Number(event.target.value))}
               aria-label="音量"
+              className="w-full accent-primary"
             />
           </label>
           <Button

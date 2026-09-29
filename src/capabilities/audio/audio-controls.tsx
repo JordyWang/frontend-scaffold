@@ -92,8 +92,8 @@ export function AudioControls({
         onChange={(event) => onSeek(Number(event.target.value))}
         aria-label={`音频进度，当前 ${formatAudioTimecode(currentTime)}`}
       />
-      <div className="flex items-center justify-between gap-[var(--space-xs)]">
-        <div className="flex items-center gap-[var(--space-xs)]">
+      <div className="flex items-center justify-between gap-[var(--space-xs)] max-[480px]:flex-wrap">
+        <div className="flex items-center gap-[var(--space-xs)] max-[480px]:w-full max-[480px]:justify-between">
           <Button
             size="icon"
             variant="ghost"
@@ -128,7 +128,7 @@ export function AudioControls({
             {formatAudioTimecode(currentTime)} / {formatAudioTimecode(duration)}
           </span>
         </div>
-        <div className="flex items-center gap-[var(--space-xs)]">
+        <div className="flex items-center gap-[var(--space-xs)] max-[480px]:w-full max-[480px]:justify-end">
           <Button
             size="icon"
             variant="ghost"

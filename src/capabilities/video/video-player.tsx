@@ -67,14 +67,17 @@ export function VideoPlayer({
 
   return (
     <section
-      className={cn('ui-video-player', className)}
+      className={cn(
+        'overflow-hidden rounded-[var(--radius-lg)] border border-border bg-card text-card-foreground',
+        className,
+      )}
       aria-label={title}
       data-status={status}
     >
-      <div className="ui-video-player__stage">
+      <div className="relative aspect-video overflow-hidden bg-slate-950">
         <video
           ref={videoRef}
-          className="ui-video-player__media"
+          className="block size-full cursor-pointer object-contain"
           tabIndex={0}
           playsInline
           preload="metadata"
@@ -94,7 +97,7 @@ export function VideoPlayer({
           ))}
         </video>
         <div
-          className="ui-video-player__status"
+          className="pointer-events-none absolute top-[var(--space-sm)] start-[var(--space-sm)] max-w-[calc(100%-1rem)] rounded-full bg-slate-900/80 px-[0.625rem] py-[0.35rem] text-[0.8125rem] leading-[1.25] text-slate-50"
           aria-label={`视频状态：${statusLabels[status]}`}
           aria-live="polite"
           role="status"
@@ -102,8 +105,13 @@ export function VideoPlayer({
           {statusLabels[status]}
         </div>
         {status === 'error' && (
-          <div className="ui-video-player__error" role="alert">
-            <p>{error?.message ?? '视频播放失败，请重试'}</p>
+          <div
+            className="absolute top-1/2 left-1/2 w-[min(calc(100%-2rem),24rem)] -translate-x-1/2 -translate-y-1/2 rounded-[var(--radius-md)] border border-destructive bg-slate-900/95 p-[var(--space-md)] text-center text-slate-50"
+            role="alert"
+          >
+            <p className="mt-0 mb-[var(--space-sm)] leading-normal">
+              {error?.message ?? '视频播放失败，请重试'}
+            </p>
             <Button variant="outline" onClick={reload}>
               重试播放
             </Button>
