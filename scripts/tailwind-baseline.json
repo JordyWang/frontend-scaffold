@@ -27,7 +27,6 @@
     "src/shared/ui/choice.tsx",
     "src/shared/ui/color-picker.tsx",
     "src/shared/ui/container.tsx",
-    "src/shared/ui/data-display.tsx",
     "src/shared/ui/data-input.tsx",
     "src/shared/ui/dialog.tsx",
     "src/shared/ui/disclosure.tsx",
