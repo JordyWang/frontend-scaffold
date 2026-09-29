@@ -4,6 +4,7 @@ import {
   App,
   Button,
   ConfigProvider,
+  Dialog,
   getPrefixCls,
   Input,
   Select,
@@ -95,6 +96,26 @@ describe('App and ConfigProvider boundaries', () => {
     expect(screen.getByRole('combobox', { name: '全局选择' })).toHaveClass(
       'ui-input--large',
     )
+  })
+
+  it('mounts popup content in the configured container', async () => {
+    const popupRoot = document.createElement('div')
+    document.body.appendChild(popupRoot)
+
+    render(
+      <ConfigProvider getPopupContainer={() => popupRoot}>
+        <Dialog open title="自定义容器">
+          弹层内容
+        </Dialog>
+      </ConfigProvider>,
+    )
+
+    await waitFor(() =>
+      expect(popupRoot).toContainElement(
+        screen.getByRole('dialog', { name: '自定义容器' }),
+      ),
+    )
+    popupRoot.remove()
   })
 
   it('exposes app-level message, notification and modal APIs', () => {
