@@ -239,7 +239,10 @@ export function MockWorkflowDemo() {
                   source={{ src: preview.src, type: 'audio/wav' }}
                 />
               ) : (
-                <p role="status" className="ui-data-status">
+                <p
+                  role="status"
+                  className="rounded-[var(--radius-md)] border border-border p-6 text-muted-foreground"
+                >
                   {task.phase === 'failed' || task.phase === 'cancelled'
                     ? '任务未完成，请重试后预览。'
                     : '任务完成后可预览媒体结果。'}

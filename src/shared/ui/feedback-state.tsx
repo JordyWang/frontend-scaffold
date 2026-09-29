@@ -11,7 +11,10 @@ export type ErrorStateProps = {
 
 export function LoadingState({ label = '正在加载…' }: { label?: string }) {
   return (
-    <p role="status" className="ui-data-status">
+    <p
+      role="status"
+      className="rounded-[var(--radius-md)] border border-border p-6 text-muted-foreground"
+    >
       {label}
     </p>
   )
