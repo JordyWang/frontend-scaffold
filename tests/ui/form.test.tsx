@@ -11,6 +11,32 @@ function deferred<T>() {
 }
 
 describe('Form coordinator', () => {
+  it('focuses the first invalid control after submit validation fails', async () => {
+    render(
+      <Form>
+        <FormItem
+          name="name"
+          label="名称"
+          rules={[{ required: true, message: '请输入名称' }]}
+          control={<input />}
+        />
+        <FormItem
+          name="email"
+          label="邮箱"
+          rules={[{ required: true, message: '请输入邮箱' }]}
+          control={<input />}
+        />
+        <button type="submit">提交</button>
+      </Form>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '提交' }))
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', { name: '名称' })).toHaveFocus(),
+    )
+    expect(screen.getByText('请输入名称')).toBeInTheDocument()
+  })
+
   it('discards stale asynchronous field errors after a newer value validates', async () => {
     const oldResult = deferred<string | undefined>()
     const validator = vi.fn((value: unknown) =>

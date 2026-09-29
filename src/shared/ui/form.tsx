@@ -110,7 +110,9 @@ export function Form<TValues extends FormValues = FormValues>({
   const [internalValues, setInternalValues] =
     useState<Partial<TValues>>(initialValues)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [focusErrorRequest, setFocusErrorRequest] = useState(0)
   const valuesRef = useRef<Partial<TValues>>(controlledValues ?? internalValues)
+  const formRef = useRef<HTMLFormElement>(null)
   const fieldsRef = useRef(new Map<string, FieldRegistration<TValues>>())
   const valuesVersionRef = useRef(0)
   const fieldsVersionRef = useRef(0)
@@ -120,6 +122,14 @@ export function Form<TValues extends FormValues = FormValues>({
     valuesRef.current = controlledValues
     valuesVersionRef.current += 1
   }, [controlledValues])
+
+  useEffect(() => {
+    if (focusErrorRequest === 0) return
+    const firstInvalid = formRef.current?.querySelector<HTMLElement>(
+      '[aria-invalid="true"]',
+    )
+    firstInvalid?.focus({ preventScroll: true })
+  }, [errors, focusErrorRequest])
 
   const setValues = useCallback(
     (changedValues: Partial<TValues>) => {
@@ -301,6 +311,7 @@ export function Form<TValues extends FormValues = FormValues>({
       nextValues = await validateFields()
     } catch (error) {
       if (error instanceof FormValidationCancelled) return
+      setFocusErrorRequest((request) => request + 1)
       onFinishFailed?.(
         (error as Record<string, string>) ?? {},
         valuesRef.current,
@@ -325,6 +336,7 @@ export function Form<TValues extends FormValues = FormValues>({
     <FormContext.Provider value={contextValue}>
       <form
         {...props}
+        ref={formRef}
         className={cn('ui-form', `ui-form--${layout}`, className)}
         noValidate
         onSubmit={handleSubmit}
