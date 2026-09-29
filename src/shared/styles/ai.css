@@ -245,9 +245,6 @@
   gap: var(--space-sm);
   color: var(--destructive);
 }
-.ui-ai-message__error .ui-button {
-  color: var(--foreground);
-}
 .ui-ai-welcome {
   display: grid;
   align-content: center;

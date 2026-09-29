@@ -47,12 +47,22 @@ export function UploadProgress({
         </p>
       )}
       {status === 'uploading' && onCancel && (
-        <Button variant="outline" size="small" onClick={onCancel}>
+        <Button
+          variant="outline"
+          size="small"
+          className="justify-self-start"
+          onClick={onCancel}
+        >
           取消上传
         </Button>
       )}
       {(status === 'error' || status === 'cancelled') && onRetry && (
-        <Button variant="outline" size="small" onClick={onRetry}>
+        <Button
+          variant="outline"
+          size="small"
+          className="justify-self-start"
+          onClick={onRetry}
+        >
           重试上传
         </Button>
       )}

@@ -21,8 +21,6 @@
     "src/capabilities/video/video-poster.tsx",
     "src/pages/DevWorkbenchPage.tsx",
     "src/pages/MockWorkflowDemo.tsx",
-    "src/shared/ui/button.tsx",
-    "src/shared/ui/card.tsx",
     "src/shared/ui/color-picker.tsx",
     "src/shared/ui/container.tsx",
     "src/shared/ui/data-input.tsx",

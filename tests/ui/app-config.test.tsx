@@ -82,11 +82,13 @@ describe('App and ConfigProvider boundaries', () => {
       </ConfigProvider>,
     )
 
-    expect(screen.getByRole('button', { name: '全局按钮' })).toHaveClass(
-      'ui-button--large',
+    expect(screen.getByRole('button', { name: '全局按钮' })).toHaveAttribute(
+      'data-ui-size',
+      'large',
     )
-    expect(screen.getByRole('button', { name: '小号按钮' })).toHaveClass(
-      'ui-button--small',
+    expect(screen.getByRole('button', { name: '小号按钮' })).toHaveAttribute(
+      'data-ui-size',
+      'small',
     )
     expect(screen.getByRole('textbox', { name: '全局输入' })).toHaveClass(
       'min-h-12',

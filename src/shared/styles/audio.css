@@ -83,10 +83,6 @@
   width: 100%;
   accent-color: var(--primary);
 }
-.ui-audio-controls__cluster .ui-button--icon span {
-  font-size: 0.75rem;
-  font-weight: 700;
-}
 @media (max-width: 480px) {
   .ui-audio-controls__volume {
     display: none;

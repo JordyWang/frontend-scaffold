@@ -44,6 +44,7 @@ export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
               <Button
                 size="small"
                 variant="outline"
+                className="text-foreground"
                 onClick={() => onRetry(message.id)}
               >
                 重试

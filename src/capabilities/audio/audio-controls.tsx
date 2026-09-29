@@ -100,6 +100,7 @@ export function AudioControls({
           <Button
             size="icon"
             variant="ghost"
+            className="[&>span]:text-xs [&>span]:font-bold"
             onClick={() => onSeekBy(-10)}
             aria-label="后退 10 秒"
           >
@@ -108,6 +109,7 @@ export function AudioControls({
           <Button
             size="icon"
             variant="ghost"
+            className="[&>span]:text-xs [&>span]:font-bold"
             onClick={() => onSeekBy(10)}
             aria-label="前进 10 秒"
           >

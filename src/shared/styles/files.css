@@ -93,6 +93,3 @@
   height: 0.75rem;
   accent-color: var(--primary);
 }
-.ui-upload-progress > .ui-button {
-  justify-self: start;
-}

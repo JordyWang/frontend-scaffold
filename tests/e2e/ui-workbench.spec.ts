@@ -218,7 +218,7 @@ test('design system controls support keyboard, touch and local themes', async ({
     nestedScope.getByRole('textbox', { name: '继承输入' }),
   ).toHaveCSS('height', '48px')
   await expect(
-    nestedScope.locator('.ui-card').filter({ hasText: '继承卡片' }),
+    nestedScope.locator('[data-ui-card]').filter({ hasText: '继承卡片' }),
   ).toHaveCSS('border-top-left-radius', '16px')
   const tokenDialogTrigger = nestedScope.getByRole('button', {
     name: '打开组件 Token 对话框',

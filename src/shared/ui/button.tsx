@@ -4,7 +4,7 @@ import { useConfig } from './config-context'
 import { spinnerStyles } from './tailwind-styles'
 
 const buttonStyles =
-  'inline-flex min-h-[max(44px,var(--ui-button-height))] min-w-11 cursor-pointer items-center justify-center gap-[var(--space-sm)] rounded-[var(--ui-button-radius)] border border-transparent px-4 py-2.5 font-semibold leading-tight transition-[background-color,border-color,opacity] duration-180 ease-in-out enabled:hover:opacity-90 enabled:active:opacity-80 disabled:cursor-not-allowed disabled:opacity-[0.55]'
+  'inline-flex min-h-[max(44px,var(--ui-button-height))] min-w-11 touch-manipulation cursor-pointer items-center justify-center gap-[var(--space-sm)] rounded-[var(--ui-button-radius)] border border-transparent px-4 py-2.5 font-semibold leading-tight transition-[background-color,border-color,opacity] duration-180 ease-in-out enabled:hover:opacity-90 enabled:active:opacity-80 disabled:cursor-not-allowed disabled:opacity-[0.55]'
 
 const variantStyles = {
   primary:
@@ -56,10 +56,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         type={type}
         disabled={disabled || loading}
         aria-busy={loading || undefined}
+        data-ui-button=""
+        data-ui-size={resolvedSize}
+        data-ui-variant={variant}
         className={cn(
-          'ui-button',
-          `ui-button--${variant}`,
-          `ui-button--${resolvedSize}`,
           buttonStyles,
           variantStyles[variant],
           sizeStyles[resolvedSize],
@@ -67,12 +67,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         {...props}
       >
-        {loading && (
-          <span
-            className={cn('ui-spinner', spinnerStyles)}
-            aria-hidden="true"
-          />
-        )}
+        {loading && <span className={spinnerStyles} aria-hidden="true" />}
         {children}
       </button>
     )
