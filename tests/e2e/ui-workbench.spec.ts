@@ -800,6 +800,43 @@ test('tour highlights targets and supports keyboard, close and touch navigation'
   await expect(page.getByRole('dialog', { name: '发布内容' })).toHaveCount(0)
 })
 
+test('qrcode renders in the design system and supports expired refresh on touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const qr = preview.locator('[data-qrcode-type="svg"]')
+  await expect(qr).toBeVisible()
+  await expect(
+    qr.getByRole('img', { name: 'Ant Design 文档二维码' }),
+  ).toBeVisible()
+
+  const expire = preview.getByRole('button', { name: '模拟失效' })
+  if (testInfo.project.name.startsWith('mobile-')) await expire.tap()
+  else await expire.click()
+  await expect(preview.getByText('二维码已失效')).toBeVisible()
+  const refresh = preview.getByRole('button', { name: '刷新' })
+  if (testInfo.project.name.startsWith('mobile-')) await refresh.tap()
+  else await refresh.click()
+  await expect(preview.getByText('二维码已失效')).toHaveCount(0)
+})
+
+test('listy keeps a bounded DOM window while scrolling on narrow layouts', async ({
+  page,
+}) => {
+  await page.goto('/__ui')
+  const list = page.getByRole('list', { name: '虚拟任务列表' })
+  await expect(list).toBeVisible()
+  const initialCount = await list.getByRole('listitem').count()
+  expect(initialCount).toBeLessThan(20)
+  await list.evaluate((element) => {
+    element.scrollTop = 52 * 50
+    element.dispatchEvent(new Event('scroll', { bubbles: true }))
+  })
+  await expect(list.getByText('虚拟列表项目 51')).toBeVisible()
+  expect(await list.getByRole('listitem').count()).toBeLessThan(20)
+})
+
 test('tree select searches collapsed branches with keyboard and touch', async ({
   page,
 }, testInfo) => {

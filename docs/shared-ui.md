@@ -30,8 +30,10 @@
 | Tabs                            | `items`、`value` / `defaultValue`、`onValueChange`、`label`                                                                                      | `items` 含 value、label、content、disabled；窄屏横向滚动                                                      |
 | Pagination                      | `page`、`pageSize`、`total`、`onPageChange`、`mode`                                                                                              | `mode` 为 pages / load-more；页码从 1 开始                                                                    |
 | List                            | `items`、`getKey`、`renderItem`、`loading`、`error`、`onRetry`、`emptyTitle`、`label`                                                            | 语义化列表，加载、空和错误状态内置                                                                            |
+| Listy                           | `items`、`getKey`、`renderItem`、`itemHeight`、`height`、`overscan`、`onEndReached`、`loading`、`error`、`label`                                 | 固定行高虚拟列表；只渲染可见窗口，原生滚动和 H5 触控保留，末尾回调避免重复触发                                |
 | Table                           | `columns`、`rows`、`getRowKey`、`caption`、`loading`、`error`、`onRetry`、`emptyTitle`、`renderMobileRow`                                        | 传入 `renderMobileRow` 后，手机展示业务定义的卡片行                                                           |
 | 公共能力                        | `Portal`、`ErrorBoundary`、`Container`、`LoadingState`、`ErrorState`                                                                             | 弹层挂载、异常兜底、响应式容器和统一反馈                                                                      |
+| App / ConfigProvider / Util     | `App`、`useApp()`；`ConfigProvider`、`useConfig()`；`getPrefixCls`、`usePrefixCls`、`warning`、`cx`                                              | 应用级 message / notification / modal API；主题、方向、尺寸、locale 和前缀配置；工具函数不绑定业务            |
 | ThemeScope                      | `mode`、`density`、`tokens`、原生 div 属性                                                                                                       | 局部浅色/深色、品牌 Token、组件 Token 和紧凑预览；`auto` 继承上级主题                                         |
 | Icon / Typography               | `Icon(name, size, label)`；`Typography(as, variant, tone)`                                                                                       | 图标默认装饰性；有语义时传 `label`；标题通过 `as` 保持正确层级                                                |
 | Stack / Flex / Grid / Divider   | `Stack(direction, gap, align, justify, wrap)`；`Flex` 为 Stack 别名；`Grid(minItemWidth, gap)`；`Divider(orientation)`                           | Grid 根据容器宽度自动换列；竖向分隔线仅用于水平布局                                                           |
@@ -49,6 +51,7 @@
 | Alert / Spinner                 | `Alert(title, description, tone, action)`；`Spinner(label, size)`                                                                                | 错误与警告用 alert，其他状态用 status；加载状态有可访问名称                                                   |
 | Spin                            | `spinning`、`delay`、`tip`、`label`、`size`、`fullscreen`                                                                                        | 可包裹局部内容或全屏展示；加载时内容不可操作，延迟用于避免短任务闪烁                                          |
 | Watermark                       | `content`、`image`、`markSize`、`gap`、`offset`、`rotate`、`opacity`、`fontSize`、`onRemove`                                                     | 在内容上重复绘制非交互水印；文字颜色跟随语义变量，图片加载失败时回退文字                                      |
+| QRCode                          | `value`、`size`、`color`、`bgColor`、`bordered`、`errorLevel`、`icon`、`iconSize`、`status`、`statusRender`、`onRefresh`、`type`                 | 支持 SVG / Canvas、真实 QR 模块、加载与失效状态；状态操作和触控目标至少 44px                                  |
 | Tour                            | `steps`、`open`、`current`、`onChange`、`onClose`、`onFinish`、`mask`、`keyboard`、`placement`、`gap`、`scrollIntoViewOptions`                   | 目标高亮、遮罩、左右方向键和 Escape；卡片操作与触控目标至少 44px                                              |
 | Progress / Result               | `Progress(percent, status, type, showInfo)`；`Result(status, title, subTitle, extra)`                                                            | 进度值限制在 0–100 并暴露 progressbar；结果状态提供明确文本和可选操作                                         |
 | Toast / Message / Notification  | `toast(options)`；`message.open/success/warning/error(content)`；`notification.open/success/warning/error({ message, description?, duration? })` | 共用 Provider 和安全区配置；页面不直接依赖 Sonner                                                             |
@@ -114,6 +117,8 @@ Checkbox、Switch 和 RadioGroup 自带可访问标签。需要显示校验错�
 `Masonry.items` 使用 `{ key, content, column?, estimatedHeight?, className? }`。`columns` 接受固定列数或 `{ base, sm, md, lg, xl }`，断点按组件容器宽度计算；默认 1 / 2 / 3 列。`gap` 接受一个像素值或 `[水平, 垂直]`。组件以最短列分配项目，`column` 可固定某项所在列；`onLayoutChange` 返回每项的 `{ key, column }`。动态内容通过 ResizeObserver 重新排布，DOM 顺序和键盘顺序保持 `items` 顺序。
 
 `Watermark` 只作内容来源提示，不作为防截图或保密机制。`image` 支持同源地址、data URL 或允许跨域读取的地址；图片加载或画布导出失败时优先显示 `content`。覆盖层不可接收指针事件，也不进入辅助技术阅读顺序。主题变化会重新生成水印；覆盖层被移除后会恢复，并调用 `onRemove`。
+
+`QRCode` 默认使用 Canvas，也支持 SVG；`value` 采用字节模式编码，`errorLevel` 为 `L` / `M` / `Q` / `H`。`status="loading"` 和 `status="expired"` 会保留二维码容器并覆盖状态层，`onRefresh` 用于失效后的重新获取。
 
 `Tour.steps` 使用 `{ key, target?, title, description?, cover?, placement?, mask?, type? }`。`target` 可传元素或返回元素的函数；目标为空时卡片居中。开启遮罩时目标周围保留高亮区域，遮罩区域可点击关闭；`keyboard` 开启后支持 Escape、左右方向键，步骤切换会调用 `onChange`。`current` / `open` 为受控状态，`onFinish` 和 `onClose` 结束后恢复打开前焦点。
 

@@ -32,6 +32,7 @@ import {
   InputOTP,
   InputNumber,
   Layout,
+  Listy,
   Masonry,
   PasswordInput,
   SearchInput,
@@ -40,6 +41,7 @@ import {
   Popconfirm,
   Popover,
   Progress,
+  QRCode,
   RadioGroup,
   Result,
   Rate,
@@ -92,6 +94,12 @@ const transferItems = [
   { key: 'archived', title: '归档模块', disabled: true },
 ]
 
+const virtualListItems = Array.from({ length: 100 }, (_, index) => ({
+  id: `virtual-${index + 1}`,
+  title: `虚拟列表项目 ${index + 1}`,
+  description: index % 2 === 0 ? '可见窗口内渲染' : '滚动后按需渲染',
+}))
+
 const masonryHeights = ['h-24', 'h-36', 'h-28', 'h-44', 'h-32', 'h-40']
 const demoWatermarkImage = `data:image/svg+xml,${encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="64" viewBox="0 0 120 64"><circle cx="60" cy="32" r="27" fill="none" stroke="#334155" stroke-width="4"/><text x="60" y="38" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#334155">DEMO</text></svg>',
@@ -126,6 +134,9 @@ export function DesignSystemPreview() {
   const [regionLoading, setRegionLoading] = useState(true)
   const [fullscreenLoading, setFullscreenLoading] = useState(false)
   const [watermarkImage, setWatermarkImage] = useState(false)
+  const [qrStatus, setQrStatus] = useState<'active' | 'expired' | 'loading'>(
+    'active',
+  )
   const [tourOpen, setTourOpen] = useState(false)
   const [tourStep, setTourStep] = useState(0)
   const tourTriggerRef = useRef<HTMLButtonElement>(null)
@@ -943,6 +954,91 @@ export function DesignSystemPreview() {
                 <Typography as="p" variant="caption" tone="muted">
                   当前树节点：{treeSelected}
                 </Typography>
+              </Stack>
+            </CardContent>
+          </Card>
+          <Card className="col-span-full">
+            <CardContent>
+              <Stack gap="md">
+                <Stack direction="row" wrap align="center" justify="between">
+                  <Typography as="h3" variant="title">
+                    二维码
+                  </Typography>
+                  <Stack direction="row" gap="sm" wrap>
+                    <Button
+                      variant="outline"
+                      size="small"
+                      onClick={() =>
+                        setQrStatus((current) =>
+                          current === 'active' ? 'expired' : 'active',
+                        )
+                      }
+                    >
+                      {qrStatus === 'active' ? '模拟失效' : '恢复二维码'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="small"
+                      onClick={() => setQrStatus('loading')}
+                    >
+                      模拟加载
+                    </Button>
+                  </Stack>
+                </Stack>
+                <Stack direction="row" gap="lg" wrap align="center">
+                  <QRCode
+                    value="https://ant.design/index-cn"
+                    type="svg"
+                    status={qrStatus}
+                    onRefresh={() => setQrStatus('active')}
+                    aria-label="Ant Design 文档二维码"
+                  />
+                  <Stack gap="sm">
+                    <Typography>
+                      支持 SVG / Canvas、错误级别、图标和状态覆盖。
+                    </Typography>
+                    <Typography variant="caption" tone="muted">
+                      失效状态可通过刷新按钮恢复，触控目标保持至少 44px。
+                    </Typography>
+                  </Stack>
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
+          <Card className="col-span-full">
+            <CardContent>
+              <Stack gap="md">
+                <Stack direction="row" wrap align="center" justify="between">
+                  <Typography as="h3" variant="title">
+                    虚拟列表
+                  </Typography>
+                  <Typography variant="caption" tone="muted">
+                    100 条数据，仅渲染可见行
+                  </Typography>
+                </Stack>
+                <Listy
+                  items={virtualListItems}
+                  itemHeight={52}
+                  height={260}
+                  overscan={4}
+                  label="虚拟任务列表"
+                  getKey={(item) => item.id}
+                  renderItem={(item, index) => (
+                    <div className="flex w-full items-center justify-between gap-3 px-4">
+                      <div className="min-w-0">
+                        <Typography className="truncate">
+                          {item.title}
+                        </Typography>
+                        <Typography variant="caption" tone="muted">
+                          {item.description}
+                        </Typography>
+                      </div>
+                      <Typography variant="caption" tone="muted">
+                        #{index + 1}
+                      </Typography>
+                    </div>
+                  )}
+                />
               </Stack>
             </CardContent>
           </Card>

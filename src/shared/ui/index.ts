@@ -29,6 +29,23 @@ export { LoadingState, ErrorState } from './feedback-state'
 export type { ErrorStateProps } from './feedback-state'
 export { ErrorBoundary } from './error-boundary'
 export type { ErrorBoundaryProps } from './error-boundary'
+export { App } from './app'
+export { useApp } from './app-context'
+export type {
+  AppContextValue,
+  AppMessageContent,
+  AppModalApi,
+  AppModalOptions,
+  AppProps,
+} from './app'
+export { ConfigProvider } from './config-provider'
+export { useConfig } from './config-context'
+export type {
+  ConfigContextValue,
+  ConfigProviderProps,
+  ConfigProviderTheme,
+} from './config-provider'
+export { Util, cx, getPrefixCls, usePrefixCls, warning } from './util'
 export { Container } from './container'
 export type { ContainerProps } from './container'
 export { Portal } from './portal'
@@ -51,6 +68,8 @@ export { Pagination } from './pagination'
 export type { PaginationProps } from './pagination'
 export { List } from './list'
 export type { ListProps } from './list'
+export { Listy } from './listy'
+export type { ListyProps } from './listy'
 export { Table } from './table'
 export type { TableProps, TableColumn } from './table'
 export { ThemeScope } from './theme-scope'
@@ -107,6 +126,13 @@ export { Spin } from './spin'
 export type { SpinProps } from './spin'
 export { Watermark } from './watermark'
 export type { WatermarkProps } from './watermark'
+export { QRCode } from './qrcode'
+export type {
+  QRCodeErrorLevel,
+  QRCodeProps,
+  QrCodeStatus,
+  QrCodeStatusInfo,
+} from './qrcode'
 export { Tour } from './tour'
 export type { TourPlacement, TourProps, TourStep, TourTarget } from './tour'
 export { Breadcrumb, Steps } from './navigation'

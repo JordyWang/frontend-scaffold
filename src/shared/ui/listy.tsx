@@ -1,0 +1,136 @@
+import {
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Key,
+  type ReactNode,
+  type UIEventHandler,
+} from 'react'
+import { cn } from '@/shared/lib/utils'
+import { Empty } from './empty'
+import { ErrorState, LoadingState } from './feedback-state'
+
+export type ListyProps<T> = {
+  items: T[]
+  getKey: (item: T, index: number) => Key
+  renderItem: (item: T, index: number) => ReactNode
+  itemHeight: number
+  height: number | string
+  overscan?: number
+  endReachedThreshold?: number
+  onEndReached?: () => void
+  loading?: boolean
+  error?: string
+  onRetry?: () => void
+  emptyTitle?: string
+  className?: string
+  label?: string
+  onScroll?: UIEventHandler<HTMLDivElement>
+}
+
+/** Fixed-height virtual list for dense data sets; the row renderer stays project-owned. */
+export function Listy<T>({
+  items,
+  getKey,
+  renderItem,
+  itemHeight,
+  height,
+  overscan = 3,
+  endReachedThreshold = 160,
+  onEndReached,
+  loading,
+  error,
+  onRetry,
+  emptyTitle = '暂无内容',
+  className,
+  label,
+  onScroll,
+}: ListyProps<T>) {
+  const [scrollTop, setScrollTop] = useState(0)
+  const [measuredHeight, setMeasuredHeight] = useState(
+    typeof height === 'number' ? height : 0,
+  )
+  const listRef = useRef<HTMLDivElement>(null)
+  const endReachedRef = useRef(false)
+  const safeItemHeight =
+    Number.isFinite(itemHeight) && itemHeight > 0 ? itemHeight : 1
+  const safeOverscan = Math.max(0, Math.floor(overscan))
+  const viewportHeight = typeof height === 'number' ? height : measuredHeight
+  const totalHeight = items.length * safeItemHeight
+  const range = useMemo(() => {
+    const first = Math.max(
+      0,
+      Math.floor(scrollTop / safeItemHeight) - safeOverscan,
+    )
+    const last = Math.min(
+      items.length,
+      Math.ceil((scrollTop + (viewportHeight ?? 0)) / safeItemHeight) +
+        safeOverscan,
+    )
+    return { first, last }
+  }, [items.length, safeItemHeight, safeOverscan, scrollTop, viewportHeight])
+
+  useLayoutEffect(() => {
+    const element = listRef.current
+    if (!element) return
+    const measure = () => setMeasuredHeight(element.clientHeight)
+    measure()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(measure)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [height])
+
+  if (loading) return <LoadingState />
+  if (error) return <ErrorState description={error} onRetry={onRetry} />
+  if (items.length === 0) return <Empty title={emptyTitle} />
+
+  const handleScroll: UIEventHandler<HTMLDivElement> = (event) => {
+    const nextScrollTop = event.currentTarget.scrollTop
+    setMeasuredHeight(event.currentTarget.clientHeight)
+    setScrollTop(nextScrollTop)
+    onScroll?.(event)
+    const remaining =
+      totalHeight - nextScrollTop - event.currentTarget.clientHeight
+    if (remaining <= endReachedThreshold) {
+      if (!endReachedRef.current) {
+        endReachedRef.current = true
+        onEndReached?.()
+      }
+    } else {
+      endReachedRef.current = false
+    }
+  }
+
+  return (
+    <div
+      role="list"
+      ref={listRef}
+      aria-label={label}
+      aria-busy={loading || undefined}
+      className={cn(
+        'relative min-w-0 touch-pan-y overflow-y-auto overscroll-contain rounded-[var(--ui-card-radius)] border border-border bg-card text-card-foreground',
+        className,
+      )}
+      style={{ height }}
+      onScroll={handleScroll}
+    >
+      <div className="relative w-full" style={{ height: totalHeight }}>
+        {items.slice(range.first, range.last).map((item, offset) => {
+          const index = range.first + offset
+          return (
+            <div
+              key={getKey(item, index)}
+              role="listitem"
+              className="absolute inset-x-0 flex min-h-0 items-stretch border-b border-border last:border-b-0"
+              style={{ height: safeItemHeight, top: index * safeItemHeight }}
+            >
+              {renderItem(item, index)}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
