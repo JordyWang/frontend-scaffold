@@ -17,6 +17,12 @@ import {
 import { inputSizeStyles, inputStyles } from './tailwind-styles'
 import { Button } from './button'
 
+const inputNumberSizeStyles = {
+  default: '',
+  small: 'min-h-11',
+  large: 'min-h-12',
+} as const
+
 export type InputNumberProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
   'type' | 'value' | 'defaultValue' | 'onChange' | 'size'
@@ -48,6 +54,7 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
       invalid,
       'aria-invalid': ariaInvalid,
       className,
+      disabled,
       onBlur,
       onChange,
       ...props
@@ -93,27 +100,33 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
     return (
       <span
         aria-invalid={invalid || ariaInvalid || undefined}
+        data-disabled={disabled || undefined}
         className={cn(
-          'ui-input-number',
-          `ui-input-number--${resolvedSize}`,
+          'inline-flex w-full min-h-[max(44px,var(--ui-control-height))] items-center gap-[var(--space-xs)] rounded-[var(--ui-field-radius)] border border-input bg-card px-3 text-card-foreground focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20 aria-invalid:border-destructive data-disabled:cursor-not-allowed data-disabled:opacity-[0.55]',
+          inputNumberSizeStyles[resolvedSize],
           className,
         )}
       >
-        {prefix && <span className="ui-input-number__prefix">{prefix}</span>}
+        {prefix && (
+          <span className="leading-none text-muted-foreground">{prefix}</span>
+        )}
         <input
           {...props}
           ref={ref}
           type="number"
-          className="ui-input-number__input"
+          className="min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-inherit outline-none"
           value={displayed}
           min={min}
           max={max}
           step={step}
+          disabled={disabled}
           aria-invalid={invalid || ariaInvalid || undefined}
           onChange={handleChange}
           onBlur={handleBlur}
         />
-        {suffix && <span className="ui-input-number__suffix">{suffix}</span>}
+        {suffix && (
+          <span className="leading-none text-muted-foreground">{suffix}</span>
+        )}
       </span>
     )
   },
@@ -159,7 +172,10 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(function Slider(
       {...props}
       ref={ref}
       type="range"
-      className={cn('ui-slider', className)}
+      className={cn(
+        'w-full min-h-11 cursor-pointer touch-manipulation accent-primary disabled:cursor-not-allowed disabled:opacity-[0.55]',
+        className,
+      )}
       aria-label={props['aria-label'] ?? label}
       value={current}
       min={safeMin}
@@ -202,9 +218,9 @@ const NativePicker = forwardRef<
       ref={ref}
       type={type}
       className={cn(
-        'ui-input',
         inputStyles,
         inputSizeStyles[resolvedSize],
+        'touch-manipulation',
         className,
       )}
       value={value}
@@ -279,12 +295,7 @@ export const AutoComplete = forwardRef<HTMLInputElement, AutoCompleteProps>(
           aria-controls={focused && filtered.length > 0 ? id : undefined}
           aria-haspopup="listbox"
           list={id}
-          className={cn(
-            'ui-input',
-            inputStyles,
-            inputSizeStyles[resolvedSize],
-            className,
-          )}
+          className={cn(inputStyles, inputSizeStyles[resolvedSize], className)}
           value={value === undefined ? internalValue : value}
           onFocus={(event) => {
             setFocused(true)
@@ -377,7 +388,14 @@ export function Cascader({
     selects.push(
       <select
         key={depth}
-        className={`ui-select ui-input--${resolvedSize} ui-cascader__select`}
+        className={cn(
+          inputStyles,
+          inputSizeStyles[resolvedSize],
+          'min-w-[min(100%,10rem)] flex-[1_1_10rem] cursor-pointer touch-manipulation focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20',
+          resolvedSize === 'large'
+            ? 'h-[max(48px,var(--ui-control-height))]'
+            : 'h-[max(44px,var(--ui-control-height))]',
+        )}
         id={depth === 0 ? id : undefined}
         name={depth === 0 ? name : undefined}
         required={depth === 0 ? required : undefined}
@@ -408,7 +426,7 @@ export function Cascader({
     if (!selected) break
     depthIndex += 1
   }
-  return <div className={cn('ui-cascader', className)}>{selects}</div>
+  return <div className={cn('flex flex-wrap gap-2', className)}>{selects}</div>
 }
 
 export type UploadProps = {
@@ -454,10 +472,10 @@ export function Upload({
 }: UploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   return (
-    <div className={cn('ui-upload', className)}>
+    <div className={cn('inline-flex max-w-full', className)}>
       <input
         ref={inputRef}
-        className="ui-upload__input"
+        className="sr-only"
         type="file"
         id={id}
         name={name}

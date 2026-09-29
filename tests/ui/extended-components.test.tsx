@@ -53,14 +53,14 @@ describe('Ant Design-inspired shared components', () => {
 
     expect(
       screen.getByRole('spinbutton', { name: '大号数字' }).parentElement,
-    ).toHaveClass('ui-input-number--large')
+    ).toHaveClass('min-h-12')
     expect(screen.getByLabelText('大号日期')).toHaveClass('min-h-12')
     expect(screen.getByLabelText('大号时间')).toHaveClass('min-h-12')
     expect(screen.getByRole('combobox', { name: '大号自动完成' })).toHaveClass(
       'min-h-12',
     )
     expect(screen.getByRole('combobox', { name: '大号级联' })).toHaveClass(
-      'ui-input--large',
+      'min-h-12',
     )
     expect(screen.getByLabelText('大号颜色').parentElement).toHaveClass(
       'ui-color-picker--large',

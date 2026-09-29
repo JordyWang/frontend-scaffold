@@ -357,6 +357,56 @@ test('form preview validates and submits through the project contract', async ({
   await expect(form.getByText('已提交：person@example.com')).toBeVisible()
 })
 
+test('native data controls keep their touch targets and keyboard behavior', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const number = preview.getByRole('spinbutton', { name: '数量' })
+  const slider = preview.getByRole('slider', { name: '音量' })
+  const date = preview.getByLabel('开始日期')
+  const time = preview.getByLabel('开始时间')
+  const autocomplete = preview.getByRole('combobox', { name: '城市' })
+  const region = preview.getByRole('combobox', { name: '地区' })
+  const upload = preview.getByRole('button', { name: '上传图片' })
+
+  for (const [name, control] of [
+    ['number', number.locator('..')],
+    ['slider', slider],
+    ['date', date],
+    ['time', time],
+    ['autocomplete', autocomplete],
+    ['cascader', region],
+    ['upload', upload],
+  ] as const) {
+    const box = await control.boundingBox()
+    expect(box).not.toBeNull()
+    expect(box!.height, `${name} touch height`).toBeGreaterThanOrEqual(44)
+  }
+  await expect(number.locator('..')).toHaveCSS('border-style', 'solid')
+
+  if (testInfo.project.name.startsWith('mobile-')) await number.tap()
+  else await number.focus()
+  await number.press('ArrowUp')
+  await expect(number).toHaveValue('4')
+  await slider.focus()
+  await slider.press('ArrowRight')
+  await expect(slider).toHaveValue('43')
+
+  await region.selectOption('cn')
+  await expect(
+    preview.getByRole('combobox', { name: '地区第2级' }),
+  ).toBeVisible()
+  await page.setViewportSize({ width: 360, height: 780 })
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
+})
+
 test('one-time-code input supports entry, correction and touch-sized slots', async ({
   page,
 }, testInfo) => {
