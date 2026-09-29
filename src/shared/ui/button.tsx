@@ -1,5 +1,6 @@
 import { forwardRef, type ButtonHTMLAttributes } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { useConfig } from './config-context'
 import { spinnerStyles } from './tailwind-styles'
 
 const buttonStyles =
@@ -17,12 +18,13 @@ const variantStyles = {
 const sizeStyles = {
   default: '',
   small: 'px-3',
+  large: 'min-h-12 px-5 py-3',
   icon: 'w-11 p-0 text-2xl font-normal',
 } as const
 
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive'
-  size?: 'default' | 'small' | 'icon'
+  size?: 'default' | 'small' | 'large' | 'icon'
   loading?: boolean
 }
 
@@ -31,7 +33,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     {
       className,
       variant = 'primary',
-      size = 'default',
+      size,
       loading = false,
       disabled,
       children,
@@ -40,6 +42,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref,
   ) {
+    const { componentSize } = useConfig()
+    const resolvedSize =
+      size ??
+      (componentSize === 'small'
+        ? 'small'
+        : componentSize === 'large'
+          ? 'large'
+          : 'default')
     return (
       <button
         ref={ref}
@@ -49,10 +59,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={cn(
           'ui-button',
           `ui-button--${variant}`,
-          `ui-button--${size}`,
+          `ui-button--${resolvedSize}`,
           buttonStyles,
           variantStyles[variant],
-          sizeStyles[size],
+          sizeStyles[resolvedSize],
           className,
         )}
         {...props}

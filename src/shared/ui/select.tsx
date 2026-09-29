@@ -5,6 +5,7 @@ import {
   type KeyboardEventHandler,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { useConfig } from './config-context'
 import { CheckIcon } from './icons'
 import { usePortalContainer } from './portal-context'
 
@@ -15,7 +16,7 @@ export type SelectProps = {
   defaultValue?: string
   onValueChange?: (value: string) => void
   placeholder?: string
-  size?: 'default' | 'small'
+  size?: 'default' | 'small' | 'large'
   disabled?: boolean
   required?: boolean
   name?: string
@@ -43,7 +44,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
       defaultValue,
       onValueChange,
       placeholder = '请选择',
-      size = 'default',
+      size,
       disabled,
       required,
       name,
@@ -53,6 +54,14 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
     },
     ref,
   ) {
+    const { componentSize } = useConfig()
+    const resolvedSize =
+      size ??
+      (componentSize === 'small'
+        ? 'small'
+        : componentSize === 'large'
+          ? 'large'
+          : 'default')
     const portalContainer = usePortalContainer()
     return (
       <SelectPrimitive.Root
@@ -66,7 +75,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
         <SelectPrimitive.Trigger
           ref={ref}
           id={id}
-          className={cn('ui-select', `ui-input--${size}`, className)}
+          className={cn('ui-select', `ui-input--${resolvedSize}`, className)}
           {...ariaProps}
         >
           <SelectPrimitive.Value placeholder={placeholder} />

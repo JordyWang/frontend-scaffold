@@ -2,8 +2,12 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import {
   App,
+  Button,
   ConfigProvider,
   getPrefixCls,
+  Input,
+  Select,
+  Textarea,
   useApp,
   useConfig,
   usePrefixCls,
@@ -59,6 +63,37 @@ describe('App and ConfigProvider boundaries', () => {
     )
     expect(screen.getByTestId('config')).toHaveTextContent(
       'outer|uiicon|middle|ltr|outer-button',
+    )
+  })
+
+  it('applies componentSize to core controls while preserving explicit sizes', () => {
+    render(
+      <ConfigProvider componentSize="large">
+        <Button>全局按钮</Button>
+        <Button size="small">小号按钮</Button>
+        <Input aria-label="全局输入" />
+        <Textarea aria-label="全局文本域" />
+        <Select
+          aria-label="全局选择"
+          options={[{ value: 'one', label: '一' }]}
+        />
+      </ConfigProvider>,
+    )
+
+    expect(screen.getByRole('button', { name: '全局按钮' })).toHaveClass(
+      'ui-button--large',
+    )
+    expect(screen.getByRole('button', { name: '小号按钮' })).toHaveClass(
+      'ui-button--small',
+    )
+    expect(screen.getByRole('textbox', { name: '全局输入' })).toHaveClass(
+      'min-h-12',
+    )
+    expect(screen.getByRole('textbox', { name: '全局文本域' })).toHaveClass(
+      'py-3',
+    )
+    expect(screen.getByRole('combobox', { name: '全局选择' })).toHaveClass(
+      'ui-input--large',
     )
   })
 
@@ -121,6 +156,37 @@ describe('App and ConfigProvider boundaries', () => {
         screen.queryByRole('dialog', { name: '确认操作' }),
       ).not.toBeInTheDocument(),
     )
+  })
+
+  it('closes a modal with Escape and invokes onCancel', async () => {
+    const onCancel = vi.fn()
+    function ModalProbe() {
+      const { modal } = useApp()
+      return (
+        <button
+          type="button"
+          onClick={() => modal.confirm({ title: '可取消', onCancel })}
+        >
+          打开可取消框
+        </button>
+      )
+    }
+
+    render(
+      <App>
+        <ModalProbe />
+      </App>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '打开可取消框' }))
+    expect(screen.getByRole('dialog', { name: '可取消' })).toBeInTheDocument()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: '可取消' }),
+      ).not.toBeInTheDocument(),
+    )
+    expect(onCancel).toHaveBeenCalledOnce()
   })
 
   it('provides stable utility helpers and development warnings', () => {

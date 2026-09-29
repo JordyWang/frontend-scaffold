@@ -5,6 +5,7 @@ export const inputStyles =
 export const inputSizeStyles = {
   default: '',
   small: 'py-2',
+  large: 'min-h-12 px-3.5 py-3',
 } as const
 
 export const spinnerStyles =

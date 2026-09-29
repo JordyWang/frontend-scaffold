@@ -13,6 +13,10 @@
 .ui-select.ui-input--small {
   padding-block: 0.5rem;
 }
+.ui-select.ui-input--large {
+  min-height: 3rem;
+  padding-block: 0.75rem;
+}
 
 .ui-input-number {
   display: inline-flex;
