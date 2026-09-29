@@ -34,6 +34,7 @@ import {
   PasswordInput,
   SearchInput,
   Menu,
+  Mentions,
   Popconfirm,
   Popover,
   Progress,
@@ -97,6 +98,8 @@ export function DesignSystemPreview() {
   const [colorValue, setColorValue] = useState('#4338ca')
   const [formStatus, setFormStatus] = useState('尚未提交')
   const [searchStatus, setSearchStatus] = useState('尚未搜索')
+  const [mentionsValue, setMentionsValue] = useState('')
+  const [mentionsStatus, setMentionsStatus] = useState('尚未选择成员')
   const [calendarStatus, setCalendarStatus] = useState('尚未选择日期')
   const [otpValue, setOtpValue] = useState('')
   const [otpComplete, setOtpComplete] = useState(false)
@@ -306,6 +309,39 @@ export function DesignSystemPreview() {
                 <Typography variant="caption" tone="muted">
                   {searchStatus}
                 </Typography>
+                <FormField
+                  label="提及成员"
+                  description="输入 @ 后可用方向键、Enter 或触控选择成员。"
+                  control={
+                    <Mentions
+                      value={mentionsValue}
+                      onChange={setMentionsValue}
+                      onSelect={(option) =>
+                        setMentionsStatus(`已选择：${option.label}`)
+                      }
+                      options={[
+                        { value: 'design', label: '设计团队' },
+                        { value: 'developer', label: '开发团队' },
+                        { value: 'ops', label: '运营团队', disabled: true },
+                      ]}
+                      placeholder="输入 @ 提及成员"
+                    />
+                  }
+                />
+                <Typography variant="caption" tone="muted">
+                  {mentionsStatus}
+                </Typography>
+                <FormField
+                  label="错误提及"
+                  error="请选择有效成员"
+                  control={<Mentions options={[]} defaultValue="@missing" />}
+                />
+                <Mentions
+                  aria-label="不可用提及"
+                  options={[]}
+                  value="不可编辑"
+                  disabled
+                />
                 <SearchInput
                   aria-label="加载中的搜索"
                   defaultValue="卡片"

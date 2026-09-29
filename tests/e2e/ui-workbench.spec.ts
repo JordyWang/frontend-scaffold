@@ -457,6 +457,58 @@ test('calendar selects dates with keyboard and touch without page overflow', asy
   ).toBe(true)
 })
 
+test('mentions suggestions support keyboard, touch and narrow viewports', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const input = preview.getByRole('combobox', { name: '提及成员' })
+  await input.fill('@de')
+  const list = page.getByRole('listbox', { name: '提及建议' })
+  await expect(list).toBeVisible()
+  await expect(list.getByRole('option', { name: '设计团队' })).toBeVisible()
+  const choice = testInfo.project.name.startsWith('mobile-')
+    ? '设计团队'
+    : '开发团队'
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await list.getByRole('option', { name: choice }).tap()
+  } else {
+    await input.press('ArrowDown')
+    await input.press('Enter')
+  }
+  await expect(preview.getByText(`已选择：${choice}`)).toBeVisible()
+  await expect(input).toHaveValue(
+    choice === '设计团队' ? '@design ' : '@developer ',
+  )
+  await expect(input).toHaveAttribute('aria-expanded', 'false')
+
+  await input.fill('@ops')
+  const disabled = list.getByRole('option', { name: '运营团队' })
+  await expect(disabled).toHaveAttribute('aria-disabled', 'true')
+  const optionBounds = await disabled.boundingBox()
+  expect(optionBounds).not.toBeNull()
+  expect(optionBounds!.height).toBeGreaterThanOrEqual(44)
+  expect(optionBounds!.x).toBeGreaterThanOrEqual(0)
+  expect(optionBounds!.x + optionBounds!.width).toBeLessThanOrEqual(
+    page.viewportSize()!.width,
+  )
+  await input.press('Escape')
+  await expect(list).toHaveCount(0)
+  await expect(
+    preview.getByRole('combobox', { name: '不可用提及' }),
+  ).toBeDisabled()
+  await expect(
+    preview.getByRole('combobox', { name: '错误提及' }),
+  ).toHaveAttribute('aria-invalid', 'true')
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
+})
+
 test('tree select searches collapsed branches with keyboard and touch', async ({
   page,
 }, testInfo) => {
