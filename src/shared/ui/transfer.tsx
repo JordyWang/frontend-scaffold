@@ -1,6 +1,11 @@
 import { useState, type ReactNode } from 'react'
 import { cn } from '@/shared/lib/utils'
 
+const transferPanelStyles =
+  'flex min-w-0 flex-col overflow-hidden rounded-[var(--ui-transfer-radius)] border border-border bg-card text-card-foreground aria-[invalid=true]:border-destructive'
+const transferListStyles =
+  'm-0 h-[var(--ui-transfer-list-height)] min-h-0 list-none overflow-y-auto overscroll-contain p-0 max-sm:h-auto max-sm:min-h-24 max-sm:max-h-48'
+
 export type TransferItem = {
   key: string
   title: string
@@ -171,9 +176,9 @@ export function Transfer({
     const partlySelected = selectedVisible > 0 && !allSelected
 
     return (
-      <section className="ui-transfer__panel" aria-label={title}>
-        <div className="ui-transfer__header">
-          <label className="ui-transfer__select-all">
+      <section className={transferPanelStyles} aria-label={title}>
+        <div className="flex min-h-[52px] items-center gap-1 border-b border-border pe-2">
+          <label className="inline-grid size-11 shrink-0 place-items-center has-[input:disabled]:cursor-not-allowed has-[input:disabled]:opacity-55">
             <input
               type="checkbox"
               aria-label={`全选${title}可见项`}
@@ -186,14 +191,17 @@ export function Transfer({
             />
           </label>
           <strong>{title}</strong>
-          <span className="ui-transfer__count" aria-live="polite">
+          <span
+            className="ms-auto whitespace-nowrap text-sm text-muted-foreground"
+            aria-live="polite"
+          >
             {selectedCount} / {panelItems.length}
           </span>
         </div>
         {showSearch && (
           <input
             type="search"
-            className="ui-transfer__search"
+            className="mx-2 mb-2 min-h-11 w-[calc(100%-1rem)] rounded-[var(--ui-field-radius)] border border-input bg-card px-3 py-2 text-base text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
             aria-label={`搜索${title}`}
             placeholder={`搜索${title}`}
             value={query}
@@ -202,13 +210,17 @@ export function Transfer({
           />
         )}
         {visibleItems.length ? (
-          <ul className="ui-transfer__list" aria-label={`${title}列表`}>
+          <ul className={transferListStyles} aria-label={`${title}列表`}>
             {visibleItems.map((item) => (
-              <li key={item.key} className="ui-transfer__item">
+              <li
+                key={item.key}
+                className="border-t border-border first:border-t-0"
+              >
                 <label
                   className={cn(
-                    'ui-transfer__row',
-                    item.disabled && 'ui-transfer__row--disabled',
+                    'flex min-h-11 cursor-pointer items-center gap-2 px-2 py-2 hover:bg-accent hover:text-accent-foreground',
+                    item.disabled &&
+                      'cursor-not-allowed opacity-55 hover:bg-transparent hover:text-inherit',
                   )}
                 >
                   <input
@@ -217,10 +229,10 @@ export function Transfer({
                     disabled={disabled || item.disabled}
                     onChange={() => toggleSelected(item.key)}
                   />
-                  <span className="ui-transfer__item-text">
+                  <span className="grid min-w-0 gap-0.5 leading-[1.4]">
                     <span>{item.title}</span>
                     {item.description && (
-                      <span className="ui-transfer__description">
+                      <span className="text-sm text-muted-foreground">
                         {item.description}
                       </span>
                     )}
@@ -230,7 +242,7 @@ export function Transfer({
             ))}
           </ul>
         ) : (
-          <p className="ui-transfer__empty">
+          <p className="grid min-h-[var(--ui-transfer-list-height)] m-0 place-items-center text-center text-muted-foreground max-sm:min-h-24 max-sm:max-h-48">
             {query.trim() ? '暂无匹配项' : '暂无数据'}
           </p>
         )}
@@ -247,7 +259,10 @@ export function Transfer({
       aria-describedby={ariaDescribedBy}
       aria-invalid={ariaInvalid || undefined}
       aria-required={required || undefined}
-      className={cn('ui-transfer', className)}
+      className={cn(
+        'grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-[var(--space-md)] max-sm:grid-cols-1',
+        className,
+      )}
     >
       {renderPanel(
         sourceItems,
@@ -256,10 +271,10 @@ export function Transfer({
         sourceQuery,
         setSourceQuery,
       )}
-      <div className="ui-transfer__actions">
+      <div className="flex flex-col gap-2 max-sm:flex-row max-sm:flex-wrap">
         <button
           type="button"
-          className="ui-transfer__action"
+          className="inline-flex min-h-11 flex-none items-center justify-center gap-1 whitespace-nowrap rounded-[var(--ui-button-radius)] border border-border bg-card px-3 py-2 text-foreground hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-55 max-sm:flex-[1_1_8rem]"
           disabled={disabled || movableSource.length === 0}
           onClick={() => move('to-target')}
         >
@@ -268,7 +283,7 @@ export function Transfer({
         </button>
         <button
           type="button"
-          className="ui-transfer__action"
+          className="inline-flex min-h-11 flex-none items-center justify-center gap-1 whitespace-nowrap rounded-[var(--ui-button-radius)] border border-border bg-card px-3 py-2 text-foreground hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-55 max-sm:flex-[1_1_8rem]"
           disabled={disabled || movableTarget.length === 0}
           onClick={() => move('to-source')}
         >

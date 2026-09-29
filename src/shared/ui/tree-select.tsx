@@ -14,6 +14,7 @@ import {
 import { cn } from '@/shared/lib/utils'
 import { resolveComponentSize, useConfig } from './config-context'
 import { Portal } from './portal'
+import { inputSizeStyles, inputStyles } from './tailwind-styles'
 
 export type TreeSelectOption = {
   value: string
@@ -407,7 +408,7 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
             }}
             id={`${popupId}-${encodeURIComponent(node.value)}`}
             role="treeitem"
-            className="ui-tree-select__item"
+            className="outline-none"
             aria-labelledby={`${popupId}-${encodeURIComponent(node.value)}-label`}
             aria-selected={isSelected}
             aria-expanded={hasChildren ? isExpanded : undefined}
@@ -434,28 +435,34 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
             }
           >
             <div
-              className="ui-tree-select__row"
+              className="flex min-h-11 items-center gap-1 ps-[calc(var(--ui-tree-select-level)*var(--space-lg))]"
               style={{ '--ui-tree-select-level': level } as CSSProperties}
             >
               {canToggle ? (
                 <span
-                  className="ui-tree-select__toggle"
+                  className="inline-grid size-11 shrink-0 place-items-center rounded-[var(--radius-sm)] border-0 bg-transparent text-muted-foreground hover:bg-accent"
                   data-tree-select-toggle=""
                   aria-hidden="true"
                 >
                   {isExpanded ? '−' : '+'}
                 </span>
               ) : (
-                <span className="ui-tree-select__toggle" aria-hidden="true" />
+                <span
+                  className="inline-grid size-11 shrink-0"
+                  aria-hidden="true"
+                />
               )}
               <span
                 className={cn(
-                  'ui-tree-select__option',
-                  isSelected && 'ui-tree-select__option--selected',
-                  node.disabled && 'ui-tree-select__option--disabled',
+                  'flex min-w-0 min-h-11 flex-1 cursor-pointer items-center gap-2 rounded-[var(--radius-sm)] border-0 bg-transparent px-2.5 py-2 text-start text-foreground focus-visible:outline-3 focus-visible:outline-offset-[-3px] focus-visible:outline-ring hover:bg-accent hover:text-accent-foreground',
+                  isSelected && 'bg-accent text-accent-foreground',
+                  node.disabled && 'cursor-not-allowed opacity-50',
                 )}
               >
-                <span className="ui-tree-select__check" aria-hidden="true">
+                <span
+                  className="inline-grid w-5 shrink-0 place-items-center font-bold"
+                  aria-hidden="true"
+                >
                   {multiple && isSelected ? '✓' : ''}
                 </span>
                 <span id={`${popupId}-${encodeURIComponent(node.value)}-label`}>
@@ -464,7 +471,7 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
               </span>
             </div>
             {hasChildren && isExpanded && (
-              <ul role="group" className="ui-tree-select__group">
+              <ul role="group" className="m-0 list-none p-0">
                 {renderNodes(node.children ?? [], level + 1)}
               </ul>
             )}
@@ -475,14 +482,17 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
 
     const triggerLabel = selectedLabels.length
       ? selectedLabels.map((item, index) => (
-          <span key={index} className="ui-tree-select__tag">
+          <span
+            key={index}
+            className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap"
+          >
             {item}
           </span>
         ))
       : placeholder
 
     return (
-      <span className={cn('ui-tree-select', className)}>
+      <span className={cn('relative inline-flex w-full min-w-0', className)}>
         <button
           ref={(element) => {
             triggerRef.current = element
@@ -504,12 +514,11 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
           aria-haspopup="tree"
           disabled={disabled}
           className={cn(
-            'ui-tree-select__trigger',
-            `ui-tree-select--${resolvedSize}`,
-            selectedLabels.length === 0 && 'ui-tree-select__trigger--empty',
-            allowClear &&
-              selected.length > 0 &&
-              'ui-tree-select__trigger--clearable',
+            inputStyles,
+            inputSizeStyles[resolvedSize],
+            'flex cursor-pointer touch-manipulation items-center justify-between gap-2 text-start outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20',
+            selectedLabels.length === 0 && 'text-muted-foreground',
+            allowClear && selected.length > 0 && 'pe-16',
           )}
           onClick={() => setOpenState(!isOpen)}
           onKeyDown={(event) => {
@@ -528,17 +537,20 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
             }
           }}
         >
-          <span id={valueId} className="ui-tree-select__value">
+          <span
+            id={valueId}
+            className="flex min-w-0 flex-1 flex-wrap items-center gap-1 overflow-hidden"
+          >
             {triggerLabel}
           </span>
-          <span className="ui-tree-select__icon" aria-hidden="true">
+          <span className="shrink-0 text-muted-foreground" aria-hidden="true">
             ▾
           </span>
         </button>
         {allowClear && selected.length > 0 && !disabled && (
           <button
             type="button"
-            className="ui-tree-select__clear"
+            className="absolute end-7 top-1/2 z-[1] inline-grid size-11 -translate-y-1/2 place-items-center rounded-full border-0 bg-transparent text-xl text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             aria-label={`清除${label}`}
             onClick={() => updateSelection([])}
           >
@@ -559,14 +571,14 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
             <div
               ref={contentRef}
               id={popupId}
-              className="ui-tree-select__content"
+              className="z-[90] max-h-[min(22rem,calc(100dvh-1rem))] overflow-auto rounded-[var(--ui-menu-radius)] border border-border bg-card p-1 text-foreground shadow-[0_12px_30px_rgb(0_0_0_/_0.16)]"
               style={popupStyle}
             >
               {showSearch && (
                 <input
                   ref={searchRef}
                   type="search"
-                  className="ui-tree-select__search"
+                  className={cn(inputStyles, 'mb-1')}
                   aria-label={`搜索${label}`}
                   value={search}
                   onChange={(event) => setSearch(event.currentTarget.value)}
@@ -586,14 +598,16 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
                 role="tree"
                 aria-label={label}
                 aria-multiselectable={multiple || undefined}
-                className="ui-tree-select__tree"
+                className="outline-none"
               >
                 {filteredTree.length ? (
-                  <ul role="none" className="ui-tree-select__list">
+                  <ul role="none" className="m-0 list-none p-0">
                     {renderNodes(filteredTree)}
                   </ul>
                 ) : (
-                  <p className="ui-tree-select__empty">暂无匹配项</p>
+                  <p className="m-0 p-4 text-center text-muted-foreground">
+                    暂无匹配项
+                  </p>
                 )}
               </div>
             </div>

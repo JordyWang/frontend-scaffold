@@ -23,7 +23,7 @@ describe('TreeSelect', () => {
       </ConfigProvider>,
     )
     expect(screen.getByRole('combobox', { name: '大号树选择' })).toHaveClass(
-      'ui-tree-select--large',
+      'min-h-12',
     )
   })
 

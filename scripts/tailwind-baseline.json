@@ -26,15 +26,12 @@
     "src/shared/ui/select.tsx",
     "src/shared/ui/spinner.tsx",
     "src/shared/ui/tabs.tsx",
-    "src/shared/ui/theme-scope.tsx",
-    "src/shared/ui/transfer.tsx",
-    "src/shared/ui/tree-select.tsx"
+    "src/shared/ui/theme-scope.tsx"
   ],
   "styleFiles": [
     "src/shared/styles/ai.css",
     "src/shared/styles/audio.css",
     "src/shared/styles/base.css",
-    "src/shared/styles/components.css",
     "src/shared/styles/files.css",
     "src/shared/styles/index.css",
     "src/shared/styles/navigation.css",
