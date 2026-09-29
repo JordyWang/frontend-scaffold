@@ -418,6 +418,45 @@ test('search and password inputs support keyboard, touch and status feedback', a
   )
 })
 
+test('calendar selects dates with keyboard and touch without page overflow', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const calendar = preview.getByRole('grid', { name: /活动日历/ })
+  const activeDay = calendar.locator('button[tabindex="0"]')
+  await expect(activeDay).toHaveCount(1)
+  const bounds = await activeDay.boundingBox()
+  expect(bounds).not.toBeNull()
+  expect(bounds!.width).toBeGreaterThanOrEqual(44)
+  expect(bounds!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile')) await activeDay.tap()
+  else {
+    await activeDay.focus()
+    await page.keyboard.press('ArrowRight')
+    await page.keyboard.press('Enter')
+  }
+  await expect(preview.getByText(/^已选择：\d{4}-\d{2}-\d{2}/)).toBeVisible()
+  const previousLabel = await calendar.getAttribute('aria-label')
+  const next = preview.getByRole('button', { name: '下个月' }).first()
+  if (testInfo.project.name.startsWith('mobile')) await next.tap()
+  else await next.click()
+  await expect(calendar).not.toHaveAttribute('aria-label', previousLabel!)
+  await expect(
+    preview
+      .getByRole('grid', { name: /不可用日历/ })
+      .locator('button')
+      .first(),
+  ).toBeDisabled()
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
+})
+
 test('tree select searches collapsed branches with keyboard and touch', async ({
   page,
 }, testInfo) => {

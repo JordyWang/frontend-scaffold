@@ -10,6 +10,7 @@ import {
   Button,
   Card,
   CardContent,
+  Calendar,
   Checkbox,
   Carousel,
   Collapse,
@@ -96,6 +97,7 @@ export function DesignSystemPreview() {
   const [colorValue, setColorValue] = useState('#4338ca')
   const [formStatus, setFormStatus] = useState('尚未提交')
   const [searchStatus, setSearchStatus] = useState('尚未搜索')
+  const [calendarStatus, setCalendarStatus] = useState('尚未选择日期')
   const [otpValue, setOtpValue] = useState('')
   const [otpComplete, setOtpComplete] = useState(false)
   const [treeSelected, setTreeSelected] = useState('button')
@@ -373,6 +375,35 @@ export function DesignSystemPreview() {
                     </Typography>
                   </Stack>
                 </Form>
+              </Stack>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent>
+              <Stack gap="md">
+                <Typography as="h3" variant="title">
+                  日历
+                </Typography>
+                <Calendar
+                  label="活动日历"
+                  onChange={(date) => setCalendarStatus(`已选择：${date}`)}
+                  disabledDate={(date) => {
+                    const day = new Date(`${date}T12:00:00`).getDay()
+                    return day === 0 || day === 6
+                  }}
+                  renderDate={(date) =>
+                    date.endsWith('-15') ? (
+                      <span className="text-xs leading-none">发布</span>
+                    ) : null
+                  }
+                  getDateDescription={(date) =>
+                    date.endsWith('-15') ? '发布日' : undefined
+                  }
+                />
+                <Typography variant="caption" tone="muted">
+                  {calendarStatus}；周末不可选择。
+                </Typography>
+                <Calendar label="不可用日历" size="small" disabled />
               </Stack>
             </CardContent>
           </Card>
