@@ -1,8 +1,37 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { Calendar } from '@/shared/ui'
+import { Calendar, ConfigProvider } from '@/shared/ui'
 
 describe('Calendar', () => {
+  it('inherits locale from ConfigProvider and lets an explicit locale win', () => {
+    const englishMonth = new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'long',
+    }).format(new Date(2024, 1, 1))
+    const germanMonth = new Intl.DateTimeFormat('de-DE', {
+      year: 'numeric',
+      month: 'long',
+    }).format(new Date(2024, 1, 1))
+
+    const { rerender } = render(
+      <ConfigProvider locale="en-US">
+        <Calendar defaultMonth="2024-02" />
+      </ConfigProvider>,
+    )
+    expect(
+      screen.getByRole('grid', { name: new RegExp(englishMonth) }),
+    ).toBeInTheDocument()
+
+    rerender(
+      <ConfigProvider locale="en-US">
+        <Calendar defaultMonth="2024-02" locale="de-DE" />
+      </ConfigProvider>,
+    )
+    expect(
+      screen.getByRole('grid', { name: new RegExp(germanMonth) }),
+    ).toBeInTheDocument()
+  })
+
   it('renders leap-year dates, selects a day and advances focus across months', () => {
     const onChange = vi.fn()
     const onMonthChange = vi.fn()

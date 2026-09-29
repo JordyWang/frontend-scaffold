@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { useConfig } from './config-context'
 
 export type CalendarProps = Omit<
   HTMLAttributes<HTMLDivElement>,
@@ -105,7 +106,7 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
       showOutsideDays = true,
       renderDate,
       getDateDescription,
-      locale = 'zh-CN',
+      locale,
       label = '日历',
       size = 'default',
       disabled = false,
@@ -117,6 +118,8 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
     },
     ref,
   ) {
+    const { locale: configLocale } = useConfig()
+    const resolvedLocale = locale ?? configLocale ?? 'zh-CN'
     const today = new Date()
     const todayISO = toISO(today)
     const initialSelected = parseDate(defaultValue)
@@ -156,17 +159,19 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
       ? activeDate
       : (visibleDays.find((day) => day.inMonth && !isUnavailable(day.iso))
           ?.iso ?? visibleDays.find((day) => !isUnavailable(day.iso))?.iso)
-    const dateLabel = new Intl.DateTimeFormat(locale, {
+    const dateLabel = new Intl.DateTimeFormat(resolvedLocale, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       weekday: 'long',
     })
-    const monthLabel = new Intl.DateTimeFormat(locale, {
+    const monthLabel = new Intl.DateTimeFormat(resolvedLocale, {
       year: 'numeric',
       month: 'long',
     }).format(visibleMonth)
-    const weekdayLabel = new Intl.DateTimeFormat(locale, { weekday: 'short' })
+    const weekdayLabel = new Intl.DateTimeFormat(resolvedLocale, {
+      weekday: 'short',
+    })
     const weekdayNames = Array.from({ length: 7 }, (_, index) =>
       weekdayLabel.format(addDays(new Date(2024, 0, 7), index + weekStartsOn)),
     )
