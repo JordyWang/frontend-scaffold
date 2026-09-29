@@ -114,8 +114,36 @@ describe('shared/ui contracts', () => {
       />,
     )
     expect(screen.getByRole('button', { name: '上一页' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '前往第 1 页' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    fireEvent.click(screen.getByRole('button', { name: '前往第 3 页' }))
+    expect(onPageChange).toHaveBeenCalledWith(3)
     fireEvent.click(screen.getByRole('button', { name: '下一页' }))
     expect(onPageChange).toHaveBeenCalledWith(2)
+  })
+
+  it('shows a bounded page window and keeps navigation disabled while loading', () => {
+    const onPageChange = vi.fn()
+    render(
+      <Pagination
+        page={20}
+        pageSize={10}
+        total={500}
+        onPageChange={onPageChange}
+        loading
+      />,
+    )
+    expect(screen.getByRole('button', { name: '前往第 1 页' })).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: '前往第 20 页' }),
+    ).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: '前往第 50 页' })).toBeDisabled()
+    expect(screen.getAllByText('…')).toHaveLength(2)
+    expect(
+      screen.getAllByRole('button', { name: /前往第/ }).length,
+    ).toBeLessThanOrEqual(7)
   })
 
   it('guards pagination against an invalid page size', () => {
