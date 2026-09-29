@@ -52,8 +52,7 @@
     "src/shared/ui/theme-scope.tsx",
     "src/shared/ui/toast-provider.tsx",
     "src/shared/ui/transfer.tsx",
-    "src/shared/ui/tree-select.tsx",
-    "src/shared/ui/typography.tsx"
+    "src/shared/ui/tree-select.tsx"
   ],
   "styleFiles": [
     "src/shared/styles/ai.css",

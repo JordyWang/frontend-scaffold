@@ -89,29 +89,6 @@
     grid-column: span 1;
   }
 }
-.ui-typography {
-  margin: 0;
-  line-height: 1.5;
-}
-.ui-typography--caption {
-  font-size: 0.875rem;
-}
-.ui-typography--title {
-  font-size: 1.125rem;
-  font-weight: 650;
-  line-height: 1.35;
-}
-.ui-typography--heading {
-  font-size: clamp(1.5rem, 2vw, 2rem);
-  font-weight: 700;
-  line-height: 1.25;
-}
-.ui-typography--muted {
-  color: var(--muted-foreground);
-}
-.ui-typography--danger {
-  color: var(--destructive);
-}
 .ui-choice,
 .ui-switch {
   position: relative;
