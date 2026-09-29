@@ -173,6 +173,51 @@ describe('Ant Design-inspired shared components', () => {
     expect(screen.getByRole('menuitem', { name: '子菜单' })).toBeInTheDocument()
   })
 
+  it('restores menu focus when controlled expansion hides the focused item', () => {
+    const items = [
+      {
+        key: 'root',
+        label: '根菜单',
+        children: [{ key: 'child', label: '子菜单' }],
+      },
+    ]
+    const { rerender } = render(<Menu items={items} expandedKeys={['root']} />)
+    const root = screen.getByRole('menuitem', { name: '根菜单' })
+    const child = screen.getByRole('menuitem', { name: '子菜单' })
+    child.focus()
+    expect(child).toHaveFocus()
+    rerender(<Menu items={items} expandedKeys={[]} />)
+    expect(root).toHaveFocus()
+  })
+
+  it('reverses horizontal menu traversal and submenu keys in RTL', () => {
+    render(
+      <ConfigProvider direction="rtl">
+        <Menu
+          mode="horizontal"
+          items={[
+            {
+              key: 'root',
+              label: '根菜单',
+              children: [{ key: 'child', label: '子菜单' }],
+            },
+            { key: 'other', label: '其他菜单' },
+          ]}
+        />
+      </ConfigProvider>,
+    )
+    const root = screen.getByRole('menuitem', { name: '根菜单' })
+    root.focus()
+    fireEvent.keyDown(root, { key: 'ArrowLeft' })
+    expect(root).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.keyDown(root, { key: 'ArrowLeft' })
+    expect(screen.getByRole('menuitem', { name: '子菜单' })).toHaveFocus()
+    fireEvent.keyDown(screen.getByRole('menuitem', { name: '子菜单' }), {
+      key: 'ArrowRight',
+    })
+    expect(root).toHaveFocus()
+  })
+
   it('keeps one menu item in the tab order', () => {
     render(
       <Menu
@@ -194,6 +239,23 @@ describe('Ant Design-inspired shared components', () => {
     expect(screen.getByRole('menuitem', { name: '第二项' })).toHaveAttribute(
       'tabindex',
       '-1',
+    )
+  })
+
+  it('exposes menu orientation and disabled state to assistive technology', () => {
+    render(
+      <Menu
+        mode="horizontal"
+        items={[{ key: 'disabled', label: '禁用项', disabled: true }]}
+      />,
+    )
+    expect(screen.getByRole('menu')).toHaveAttribute(
+      'aria-orientation',
+      'horizontal',
+    )
+    expect(screen.getByRole('menuitem', { name: '禁用项' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
     )
   })
 

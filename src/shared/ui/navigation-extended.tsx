@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { useConfig } from './config-context'
 
 export type MenuItem = {
   key: string
@@ -46,13 +47,29 @@ export function Menu({
   onExpand,
   className,
 }: MenuProps) {
+  const { direction } = useConfig()
   const [internalSelected, setInternalSelected] = useState(defaultSelectedKeys)
   const [internalExpanded, setInternalExpanded] =
     useState<string[]>(defaultExpandedKeys)
   const [focusedKey, setFocusedKey] = useState<string>()
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const menuRef = useRef<HTMLElement | null>(null)
+  const focusWithinRef = useRef(false)
   const selected = selectedKeys ?? internalSelected
   const expanded = expandedKeys ?? internalExpanded
+
+  useEffect(() => {
+    function handlePointerDown(event: PointerEvent) {
+      if (
+        event.target instanceof Node &&
+        !menuRef.current?.contains(event.target)
+      )
+        focusWithinRef.current = false
+    }
+    document.addEventListener('pointerdown', handlePointerDown, true)
+    return () =>
+      document.removeEventListener('pointerdown', handlePointerDown, true)
+  }, [])
 
   const visibleItems = useMemo(() => {
     const result: Array<{ item: MenuItem; parentKey?: string }> = []
@@ -70,6 +87,41 @@ export function Menu({
     [focusedKey, ...selected].find((key) =>
       visibleItems.some(({ item }) => item.key === key && !item.disabled),
     ) ?? visibleItems.find(({ item }) => !item.disabled)?.item.key
+
+  useLayoutEffect(() => {
+    if (
+      !focusedKey ||
+      visibleItems.some(({ item }) => item.key === focusedKey && !item.disabled)
+    )
+      return
+
+    function findAncestors(current: MenuItem[], ancestors: string[]): string[] {
+      for (const item of current) {
+        if (item.key === focusedKey) return ancestors
+        const found = findAncestors(item.children ?? [], [
+          ...ancestors,
+          item.key,
+        ])
+        if (found.length) return found
+      }
+      return []
+    }
+
+    const ancestor = findAncestors(items, [])
+      .reverse()
+      .find((key) =>
+        visibleItems.some(({ item }) => item.key === key && !item.disabled),
+      )
+    const fallback =
+      ancestor ?? visibleItems.find(({ item }) => !item.disabled)?.item.key
+    if (
+      focusWithinRef.current &&
+      fallback &&
+      (document.activeElement === document.body ||
+        menuRef.current?.contains(document.activeElement))
+    )
+      itemRefs.current[fallback]?.focus()
+  }, [focusedKey, items, visibleItems])
 
   function select(key: string) {
     if (selectedKeys === undefined) setInternalSelected([key])
@@ -102,21 +154,33 @@ export function Menu({
     const index = visibleItems.findIndex(({ item }) => item.key === key)
     const current = visibleItems[index]
     if (!current || current.item.disabled) return
-    const nextKey = mode === 'horizontal' ? 'ArrowRight' : 'ArrowDown'
-    const previousKey = mode === 'horizontal' ? 'ArrowLeft' : 'ArrowUp'
-    const handlesNestedRight =
-      event.key === 'ArrowRight' && current.item.children?.length
-    const handlesNestedLeft =
-      event.key === 'ArrowLeft' &&
+    const nextKey =
+      mode === 'horizontal'
+        ? direction === 'rtl'
+          ? 'ArrowLeft'
+          : 'ArrowRight'
+        : 'ArrowDown'
+    const previousKey =
+      mode === 'horizontal'
+        ? direction === 'rtl'
+          ? 'ArrowRight'
+          : 'ArrowLeft'
+        : 'ArrowUp'
+    const openKey = direction === 'rtl' ? 'ArrowLeft' : 'ArrowRight'
+    const closeKey = direction === 'rtl' ? 'ArrowRight' : 'ArrowLeft'
+    const handlesNestedOpen =
+      event.key === openKey && current.item.children?.length
+    const handlesNestedClose =
+      event.key === closeKey &&
       (Boolean(current.parentKey) ||
         (Boolean(current.item.children?.length) && expanded.includes(key)))
-    if (event.key === nextKey && !handlesNestedRight) {
+    if (event.key === nextKey && !handlesNestedOpen) {
       event.preventDefault()
       focusOffset(index, 1)
-    } else if (event.key === previousKey && !handlesNestedLeft) {
+    } else if (event.key === previousKey && !handlesNestedClose) {
       event.preventDefault()
       focusOffset(index, -1)
-    } else if (event.key === 'ArrowRight' && current.item.children?.length) {
+    } else if (event.key === openKey && current.item.children?.length) {
       event.preventDefault()
       if (!expanded.includes(key)) toggleExpanded(key)
       else {
@@ -125,7 +189,7 @@ export function Menu({
         )
         itemRefs.current[child?.item.key ?? '']?.focus()
       }
-    } else if (event.key === 'ArrowLeft') {
+    } else if (event.key === closeKey) {
       event.preventDefault()
       if (current.item.children?.length && expanded.includes(key))
         toggleExpanded(key)
@@ -158,6 +222,7 @@ export function Menu({
             role="menuitem"
             aria-current={isSelected ? 'page' : undefined}
             aria-selected={isSelected}
+            aria-disabled={item.disabled || undefined}
             aria-haspopup={hasChildren ? 'menu' : undefined}
             aria-expanded={hasChildren ? isExpanded : undefined}
             disabled={item.disabled}
@@ -173,7 +238,10 @@ export function Menu({
               }
               select(item.key)
             }}
-            onFocus={() => setFocusedKey(item.key)}
+            onFocus={() => {
+              focusWithinRef.current = true
+              setFocusedKey(item.key)
+            }}
             onKeyDown={(event) => handleKeyDown(event, item.key)}
           >
             {item.icon && <span aria-hidden="true">{item.icon}</span>}
@@ -196,10 +264,13 @@ export function Menu({
 
   return (
     <nav
+      ref={(element) => {
+        menuRef.current = element
+      }}
       aria-label={label}
       className={cn('ui-menu', `ui-menu--${mode}`, className)}
     >
-      <ul role="menu" className="ui-menu__list">
+      <ul role="menu" aria-orientation={mode} className="ui-menu__list">
         {renderItems(items)}
       </ul>
     </nav>
