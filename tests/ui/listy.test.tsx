@@ -160,4 +160,27 @@ describe('Listy', () => {
     expect(screen.getByText('项目 0')).toBeInTheDocument()
     expect(screen.queryByText('项目 20')).not.toBeInTheDocument()
   })
+
+  it('keeps rows visible when the data shrinks after a deep scroll', () => {
+    const props = {
+      itemHeight: 40,
+      height: 120,
+      overscan: 0,
+      getKey: (item: (typeof items)[number]) => item.id,
+      renderItem: (item: (typeof items)[number]) => <span>{item.label}</span>,
+    }
+    const { rerender } = render(<Listy {...props} items={items} />)
+    const list = screen.getByRole('list')
+    Object.defineProperty(list, 'clientHeight', {
+      configurable: true,
+      value: 120,
+    })
+    list.scrollTop = 1200
+    fireEvent.scroll(list)
+    expect(screen.getByText('项目 30')).toBeInTheDocument()
+
+    rerender(<Listy {...props} items={items.slice(0, 5)} />)
+    expect(screen.getByText('项目 4')).toBeInTheDocument()
+    expect(list.querySelectorAll('[role="listitem"]')).toHaveLength(3)
+  })
 })

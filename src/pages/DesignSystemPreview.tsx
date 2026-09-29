@@ -137,6 +137,7 @@ export function DesignSystemPreview() {
   const [virtualListState, setVirtualListState] = useState<
     'filled' | 'loading' | 'empty' | 'error'
   >('filled')
+  const [virtualListCount, setVirtualListCount] = useState(100)
   const [regionLoading, setRegionLoading] = useState(true)
   const [fullscreenLoading, setFullscreenLoading] = useState(false)
   const [watermarkImage, setWatermarkImage] = useState(false)
@@ -1169,7 +1170,7 @@ export function DesignSystemPreview() {
                     虚拟列表
                   </Typography>
                   <Typography variant="caption" tone="muted">
-                    100 条数据，仅渲染可见行
+                    {virtualListCount} 条数据，仅渲染可见行
                   </Typography>
                 </Stack>
                 <div
@@ -1197,8 +1198,23 @@ export function DesignSystemPreview() {
                     </Button>
                   ))}
                 </div>
+                <Button
+                  variant="outline"
+                  aria-pressed={virtualListCount === 5}
+                  onClick={() =>
+                    setVirtualListCount(virtualListCount === 5 ? 100 : 5)
+                  }
+                >
+                  {virtualListCount === 5
+                    ? '恢复 100 条数据'
+                    : '缩减到 5 条数据'}
+                </Button>
                 <Listy
-                  items={virtualListState === 'empty' ? [] : virtualListItems}
+                  items={
+                    virtualListState === 'empty'
+                      ? []
+                      : virtualListItems.slice(0, virtualListCount)
+                  }
                   itemHeight={52}
                   height={260}
                   overscan={4}

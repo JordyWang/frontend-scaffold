@@ -56,18 +56,33 @@ function ListyViewport<T>({
   const safeOverscan = Math.max(0, Math.floor(overscan))
   const viewportHeight = typeof height === 'number' ? height : measuredHeight
   const totalHeight = items.length * safeItemHeight
+  const maxScrollTop = Math.max(0, totalHeight - viewportHeight)
+  const effectiveScrollTop = Math.min(scrollTop, maxScrollTop)
   const range = useMemo(() => {
     const first = Math.max(
       0,
-      Math.floor(scrollTop / safeItemHeight) - safeOverscan,
+      Math.floor(effectiveScrollTop / safeItemHeight) - safeOverscan,
     )
     const last = Math.min(
       items.length,
-      Math.ceil((scrollTop + (viewportHeight ?? 0)) / safeItemHeight) +
+      Math.ceil((effectiveScrollTop + viewportHeight) / safeItemHeight) +
         safeOverscan,
     )
     return { first, last }
-  }, [items.length, safeItemHeight, safeOverscan, scrollTop, viewportHeight])
+  }, [
+    effectiveScrollTop,
+    items.length,
+    safeItemHeight,
+    safeOverscan,
+    viewportHeight,
+  ])
+
+  useLayoutEffect(() => {
+    const element = listRef.current
+    if (!element || element.scrollTop <= maxScrollTop) return
+    element.scrollTop = maxScrollTop
+    setScrollTop(maxScrollTop)
+  }, [maxScrollTop])
 
   useLayoutEffect(() => {
     const element = listRef.current

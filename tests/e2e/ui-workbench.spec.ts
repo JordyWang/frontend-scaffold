@@ -1071,6 +1071,16 @@ test('listy keeps a bounded window and stable states on desktop and H5', async (
   await expect(list.getByText('虚拟列表项目 51')).toBeVisible()
   expect(await list.getByRole('listitem').count()).toBeLessThan(20)
 
+  const shrink = page.getByRole('button', { name: '缩减到 5 条数据' })
+  if (testInfo.project.name.startsWith('mobile-')) await shrink.tap()
+  else await shrink.click()
+  await expect(list.getByText('虚拟列表项目 5')).toBeVisible()
+  await expect(list.getByRole('listitem')).toHaveCount(5)
+  await expect(list).toHaveJSProperty('scrollTop', 0)
+  const restore = page.getByRole('button', { name: '恢复 100 条数据' })
+  if (testInfo.project.name.startsWith('mobile-')) await restore.tap()
+  else await restore.click()
+
   await activate('加载中')
   await expect(list).toHaveAttribute('aria-busy', 'true')
   await expect(list.getByRole('status')).toContainText('正在加载')
