@@ -18,13 +18,13 @@ function contrastRatio(first: string, second: string) {
 
 describe('primary theme derivation', () => {
   it('chooses readable button text for light, dark and middle luminance seeds', () => {
-    expect(derivePrimaryTokens('#0f766e')?.onPrimary).toBe('#ffffff')
-    expect(derivePrimaryTokens('#5eead4')?.onPrimary).toBe('#111827')
+    expect(derivePrimaryTokens('#0958d9')?.onPrimary).toBe('#ffffff')
+    expect(derivePrimaryTokens('#69b1ff')?.onPrimary).toBe('#111827')
     expect(derivePrimaryTokens('#777777')?.onPrimary).toBe('#000000')
   })
 
   it('moves interaction colors toward higher contrast with the chosen text', () => {
-    for (const seed of ['#0f766e', '#5eead4', '#777777']) {
+    for (const seed of ['#0958d9', '#69b1ff', '#777777']) {
       const palette = derivePrimaryTokens(seed)
       if (!palette?.hover || !palette.active)
         throw new Error('Missing derived palette')
@@ -40,9 +40,9 @@ describe('primary theme derivation', () => {
   })
 
   it('preserves an explicit foreground and leaves non-hex colors to the caller', () => {
-    expect(derivePrimaryTokens('#5eead4', '#ffffff')?.onPrimary).toBe('#ffffff')
+    expect(derivePrimaryTokens('#69b1ff', '#ffffff')?.onPrimary).toBe('#ffffff')
     expect(derivePrimaryTokens('var(--brand)')).toBeNull()
-    expect(derivePrimaryTokens('0f766e')).toBeNull()
+    expect(derivePrimaryTokens('0958d9')).toBeNull()
   })
 
   it('derives readable status foregrounds for custom destructive colors', () => {

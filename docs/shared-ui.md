@@ -70,7 +70,7 @@ Menu 的受控展开 API 为 `expandedKeys`、`defaultExpandedKeys` 和 `onExpan
 设计变量按 **Seed → 语义 Map/Alias → 组件 Token** 组织。`--ui-seed-*` 控制品牌色、状态色和圆角；`--ui-map-*` 控制浅色/深色的表面、文字和边框，其中主色悬停/按下色及高亮色从主色 Seed 派生；`--ui-button-*`、`--ui-field-*`、`--ui-card-*`、`--ui-overlay-*`、`--ui-menu-*` 是组件级覆写点。既有 `--primary`、`--card` 等变量仍作为 Alias 使用，业务无需改动。
 
 ```tsx
-<ThemeScope mode="dark" density="compact" tokens={{ primary: '#5eead4' }}>
+<ThemeScope mode="dark" density="compact" tokens={{ primary: '#4096ff' }}>
   <Button>局部主题按钮</Button>
 </ThemeScope>
 ```

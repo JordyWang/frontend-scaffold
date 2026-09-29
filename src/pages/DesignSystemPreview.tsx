@@ -106,7 +106,7 @@ export function DesignSystemPreview() {
   const [density, setDensity] = useState<'default' | 'compact'>('default')
   const [step, setStep] = useState(1)
   const [volume, setVolume] = useState(42)
-  const [colorValue, setColorValue] = useState('#4338ca')
+  const [colorValue, setColorValue] = useState('#1677ff')
   const [formStatus, setFormStatus] = useState('尚未提交')
   const [searchStatus, setSearchStatus] = useState('尚未搜索')
   const [mentionsValue, setMentionsValue] = useState('')
@@ -1177,7 +1177,8 @@ export function DesignSystemPreview() {
         mode={mode === 'light' ? 'dark' : 'light'}
         density="compact"
         tokens={{
-          primary: mode === 'light' ? '#5eead4' : '#0f766e',
+          primary: mode === 'light' ? '#4096ff' : '#1677ff',
+          onPrimary: mode === 'light' ? '#111827' : '#ffffff',
           success: '#34d399',
           warning: '#fbbf24',
           error: '#fb7185',

@@ -206,7 +206,7 @@ describe('shared/ui contracts', () => {
         mode="dark"
         density="compact"
         tokens={{
-          primary: '#5eead4',
+          primary: '#4096ff',
           components: {
             button: { radius: '999px', height: '48px' },
             field: { height: '48px' },
@@ -223,7 +223,7 @@ describe('shared/ui contracts', () => {
     const scope = screen.getByText('局部主题')
     expect(scope).toHaveAttribute('data-ui-theme', 'dark')
     expect(scope).toHaveAttribute('data-ui-density', 'compact')
-    expect(scope).toHaveStyle({ '--ui-seed-primary': '#5eead4' })
+    expect(scope).toHaveStyle({ '--ui-seed-primary': '#4096ff' })
     expect(scope).toHaveStyle({ '--ui-map-primary-text': '#111827' })
     expect(scope).toHaveStyle({ '--ui-map-accent-text': 'var(--foreground)' })
     expect(scope).toHaveStyle({ '--ui-button-radius-override': '999px' })

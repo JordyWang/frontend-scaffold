@@ -9,7 +9,7 @@
 | 页面背景 | `#f8fafc` | `#0f172a` | `--background`       |
 | 主要文字 | `#0f172a` | `#f8fafc` | `--foreground`       |
 | 表面     | `#ffffff` | `#1e293b` | `--card`             |
-| 主操作   | `#4338ca` | `#a5b4fc` | `--primary`          |
+| 主操作   | `#1677ff` | `#69b1ff` | `--primary`          |
 | 次要文字 | `#475569` | `#cbd5e1` | `--muted-foreground` |
 | 边框     | `#cbd5e1` | `#475569` | `--border`           |
 | 危险状态 | `#b91c1c` | `#fca5a5` | `--destructive`      |

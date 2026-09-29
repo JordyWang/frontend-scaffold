@@ -165,6 +165,11 @@ test('design system controls support keyboard, touch and local themes', async ({
   page,
 }, testInfo) => {
   await page.goto('/__ui')
+  await expect(
+    page
+      .getByRole('region', { name: '基础展示与输入' })
+      .getByRole('button', { name: '主要操作' }),
+  ).toHaveCSS('background-color', 'rgb(22, 119, 255)')
   const preview = page.getByRole('region', { name: '设计系统补充组件' })
   const checkbox = preview.getByRole('checkbox', { name: '同意更新通知' })
   const switchControl = preview.getByRole('switch', { name: '启用提醒' })
@@ -193,7 +198,7 @@ test('design system controls support keyboard, touch and local themes', async ({
   const brandedScope = preview.locator('[data-ui-theme="light"]')
   await expect(
     brandedScope.getByRole('button', { name: '主要操作' }),
-  ).toHaveCSS('background-color', 'rgb(15, 118, 110)')
+  ).toHaveCSS('background-color', 'rgb(22, 119, 255)')
   await expect(
     brandedScope.getByRole('button', { name: '主要操作' }),
   ).toHaveCSS('color', 'rgb(255, 255, 255)')
@@ -268,7 +273,7 @@ test('design system controls support keyboard, touch and local themes', async ({
   await expect(satisfied).toBeChecked()
 
   const colorPicker = preview.getByLabel('主题色')
-  await expect(colorPicker).toHaveValue('#4338ca')
+  await expect(colorPicker).toHaveValue('#1677ff')
   const colorPickerBox = await colorPicker.boundingBox()
   expect(colorPickerBox?.width).toBeGreaterThanOrEqual(44)
   expect(colorPickerBox?.height).toBeGreaterThanOrEqual(44)
