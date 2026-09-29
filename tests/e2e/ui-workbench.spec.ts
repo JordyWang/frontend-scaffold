@@ -758,6 +758,43 @@ test('watermark follows theme and keeps covered controls touchable', async ({
   await expect(overlay).toBeVisible()
 })
 
+test('tour highlights targets and supports keyboard, close and touch navigation', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const begin = preview.getByRole('button', { name: '开始引导' })
+  if (testInfo.project.name.startsWith('mobile-')) await begin.tap()
+  else await begin.click()
+  const tour = page.getByRole('dialog', { name: '上传素材' })
+  await expect(tour).toBeVisible()
+  await expect(page.locator('[data-tour-mask]')).toHaveCount(4)
+  await expect(page.locator('[data-tour-card]')).toHaveCSS('position', 'fixed')
+  await expect(preview.locator('#tour-upload')).toBeVisible()
+
+  await page.keyboard.press('ArrowRight')
+  await expect(page.getByRole('dialog', { name: '保存草稿' })).toBeVisible()
+  await page.keyboard.press('ArrowLeft')
+  await expect(page.getByRole('dialog', { name: '上传素材' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: '上传素材' })).toHaveCount(0)
+  await expect(begin).toBeFocused()
+
+  if (testInfo.project.name.startsWith('mobile-')) await begin.tap()
+  else await begin.click()
+  const next = page.getByRole('button', { name: '下一步' })
+  for (let index = 0; index < 2; index += 1) {
+    if (testInfo.project.name.startsWith('mobile-')) await next.tap()
+    else await next.click()
+  }
+  const finish = page
+    .getByRole('dialog', { name: '发布内容' })
+    .getByRole('button', { name: '完成' })
+  if (testInfo.project.name.startsWith('mobile-')) await finish.tap()
+  else await finish.click()
+  await expect(page.getByRole('dialog', { name: '发布内容' })).toHaveCount(0)
+})
+
 test('tree select searches collapsed branches with keyboard and touch', async ({
   page,
 }, testInfo) => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Alert,
   Affix,
@@ -60,6 +60,7 @@ import {
   ThemeScope,
   Timeline,
   TimePicker,
+  Tour,
   Tree,
   TreeSelect,
   Transfer,
@@ -125,6 +126,9 @@ export function DesignSystemPreview() {
   const [regionLoading, setRegionLoading] = useState(true)
   const [fullscreenLoading, setFullscreenLoading] = useState(false)
   const [watermarkImage, setWatermarkImage] = useState(false)
+  const [tourOpen, setTourOpen] = useState(false)
+  const [tourStep, setTourStep] = useState(0)
+  const tourTriggerRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (!fullscreenLoading) return
@@ -1088,6 +1092,74 @@ export function DesignSystemPreview() {
                     </Button>
                   </div>
                 </Watermark>
+              </Stack>
+            </CardContent>
+          </Card>
+          <Card className="col-span-full">
+            <CardContent>
+              <Stack gap="md">
+                <Stack direction="row" wrap align="center" justify="between">
+                  <Typography as="h3" variant="title">
+                    分步引导
+                  </Typography>
+                  <Button
+                    ref={tourTriggerRef}
+                    variant="outline"
+                    size="small"
+                    onClick={() => {
+                      setTourStep(0)
+                      setTourOpen(true)
+                    }}
+                  >
+                    开始引导
+                  </Button>
+                </Stack>
+                <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/30 p-4">
+                  <Button id="tour-upload" variant="outline">
+                    上传素材
+                  </Button>
+                  <Button id="tour-save" variant="outline">
+                    保存草稿
+                  </Button>
+                  <Button id="tour-publish" variant="primary">
+                    发布内容
+                  </Button>
+                </div>
+                <Typography variant="caption" tone="muted">
+                  引导支持 Escape、左右方向键、遮罩关闭和手机触控。
+                </Typography>
+                <Tour
+                  open={tourOpen}
+                  current={tourStep}
+                  returnFocusRef={tourTriggerRef}
+                  onChange={setTourStep}
+                  onClose={() => setTourOpen(false)}
+                  onFinish={() => setTourOpen(false)}
+                  steps={[
+                    {
+                      key: 'upload',
+                      target: () => document.getElementById('tour-upload'),
+                      title: '上传素材',
+                      description: '先选择要处理的图片、视频或音频文件。',
+                      placement: 'bottom',
+                    },
+                    {
+                      key: 'save',
+                      target: () => document.getElementById('tour-save'),
+                      title: '保存草稿',
+                      description: '中途离开前可以保存当前编辑状态。',
+                      placement: 'bottom',
+                    },
+                    {
+                      key: 'publish',
+                      target: () => document.getElementById('tour-publish'),
+                      title: '发布内容',
+                      description: '确认内容无误后发布给团队成员。',
+                      placement: 'bottom',
+                      type: 'primary',
+                    },
+                  ]}
+                />
               </Stack>
             </CardContent>
           </Card>

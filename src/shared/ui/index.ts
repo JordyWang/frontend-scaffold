@@ -107,6 +107,8 @@ export { Spin } from './spin'
 export type { SpinProps } from './spin'
 export { Watermark } from './watermark'
 export type { WatermarkProps } from './watermark'
+export { Tour } from './tour'
+export type { TourPlacement, TourProps, TourStep, TourTarget } from './tour'
 export { Breadcrumb, Steps } from './navigation'
 export type {
   BreadcrumbItem,
