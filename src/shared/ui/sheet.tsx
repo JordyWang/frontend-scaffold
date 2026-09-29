@@ -1,9 +1,19 @@
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { type ReactElement, type ReactNode } from 'react'
+import { cn } from '@/shared/lib/utils'
 import { Button } from './button'
 import { useConfig } from './config-context'
 import { CloseIcon } from './icons'
 import { usePortalContainer } from './portal-context'
+import {
+  overlayBackdropStyles,
+  overlayBodyStyles,
+  overlayDescriptionStyles,
+  overlayFooterStyles,
+  overlayHeaderStyles,
+  overlayPanelStyles,
+  overlayTitleStyles,
+} from './tailwind-styles'
 
 export type SheetProps = {
   title: ReactNode
@@ -42,19 +52,28 @@ export function Sheet({
         <DialogPrimitive.Trigger asChild>{trigger}</DialogPrimitive.Trigger>
       )}
       <DialogPrimitive.Portal container={portalContainer}>
-        <DialogPrimitive.Overlay className="ui-overlay" />
+        <DialogPrimitive.Overlay className={overlayBackdropStyles} />
         <DialogPrimitive.Content
           dir={direction}
-          className={`ui-sheet ui-sheet--${side}`}
+          className={cn(
+            overlayPanelStyles,
+            'bottom-0 w-[min(100vw,26rem)] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] max-sm:inset-x-0 max-sm:top-auto max-sm:w-full max-sm:max-h-[85dvh] max-sm:rounded-t-[var(--ui-overlay-radius)] max-sm:rounded-b-none max-sm:pt-0',
+            side === 'right' && 'top-0 right-0',
+            side === 'left' && 'top-0 left-0',
+            side === 'bottom' &&
+              'inset-x-0 max-h-[85dvh] w-full rounded-t-[var(--ui-overlay-radius)] rounded-b-none pt-0',
+          )}
           aria-describedby={description ? undefined : ''}
         >
-          <div className="ui-dialog__head">
-            <div>
-              <DialogPrimitive.Title className="ui-dialog__title">
+          <div className={overlayHeaderStyles}>
+            <div className="min-w-0 flex-1">
+              <DialogPrimitive.Title className={overlayTitleStyles}>
                 {title}
               </DialogPrimitive.Title>
               {description && (
-                <DialogPrimitive.Description className="ui-dialog__description">
+                <DialogPrimitive.Description
+                  className={overlayDescriptionStyles}
+                >
                   {description}
                 </DialogPrimitive.Description>
               )}
@@ -65,8 +84,8 @@ export function Sheet({
               </Button>
             </DialogPrimitive.Close>
           </div>
-          <div className="ui-sheet__body">{children}</div>
-          {footer && <div className="ui-dialog__footer">{footer}</div>}
+          <div className={`${overlayBodyStyles} flex-1`}>{children}</div>
+          {footer && <div className={overlayFooterStyles}>{footer}</div>}
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>

@@ -4,6 +4,15 @@ import { Button } from './button'
 import { useConfig } from './config-context'
 import { CloseIcon } from './icons'
 import { usePortalContainer } from './portal-context'
+import {
+  overlayBackdropStyles,
+  overlayBodyStyles,
+  overlayDescriptionStyles,
+  overlayFooterStyles,
+  overlayHeaderStyles,
+  overlayPanelStyles,
+  overlayTitleStyles,
+} from './tailwind-styles'
 
 export type DialogProps = {
   title: ReactNode
@@ -40,19 +49,21 @@ export function Dialog({
         <DialogPrimitive.Trigger asChild>{trigger}</DialogPrimitive.Trigger>
       )}
       <DialogPrimitive.Portal container={portalContainer}>
-        <DialogPrimitive.Overlay className="ui-overlay" />
+        <DialogPrimitive.Overlay className={overlayBackdropStyles} />
         <DialogPrimitive.Content
           dir={direction}
-          className="ui-dialog"
+          className={`${overlayPanelStyles} top-1/2 left-1/2 max-h-[min(90dvh,46rem)] w-[min(calc(100vw-2rem),32rem)] -translate-x-1/2 -translate-y-1/2`}
           aria-describedby={description ? undefined : ''}
         >
-          <div className="ui-dialog__head">
-            <div>
-              <DialogPrimitive.Title className="ui-dialog__title">
+          <div className={overlayHeaderStyles}>
+            <div className="min-w-0 flex-1">
+              <DialogPrimitive.Title className={overlayTitleStyles}>
                 {title}
               </DialogPrimitive.Title>
               {description && (
-                <DialogPrimitive.Description className="ui-dialog__description">
+                <DialogPrimitive.Description
+                  className={overlayDescriptionStyles}
+                >
                   {description}
                 </DialogPrimitive.Description>
               )}
@@ -63,8 +74,8 @@ export function Dialog({
               </Button>
             </DialogPrimitive.Close>
           </div>
-          <div className="ui-dialog__body">{children}</div>
-          {footer && <div className="ui-dialog__footer">{footer}</div>}
+          <div className={overlayBodyStyles}>{children}</div>
+          {footer && <div className={overlayFooterStyles}>{footer}</div>}
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>

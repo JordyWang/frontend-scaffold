@@ -19,6 +19,25 @@ export const spinnerSizeStyles = {
 
 export const spinnerStyles = `${spinnerIndicatorStyles} ${spinnerSizeStyles.small}`
 
+export const overlayBackdropStyles = 'fixed inset-0 z-[80] bg-black/50'
+
+export const overlayPanelStyles =
+  'fixed z-[81] flex flex-col rounded-[var(--ui-overlay-radius)] border border-border bg-card text-card-foreground shadow-[0_20px_50px_rgb(0_0_0_/_0.2)]'
+
+export const overlayHeaderStyles =
+  'flex items-start justify-between gap-[var(--space-md)] p-[var(--space-lg)]'
+
+export const overlayTitleStyles = 'm-0 text-xl font-[650]'
+
+export const overlayDescriptionStyles =
+  'mt-[var(--space-xs)] leading-normal text-muted-foreground'
+
+export const overlayBodyStyles =
+  'min-h-0 overflow-auto overscroll-contain px-[var(--space-lg)] pb-[var(--space-lg)]'
+
+export const overlayFooterStyles =
+  'flex flex-wrap justify-end gap-[var(--space-sm)] border-t border-border px-[var(--space-lg)] pt-[var(--space-md)] pb-[max(var(--space-md),env(safe-area-inset-bottom))]'
+
 export const affixShellStyles =
   'flex w-full min-h-[max(44px,var(--ui-control-height))] items-center rounded-[var(--ui-field-radius)] border border-input bg-card text-card-foreground focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20 data-[invalid=true]:border-destructive data-[disabled=true]:opacity-[0.55]'
 

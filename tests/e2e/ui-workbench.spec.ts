@@ -330,6 +330,13 @@ test('design system controls support keyboard, touch and local themes', async ({
   else await dialogTrigger.click()
   const scopedDialog = page.getByRole('dialog', { name: '局部对话框' })
   await expect(scopedDialog).toHaveCSS('background-color', 'rgb(30, 41, 59)')
+  const viewport = page.viewportSize()!
+  const dialogBox = await scopedDialog.boundingBox()
+  expect(dialogBox).not.toBeNull()
+  expect(dialogBox!.x).toBeGreaterThanOrEqual(0)
+  expect(dialogBox!.y).toBeGreaterThanOrEqual(0)
+  expect(dialogBox!.x + dialogBox!.width).toBeLessThanOrEqual(viewport.width)
+  expect(dialogBox!.y + dialogBox!.height).toBeLessThanOrEqual(viewport.height)
   await scopedDialog.getByRole('button', { name: '关闭对话框' }).click()
 
   const sheetTrigger = preview.getByRole('button', { name: '打开局部面板' })
@@ -337,7 +344,38 @@ test('design system controls support keyboard, touch and local themes', async ({
   else await sheetTrigger.click()
   const scopedSheet = page.getByRole('dialog', { name: '局部面板' })
   await expect(scopedSheet).toHaveCSS('background-color', 'rgb(30, 41, 59)')
+  const sheetBox = await scopedSheet.boundingBox()
+  expect(sheetBox).not.toBeNull()
+  expect(sheetBox!.x + sheetBox!.width).toBeCloseTo(viewport.width, 0)
+  expect(sheetBox!.y + sheetBox!.height).toBeCloseTo(viewport.height, 0)
+  if (testInfo.project.name.startsWith('mobile-')) {
+    expect(sheetBox!.width).toBeCloseTo(viewport.width, 0)
+    expect(sheetBox!.height).toBeLessThanOrEqual(viewport.height * 0.85 + 1)
+  } else {
+    expect(sheetBox!.y).toBe(0)
+    expect(sheetBox!.height).toBeCloseTo(viewport.height, 0)
+  }
   await scopedSheet.getByRole('button', { name: '关闭面板' }).click()
+
+  for (const side of ['左侧', '底部'] as const) {
+    const trigger = preview.getByRole('button', { name: `打开${side}面板` })
+    if (testInfo.project.name.startsWith('mobile-')) await trigger.tap()
+    else await trigger.click()
+    const sheet = page.getByRole('dialog', { name: `${side}面板` })
+    const box = await sheet.boundingBox()
+    expect(box).not.toBeNull()
+    expect(box!.y + box!.height).toBeCloseTo(viewport.height, 0)
+    if (side === '底部' || testInfo.project.name.startsWith('mobile-')) {
+      expect(box!.x).toBe(0)
+      expect(box!.width).toBeCloseTo(viewport.width, 0)
+      expect(box!.height).toBeLessThanOrEqual(viewport.height * 0.85 + 1)
+    } else {
+      expect(box!.x).toBe(0)
+      expect(box!.y).toBe(0)
+      expect(box!.height).toBeCloseTo(viewport.height, 0)
+    }
+    await sheet.getByRole('button', { name: '关闭面板' }).click()
+  }
 
   await theme.click()
   const accentAfter = await preview

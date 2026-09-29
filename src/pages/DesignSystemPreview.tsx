@@ -775,6 +775,20 @@ export function DesignSystemPreview() {
                   >
                     <Typography>面板继承当前主题。</Typography>
                   </Sheet>
+                  <Sheet
+                    title="左侧面板"
+                    side="left"
+                    trigger={<Button variant="outline">打开左侧面板</Button>}
+                  >
+                    <Typography>桌面从左侧展开，手机从底部展开。</Typography>
+                  </Sheet>
+                  <Sheet
+                    title="底部面板"
+                    side="bottom"
+                    trigger={<Button variant="outline">打开底部面板</Button>}
+                  >
+                    <Typography>底部面板保留安全区间距。</Typography>
+                  </Sheet>
                 </Stack>
                 <Stack direction="row" wrap gap="sm" align="center">
                   <Dropdown
