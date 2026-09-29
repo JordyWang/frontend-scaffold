@@ -35,6 +35,7 @@ export type {
   AppContextValue,
   AppMessageContent,
   AppModalApi,
+  AppModalKind,
   AppModalOptions,
   AppModalOpen,
   AppProps,

@@ -21,6 +21,9 @@ export type AppModalApi = {
   destroy: (id?: string | number) => void
 }
 
+export type AppModalKind =
+  'default' | 'confirm' | 'info' | 'success' | 'warning' | 'error'
+
 export type AppContextValue = {
   message: typeof message
   notification: typeof notification
@@ -29,7 +32,7 @@ export type AppContextValue = {
 
 export type AppModalOpen = (
   options: AppModalOptions,
-  kind: 'default' | 'info' | 'success' | 'warning' | 'error',
+  kind: AppModalKind,
 ) => string
 
 export function createModalApi(
@@ -38,7 +41,7 @@ export function createModalApi(
 ): AppModalApi {
   return {
     open: (options) => open(options, 'default'),
-    confirm: (options) => open(options, 'default'),
+    confirm: (options) => open(options, 'confirm'),
     info: (options) => open(options, 'info'),
     success: (options) => open(options, 'success'),
     warning: (options) => open(options, 'warning'),

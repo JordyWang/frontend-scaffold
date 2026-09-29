@@ -9,6 +9,7 @@ import { cn } from '@/shared/lib/utils'
 import {
   AppContext,
   createModalApi,
+  type AppModalKind,
   type AppModalOptions,
   type AppModalOpen,
 } from './app-context'
@@ -22,7 +23,7 @@ export type AppProps = Omit<HTMLAttributes<HTMLDivElement>, 'children'> & {
 
 type AppModalState = AppModalOptions & {
   id: string
-  kind: Parameters<AppModalOpen>[1]
+  kind: AppModalKind
 }
 
 /** App-level context matching Ant Design's useApp boundary. */
@@ -75,12 +76,12 @@ export function App({ children, className, ...props }: AppProps) {
           }}
           footer={
             <div className="flex justify-end gap-2">
-              {item.cancelText && (
+              {(item.kind === 'confirm' || item.cancelText) && (
                 <Button
                   variant="outline"
                   onClick={() => closeModal(item, false)}
                 >
-                  {item.cancelText}
+                  {item.cancelText ?? '取消'}
                 </Button>
               )}
               <Button onClick={() => closeModal(item, true)}>
@@ -100,6 +101,7 @@ export type {
   AppContextValue,
   AppMessageContent,
   AppModalApi,
+  AppModalKind,
   AppModalOptions,
   AppModalOpen,
 } from './app-context'

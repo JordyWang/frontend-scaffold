@@ -179,6 +179,47 @@ describe('App and ConfigProvider boundaries', () => {
     )
   })
 
+  it('gives modal.confirm a default cancel action while modal.open stays single-action', async () => {
+    function ModalProbe() {
+      const { modal } = useApp()
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => modal.open({ title: '普通弹窗' })}
+          >
+            打开普通弹窗
+          </button>
+          <button
+            type="button"
+            onClick={() => modal.confirm({ title: '确认弹窗' })}
+          >
+            打开确认弹窗
+          </button>
+        </>
+      )
+    }
+
+    render(
+      <App>
+        <ModalProbe />
+      </App>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '打开普通弹窗' }))
+    expect(
+      screen.queryByRole('button', { name: '取消' }),
+    ).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '确定' }))
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: '普通弹窗' }),
+      ).not.toBeInTheDocument(),
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '打开确认弹窗' }))
+    expect(screen.getByRole('button', { name: '取消' })).toBeInTheDocument()
+  })
+
   it('closes a modal with Escape and invokes onCancel', async () => {
     const onCancel = vi.fn()
     function ModalProbe() {
