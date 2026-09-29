@@ -1,6 +1,15 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { Alert, Badge, Icon, Skeleton, Spinner, Typography } from '@/shared/ui'
+import {
+  Alert,
+  Badge,
+  ConfigProvider,
+  Icon,
+  Skeleton,
+  Spinner,
+  Spin,
+  Typography,
+} from '@/shared/ui'
 
 describe('display and feedback semantics', () => {
   it('keeps decorative icons out of the accessibility tree and names meaningful icons', () => {
@@ -54,5 +63,22 @@ describe('display and feedback semantics', () => {
       screen.getByRole('status', { name: '列表正在加载' }),
     ).toBeInTheDocument()
     expect(screen.getByRole('status', { name: '正在处理' })).toBeInTheDocument()
+  })
+
+  it('applies the provider size consistently to standalone and wrapped loading', () => {
+    render(
+      <ConfigProvider componentSize="large">
+        <Spinner label="大号加载" />
+        <Spin label="大号包裹加载" />
+      </ConfigProvider>,
+    )
+    expect(screen.getByRole('status', { name: '大号加载' })).toHaveClass(
+      'ui-spinner-standalone--large',
+    )
+    expect(
+      screen
+        .getByRole('status', { name: '大号包裹加载' })
+        .querySelector('.size-9'),
+    ).toBeInTheDocument()
   })
 })

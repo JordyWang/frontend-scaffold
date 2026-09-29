@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { resolveComponentSize, useConfig } from './config-context'
 import { Portal } from './portal'
 
 export type SpinProps = HTMLAttributes<HTMLDivElement> & {
@@ -30,7 +31,7 @@ export const Spin = forwardRef<HTMLDivElement, SpinProps>(function Spin(
     delay = 0,
     tip,
     label = '正在加载',
-    size = 'default',
+    size,
     fullscreen = false,
     children,
     className,
@@ -38,6 +39,8 @@ export const Spin = forwardRef<HTMLDivElement, SpinProps>(function Spin(
   },
   ref,
 ) {
+  const { componentSize } = useConfig()
+  const resolvedSize = resolveComponentSize(componentSize, size)
   const safeDelay = Number.isFinite(delay) ? Math.max(0, delay) : 0
   const [visible, setVisible] = useState(spinning && safeDelay === 0)
 
@@ -66,7 +69,7 @@ export const Spin = forwardRef<HTMLDivElement, SpinProps>(function Spin(
         aria-hidden="true"
         className={cn(
           'shrink-0 animate-spin rounded-full border-[3px] border-current border-r-transparent motion-reduce:animate-none',
-          indicatorSizes[size],
+          indicatorSizes[resolvedSize],
         )}
       />
       {tip && (

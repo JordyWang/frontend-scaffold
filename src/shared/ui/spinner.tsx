@@ -1,5 +1,6 @@
 import type { HTMLAttributes } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { resolveComponentSize, useConfig } from './config-context'
 import { spinnerStyles } from './tailwind-styles'
 
 export type SpinnerProps = HTMLAttributes<HTMLSpanElement> & {
@@ -9,17 +10,19 @@ export type SpinnerProps = HTMLAttributes<HTMLSpanElement> & {
 
 export function Spinner({
   label = '正在加载',
-  size = 'default',
+  size,
   className,
   ...props
 }: SpinnerProps) {
+  const { componentSize } = useConfig()
+  const resolvedSize = resolveComponentSize(componentSize, size)
   return (
     <span
       role="status"
       aria-label={label}
       className={cn(
         'ui-spinner-standalone inline-flex size-11 items-center justify-center text-primary',
-        `ui-spinner-standalone--${size}`,
+        `ui-spinner-standalone--${resolvedSize}`,
         className,
       )}
       {...props}
@@ -28,8 +31,8 @@ export function Spinner({
         className={cn(
           'ui-spinner',
           spinnerStyles,
-          size === 'small' && 'size-3',
-          size === 'large' && 'size-6',
+          resolvedSize === 'small' && 'size-3',
+          resolvedSize === 'large' && 'size-6',
         )}
         aria-hidden="true"
       />
