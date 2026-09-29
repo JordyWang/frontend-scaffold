@@ -74,9 +74,15 @@ export function AudioControls({
 }: AudioControlsProps) {
   const hasDuration = duration > 0
   return (
-    <div className={cn('ui-audio-controls', className)} aria-label="音频控制栏">
+    <div
+      className={cn(
+        'grid gap-[var(--space-xs)] border-t border-border p-[var(--space-sm)]',
+        className,
+      )}
+      aria-label="音频控制栏"
+    >
       <input
-        className="ui-audio-controls__seek"
+        className="min-h-11 w-full accent-primary disabled:opacity-[0.55]"
         type="range"
         min={0}
         max={duration || 0}
@@ -86,8 +92,8 @@ export function AudioControls({
         onChange={(event) => onSeek(Number(event.target.value))}
         aria-label={`音频进度，当前 ${formatAudioTimecode(currentTime)}`}
       />
-      <div className="ui-audio-controls__row">
-        <div className="ui-audio-controls__cluster">
+      <div className="flex items-center justify-between gap-[var(--space-xs)]">
+        <div className="flex items-center gap-[var(--space-xs)]">
           <Button
             size="icon"
             variant="ghost"
@@ -115,11 +121,14 @@ export function AudioControls({
           >
             <span aria-hidden="true">+10</span>
           </Button>
-          <span className="ui-audio-controls__time" aria-label="播放时间">
+          <span
+            className="ms-[var(--space-xs)] whitespace-nowrap text-sm text-muted-foreground tabular-nums"
+            aria-label="播放时间"
+          >
             {formatAudioTimecode(currentTime)} / {formatAudioTimecode(duration)}
           </span>
         </div>
-        <div className="ui-audio-controls__cluster">
+        <div className="flex items-center gap-[var(--space-xs)]">
           <Button
             size="icon"
             variant="ghost"
@@ -129,7 +138,7 @@ export function AudioControls({
           >
             <VolumeIcon muted={muted} />
           </Button>
-          <label className="ui-audio-controls__volume">
+          <label className="flex min-h-11 w-[5.5rem] items-center max-[480px]:hidden">
             <span className="sr-only">音量</span>
             <input
               type="range"
@@ -139,6 +148,7 @@ export function AudioControls({
               value={muted ? 0 : volume}
               onChange={(event) => onVolumeChange(Number(event.target.value))}
               aria-label="音量"
+              className="w-full accent-primary"
             />
           </label>
         </div>

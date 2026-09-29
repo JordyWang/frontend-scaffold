@@ -63,22 +63,29 @@ export function AudioPlayer({
 
   return (
     <section
-      className={cn('ui-audio-player', className)}
+      className={cn(
+        'overflow-hidden rounded-[var(--radius-lg)] border border-border bg-card text-card-foreground',
+        className,
+      )}
       aria-label={title}
       data-status={status}
     >
-      <div className="ui-audio-player__body">
-        <div className="ui-audio-player__art" aria-hidden="true">
+      <div className="grid gap-[var(--space-sm)] p-[var(--space-lg)]">
+        <div
+          className="flex h-16 items-center justify-center gap-1 rounded-[var(--radius-md)] bg-accent text-accent-foreground"
+          aria-hidden="true"
+        >
           {Array.from({ length: 12 }, (_, index) => (
             <span
               key={index}
+              className="w-[0.35rem] rounded-full bg-current"
               style={{ height: `${30 + ((index * 17) % 55)}%` }}
             />
           ))}
         </div>
         <audio
           ref={audioRef}
-          className="ui-audio-player__media"
+          className="w-full"
           preload="metadata"
           aria-label={title}
           tabIndex={0}
@@ -92,7 +99,7 @@ export function AudioPlayer({
           {source.type && <source src={source.src} type={source.type} />}
         </audio>
         <div
-          className="ui-audio-player__status"
+          className="text-sm text-muted-foreground"
           aria-label={`音频状态：${statusLabels[status]}`}
           aria-live="polite"
           role="status"
@@ -100,8 +107,11 @@ export function AudioPlayer({
           {statusLabels[status]}
         </div>
         {status === 'error' && (
-          <div className="ui-audio-player__error" role="alert">
-            <p>{error?.message ?? '音频播放失败，请重试'}</p>
+          <div
+            className="grid justify-items-start gap-[var(--space-sm)] rounded-[var(--radius-md)] border border-destructive p-[var(--space-md)]"
+            role="alert"
+          >
+            <p className="m-0">{error?.message ?? '音频播放失败，请重试'}</p>
             <Button variant="outline" onClick={reload}>
               重试播放
             </Button>

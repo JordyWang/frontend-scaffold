@@ -10,8 +10,6 @@
     "src/capabilities/ai/task-status.tsx",
     "src/capabilities/ai/thinking-indicator.tsx",
     "src/capabilities/ai/welcome-panel.tsx",
-    "src/capabilities/audio/audio-controls.tsx",
-    "src/capabilities/audio/audio-player.tsx",
     "src/capabilities/video/timecode.tsx",
     "src/capabilities/video/video-controls.tsx",
     "src/capabilities/video/video-player.tsx",
@@ -22,7 +20,6 @@
   ],
   "styleFiles": [
     "src/shared/styles/ai.css",
-    "src/shared/styles/audio.css",
     "src/shared/styles/base.css",
     "src/shared/styles/index.css",
     "src/shared/styles/tokens.css",
