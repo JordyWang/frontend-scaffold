@@ -27,7 +27,8 @@ export function Collapse({
   className,
 }: CollapseProps) {
   const [uncontrolledKeys, setUncontrolledKeys] = useState(defaultActiveKey)
-  const keys = activeKey ?? uncontrolledKeys
+  const requestedKeys = activeKey ?? uncontrolledKeys
+  const keys = accordion ? requestedKeys.slice(0, 1) : requestedKeys
   const id = useId()
 
   function toggle(key: string) {
@@ -41,32 +42,36 @@ export function Collapse({
   }
 
   return (
-    <div className={cn('ui-collapse', className)}>
-      {items.map((item) => {
+    <div
+      className={cn(
+        'overflow-hidden rounded-[var(--radius-lg)] border border-border bg-card',
+        className,
+      )}
+    >
+      {items.map((item, index) => {
         const open = keys.includes(item.key)
-        const panelId = `${id}-${item.key}-panel`
-        const buttonId = `${id}-${item.key}-button`
+        const panelId = `${id}-${index}-panel`
+        const buttonId = `${id}-${index}-button`
         return (
           <section
             key={item.key}
-            className={cn(
-              'ui-collapse__item',
-              open && 'ui-collapse__item--open',
-              item.disabled && 'ui-collapse__item--disabled',
-            )}
+            className="border-t border-border first:border-t-0"
           >
-            <h3 className="ui-collapse__heading">
+            <h3 className="m-0">
               <button
                 id={buttonId}
                 type="button"
-                className="ui-collapse__trigger"
+                className="flex w-full min-h-[52px] touch-manipulation cursor-pointer items-center justify-between gap-[var(--space-md)] border-0 bg-transparent px-[var(--space-md)] py-[var(--space-sm)] text-start font-[650] text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
                 aria-expanded={open}
                 aria-controls={panelId}
                 disabled={item.disabled}
                 onClick={() => toggle(item.key)}
               >
                 <span>{item.label}</span>
-                <span className="ui-collapse__chevron" aria-hidden="true">
+                <span
+                  className="shrink-0 text-xl font-normal text-muted-foreground"
+                  aria-hidden="true"
+                >
                   {open ? '−' : '+'}
                 </span>
               </button>
@@ -76,7 +81,7 @@ export function Collapse({
               role="region"
               aria-labelledby={buttonId}
               hidden={!open}
-              className="ui-collapse__content"
+              className="border-t border-border p-[var(--space-md)] leading-[1.6]"
             >
               {item.children}
             </div>

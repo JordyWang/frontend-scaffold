@@ -478,6 +478,30 @@ test('native data controls keep their touch targets and keyboard behavior', asyn
   ).toBe(true)
 })
 
+test('accordion preview keeps one panel open with keyboard and touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const group = page.getByRole('group', { name: '单开折叠预览' })
+  const overview = group.getByRole('button', { name: '折叠概览' })
+  const details = group.getByRole('button', { name: '折叠详情' })
+  await expect(overview).toHaveAttribute('aria-expanded', 'true')
+  await expect(details).toHaveAttribute('aria-expanded', 'false')
+  const bounds = await details.boundingBox()
+  expect(bounds).not.toBeNull()
+  expect(bounds!.height).toBeGreaterThanOrEqual(44)
+
+  if (testInfo.project.name.startsWith('mobile-')) await details.tap()
+  else {
+    await details.focus()
+    await details.press('Enter')
+  }
+  await expect(overview).toHaveAttribute('aria-expanded', 'false')
+  await expect(details).toHaveAttribute('aria-expanded', 'true')
+  await expect(group.getByText('可以用键盘或触控切换。')).toBeVisible()
+  await expect(group.getByRole('button', { name: '不可用折叠' })).toBeDisabled()
+})
+
 test('one-time-code input supports entry, correction and touch-sized slots', async ({
   page,
 }, testInfo) => {

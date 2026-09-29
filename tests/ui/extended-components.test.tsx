@@ -434,6 +434,42 @@ describe('Ant Design-inspired shared components', () => {
     expect(screen.getByRole('button', { name: '不可用' })).toBeDisabled()
   })
 
+  it('keeps accordion mode to one panel and uses safe DOM ids for arbitrary keys', () => {
+    const onChange = vi.fn()
+    const items = [
+      { key: 'first key', label: '第一项', children: '第一项内容' },
+      { key: 'second', label: '第二项', children: '第二项内容' },
+    ]
+    const { rerender } = render(
+      <Collapse
+        items={items}
+        accordion
+        defaultActiveKey={['first key', 'second']}
+        onChange={onChange}
+      />,
+    )
+    const first = screen.getByRole('button', { name: '第一项' })
+    const second = screen.getByRole('button', { name: '第二项' })
+    expect(first).toHaveAttribute('aria-expanded', 'true')
+    expect(second).toHaveAttribute('aria-expanded', 'false')
+    expect(first.id).not.toMatch(/\s/)
+    expect(first.getAttribute('aria-controls')).not.toMatch(/\s/)
+    expect(
+      document.getElementById(first.getAttribute('aria-controls') ?? ''),
+    ).toHaveAttribute('aria-labelledby', first.id)
+
+    fireEvent.click(second)
+    expect(onChange).toHaveBeenLastCalledWith(['second'])
+    expect(first).toHaveAttribute('aria-expanded', 'false')
+    expect(second).toHaveAttribute('aria-expanded', 'true')
+
+    rerender(
+      <Collapse items={items} accordion activeKey={['first key', 'second']} />,
+    )
+    expect(first).toHaveAttribute('aria-expanded', 'true')
+    expect(second).toHaveAttribute('aria-expanded', 'false')
+  })
+
   it('keeps descriptions and avatars named on narrow layouts', () => {
     render(
       <>

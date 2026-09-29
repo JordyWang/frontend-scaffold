@@ -1001,6 +1001,30 @@ export function DesignSystemPreview() {
                     },
                   ]}
                 />
+                <div role="group" aria-label="单开折叠预览">
+                  <Collapse
+                    accordion
+                    defaultActiveKey={['overview']}
+                    items={[
+                      {
+                        key: 'overview',
+                        label: '折叠概览',
+                        children: '一次只展开一个面板。',
+                      },
+                      {
+                        key: 'details',
+                        label: '折叠详情',
+                        children: '可以用键盘或触控切换。',
+                      },
+                      {
+                        key: 'disabled',
+                        label: '不可用折叠',
+                        children: '不可操作。',
+                        disabled: true,
+                      },
+                    ]}
+                  />
+                </div>
                 <div id="preview-result">
                   <Result
                     status={step === 2 ? 'success' : 'info'}
