@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { Form, FormItem, useForm } from '@/shared/ui'
+import { Form, FormItem, RadioGroup, useForm } from '@/shared/ui'
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -35,6 +35,32 @@ describe('Form coordinator', () => {
       expect(screen.getByRole('textbox', { name: '名称' })).toHaveFocus(),
     )
     expect(screen.getByText('请输入名称')).toBeInTheDocument()
+  })
+
+  it('focuses the first option inside an invalid composite control', async () => {
+    render(
+      <Form>
+        <FormItem
+          name="view"
+          rules={[{ required: true, message: '请选择展示方式' }]}
+          control={
+            <RadioGroup
+              label="展示方式"
+              options={[
+                { value: 'list', label: '列表' },
+                { value: 'grid', label: '网格' },
+              ]}
+            />
+          }
+        />
+        <button type="submit">提交</button>
+      </Form>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '提交' }))
+    await waitFor(() =>
+      expect(screen.getByRole('radio', { name: '列表' })).toHaveFocus(),
+    )
   })
 
   it('discards stale asynchronous field errors after a newer value validates', async () => {

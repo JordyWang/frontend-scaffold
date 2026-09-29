@@ -128,7 +128,14 @@ export function Form<TValues extends FormValues = FormValues>({
     const firstInvalid = formRef.current?.querySelector<HTMLElement>(
       '[aria-invalid="true"]',
     )
-    firstInvalid?.focus({ preventScroll: true })
+    const focusTarget = firstInvalid?.matches(
+      'button,input,textarea,select,[tabindex]:not([tabindex="-1"])',
+    )
+      ? firstInvalid
+      : firstInvalid?.querySelector<HTMLElement>(
+          'button,input,textarea,select,[tabindex]:not([tabindex="-1"])',
+        )
+    focusTarget?.focus({ preventScroll: true })
   }, [errors, focusErrorRequest])
 
   const setValues = useCallback(
