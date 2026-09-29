@@ -107,6 +107,13 @@ function getStepStatus(
   return 'wait'
 }
 
+const stepStatusLabels: Record<StepStatus, string> = {
+  wait: '待处理',
+  process: '进行中',
+  finish: '已完成',
+  error: '错误',
+}
+
 /** A progress sequence that exposes the current step to assistive technology. */
 export function Steps({
   items,
@@ -125,22 +132,41 @@ export function Steps({
   return (
     <nav
       aria-label={label}
-      className={cn('ui-steps', `ui-steps--${direction}`, className)}
+      className={cn(
+        'w-full',
+        direction === 'horizontal' ? 'overflow-x-auto' : 'overflow-visible',
+        className,
+      )}
     >
-      <ol className="ui-steps__list">
+      <ol
+        className={cn(
+          'm-0 flex min-w-max list-none p-0',
+          direction === 'vertical' && 'min-w-0 flex-col',
+        )}
+      >
         {items.map((item, index) => {
           const itemStatus = getStepStatus(item, index, safeCurrent, status)
           const stepId = `${id}-step-${index}`
-          const clickable = Boolean(onChange) && !item.disabled
+          const statusId = `${stepId}-status`
+          const clickable = Boolean(onChange)
           const content = (
             <>
-              <span className="ui-steps__indicator" aria-hidden="true">
+              <span
+                className={cn(
+                  'inline-grid size-9 shrink-0 place-items-center rounded-full border border-border bg-card font-bold text-inherit',
+                  (itemStatus === 'process' || itemStatus === 'finish') &&
+                    'border-primary bg-primary text-primary-foreground',
+                  itemStatus === 'error' &&
+                    'border-destructive text-destructive',
+                )}
+                aria-hidden="true"
+              >
                 {item.icon ?? (itemStatus === 'finish' ? '✓' : index + 1)}
               </span>
-              <span className="ui-steps__text">
-                <span className="ui-steps__title">{item.title}</span>
+              <span className="grid min-w-0 gap-0.5 pt-1 pe-4">
+                <span className="font-semibold">{item.title}</span>
                 {item.description && (
-                  <span className="ui-steps__description">
+                  <span className="text-sm leading-[1.4] text-muted-foreground">
                     {item.description}
                   </span>
                 )}
@@ -150,24 +176,40 @@ export function Steps({
           return (
             <li
               key={item.key ?? `${index}`}
-              className={cn('ui-steps__item', `ui-steps__item--${itemStatus}`)}
+              data-status={itemStatus}
+              aria-disabled={item.disabled || undefined}
               aria-current={index === safeCurrent ? 'step' : undefined}
+              className={cn(
+                direction === 'vertical'
+                  ? "relative flex min-h-16 min-w-0 flex-1 text-muted-foreground after:absolute after:bottom-0 after:start-[18px] after:end-auto after:top-9 after:h-auto after:w-px after:bg-border after:content-[''] last:after:hidden"
+                  : "relative flex min-w-40 flex-1 text-muted-foreground after:absolute after:start-10 after:end-0 after:top-[18px] after:h-px after:bg-border after:content-[''] last:after:hidden max-sm:min-w-[8.5rem]",
+                'data-[status=finish]:text-foreground data-[status=finish]:after:bg-primary data-[status=process]:text-foreground data-[status=error]:text-destructive',
+                item.disabled && 'opacity-50',
+              )}
             >
               {clickable ? (
                 <button
                   id={stepId}
                   type="button"
-                  className="ui-steps__button"
+                  aria-describedby={statusId}
+                  className="relative z-[1] flex min-h-11 w-full touch-manipulation items-start gap-2 border-0 bg-transparent p-0 text-left text-inherit outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={item.disabled}
                   onClick={() => onChange?.(index)}
                 >
                   {content}
                 </button>
               ) : (
-                <div id={stepId} className="ui-steps__button">
+                <div
+                  id={stepId}
+                  aria-describedby={statusId}
+                  className="relative z-[1] flex min-h-11 w-full items-start gap-2 text-left text-inherit"
+                >
                   {content}
                 </div>
               )}
+              <span id={statusId} className="sr-only">
+                {stepStatusLabels[itemStatus]}
+              </span>
             </li>
           )
         })}

@@ -300,6 +300,43 @@ describe('Ant Design-inspired shared components', () => {
     expect(onChange).toHaveBeenCalledWith(2)
   })
 
+  it('exposes step status descriptions and disabled semantics', () => {
+    const { rerender } = render(
+      <Steps
+        current={1}
+        items={[
+          { title: '准备', status: 'finish' },
+          { title: '处理中' },
+          { title: '已禁用', disabled: true },
+        ]}
+      />,
+    )
+    const current = screen.getByText('处理中').closest('li')
+    expect(current).toHaveAttribute('aria-current', 'step')
+    expect(current?.querySelector('[id$="-status"]')).toHaveTextContent(
+      '进行中',
+    )
+    const disabled = screen.getByText('已禁用').closest('li')
+    expect(disabled).toHaveAttribute('aria-disabled', 'true')
+
+    rerender(
+      <Steps
+        current={1}
+        onChange={() => undefined}
+        direction="vertical"
+        items={[
+          { title: '准备' },
+          { title: '处理中' },
+          { title: '已禁用', disabled: true },
+        ]}
+      />,
+    )
+    expect(screen.getByRole('button', { name: '已禁用' })).toBeDisabled()
+    expect(screen.getByRole('navigation', { name: '步骤进度' })).toHaveClass(
+      'overflow-visible',
+    )
+  })
+
   it('clamps progress values and exposes the progressbar contract', () => {
     render(<Progress percent={140} label="上传进度" />)
     expect(
