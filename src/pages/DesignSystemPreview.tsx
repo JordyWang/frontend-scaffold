@@ -1428,6 +1428,21 @@ export function DesignSystemPreview() {
                       >
                         面板方向跟随配置。
                       </Sheet>
+                      <Dropdown
+                        label="RTL 菜单"
+                        placement="bottom-start"
+                        trigger={
+                          <Button variant="outline">打开 RTL 菜单</Button>
+                        }
+                        items={[{ key: 'copy', label: 'RTL 复制' }]}
+                      />
+                      <Popover
+                        title="RTL 说明"
+                        content="对齐方向跟随配置。"
+                        placement="bottom-end"
+                      >
+                        <Button variant="outline">打开 RTL 气泡</Button>
+                      </Popover>
                     </div>
                   </div>
                 </ConfigProvider>

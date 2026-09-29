@@ -14,7 +14,18 @@ import {
 } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { Button, type ButtonProps } from './button'
+import { useConfig } from './config-context'
 import { Dialog } from './dialog'
+
+const floatingPanelStyles =
+  'absolute z-[70] top-[calc(100%+var(--space-xs))] min-w-48 max-w-[min(22rem,calc(100vw-2rem))] overflow-auto border border-border bg-card text-card-foreground shadow-[0_12px_30px_rgb(0_0_0_/_0.16)]'
+
+const tooltipPlacementStyles = {
+  top: 'bottom-[calc(100%+var(--space-xs))] left-1/2 -translate-x-1/2',
+  bottom: 'top-[calc(100%+var(--space-xs))] left-1/2 -translate-x-1/2',
+  left: 'top-1/2 right-[calc(100%+var(--space-xs))] -translate-y-1/2',
+  right: 'top-1/2 left-[calc(100%+var(--space-xs))] -translate-y-1/2',
+} as const
 
 type TriggerElement = ReactElement<{
   onClick?: (event: MouseEvent) => void
@@ -69,6 +80,7 @@ export function Dropdown({
   label = '菜单',
   className,
 }: DropdownProps) {
+  const { direction } = useConfig()
   const [internalOpen, setInternalOpen] = useState(defaultOpen)
   const isOpen = open ?? internalOpen
   const rootRef = useRef<HTMLDivElement>(null)
@@ -157,7 +169,11 @@ export function Dropdown({
   })
 
   return (
-    <div ref={rootRef} className={cn('ui-dropdown', className)}>
+    <div
+      ref={rootRef}
+      dir={direction}
+      className={cn('relative inline-flex max-w-full', className)}
+    >
       {enhancedTrigger}
       <div
         ref={menuRef}
@@ -165,7 +181,12 @@ export function Dropdown({
         role="menu"
         aria-label={label}
         hidden={!isOpen}
-        className={cn('ui-dropdown__menu', `ui-dropdown__menu--${placement}`)}
+        className={cn(
+          floatingPanelStyles,
+          'rounded-[var(--ui-menu-radius)] p-[var(--space-xs)]',
+          placement === 'bottom-start' ? 'start-0' : 'end-0',
+          !isOpen && 'hidden',
+        )}
       >
         {items.map((item) => (
           <button
@@ -173,8 +194,9 @@ export function Dropdown({
             type="button"
             role="menuitem"
             className={cn(
-              'ui-dropdown__item',
-              item.danger && 'ui-dropdown__item--danger',
+              'flex w-full min-h-11 touch-manipulation cursor-pointer items-center rounded-[var(--radius-sm)] border-0 bg-transparent px-3 py-2.5 text-start text-inherit hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50',
+              item.danger &&
+                'text-destructive hover:text-destructive focus-visible:text-destructive',
             )}
             disabled={item.disabled}
             onClick={() => {
@@ -209,6 +231,22 @@ export function Tooltip({
 }: TooltipProps) {
   const id = useId()
   const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLSpanElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onPointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
+    }
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [open])
   const describedBy = [children.props['aria-describedby'], id]
     .filter(Boolean)
     .join(' ')
@@ -233,7 +271,8 @@ export function Tooltip({
   })
   return (
     <span
-      className={cn('ui-tooltip', `ui-tooltip--${placement}`, className)}
+      ref={rootRef}
+      className={cn('relative inline-flex max-w-full', className)}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
@@ -242,7 +281,11 @@ export function Tooltip({
         id={id}
         role="tooltip"
         aria-hidden={!open}
-        className="ui-tooltip__content"
+        className={cn(
+          'pointer-events-none invisible absolute z-[75] w-max max-w-[min(20rem,calc(100vw-2rem))] rounded-[var(--radius-sm)] bg-foreground px-3 py-2 text-sm leading-[1.4] text-background opacity-0 transition-opacity duration-150 ease-out motion-reduce:transition-none',
+          tooltipPlacementStyles[placement],
+          open && 'visible opacity-100',
+        )}
       >
         {title}
       </span>
@@ -252,6 +295,7 @@ export function Tooltip({
 
 export type PopoverProps = {
   title?: ReactNode
+  label?: string
   content: ReactNode
   children: TriggerElement
   open?: boolean
@@ -264,6 +308,7 @@ export type PopoverProps = {
 /** Click/tap disclosure for non-essential contextual content. */
 export function Popover({
   title,
+  label = '补充信息',
   content,
   children,
   open,
@@ -272,10 +317,12 @@ export function Popover({
   placement = 'bottom-start',
   className,
 }: PopoverProps) {
+  const { direction } = useConfig()
   const [internalOpen, setInternalOpen] = useState(defaultOpen)
   const isOpen = open ?? internalOpen
   const rootRef = useRef<HTMLDivElement>(null)
   const id = useId()
+  const titleId = `${id}-title`
   const setOpen = useCallback(
     (next: boolean) => {
       if (open === undefined) setInternalOpen(next)
@@ -315,18 +362,30 @@ export function Popover({
     },
   })
   return (
-    <div ref={rootRef} className={cn('ui-popover', className)}>
+    <div
+      ref={rootRef}
+      dir={direction}
+      className={cn('relative inline-flex max-w-full', className)}
+    >
       {trigger}
       <div
         id={id}
         role="dialog"
+        aria-label={title ? undefined : label}
+        aria-labelledby={title ? titleId : undefined}
         hidden={!isOpen}
         className={cn(
-          'ui-popover__content',
-          `ui-popover__content--${placement}`,
+          floatingPanelStyles,
+          'min-w-60 gap-[var(--space-sm)] rounded-[var(--ui-overlay-radius)] p-[var(--space-md)] leading-normal',
+          placement === 'bottom-start' ? 'start-0' : 'end-0',
+          isOpen ? 'grid' : 'hidden',
         )}
       >
-        {title && <div className="ui-popover__title">{title}</div>}
+        {title && (
+          <div id={titleId} className="font-[650]">
+            {title}
+          </div>
+        )}
         <div>{content}</div>
       </div>
     </div>
@@ -419,9 +478,10 @@ export function FloatButton({
       size="icon"
       aria-label={props['aria-label'] ?? label}
       className={cn(
-        'ui-float-button',
-        `ui-float-button--${shape}`,
-        `ui-float-button--${position}`,
+        'fixed z-[60] right-[max(1rem,env(safe-area-inset-right))] bottom-[max(1rem,env(safe-area-inset-bottom))] left-auto size-[max(44px,var(--ui-button-height))] border-border shadow-[0_8px_24px_rgb(0_0_0_/_0.18)]',
+        shape === 'circle' ? 'rounded-full' : 'rounded-[var(--radius-md)]',
+        position === 'bottom-left' &&
+          'right-auto left-[max(1rem,env(safe-area-inset-left))]',
         className,
       )}
     />

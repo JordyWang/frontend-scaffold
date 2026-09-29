@@ -860,7 +860,9 @@ describe('Ant Design-inspired shared components', () => {
     expect(onSelect).toHaveBeenCalledOnce()
 
     fireEvent.click(screen.getByRole('button', { name: '说明' }))
-    expect(screen.getByRole('dialog')).toHaveTextContent('上下文内容')
+    expect(screen.getByRole('dialog', { name: '补充信息' })).toHaveTextContent(
+      '上下文内容',
+    )
     fireEvent.keyDown(document, { key: 'Escape' })
     await waitFor(() =>
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
@@ -873,6 +875,10 @@ describe('Ant Design-inspired shared components', () => {
       pointerType: 'touch',
     })
     expect(screen.getByRole('tooltip')).toHaveTextContent('键盘提示')
+    fireEvent.pointerDown(document.body, { pointerType: 'touch' })
+    await waitFor(() =>
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument(),
+    )
 
     fireEvent.click(screen.getByRole('button', { name: '删除' }))
     expect(screen.getByRole('dialog')).toHaveTextContent('确认？')
