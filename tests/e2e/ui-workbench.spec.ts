@@ -1914,6 +1914,16 @@ test('overlay components keep focus, touch and safe-area behavior', async ({
   if (testInfo.project.name.startsWith('mobile-')) {
     await firstMenuItem.tap()
   } else {
+    await expect(firstMenuItem).toBeFocused()
+    await page.keyboard.press('End')
+    await expect(
+      preview.getByRole('menuitem', { name: '删除内容' }),
+    ).toBeFocused()
+    await page.keyboard.press('Home')
+    await expect(firstMenuItem).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(openMenu).toBeFocused()
+    await openMenu.click()
     await firstMenuItem.click()
   }
 
@@ -1936,10 +1946,7 @@ test('overlay components keep focus, touch and safe-area behavior', async ({
   await tooltipTrigger.focus()
   await expect(page.getByRole('tooltip')).toBeVisible()
   await page.keyboard.press('Escape')
-  await expect(preview.locator('[role="tooltip"]')).toHaveAttribute(
-    'aria-hidden',
-    'true',
-  )
+  await expect(page.getByRole('tooltip')).toHaveCount(0)
   if (testInfo.project.name.startsWith('mobile-')) {
     await preview.getByRole('button', { name: '通知示例' }).tap()
   } else {
@@ -1970,6 +1977,53 @@ test('overlay components keep focus, touch and safe-area behavior', async ({
       parseFloat(getComputedStyle(element).borderTopLeftRadius),
     ),
   ).toBeGreaterThanOrEqual(floatBox!.width / 2)
+})
+
+test('floating overlays stay usable inside clipped containers', async ({
+  page,
+}) => {
+  await page.goto('/__ui')
+  const trigger = page.getByRole('button', { name: '打开菜单' })
+  const container = trigger.locator('..')
+  await container.evaluate((element) => {
+    element.style.overflow = 'hidden'
+  })
+  await trigger.click()
+  const item = page.getByRole('menuitem', { name: '复制内容' })
+  const containerBox = await container.boundingBox()
+  const itemBox = await item.boundingBox()
+  expect(containerBox).not.toBeNull()
+  expect(itemBox).not.toBeNull()
+  expect(itemBox!.y).toBeGreaterThan(containerBox!.y + containerBox!.height)
+  await expect(item).toBeInViewport()
+  await item.click()
+  await expect(page.getByText('已复制')).toBeVisible()
+
+  const popoverTrigger = page.getByRole('button', { name: '查看说明' })
+  const popoverContainer = popoverTrigger.locator('..')
+  await popoverContainer.evaluate((element) => {
+    element.style.overflow = 'hidden'
+  })
+  await popoverTrigger.click()
+  const popover = page.getByRole('dialog', { name: '补充说明' })
+  await expect(popover).toBeVisible()
+  await expect(popoverContainer.getByRole('dialog')).toHaveCount(0)
+  await popover.getByText('必要信息会直接展示').click()
+  await expect(popover).toBeVisible()
+  await popoverTrigger.click()
+
+  const tooltipTrigger = page.getByRole('button', {
+    name: '悬停或聚焦提示',
+  })
+  const tooltipContainer = tooltipTrigger.locator('..')
+  await tooltipContainer.evaluate((element) => {
+    element.style.overflow = 'hidden'
+  })
+  await tooltipTrigger.focus()
+  await expect(page.getByRole('tooltip')).toBeVisible()
+  await expect(tooltipContainer.getByRole('tooltip')).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('tooltip')).toHaveCount(0)
 })
 
 test('RTL portal controls keep direction and logical option placement', async ({
@@ -2023,7 +2077,7 @@ test('RTL portal controls keep direction and logical option placement', async ({
   const menuTrigger = demo.getByRole('button', { name: '打开 RTL 菜单' })
   if (testInfo.project.name.startsWith('mobile-')) await menuTrigger.tap()
   else await menuTrigger.click()
-  const menu = demo.getByRole('menu', { name: 'RTL 菜单' })
+  const menu = popupRoot.getByRole('menu', { name: 'RTL 菜单' })
   const menuTriggerBox = await menuTrigger.boundingBox()
   const menuBox = await menu.boundingBox()
   expect(menuTriggerBox).not.toBeNull()
@@ -2037,12 +2091,21 @@ test('RTL portal controls keep direction and logical option placement', async ({
   const popoverTrigger = demo.getByRole('button', { name: '打开 RTL 气泡' })
   if (testInfo.project.name.startsWith('mobile-')) await popoverTrigger.tap()
   else await popoverTrigger.click()
-  const popover = demo.getByRole('dialog', { name: 'RTL 说明' })
+  const popover = popupRoot.getByRole('dialog', { name: 'RTL 说明' })
   const popoverTriggerBox = await popoverTrigger.boundingBox()
   const popoverBox = await popover.boundingBox()
   expect(popoverTriggerBox).not.toBeNull()
   expect(popoverBox).not.toBeNull()
-  expect(popoverBox!.x).toBeCloseTo(popoverTriggerBox!.x, 0)
+  expect(popoverBox!.x).toBeCloseTo(
+    Math.max(
+      8,
+      Math.min(
+        popoverTriggerBox!.x,
+        page.viewportSize()!.width - popoverBox!.width - 8,
+      ),
+    ),
+    0,
+  )
   if (testInfo.project.name.startsWith('mobile-')) await popoverTrigger.tap()
   else await popoverTrigger.click()
   expect(

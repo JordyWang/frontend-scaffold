@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   type FocusEvent,
@@ -16,16 +17,102 @@ import { cn } from '@/shared/lib/utils'
 import { Button, type ButtonProps } from './button'
 import { useConfig } from './config-context'
 import { Dialog } from './dialog'
+import { Portal } from './portal'
 
 const floatingPanelStyles =
-  'absolute z-[70] top-[calc(100%+var(--space-xs))] min-w-48 max-w-[min(22rem,calc(100vw-2rem))] overflow-auto border border-border bg-card text-card-foreground shadow-[0_12px_30px_rgb(0_0_0_/_0.16)]'
+  'invisible fixed z-[70] max-h-[calc(100dvh-1rem)] min-w-48 max-w-[min(22rem,calc(100vw-1rem))] overflow-auto border border-border bg-card text-card-foreground shadow-[0_12px_30px_rgb(0_0_0_/_0.16)]'
 
-const tooltipPlacementStyles = {
-  top: 'bottom-[calc(100%+var(--space-xs))] left-1/2 -translate-x-1/2',
-  bottom: 'top-[calc(100%+var(--space-xs))] left-1/2 -translate-x-1/2',
-  left: 'top-1/2 right-[calc(100%+var(--space-xs))] -translate-y-1/2',
-  right: 'top-1/2 left-[calc(100%+var(--space-xs))] -translate-y-1/2',
-} as const
+type FloatingPlacement =
+  'bottom-start' | 'bottom-end' | 'top' | 'bottom' | 'left' | 'right'
+
+function useFloatingPosition(
+  anchorRef: { current: HTMLElement | null },
+  panelRef: { current: HTMLElement | null },
+  open: boolean,
+  placement: FloatingPlacement,
+  direction: 'ltr' | 'rtl' = 'ltr',
+) {
+  useLayoutEffect(() => {
+    if (!open) return
+    const anchor = anchorRef.current
+    const panel = panelRef.current
+    if (!anchor || !panel) return
+
+    const updatePosition = () => {
+      const anchorRect = anchor.getBoundingClientRect()
+      const viewportWidth = window.innerWidth
+      const viewportHeight = window.innerHeight
+      if (
+        anchorRect.bottom < 0 ||
+        anchorRect.top > viewportHeight ||
+        anchorRect.right < 0 ||
+        anchorRect.left > viewportWidth
+      ) {
+        panel.style.visibility = 'hidden'
+        return
+      }
+
+      const panelRect = panel.getBoundingClientRect()
+      const gap = 4
+      const margin = 8
+      let left: number
+      let top: number
+
+      if (placement === 'bottom-start' || placement === 'bottom-end') {
+        const alignLeft =
+          (placement === 'bottom-start') !== (direction === 'rtl')
+        left = alignLeft ? anchorRect.left : anchorRect.right - panelRect.width
+        const roomBelow = viewportHeight - anchorRect.bottom - margin
+        const roomAbove = anchorRect.top - margin
+        top =
+          roomBelow >= panelRect.height || roomBelow >= roomAbove
+            ? anchorRect.bottom + gap
+            : anchorRect.top - panelRect.height - gap
+      } else if (placement === 'top' || placement === 'bottom') {
+        left = anchorRect.left + (anchorRect.width - panelRect.width) / 2
+        const roomBelow = viewportHeight - anchorRect.bottom - margin
+        const roomAbove = anchorRect.top - margin
+        const placeBelow =
+          placement === 'bottom'
+            ? roomBelow >= panelRect.height || roomBelow >= roomAbove
+            : roomAbove < panelRect.height && roomBelow > roomAbove
+        top = placeBelow
+          ? anchorRect.bottom + gap
+          : anchorRect.top - panelRect.height - gap
+      } else {
+        top = anchorRect.top + (anchorRect.height - panelRect.height) / 2
+        const roomLeft = anchorRect.left - margin
+        const roomRight = viewportWidth - anchorRect.right - margin
+        const placeRight =
+          placement === 'right'
+            ? roomRight >= panelRect.width || roomRight >= roomLeft
+            : roomLeft < panelRect.width && roomRight > roomLeft
+        left = placeRight
+          ? anchorRect.right + gap
+          : anchorRect.left - panelRect.width - gap
+      }
+
+      panel.style.left = `${Math.max(margin, Math.min(left, viewportWidth - panelRect.width - margin))}px`
+      panel.style.top = `${Math.max(margin, Math.min(top, viewportHeight - panelRect.height - margin))}px`
+      panel.style.visibility = 'visible'
+    }
+
+    updatePosition()
+    window.addEventListener('scroll', updatePosition, true)
+    window.addEventListener('resize', updatePosition)
+    const observer =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(updatePosition)
+    observer?.observe(anchor)
+    observer?.observe(panel)
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true)
+      window.removeEventListener('resize', updatePosition)
+      observer?.disconnect()
+    }
+  }, [anchorRef, panelRef, open, placement, direction])
+}
 
 type TriggerElement = ReactElement<{
   onClick?: (event: MouseEvent) => void
@@ -87,6 +174,7 @@ export function Dropdown({
   const menuRef = useRef<HTMLDivElement>(null)
   const triggerId = useId()
   const menuId = `${triggerId}-menu`
+  useFloatingPosition(rootRef, menuRef, isOpen, placement, direction)
 
   const setOpen = useCallback(
     (next: boolean) => {
@@ -103,7 +191,12 @@ export function Dropdown({
     )
     first?.focus()
     const onPointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
+      const target = event.target as Node
+      if (
+        !rootRef.current?.contains(target) &&
+        !menuRef.current?.contains(target)
+      )
+        setOpen(false)
     }
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -175,42 +268,44 @@ export function Dropdown({
       className={cn('relative inline-flex max-w-full', className)}
     >
       {enhancedTrigger}
-      <div
-        ref={menuRef}
-        id={menuId}
-        role="menu"
-        aria-label={label}
-        hidden={!isOpen}
-        className={cn(
-          floatingPanelStyles,
-          'rounded-[var(--ui-menu-radius)] p-[var(--space-xs)]',
-          placement === 'bottom-start' ? 'start-0' : 'end-0',
-          !isOpen && 'hidden',
-        )}
-      >
-        {items.map((item) => (
-          <button
-            key={item.key}
-            type="button"
-            role="menuitem"
+      {isOpen && (
+        <Portal>
+          <div
+            ref={menuRef}
+            id={menuId}
+            role="menu"
+            dir={direction}
+            aria-label={label}
             className={cn(
-              'flex w-full min-h-11 touch-manipulation cursor-pointer items-center rounded-[var(--radius-sm)] border-0 bg-transparent px-3 py-2.5 text-start text-inherit hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50',
-              item.danger &&
-                'text-destructive hover:text-destructive focus-visible:text-destructive',
+              floatingPanelStyles,
+              'rounded-[var(--ui-menu-radius)] p-[var(--space-xs)]',
             )}
-            disabled={item.disabled}
-            onClick={() => {
-              item.onSelect?.()
-              setOpen(false)
-              rootRef.current
-                ?.querySelector<HTMLElement>('[data-ui-dropdown-trigger]')
-                ?.focus()
-            }}
           >
-            {item.label}
-          </button>
-        ))}
-      </div>
+            {items.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                role="menuitem"
+                className={cn(
+                  'flex w-full min-h-11 touch-manipulation cursor-pointer items-center rounded-[var(--radius-sm)] border-0 bg-transparent px-3 py-2.5 text-start text-inherit hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50',
+                  item.danger &&
+                    'text-destructive hover:text-destructive focus-visible:text-destructive',
+                )}
+                disabled={item.disabled}
+                onClick={() => {
+                  item.onSelect?.()
+                  setOpen(false)
+                  rootRef.current
+                    ?.querySelector<HTMLElement>('[data-ui-dropdown-trigger]')
+                    ?.focus()
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </Portal>
+      )}
     </div>
   )
 }
@@ -229,9 +324,12 @@ export function Tooltip({
   placement = 'top',
   className,
 }: TooltipProps) {
+  const { direction } = useConfig()
   const id = useId()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLSpanElement>(null)
+  const tooltipRef = useRef<HTMLSpanElement>(null)
+  useFloatingPosition(rootRef, tooltipRef, open, placement)
   useEffect(() => {
     if (!open) return
     const onPointerDown = (event: PointerEvent) => {
@@ -277,18 +375,19 @@ export function Tooltip({
       onMouseLeave={() => setOpen(false)}
     >
       {trigger}
-      <span
-        id={id}
-        role="tooltip"
-        aria-hidden={!open}
-        className={cn(
-          'pointer-events-none invisible absolute z-[75] w-max max-w-[min(20rem,calc(100vw-2rem))] rounded-[var(--radius-sm)] bg-foreground px-3 py-2 text-sm leading-[1.4] text-background opacity-0 transition-opacity duration-150 ease-out motion-reduce:transition-none',
-          tooltipPlacementStyles[placement],
-          open && 'visible opacity-100',
-        )}
-      >
-        {title}
-      </span>
+      {open && (
+        <Portal>
+          <span
+            ref={tooltipRef}
+            id={id}
+            role="tooltip"
+            dir={direction}
+            className="pointer-events-none invisible fixed z-[75] w-max max-w-[min(20rem,calc(100vw-1rem))] rounded-[var(--radius-sm)] bg-foreground px-3 py-2 text-sm leading-[1.4] text-background"
+          >
+            {title}
+          </span>
+        </Portal>
+      )}
     </span>
   )
 }
@@ -321,8 +420,10 @@ export function Popover({
   const [internalOpen, setInternalOpen] = useState(defaultOpen)
   const isOpen = open ?? internalOpen
   const rootRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
   const id = useId()
   const titleId = `${id}-title`
+  useFloatingPosition(rootRef, panelRef, isOpen, placement, direction)
   const setOpen = useCallback(
     (next: boolean) => {
       if (open === undefined) setInternalOpen(next)
@@ -333,7 +434,12 @@ export function Popover({
   useEffect(() => {
     if (!isOpen) return
     const onPointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
+      const target = event.target as Node
+      if (
+        !rootRef.current?.contains(target) &&
+        !panelRef.current?.contains(target)
+      )
+        setOpen(false)
     }
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -368,26 +474,29 @@ export function Popover({
       className={cn('relative inline-flex max-w-full', className)}
     >
       {trigger}
-      <div
-        id={id}
-        role="dialog"
-        aria-label={title ? undefined : label}
-        aria-labelledby={title ? titleId : undefined}
-        hidden={!isOpen}
-        className={cn(
-          floatingPanelStyles,
-          'min-w-60 gap-[var(--space-sm)] rounded-[var(--ui-overlay-radius)] p-[var(--space-md)] leading-normal',
-          placement === 'bottom-start' ? 'start-0' : 'end-0',
-          isOpen ? 'grid' : 'hidden',
-        )}
-      >
-        {title && (
-          <div id={titleId} className="font-[650]">
-            {title}
+      {isOpen && (
+        <Portal>
+          <div
+            ref={panelRef}
+            id={id}
+            role="dialog"
+            dir={direction}
+            aria-label={title ? undefined : label}
+            aria-labelledby={title ? titleId : undefined}
+            className={cn(
+              floatingPanelStyles,
+              'grid min-w-60 gap-[var(--space-sm)] rounded-[var(--ui-overlay-radius)] p-[var(--space-md)] leading-normal',
+            )}
+          >
+            {title && (
+              <div id={titleId} className="font-[650]">
+                {title}
+              </div>
+            )}
+            <div>{content}</div>
           </div>
-        )}
-        <div>{content}</div>
-      </div>
+        </Portal>
+      )}
     </div>
   )
 }
