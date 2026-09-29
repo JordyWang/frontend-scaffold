@@ -12,6 +12,7 @@ import {
 } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { useConfig } from './config-context'
+import { Portal } from './portal'
 
 export type MenuItem = {
   key: string
@@ -34,6 +35,102 @@ export type MenuProps = {
   className?: string
 }
 
+function HorizontalMenuPopup({
+  id,
+  triggerId,
+  direction,
+  getTrigger,
+  register,
+  children,
+}: {
+  id: string
+  triggerId: string
+  direction: 'ltr' | 'rtl'
+  getTrigger: () => HTMLButtonElement | null
+  register: (element: HTMLUListElement | null) => void
+  children: ReactNode
+}) {
+  const panelRef = useRef<HTMLUListElement | null>(null)
+
+  useLayoutEffect(() => {
+    const trigger = getTrigger()
+    const panel = panelRef.current
+    if (!trigger || !panel) return
+
+    function updatePosition() {
+      if (!trigger || !panel) return
+      const triggerRect = trigger.getBoundingClientRect()
+      const viewportWidth = window.innerWidth
+      const viewportHeight = window.innerHeight
+      if (
+        triggerRect.bottom < 0 ||
+        triggerRect.top > viewportHeight ||
+        triggerRect.right < 0 ||
+        triggerRect.left > viewportWidth
+      ) {
+        panel.style.visibility = 'hidden'
+        return
+      }
+      panel.style.minWidth = `${Math.min(Math.max(triggerRect.width, 192), viewportWidth - 16)}px`
+      const panelRect = panel.getBoundingClientRect()
+      const preferredLeft =
+        direction === 'rtl'
+          ? triggerRect.right - panelRect.width
+          : triggerRect.left
+      const left = Math.max(
+        8,
+        Math.min(preferredLeft, viewportWidth - panelRect.width - 8),
+      )
+      const roomBelow = viewportHeight - triggerRect.bottom - 8
+      const roomAbove = triggerRect.top - 8
+      const preferredTop =
+        roomBelow >= panelRect.height || roomBelow >= roomAbove
+          ? triggerRect.bottom + 4
+          : Math.max(8, triggerRect.top - panelRect.height - 4)
+      const top = Math.max(
+        8,
+        Math.min(preferredTop, viewportHeight - panelRect.height - 8),
+      )
+      panel.style.left = `${left}px`
+      panel.style.top = `${top}px`
+      panel.style.visibility = 'visible'
+    }
+
+    updatePosition()
+    window.addEventListener('scroll', updatePosition, true)
+    window.addEventListener('resize', updatePosition)
+    const observer =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(updatePosition)
+    observer?.observe(trigger)
+    observer?.observe(panel)
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true)
+      window.removeEventListener('resize', updatePosition)
+      observer?.disconnect()
+    }
+  }, [direction, getTrigger])
+
+  return (
+    <Portal>
+      <ul
+        id={id}
+        role="menu"
+        aria-labelledby={triggerId}
+        dir={direction}
+        ref={(element) => {
+          panelRef.current = element
+          register(element)
+        }}
+        className="invisible fixed z-[70] m-0 max-h-[min(22rem,calc(100dvh-1rem))] min-w-48 max-w-[calc(100vw-1rem)] list-none overflow-auto rounded-[var(--radius-md)] border border-border bg-card p-[var(--space-xs)] text-foreground shadow-[0_12px_30px_rgb(0_0_0_/_0.16)]"
+      >
+        {children}
+      </ul>
+    </Portal>
+  )
+}
+
 /** A semantic menu with roving arrow-key focus and optional nested groups. */
 export function Menu({
   items,
@@ -53,23 +150,34 @@ export function Menu({
     useState<string[]>(defaultExpandedKeys)
   const [focusedKey, setFocusedKey] = useState<string>()
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const popupRefs = useRef<Record<string, HTMLUListElement | null>>({})
   const menuRef = useRef<HTMLElement | null>(null)
   const focusWithinRef = useRef(false)
+  const menuId = useId()
   const selected = selectedKeys ?? internalSelected
   const expanded = expandedKeys ?? internalExpanded
 
+  const isWithinMenu = useCallback((node: Node | null) => {
+    if (!node) return false
+    return Boolean(
+      menuRef.current?.contains(node) ||
+      Object.values(popupRefs.current).some((panel) => panel?.contains(node)),
+    )
+  }, [])
+
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
-      if (
-        event.target instanceof Node &&
-        !menuRef.current?.contains(event.target)
-      )
-        focusWithinRef.current = false
+      if (!(event.target instanceof Node) || isWithinMenu(event.target)) return
+      focusWithinRef.current = false
+      if (mode === 'horizontal' && expanded.length) {
+        if (expandedKeys === undefined) setInternalExpanded([])
+        onExpand?.([])
+      }
     }
     document.addEventListener('pointerdown', handlePointerDown, true)
     return () =>
       document.removeEventListener('pointerdown', handlePointerDown, true)
-  }, [])
+  }, [expanded.length, expandedKeys, isWithinMenu, mode, onExpand])
 
   const visibleItems = useMemo(() => {
     const result: Array<{ item: MenuItem; parentKey?: string }> = []
@@ -118,10 +226,10 @@ export function Menu({
       focusWithinRef.current &&
       fallback &&
       (document.activeElement === document.body ||
-        menuRef.current?.contains(document.activeElement))
+        isWithinMenu(document.activeElement))
     )
       itemRefs.current[fallback]?.focus()
-  }, [focusedKey, items, visibleItems])
+  }, [focusedKey, isWithinMenu, items, visibleItems])
 
   function select(key: string) {
     if (selectedKeys === undefined) setInternalSelected([key])
@@ -174,7 +282,14 @@ export function Menu({
       event.key === closeKey &&
       (Boolean(current.parentKey) ||
         (Boolean(current.item.children?.length) && expanded.includes(key)))
-    if (event.key === nextKey && !handlesNestedOpen) {
+    if (event.key === 'Escape') {
+      const parent = current.parentKey ?? (expanded.includes(key) ? key : null)
+      if (parent) {
+        event.preventDefault()
+        toggleExpanded(parent)
+        itemRefs.current[parent]?.focus()
+      }
+    } else if (event.key === nextKey && !handlesNestedOpen) {
       event.preventDefault()
       focusOffset(index, 1)
     } else if (event.key === previousKey && !handlesNestedClose) {
@@ -212,6 +327,8 @@ export function Menu({
       const hasChildren = Boolean(item.children?.length)
       const isExpanded = expanded.includes(item.key)
       const isSelected = selected.includes(item.key)
+      const triggerId = `${menuId}-${encodeURIComponent(item.key)}-trigger`
+      const submenuId = `${menuId}-${encodeURIComponent(item.key)}-submenu`
       return (
         <li key={item.key} role="none" className="relative min-w-0">
           <button
@@ -219,12 +336,14 @@ export function Menu({
               itemRefs.current[item.key] = element
             }}
             type="button"
+            id={triggerId}
             role="menuitem"
             aria-current={isSelected ? 'page' : undefined}
             aria-selected={isSelected}
             aria-disabled={item.disabled || undefined}
             aria-haspopup={hasChildren ? 'menu' : undefined}
             aria-expanded={hasChildren ? isExpanded : undefined}
+            aria-controls={hasChildren && isExpanded ? submenuId : undefined}
             disabled={item.disabled}
             tabIndex={item.disabled || item.key !== tabbableKey ? -1 : 0}
             className={cn(
@@ -255,19 +374,28 @@ export function Menu({
               </span>
             )}
           </button>
-          {hasChildren && isExpanded && (
+          {hasChildren && isExpanded && mode === 'horizontal' && level === 0 ? (
+            <HorizontalMenuPopup
+              id={submenuId}
+              triggerId={triggerId}
+              direction={direction}
+              getTrigger={() => itemRefs.current[item.key]}
+              register={(element) => {
+                popupRefs.current[item.key] = element
+              }}
+            >
+              {renderItems(item.children ?? [], level + 1)}
+            </HorizontalMenuPopup>
+          ) : hasChildren && isExpanded ? (
             <ul
+              id={submenuId}
               role="menu"
-              className={cn(
-                'm-0 list-none',
-                mode === 'horizontal' && level === 0
-                  ? 'absolute start-0 top-full z-[70] mt-[var(--space-xs)] min-w-48 rounded-[var(--radius-md)] border border-border bg-card p-[var(--space-xs)] shadow-[0_12px_30px_rgb(0_0_0_/_0.16)]'
-                  : 'ps-[var(--space-md)]',
-              )}
+              aria-labelledby={triggerId}
+              className="m-0 list-none ps-[var(--space-md)]"
             >
               {renderItems(item.children ?? [], level + 1)}
             </ul>
-          )}
+          ) : null}
         </li>
       )
     })

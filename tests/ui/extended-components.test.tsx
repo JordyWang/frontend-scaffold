@@ -238,6 +238,56 @@ describe('Ant Design-inspired shared components', () => {
     expect(root).toHaveFocus()
   })
 
+  it('keeps horizontal popups linked to their trigger and restores focus on Escape', () => {
+    const onExpand = vi.fn()
+    render(
+      <>
+        <Menu
+          mode="horizontal"
+          defaultExpandedKeys={['root']}
+          onExpand={onExpand}
+          items={[
+            {
+              key: 'root',
+              label: '根菜单',
+              children: [{ key: 'child', label: '子菜单' }],
+            },
+          ]}
+        />
+        <button type="button">菜单外</button>
+      </>,
+    )
+    const root = screen.getByRole('menuitem', { name: '根菜单' })
+    const child = screen.getByRole('menuitem', { name: '子菜单' })
+    expect(root).toHaveAttribute('aria-controls', child.closest('ul')?.id)
+    child.focus()
+    fireEvent.keyDown(child, { key: 'Escape' })
+    expect(root).toHaveFocus()
+    expect(screen.queryByRole('menuitem', { name: '子菜单' })).toBeNull()
+    expect(onExpand).toHaveBeenLastCalledWith([])
+
+    fireEvent.click(root)
+    expect(screen.getByRole('menuitem', { name: '子菜单' })).toBeInTheDocument()
+    fireEvent.pointerDown(screen.getByRole('button', { name: '菜单外' }))
+    expect(screen.queryByRole('menuitem', { name: '子菜单' })).toBeNull()
+  })
+
+  it('restores horizontal menu focus when controlled expansion closes a portal', () => {
+    const items = [
+      {
+        key: 'root',
+        label: '根菜单',
+        children: [{ key: 'child', label: '子菜单' }],
+      },
+    ]
+    const { rerender } = render(
+      <Menu mode="horizontal" items={items} expandedKeys={['root']} />,
+    )
+    screen.getByRole('menuitem', { name: '子菜单' }).focus()
+    rerender(<Menu mode="horizontal" items={items} expandedKeys={[]} />)
+    expect(screen.getByRole('menuitem', { name: '根菜单' })).toHaveFocus()
+  })
+
   it('keeps one menu item in the tab order', () => {
     render(
       <Menu

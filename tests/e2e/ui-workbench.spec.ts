@@ -1801,7 +1801,7 @@ test('horizontal menu keeps its submenu visible and touch targets usable', async
   )
   if (testInfo.project.name.startsWith('mobile-')) await catalog.tap()
   else await catalog.click()
-  const child = menu.getByRole('menuitem', { name: '全部组件' })
+  const child = page.getByRole('menuitem', { name: '全部组件' })
   await expect(child).toBeVisible()
   const box = await child.boundingBox()
   expect(box).not.toBeNull()
@@ -1810,7 +1810,44 @@ test('horizontal menu keeps its submenu visible and touch targets usable', async
   expect(box!.x + box!.width).toBeLessThanOrEqual(
     await page.evaluate(() => window.innerWidth),
   )
+  if (!testInfo.project.name.startsWith('mobile-')) {
+    await child.focus()
+    await page.keyboard.press('Escape')
+    await expect(child).toHaveCount(0)
+    await expect(catalog).toBeFocused()
+  }
   await expect(menu.getByRole('menuitem', { name: '暂不可用' })).toBeDisabled()
+})
+
+test('horizontal submenu remains usable beside a clipped card edge', async ({
+  page,
+}) => {
+  await page.goto('/__ui')
+  const menu = page.getByRole('navigation', { name: '横向导航' })
+  const card = menu.locator('xpath=ancestor::*[@data-ui-card][1]')
+  const catalog = menu.getByRole('menuitem', { name: '目录' })
+  const cardBox = await card.boundingBox()
+  const catalogBox = await catalog.boundingBox()
+  expect(cardBox).not.toBeNull()
+  expect(catalogBox).not.toBeNull()
+  await card.evaluate(
+    (element, height) => {
+      element.style.height = `${height}px`
+    },
+    catalogBox!.y + catalogBox!.height - cardBox!.y + 2,
+  )
+  await catalog.click()
+  const child = page.getByRole('menuitem', { name: '全部组件' })
+  const childBox = await child.boundingBox()
+  const clippedCardBox = await card.boundingBox()
+  expect(clippedCardBox).not.toBeNull()
+  expect(childBox).not.toBeNull()
+  expect(childBox!.y).toBeGreaterThan(
+    clippedCardBox!.y + clippedCardBox!.height,
+  )
+  await expect(child).toBeInViewport()
+  await child.click()
+  await expect(child).toHaveAttribute('aria-selected', 'true')
 })
 
 test('tree uses one tab stop and supports keyboard and touch expansion', async ({
