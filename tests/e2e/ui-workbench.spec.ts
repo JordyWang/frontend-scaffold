@@ -509,6 +509,57 @@ test('mentions suggestions support keyboard, touch and narrow viewports', async 
   ).toBe(true)
 })
 
+test('splitter supports keyboard, pointer and touch controls without overflow', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const splitter = preview.getByRole('group', { name: '工作区分隔面板' })
+  const separator = splitter.getByRole('separator')
+  await expect(separator).toHaveAttribute('aria-valuenow', '60')
+  const bounds = await separator.boundingBox()
+  expect(bounds).not.toBeNull()
+  expect(bounds!.width).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await splitter.getByRole('button', { name: '折叠导航区' }).tap()
+    await expect(separator).toHaveAttribute('aria-valuenow', '0')
+    await splitter.getByRole('button', { name: '展开导航区' }).tap()
+    await expect(separator).toHaveAttribute('aria-valuenow', '60')
+  } else {
+    await separator.focus()
+    await separator.press('ArrowLeft')
+    await expect(separator).toHaveAttribute('aria-valuenow', '55')
+    await separator.press('Home')
+    await expect(separator).toHaveAttribute('aria-valuenow', '20')
+    await separator.dblclick({ position: { x: bounds!.width / 2, y: 16 } })
+    await expect(separator).toHaveAttribute('aria-valuenow', '60')
+    const refreshed = await separator.boundingBox()
+    expect(refreshed).not.toBeNull()
+    await page.mouse.move(
+      refreshed!.x + refreshed!.width / 2,
+      refreshed!.y + 16,
+    )
+    await page.mouse.down()
+    await page.mouse.move(
+      refreshed!.x + refreshed!.width / 2 + 28,
+      refreshed!.y + 16,
+    )
+    await page.mouse.up()
+    await expect(separator).not.toHaveAttribute('aria-valuenow', '60')
+  }
+  const disabled = preview
+    .getByRole('group', { name: '不可用的垂直分隔面板' })
+    .getByRole('separator')
+  await expect(disabled).toHaveAttribute('aria-disabled', 'true')
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
+})
+
 test('tree select searches collapsed branches with keyboard and touch', async ({
   page,
 }, testInfo) => {

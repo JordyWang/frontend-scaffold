@@ -45,6 +45,7 @@ import {
   Segmented,
   Sheet,
   Skeleton,
+  Splitter,
   Spinner,
   Space,
   Stack,
@@ -100,6 +101,8 @@ export function DesignSystemPreview() {
   const [searchStatus, setSearchStatus] = useState('尚未搜索')
   const [mentionsValue, setMentionsValue] = useState('')
   const [mentionsStatus, setMentionsStatus] = useState('尚未选择成员')
+  const [splitSizes, setSplitSizes] = useState([60, 40])
+  const [splitStatus, setSplitStatus] = useState('尚未调整')
   const [calendarStatus, setCalendarStatus] = useState('尚未选择日期')
   const [otpValue, setOtpValue] = useState('')
   const [otpComplete, setOtpComplete] = useState(false)
@@ -187,6 +190,64 @@ export function DesignSystemPreview() {
                 <Typography variant="caption" tone="muted">
                   Grid 根据可用宽度自动换列。
                 </Typography>
+              </Stack>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent>
+              <Stack gap="md">
+                <Typography as="h3" variant="title">
+                  分隔面板
+                </Typography>
+                <Splitter
+                  label="工作区分隔面板"
+                  sizes={splitSizes}
+                  defaultSizes={[60, 40]}
+                  onResize={setSplitSizes}
+                  onResizeEnd={(next) =>
+                    setSplitStatus(
+                      `已调整：${Math.round(next[0])}% / ${Math.round(next[1])}%`,
+                    )
+                  }
+                  panels={[
+                    {
+                      key: 'nav',
+                      label: '导航区',
+                      minSize: 20,
+                      maxSize: 80,
+                      collapsible: true,
+                      className: 'bg-muted/40',
+                      content: <div className="p-3">导航区</div>,
+                    },
+                    {
+                      key: 'detail',
+                      label: '内容区',
+                      minSize: 20,
+                      content: <div className="p-3">内容区</div>,
+                    },
+                  ]}
+                />
+                <Typography variant="caption" tone="muted">
+                  {splitStatus}；双击分隔条可恢复默认比例。
+                </Typography>
+                <Splitter
+                  label="不可用的垂直分隔面板"
+                  orientation="vertical"
+                  disabled
+                  className="h-36"
+                  panels={[
+                    {
+                      key: 'top',
+                      label: '顶部',
+                      content: <div className="p-2">顶部</div>,
+                    },
+                    {
+                      key: 'bottom',
+                      label: '底部',
+                      content: <div className="p-2">底部</div>,
+                    },
+                  ]}
+                />
               </Stack>
             </CardContent>
           </Card>
