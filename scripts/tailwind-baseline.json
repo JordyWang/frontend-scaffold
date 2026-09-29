@@ -28,7 +28,6 @@
     "src/shared/ui/data-input.tsx",
     "src/shared/ui/dialog.tsx",
     "src/shared/ui/disclosure.tsx",
-    "src/shared/ui/display-extended.tsx",
     "src/shared/ui/feedback-state.tsx",
     "src/shared/ui/form-field.tsx",
     "src/shared/ui/form.tsx",

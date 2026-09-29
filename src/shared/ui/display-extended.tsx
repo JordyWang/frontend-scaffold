@@ -10,6 +10,17 @@ export type AvatarProps = Omit<HTMLAttributes<HTMLSpanElement>, 'children'> & {
   children?: ReactNode
 }
 
+const avatarSizeStyles = {
+  small: 'size-8',
+  default: 'size-10',
+  large: 'size-14',
+} as const
+
+const avatarShapeStyles = {
+  circle: 'rounded-full',
+  square: 'rounded-[var(--radius-md)]',
+} as const
+
 export function Avatar({
   src,
   alt,
@@ -29,21 +40,29 @@ export function Avatar({
       role="img"
       aria-label={accessibleName}
       className={cn(
-        'ui-avatar',
-        `ui-avatar--${shape}`,
-        typeof size === 'string' && `ui-avatar--${size}`,
+        'inline-grid shrink-0 place-items-center overflow-hidden bg-accent font-semibold leading-none text-accent-foreground align-middle',
+        avatarShapeStyles[shape],
+        typeof size === 'string' ? avatarSizeStyles[size] : 'size-10',
         className,
       )}
       style={
         {
-          ...(sizeValue ? { '--ui-avatar-size': `${sizeValue}px` } : {}),
+          ...(sizeValue
+            ? { width: `${sizeValue}px`, height: `${sizeValue}px` }
+            : {}),
           ...style,
         } as CSSProperties
       }
       {...props}
     >
       {src ? (
-        <img src={src} alt="" aria-hidden="true" loading="lazy" />
+        <img
+          src={src}
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          className="size-full object-cover"
+        />
       ) : (
         children
       )}
@@ -78,25 +97,41 @@ export function Descriptions({
 }: DescriptionsProps) {
   const columns = Math.max(1, Math.floor(column))
   return (
-    <section
-      className={cn(
-        'ui-descriptions',
-        bordered && 'ui-descriptions--bordered',
-        `ui-descriptions--${layout}`,
-        className,
-      )}
-      style={{ '--ui-description-columns': columns } as CSSProperties}
-    >
-      {title && <h2 className="ui-descriptions__title">{title}</h2>}
-      <dl className="ui-descriptions__list">
+    <section className={cn('w-full', className)}>
+      {title && <h2 className="m-0 mb-4 text-lg font-semibold">{title}</h2>}
+      <dl
+        className="m-0 grid grid-cols-[repeat(var(--ui-description-columns),minmax(0,1fr))] max-sm:grid-cols-1"
+        style={{ '--ui-description-columns': columns } as CSSProperties}
+      >
         {items.map((item) => (
           <div
-            className="ui-descriptions__item"
+            className={cn(
+              'col-span-[var(--ui-description-span)] grid min-w-0 max-sm:col-span-1',
+              layout === 'vertical'
+                ? 'grid-cols-1'
+                : 'grid-cols-[minmax(6rem,0.5fr)_minmax(0,1fr)]',
+              bordered && 'border-border border-s border-t',
+            )}
             key={item.key}
             style={{ '--ui-description-span': item.span ?? 1 } as CSSProperties}
           >
-            <dt>{item.label}</dt>
-            <dd>{item.children}</dd>
+            <dt
+              className={cn(
+                'm-0 min-w-0 px-4 py-2 leading-normal text-muted-foreground [overflow-wrap:anywhere]',
+                bordered && 'bg-muted',
+              )}
+            >
+              {item.label}
+            </dt>
+            <dd
+              className={cn(
+                'm-0 min-w-0 px-4 py-2 leading-normal text-foreground [overflow-wrap:anywhere]',
+                bordered && 'border-s border-border',
+                layout === 'vertical' && 'pt-0',
+              )}
+            >
+              {item.children}
+            </dd>
           </div>
         ))}
       </dl>
