@@ -24,8 +24,11 @@ export function UploadProgress({
   label = '文件上传',
 }: UploadProgressProps) {
   return (
-    <div className="ui-upload-progress" aria-live="polite">
-      <div className="ui-upload-progress__row">
+    <div
+      className="grid gap-[var(--space-sm)] rounded-[var(--radius-md)] border border-border bg-card p-[var(--space-md)]"
+      aria-live="polite"
+    >
+      <div className="flex flex-wrap justify-between gap-[var(--space-sm)] font-semibold">
         <span>
           {label}：{statusText[status]}
         </span>
@@ -39,7 +42,7 @@ export function UploadProgress({
         aria-label={label}
         max={100}
         value={progress}
-        className="ui-upload-progress__bar"
+        className="h-3 w-full accent-primary"
       />
       {error && (
         <p role="alert" className="text-sm leading-normal text-destructive">

@@ -103,8 +103,11 @@ export function FilePicker({
   return (
     <div
       className={cn(
-        dropzone ? 'ui-file-dropzone' : 'ui-file-picker',
-        dragging && 'ui-file-dropzone--dragging',
+        dropzone
+          ? 'flex min-h-36 flex-col items-center justify-center gap-[var(--space-sm)] rounded-[var(--radius-lg)] border-2 border-dashed border-border bg-card p-[var(--space-lg)] text-center'
+          : 'flex flex-wrap items-center gap-[var(--space-sm)]',
+        dragging && 'border-primary bg-accent',
+        disabled && 'opacity-60',
         className,
       )}
       onDragOver={onDragOver}
@@ -130,8 +133,16 @@ export function FilePicker({
       >
         {checking ? '正在校验…' : label}
       </Button>
-      {dropzone && <p className="ui-file-dropzone__hint">或将文件拖放到这里</p>}
-      {description && <p className="ui-file-dropzone__hint">{description}</p>}
+      {dropzone && (
+        <p className="m-0 text-sm leading-normal text-muted-foreground">
+          或将文件拖放到这里
+        </p>
+      )}
+      {description && (
+        <p className="m-0 text-sm leading-normal text-muted-foreground">
+          {description}
+        </p>
+      )}
     </div>
   )
 }

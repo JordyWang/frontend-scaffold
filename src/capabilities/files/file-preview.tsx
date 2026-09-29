@@ -28,10 +28,19 @@ export function FilePreview({ file, onRemove, className }: FilePreviewProps) {
   }, [file, canPreview])
 
   return (
-    <div className={cn('ui-file-preview', className)}>
-      <div className="ui-file-preview__thumb">
+    <div
+      className={cn(
+        'flex min-w-0 items-center gap-[var(--space-md)] rounded-[var(--radius-md)] border border-border bg-card p-[var(--space-sm)]',
+        className,
+      )}
+    >
+      <div className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-[var(--radius-sm)] bg-muted text-muted-foreground">
         {file.type.startsWith('image/') ? (
-          <img ref={imageRef} alt={`文件预览：${file.name}`} />
+          <img
+            ref={imageRef}
+            alt={`文件预览：${file.name}`}
+            className="size-full object-cover"
+          />
         ) : file.type.startsWith('video/') ? (
           <video
             ref={videoRef}
@@ -39,9 +48,15 @@ export function FilePreview({ file, onRemove, className }: FilePreviewProps) {
             muted
             playsInline
             aria-label={`视频预览：${file.name}`}
+            className="size-full object-cover"
           />
         ) : (
-          <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <svg
+            viewBox="0 0 48 48"
+            fill="none"
+            aria-hidden="true"
+            className="size-8"
+          >
             <path
               d="M12 5h17l8 8v29H12a4 4 0 0 1-4-4V9a4 4 0 0 1 4-4Z"
               stroke="currentColor"
@@ -56,11 +71,11 @@ export function FilePreview({ file, onRemove, className }: FilePreviewProps) {
           </svg>
         )}
       </div>
-      <div className="ui-file-preview__info">
-        <p className="ui-file-preview__name" title={file.name}>
+      <div className="min-w-0 flex-1">
+        <p className="m-0 truncate font-semibold" title={file.name}>
           {file.name}
         </p>
-        <p className="ui-file-preview__meta">
+        <p className="m-0 text-sm text-muted-foreground [overflow-wrap:anywhere]">
           {formatBytes(file.size)} · {file.type || '未知类型'}
         </p>
       </div>
