@@ -32,6 +32,7 @@ import {
   InputOTP,
   InputNumber,
   Layout,
+  Masonry,
   PasswordInput,
   SearchInput,
   Menu,
@@ -88,6 +89,8 @@ const transferItems = [
   { key: 'archived', title: '归档模块', disabled: true },
 ]
 
+const masonryHeights = ['h-24', 'h-36', 'h-28', 'h-44', 'h-32', 'h-40']
+
 export function DesignSystemPreview() {
   const [checked, setChecked] = useState(false)
   const [enabled, setEnabled] = useState(true)
@@ -113,6 +116,7 @@ export function DesignSystemPreview() {
   const [carouselAutoplay, setCarouselAutoplay] = useState(false)
   const [menuExpanded, setMenuExpanded] = useState<string[]>([])
   const [transferDisabled, setTransferDisabled] = useState(false)
+  const [masonryCount, setMasonryCount] = useState(7)
 
   return (
     <section className="space-y-4" aria-label="设计系统补充组件">
@@ -947,6 +951,52 @@ export function DesignSystemPreview() {
                   showSearch
                   disabled={transferDisabled}
                 />
+              </Stack>
+            </CardContent>
+          </Card>
+          <Card className="col-span-full">
+            <CardContent>
+              <Stack gap="md">
+                <Stack direction="row" wrap align="center" justify="between">
+                  <Typography as="h3" variant="title">
+                    响应式瀑布流
+                  </Typography>
+                  <Stack direction="row" gap="sm">
+                    <Button
+                      variant="outline"
+                      size="small"
+                      disabled={masonryCount <= 1}
+                      onClick={() => setMasonryCount((count) => count - 1)}
+                    >
+                      删除卡片
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="small"
+                      onClick={() => setMasonryCount((count) => count + 1)}
+                    >
+                      添加卡片
+                    </Button>
+                  </Stack>
+                </Stack>
+                <Masonry
+                  aria-label="瀑布流卡片"
+                  columns={{ base: 2, md: 3, lg: 4 }}
+                  gap={12}
+                  items={Array.from({ length: masonryCount }, (_, index) => ({
+                    key: `card-${index + 1}`,
+                    content: (
+                      <div
+                        className={`flex ${masonryHeights[index % masonryHeights.length]} items-center justify-center rounded-lg border border-border bg-muted/40 p-3 text-card-foreground`}
+                      >
+                        卡片 {index + 1}
+                      </div>
+                    ),
+                  }))}
+                />
+                <Typography variant="caption" tone="muted">
+                  容器宽度决定列数；新增或移除不同高度卡片后自动重新排布。
+                </Typography>
               </Stack>
             </CardContent>
           </Card>

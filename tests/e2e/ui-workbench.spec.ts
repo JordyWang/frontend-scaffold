@@ -600,6 +600,91 @@ test('layout sider collapses responsively and restores focus after mobile naviga
   ).toBe(true)
 })
 
+test('masonry reflows uneven cards across container widths and dynamic updates', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const masonry = preview.getByRole('list', { name: '瀑布流卡片' })
+  const cards = masonry.getByRole('listitem')
+  await expect(cards).toHaveCount(7)
+
+  const inspect = () =>
+    masonry.evaluate((root) => {
+      const bounds = root.getBoundingClientRect()
+      const items = [...root.querySelectorAll('[role="listitem"]')].map(
+        (item) => ({
+          column: Number(item.getAttribute('data-column')),
+          rect: item.getBoundingClientRect().toJSON(),
+        }),
+      )
+      return {
+        width: bounds.width,
+        height: bounds.height,
+        columns: [...new Set(items.map((item) => item.column))].length,
+        inside: items.every(
+          ({ rect }) =>
+            rect.left >= bounds.left - 1 &&
+            rect.right <= bounds.right + 1 &&
+            rect.top >= bounds.top - 1 &&
+            rect.bottom <= bounds.bottom + 1,
+        ),
+        overlap: items.some((first, index) =>
+          items
+            .slice(index + 1)
+            .some(
+              (second) =>
+                first.rect.left < second.rect.right - 1 &&
+                first.rect.right > second.rect.left + 1 &&
+                first.rect.top < second.rect.bottom - 1 &&
+                first.rect.bottom > second.rect.top + 1,
+            ),
+        ),
+      }
+    })
+
+  await expect.poll(async () => (await inspect()).height).toBeGreaterThan(200)
+  const initial = await inspect()
+  expect(initial.inside).toBe(true)
+  expect(initial.overlap).toBe(false)
+  expect(initial.columns).toBe(
+    initial.width >= 1024 ? 4 : initial.width >= 768 ? 3 : 2,
+  )
+
+  await cards
+    .first()
+    .locator('div')
+    .evaluate((element) => ((element as HTMLElement).style.height = '320px'))
+  await expect
+    .poll(async () => (await inspect()).height)
+    .toBeGreaterThan(initial.height + 20)
+  await cards
+    .first()
+    .locator('div')
+    .evaluate((element) =>
+      (element as HTMLElement).style.removeProperty('height'),
+    )
+  await expect.poll(async () => (await inspect()).height).toBe(initial.height)
+
+  const add = preview.getByRole('button', { name: '添加卡片' })
+  if (testInfo.project.name.startsWith('mobile-')) await add.tap()
+  else await add.click()
+  await expect(cards).toHaveCount(8)
+  await expect.poll(async () => (await inspect()).inside).toBe(true)
+  expect((await inspect()).overlap).toBe(false)
+
+  await page.setViewportSize({ width: 360, height: 800 })
+  await expect.poll(async () => (await inspect()).columns).toBe(2)
+  expect((await inspect()).overlap).toBe(false)
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
+})
+
 test('tree select searches collapsed branches with keyboard and touch', async ({
   page,
 }, testInfo) => {

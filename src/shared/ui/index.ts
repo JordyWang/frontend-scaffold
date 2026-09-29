@@ -63,6 +63,13 @@ export { Stack, Flex, Space, Grid, Divider } from './layout'
 export type { StackProps, SpaceProps, GridProps, DividerProps } from './layout'
 export { Splitter } from './splitter'
 export type { SplitterPanel, SplitterProps } from './splitter'
+export { Masonry } from './masonry'
+export type {
+  MasonryColumns,
+  MasonryItem,
+  MasonryPlacement,
+  MasonryProps,
+} from './masonry'
 export {
   Layout,
   LayoutHeader,
