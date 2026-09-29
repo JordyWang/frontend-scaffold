@@ -103,6 +103,8 @@ export { Alert } from './alert'
 export type { AlertProps } from './alert'
 export { Spinner } from './spinner'
 export type { SpinnerProps } from './spinner'
+export { Spin } from './spin'
+export type { SpinProps } from './spin'
 export { Breadcrumb, Steps } from './navigation'
 export type {
   BreadcrumbItem,

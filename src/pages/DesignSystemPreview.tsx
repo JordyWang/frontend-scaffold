@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Alert,
   Affix,
@@ -48,6 +48,7 @@ import {
   Sheet,
   Skeleton,
   Splitter,
+  Spin,
   Spinner,
   Space,
   Stack,
@@ -117,6 +118,14 @@ export function DesignSystemPreview() {
   const [menuExpanded, setMenuExpanded] = useState<string[]>([])
   const [transferDisabled, setTransferDisabled] = useState(false)
   const [masonryCount, setMasonryCount] = useState(7)
+  const [regionLoading, setRegionLoading] = useState(true)
+  const [fullscreenLoading, setFullscreenLoading] = useState(false)
+
+  useEffect(() => {
+    if (!fullscreenLoading) return
+    const timeout = window.setTimeout(() => setFullscreenLoading(false), 1400)
+    return () => window.clearTimeout(timeout)
+  }, [fullscreenLoading])
 
   return (
     <section className="space-y-4" aria-label="设计系统补充组件">
@@ -997,6 +1006,49 @@ export function DesignSystemPreview() {
                 <Typography variant="caption" tone="muted">
                   容器宽度决定列数；新增或移除不同高度卡片后自动重新排布。
                 </Typography>
+              </Stack>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent>
+              <Stack gap="md">
+                <Typography as="h3" variant="title">
+                  区域与全屏加载
+                </Typography>
+                <Spin
+                  spinning={regionLoading}
+                  delay={250}
+                  tip="正在加载卡片"
+                  label="卡片加载中"
+                >
+                  <div className="min-h-36 rounded-lg border border-border bg-muted/40 p-4">
+                    这一区域加载时暂不可操作。
+                    <Button className="mt-3" variant="outline" size="small">
+                      区域内操作
+                    </Button>
+                  </div>
+                </Spin>
+                <Stack direction="row" gap="sm" wrap>
+                  <Button
+                    variant="outline"
+                    size="small"
+                    onClick={() => setRegionLoading((current) => !current)}
+                  >
+                    {regionLoading ? '结束区域加载' : '开始区域加载'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="small"
+                    onClick={() => setFullscreenLoading(true)}
+                  >
+                    演示全屏加载
+                  </Button>
+                </Stack>
+                <Spin
+                  fullscreen
+                  spinning={fullscreenLoading}
+                  label="页面加载中"
+                />
               </Stack>
             </CardContent>
           </Card>

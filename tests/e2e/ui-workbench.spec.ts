@@ -685,6 +685,36 @@ test('masonry reflows uneven cards across container widths and dynamic updates',
   ).toBe(true)
 })
 
+test('spin overlays regions and full screen without trapping inactive content', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const status = page.getByRole('status', { name: '卡片加载中' })
+  await expect(status).toBeVisible()
+  const action = preview.getByRole('button', {
+    name: '区域内操作',
+    includeHidden: true,
+  })
+  await expect(action.locator('../..')).toHaveAttribute('inert')
+
+  const stop = preview.getByRole('button', { name: '结束区域加载' })
+  if (testInfo.project.name.startsWith('mobile-')) await stop.tap()
+  else await stop.click()
+  await expect(status).toHaveCount(0)
+  await expect(action.locator('../..')).not.toHaveAttribute('inert')
+  await action.click()
+
+  const fullscreen = preview.getByRole('button', { name: '演示全屏加载' })
+  if (testInfo.project.name.startsWith('mobile-')) await fullscreen.tap()
+  else await fullscreen.click()
+  await expect(page.getByRole('status', { name: '页面加载中' })).toBeVisible()
+  await expect(page.getByRole('status', { name: '页面加载中' })).toHaveCount(
+    0,
+    { timeout: 3000 },
+  )
+})
+
 test('tree select searches collapsed branches with keyboard and touch', async ({
   page,
 }, testInfo) => {
