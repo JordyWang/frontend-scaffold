@@ -29,6 +29,9 @@ type AppModalState = AppModalOptions & {
 /** App-level context matching Ant Design's useApp boundary. */
 export function App({ children, className, ...props }: AppProps) {
   const [modals, setModals] = useState<AppModalState[]>([])
+  const [pendingModalIds, setPendingModalIds] = useState<Set<string>>(
+    () => new Set(),
+  )
   const destroy = useCallback((id?: string | number) => {
     if (id === undefined) setModals([])
     else
@@ -44,12 +47,23 @@ export function App({ children, className, ...props }: AppProps) {
   const closeModal = useCallback(
     (modal: AppModalState, confirmed: boolean) => {
       if (confirmed) {
+        setPendingModalIds((current) => {
+          const next = new Set(current)
+          next.add(modal.id)
+          return next
+        })
         void (async () => {
           try {
             await modal.onOk?.()
             destroy(modal.id)
           } catch {
             // Keep the dialog open when an async confirmation rejects.
+          } finally {
+            setPendingModalIds((current) => {
+              const next = new Set(current)
+              next.delete(modal.id)
+              return next
+            })
           }
         })()
       } else {
@@ -84,7 +98,10 @@ export function App({ children, className, ...props }: AppProps) {
                   {item.cancelText ?? '取消'}
                 </Button>
               )}
-              <Button onClick={() => closeModal(item, true)}>
+              <Button
+                loading={pendingModalIds.has(item.id)}
+                onClick={() => closeModal(item, true)}
+              >
                 {item.okText ?? '确定'}
               </Button>
             </div>

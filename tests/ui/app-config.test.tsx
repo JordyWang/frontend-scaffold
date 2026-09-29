@@ -179,6 +179,47 @@ describe('App and ConfigProvider boundaries', () => {
     )
   })
 
+  it('shows loading during async confirmation and prevents duplicate submits', async () => {
+    let resolve!: () => void
+    const onOk = vi.fn(
+      () =>
+        new Promise<void>((complete) => {
+          resolve = complete
+        }),
+    )
+    function ModalProbe() {
+      const { modal } = useApp()
+      return (
+        <button
+          type="button"
+          onClick={() => modal.confirm({ title: '异步确认', onOk })}
+        >
+          打开异步确认
+        </button>
+      )
+    }
+
+    render(
+      <App>
+        <ModalProbe />
+      </App>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '打开异步确认' }))
+    const ok = screen.getByRole('button', { name: '确定' })
+    fireEvent.click(ok)
+    fireEvent.click(ok)
+    expect(onOk).toHaveBeenCalledOnce()
+    expect(ok).toBeDisabled()
+    expect(ok).toHaveAttribute('aria-busy', 'true')
+
+    resolve()
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: '异步确认' }),
+      ).not.toBeInTheDocument(),
+    )
+  })
+
   it('gives modal.confirm a default cancel action while modal.open stays single-action', async () => {
     function ModalProbe() {
       const { modal } = useApp()
