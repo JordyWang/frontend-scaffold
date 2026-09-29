@@ -264,6 +264,8 @@ describe('shared/ui contracts', () => {
       'aria-orientation',
       'vertical',
     )
+    expect(screen.getByRole('tablist').parentElement).toHaveClass('flex-row')
+    expect(screen.getByRole('tablist')).toHaveClass('flex-col')
     expect(screen.getByRole('tab', { name: '不可用' })).toBeDisabled()
     expect(screen.getByRole('tabpanel')).toHaveTextContent('第一项内容')
     const secondTab = screen.getByRole('tab', { name: '第二项' })

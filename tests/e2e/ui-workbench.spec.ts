@@ -1359,6 +1359,46 @@ test('extended navigation and feedback components expose responsive semantics', 
   expect(overflow).toBe(false)
 })
 
+test('vertical tabs place content beside triggers and support keyboard and touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const navigation = page.getByRole('region', { name: '导航与数据' })
+  const tabs = navigation.getByRole('tablist', { name: '垂直预览分组' })
+  const first = tabs.getByRole('tab', { name: '概览' })
+  const second = tabs.getByRole('tab', { name: '细节' })
+  const content = navigation.getByRole('tabpanel', { name: '概览' })
+
+  await expect(tabs).toHaveAttribute('aria-orientation', 'vertical')
+  await expect(first).toHaveAttribute('aria-selected', 'true')
+  await expect(content).toContainText('使用上下方向键或触控切换垂直分组。')
+
+  const listBox = await tabs.boundingBox()
+  const contentBox = await content.boundingBox()
+  expect(listBox).not.toBeNull()
+  expect(contentBox).not.toBeNull()
+  expect(listBox!.x + listBox!.width).toBeLessThanOrEqual(contentBox!.x + 1)
+
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await second.tap()
+  } else {
+    await first.focus()
+    await page.keyboard.press('ArrowDown')
+    await expect(second).toBeFocused()
+  }
+  await expect(second).toHaveAttribute('aria-selected', 'true')
+  await expect(
+    navigation.getByRole('tabpanel', { name: '细节' }),
+  ).toContainText('窄屏仍保留左侧选项与右侧内容。')
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
+})
+
 test('anchor follows page sections with keyboard and touch navigation', async ({
   page,
 }, testInfo) => {

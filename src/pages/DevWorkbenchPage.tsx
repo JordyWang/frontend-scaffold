@@ -477,6 +477,29 @@ export function DevWorkbenchPage() {
               },
             ]}
           />
+          <Tabs
+            label="垂直预览分组"
+            orientation="vertical"
+            className="max-w-xl rounded-lg border border-border p-3"
+            items={[
+              {
+                value: 'summary',
+                label: '概览',
+                content: <p>使用上下方向键或触控切换垂直分组。</p>,
+              },
+              {
+                value: 'detail',
+                label: '细节',
+                content: <p>窄屏仍保留左侧选项与右侧内容。</p>,
+              },
+              {
+                value: 'disabled',
+                label: '不可用',
+                content: null,
+                disabled: true,
+              },
+            ]}
+          />
           <div
             className="flex flex-wrap gap-3"
             role="group"

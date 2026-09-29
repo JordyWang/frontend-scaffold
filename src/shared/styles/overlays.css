@@ -100,33 +100,3 @@
   width: 44px;
   height: 44px;
 }
-
-.ui-tabs__list {
-  display: flex;
-  gap: var(--space-sm);
-  overflow-x: auto;
-  border-bottom: 1px solid var(--border);
-  scrollbar-width: thin;
-}
-.ui-tabs__trigger {
-  min-height: 44px;
-  flex: none;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: transparent;
-  color: var(--muted-foreground);
-  padding: 0.625rem 1rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-.ui-tabs__trigger[data-state='active'] {
-  border-color: var(--primary);
-  color: var(--foreground);
-}
-.ui-tabs__trigger:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.ui-tabs__content {
-  padding-block: var(--space-lg);
-}

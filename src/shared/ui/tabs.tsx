@@ -41,13 +41,17 @@ export function Tabs({
       orientation={orientation}
       activationMode={activationMode}
       dir={direction}
-      className={cn('flex w-full min-w-0 flex-col', className)}
+      className={cn(
+        'flex w-full min-w-0',
+        orientation === 'vertical' ? 'flex-row' : 'flex-col',
+        className,
+      )}
     >
       <TabsPrimitive.List
         className={cn(
           'flex min-w-0 gap-2 overflow-x-auto border-b border-border [scrollbar-width:thin]',
           orientation === 'vertical' &&
-            'overflow-x-visible overflow-y-auto border-b-0 border-e',
+            'max-h-[min(24rem,70dvh)] min-w-28 max-w-[45%] shrink-0 flex-col items-stretch gap-1 overflow-x-hidden overflow-y-auto border-b-0 border-e',
         )}
         aria-label={label}
       >
@@ -57,9 +61,10 @@ export function Tabs({
             value={item.value}
             disabled={item.disabled}
             className={cn(
-              'min-h-11 shrink-0 touch-manipulation border-b-2 border-transparent px-4 py-2.5 text-sm font-semibold text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring data-[state=active]:border-primary data-[state=active]:text-foreground disabled:cursor-not-allowed disabled:opacity-50',
-              orientation === 'vertical' &&
-                'border-b-0 border-e-2 data-[state=active]:border-e-primary',
+              'min-h-11 shrink-0 touch-manipulation border-transparent px-4 py-2.5 text-sm font-semibold text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring data-[state=active]:text-foreground disabled:cursor-not-allowed disabled:opacity-50',
+              orientation === 'vertical'
+                ? 'w-full border-e-2 text-start data-[state=active]:border-e-primary'
+                : 'border-b-2 data-[state=active]:border-b-primary',
             )}
           >
             {item.label}
@@ -70,7 +75,12 @@ export function Tabs({
         <TabsPrimitive.Content
           key={item.value}
           value={item.value}
-          className="min-w-0 py-[var(--space-lg)] outline-none"
+          className={cn(
+            'min-w-0 outline-none',
+            orientation === 'vertical'
+              ? 'flex-1 py-0 ps-[var(--space-lg)]'
+              : 'py-[var(--space-lg)]',
+          )}
         >
           {item.content}
         </TabsPrimitive.Content>
