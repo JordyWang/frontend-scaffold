@@ -36,7 +36,7 @@ test('default status labels meet AA contrast in light and dark themes', async ({
     .locator('.ui-theme-scope')
     .first()
   const contrast = (tone: 'success' | 'warning' | 'error') =>
-    scope.locator(`.ui-tag--${tone}`).evaluate((element) => {
+    scope.locator(`[data-ui-tone="${tone}"]`).evaluate((element) => {
       const style = getComputedStyle(element)
       const canvas = document.createElement('canvas')
       const context = canvas.getContext('2d')!
@@ -76,10 +76,10 @@ test('custom status seeds keep soft backgrounds and readable labels in both them
 }) => {
   await page.goto('/__ui')
   const preview = page.getByRole('region', { name: '设计系统补充组件' })
-  const scope = preview.locator('.ui-theme-scope').nth(1)
+  const scope = preview.locator('.ui-theme-scope[data-ui-theme]').nth(1)
   const colors = async (
     tone: 'success' | 'warning' | 'error',
-    tag = scope.locator(`.ui-tag--${tone}`).first(),
+    tag = scope.locator(`[data-ui-tone="${tone}"]`).first(),
   ) =>
     tag.evaluate((element) => {
       const style = getComputedStyle(element)
@@ -127,7 +127,7 @@ test('custom status seeds keep soft backgrounds and readable labels in both them
     for (const tone of ['success', 'warning', 'error'] as const) {
       const badgeColor = await colors(
         tone,
-        scope.locator(`.ui-badge__count--${tone}`).first(),
+        scope.locator(`[data-ui-badge-tone="${tone}"]`).first(),
       )
       expect(badgeColor.contrast).toBeGreaterThanOrEqual(4.5)
     }
@@ -151,10 +151,13 @@ test('custom status seeds keep soft backgrounds and readable labels in both them
     const nested = document.createElement('div')
     nested.className = 'ui-theme-scope'
     nested.dataset.uiTheme = 'light'
-    nested.innerHTML = '<span class="ui-tag ui-tag--success">嵌套状态</span>'
+    nested.innerHTML =
+      '<span data-ui-tone="success" class="inline-flex items-center rounded-[0.35rem] border border-[var(--ui-color-success)] bg-[var(--ui-map-success-bg)] px-2 py-0.5 text-sm font-semibold text-[var(--ui-color-success)]">嵌套状态</span>'
     element.append(nested)
   })
-  const nested = scope.locator('[data-ui-theme="light"] .ui-tag--success')
+  const nested = scope.locator(
+    '[data-ui-theme="light"] [data-ui-tone="success"]',
+  )
   expect((await colors('success', nested)).contrast).toBeGreaterThanOrEqual(4.5)
   expect((await colors('success', nested)).background).not.toBe(
     (await colors('success')).background,

@@ -8,10 +8,35 @@ import { cn } from '@/shared/lib/utils'
 
 type Tone = 'default' | 'success' | 'warning' | 'error'
 
+const tagToneStyles = {
+  default: 'border-border bg-muted text-foreground',
+  success:
+    'border-[var(--ui-color-success)] bg-[var(--ui-map-success-bg)] text-[var(--ui-color-success)]',
+  warning:
+    'border-[var(--ui-color-warning)] bg-[var(--ui-map-warning-bg)] text-[var(--ui-color-warning)]',
+  error:
+    'border-[var(--ui-color-error)] bg-[var(--ui-map-error-bg)] text-[var(--ui-color-error)]',
+} as const
+
+const badgeToneStyles = {
+  default: 'bg-primary text-primary-foreground',
+  success: 'bg-[var(--ui-seed-success)] text-[var(--ui-map-success-text)]',
+  warning: 'bg-[var(--ui-seed-warning)] text-[var(--ui-map-warning-text)]',
+  error: 'bg-[var(--ui-seed-error)] text-[var(--ui-map-error-text)]',
+} as const
+
 export type TagProps = HTMLAttributes<HTMLSpanElement> & { tone?: Tone }
 export function Tag({ tone = 'default', className, ...props }: TagProps) {
   return (
-    <span className={cn('ui-tag', `ui-tag--${tone}`, className)} {...props} />
+    <span
+      data-ui-tone={tone}
+      className={cn(
+        'inline-flex items-center rounded-[0.35rem] border px-2 py-0.5 text-sm font-semibold',
+        tagToneStyles[tone],
+        className,
+      )}
+      {...props}
+    />
   )
 }
 
@@ -41,14 +66,15 @@ export function Badge({
         ? `${max}+`
         : String(count)
   return (
-    <span className={cn('ui-badge', className)}>
+    <span className={cn('relative inline-flex w-fit', className)}>
       {children}
       {(dot || count !== undefined || label) && (
         <span
+          data-ui-badge-tone={tone}
           className={cn(
-            'ui-badge__count',
-            `ui-badge__count--${tone}`,
-            dot && 'ui-badge__count--dot',
+            'absolute end-0 top-0 grid min-w-5 h-5 translate-x-[40%] -translate-y-[40%] place-items-center rounded-full px-[0.2rem] text-xs font-bold leading-none',
+            badgeToneStyles[tone],
+            dot && 'size-2.5 min-w-0 p-0',
           )}
           aria-label={
             label ?? (count === undefined ? undefined : `${count} 条通知`)
@@ -84,7 +110,10 @@ export function Image({
       <div
         role="img"
         aria-label={alt}
-        className={cn('ui-image__fallback', className)}
+        className={cn(
+          'block min-h-24 max-w-full rounded-[var(--radius-md)] border border-dashed border-border bg-muted p-4 text-muted-foreground',
+          className,
+        )}
       >
         {fallback ?? alt}
       </div>
@@ -95,7 +124,7 @@ export function Image({
       src={src}
       alt={alt}
       loading={loading}
-      className={cn('ui-image', className)}
+      className={cn('block max-w-full rounded-[var(--radius-md)]', className)}
       onError={(event) => {
         setFailure({ src, failed: true })
         onError?.(event)
@@ -120,11 +149,20 @@ export function Skeleton({
   style,
   ...props
 }: SkeletonProps) {
+  const shapeStyles = {
+    line: 'h-4 w-full rounded-[var(--radius-sm)]',
+    circle: 'size-12 rounded-full',
+    block: 'h-24 w-full rounded-[var(--radius-sm)]',
+  } as const
   return (
     <div
       role="status"
       aria-label={label}
-      className={cn('ui-skeleton', `ui-skeleton--${shape}`, className)}
+      className={cn(
+        'animate-pulse bg-secondary motion-reduce:animate-none',
+        shapeStyles[shape],
+        className,
+      )}
       style={{ width, height, ...style }}
       {...props}
     />
