@@ -747,12 +747,18 @@ export function DevWorkbenchPage() {
                 </div>
                 <TaskProgress task={aiTask.task} />
                 {aiTask.message && (
-                  <p role="alert" className="ui-field__error">
+                  <p
+                    role="alert"
+                    className="text-sm leading-normal text-destructive"
+                  >
                     {aiTask.message}
                   </p>
                 )}
                 {aiTask.task?.error && (
-                  <p role="alert" className="ui-field__error">
+                  <p
+                    role="alert"
+                    className="text-sm leading-normal text-destructive"
+                  >
                     {aiTask.task.error}
                   </p>
                 )}

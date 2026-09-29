@@ -13,6 +13,7 @@ import {
 } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { FormField, type FormFieldProps } from './form-field'
+import { FormLayoutContext } from './form-layout-context'
 
 export type FormValues = Record<string, unknown>
 
@@ -341,16 +342,24 @@ export function Form<TValues extends FormValues = FormValues>({
 
   return (
     <FormContext.Provider value={contextValue}>
-      <form
-        {...props}
-        ref={formRef}
-        className={cn('ui-form', `ui-form--${layout}`, className)}
-        noValidate
-        onSubmit={handleSubmit}
-        onReset={handleReset}
-      >
-        {children}
-      </form>
+      <FormLayoutContext.Provider value={layout}>
+        <form
+          {...props}
+          ref={formRef}
+          className={cn(
+            'flex gap-6',
+            layout === 'inline'
+              ? 'flex-row flex-wrap items-end gap-4'
+              : 'flex-col',
+            className,
+          )}
+          noValidate
+          onSubmit={handleSubmit}
+          onReset={handleReset}
+        >
+          {children}
+        </form>
+      </FormLayoutContext.Provider>
     </FormContext.Provider>
   )
 }

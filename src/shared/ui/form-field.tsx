@@ -1,5 +1,6 @@
-import { cloneElement, useId, type ReactElement } from 'react'
+import { cloneElement, useContext, useId, type ReactElement } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { FormLayoutContext } from './form-layout-context'
 
 type FieldControlProps = {
   id?: string
@@ -28,6 +29,7 @@ export function FormField({
   required,
   className,
 }: FormFieldProps) {
+  const layout = useContext(FormLayoutContext)
   const generatedId = useId()
   const controlId = id ?? control.props.id ?? `field-${generatedId}`
   const hintId = description ? `${controlId}-hint` : undefined
@@ -42,12 +44,20 @@ export function FormField({
     undefined
 
   return (
-    <div className={cn('ui-field', className)}>
+    <div
+      className={cn(
+        'grid gap-1',
+        layout === 'horizontal' &&
+          'sm:grid-cols-[minmax(7rem,0.35fr)_minmax(0,1fr)] sm:items-start',
+        layout === 'inline' && 'min-w-[min(100%,12rem)] flex-[1_1_12rem]',
+        className,
+      )}
+    >
       {label && (
-        <label id={labelId} htmlFor={controlId} className="ui-field__label">
+        <label id={labelId} htmlFor={controlId} className="font-semibold">
           {label}
           {required && (
-            <span className="ui-field__required" aria-hidden="true">
+            <span className="font-bold text-destructive" aria-hidden="true">
               {' '}
               *
             </span>
@@ -62,12 +72,25 @@ export function FormField({
         'aria-labelledby': labelledBy,
       })}
       {description && (
-        <p id={hintId} className="ui-field__hint">
+        <p
+          id={hintId}
+          className={cn(
+            'm-0 text-sm leading-normal text-muted-foreground',
+            layout === 'horizontal' && 'sm:col-start-2',
+          )}
+        >
           {description}
         </p>
       )}
       {error && (
-        <p id={errorId} role="alert" className="ui-field__error">
+        <p
+          id={errorId}
+          role="alert"
+          className={cn(
+            'm-0 text-sm leading-normal text-destructive',
+            layout === 'horizontal' && 'sm:col-start-2',
+          )}
+        >
           {error}
         </p>
       )}

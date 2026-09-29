@@ -522,6 +522,7 @@ export function DesignSystemPreview() {
                   readOnly
                 />
                 <Form
+                  layout="horizontal"
                   initialValues={{ email: '', view: 'list' }}
                   onFinish={(values) =>
                     setFormStatus(`已提交：${String(values.email)}`)

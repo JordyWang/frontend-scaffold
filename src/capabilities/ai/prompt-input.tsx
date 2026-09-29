@@ -27,7 +27,9 @@ export function PromptInput({
         disabled={disabled || loading}
       />
       <div className="ui-ai-prompt__footer">
-        <span className="ui-field__hint">Enter 提交，Shift + Enter 换行</span>
+        <span className="text-sm leading-normal text-muted-foreground">
+          Enter 提交，Shift + Enter 换行
+        </span>
         <Button
           type="submit"
           loading={loading}

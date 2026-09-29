@@ -51,7 +51,9 @@ export function PromptComposer({
         rows={3}
       />
       <div className="ui-ai-composer__footer">
-        <span className="ui-field__hint">内容会以流式消息返回</span>
+        <span className="text-sm leading-normal text-muted-foreground">
+          内容会以流式消息返回
+        </span>
         {loading && onCancel ? (
           <Button type="button" variant="outline" onClick={onCancel}>
             停止生成

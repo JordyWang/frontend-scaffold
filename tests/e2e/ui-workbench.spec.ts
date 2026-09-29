@@ -336,6 +336,16 @@ test('form preview validates and submits through the project contract', async ({
   const form = preview.locator('form').filter({ hasText: '联系邮箱' })
   const email = form.getByRole('textbox', { name: '联系邮箱' })
   const submit = form.getByRole('button', { name: '提交表单' })
+  const labelBox = await form
+    .locator('label')
+    .filter({ hasText: '联系邮箱' })
+    .boundingBox()
+  const emailBox = await email.boundingBox()
+  expect(labelBox).not.toBeNull()
+  expect(emailBox).not.toBeNull()
+  if (testInfo.project.name.startsWith('mobile-'))
+    expect(emailBox!.y).toBeGreaterThan(labelBox!.y)
+  else expect(emailBox!.x).toBeGreaterThan(labelBox!.x)
 
   if (testInfo.project.name.startsWith('mobile-')) await submit.tap()
   else await submit.click()

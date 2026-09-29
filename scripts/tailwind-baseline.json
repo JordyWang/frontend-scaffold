@@ -26,8 +26,6 @@
     "src/shared/ui/data-input.tsx",
     "src/shared/ui/dialog.tsx",
     "src/shared/ui/disclosure.tsx",
-    "src/shared/ui/form-field.tsx",
-    "src/shared/ui/form.tsx",
     "src/shared/ui/navigation-extended.tsx",
     "src/shared/ui/overlay.tsx",
     "src/shared/ui/rate.tsx",

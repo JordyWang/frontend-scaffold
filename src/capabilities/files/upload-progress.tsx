@@ -42,7 +42,7 @@ export function UploadProgress({
         className="ui-upload-progress__bar"
       />
       {error && (
-        <p role="alert" className="ui-field__error">
+        <p role="alert" className="text-sm leading-normal text-destructive">
           {error}
         </p>
       )}

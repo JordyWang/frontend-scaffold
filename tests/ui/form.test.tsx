@@ -11,6 +11,33 @@ function deferred<T>() {
 }
 
 describe('Form coordinator', () => {
+  it('passes horizontal and inline layout to FormField without changing labels', () => {
+    const { rerender } = render(
+      <Form layout="horizontal">
+        <FormItem
+          name="email"
+          label="邮箱"
+          description="用于接收通知"
+          control={<input />}
+        />
+      </Form>,
+    )
+    const field = screen.getByRole('textbox', { name: '邮箱' }).parentElement
+    expect(field).toHaveClass(
+      'sm:grid-cols-[minmax(7rem,0.35fr)_minmax(0,1fr)]',
+    )
+    expect(screen.getByText('用于接收通知')).toHaveClass('sm:col-start-2')
+
+    rerender(
+      <Form layout="inline">
+        <FormItem name="query" label="搜索" control={<input />} />
+      </Form>,
+    )
+    expect(
+      screen.getByRole('textbox', { name: '搜索' }).parentElement,
+    ).toHaveClass('flex-[1_1_12rem]')
+  })
+
   it('focuses the first invalid control after submit validation fails', async () => {
     render(
       <Form>

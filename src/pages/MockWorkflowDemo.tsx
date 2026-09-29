@@ -111,7 +111,10 @@ export function MockWorkflowDemo() {
             onRejected={rejectFiles}
           />
           {issues.length > 0 && (
-            <ul role="alert" className="ui-field__error">
+            <ul
+              role="alert"
+              className="text-sm leading-normal text-destructive"
+            >
               {issues.map((issue) => (
                 <li key={issue}>{issue}</li>
               ))}
@@ -167,12 +170,12 @@ export function MockWorkflowDemo() {
           </div>
           <TaskProgress task={task.task} />
           {task.message && (
-            <p role="alert" className="ui-field__error">
+            <p role="alert" className="text-sm leading-normal text-destructive">
               {task.message}
             </p>
           )}
           {task.task?.error && (
-            <p role="alert" className="ui-field__error">
+            <p role="alert" className="text-sm leading-normal text-destructive">
               {task.task.error}
             </p>
           )}
