@@ -1322,6 +1322,34 @@ test('extended navigation and feedback components expose responsive semantics', 
   expect(overflow).toBe(false)
 })
 
+test('anchor follows page sections with keyboard and touch navigation', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const anchor = preview.getByRole('navigation', { name: '页内导航' })
+  const timeline = anchor.getByRole('link', { name: '时间线' })
+  const result = anchor.getByRole('link', { name: '结果' })
+  await expect(timeline).toHaveAttribute('aria-current', 'location')
+  if (testInfo.project.name.startsWith('mobile-')) await result.tap()
+  else {
+    await result.focus()
+    await page.keyboard.press('Enter')
+  }
+  await expect(result).toHaveAttribute('aria-current', 'location')
+  await page
+    .locator('#preview-timeline')
+    .evaluate((element) => element.scrollIntoView({ block: 'start' }))
+  await expect(timeline).toHaveAttribute('aria-current', 'location')
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
+})
+
 test('carousel exposes rotation controls and pauses on touch or focus', async ({
   page,
 }, testInfo) => {

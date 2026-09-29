@@ -214,27 +214,6 @@
   box-shadow: 0 12px 30px rgb(0 0 0 / 0.16);
   padding: var(--space-xs);
 }
-.ui-anchor {
-  display: grid;
-  gap: var(--space-xs);
-  border-left: 1px solid var(--border);
-}
-.ui-anchor__link {
-  display: flex;
-  min-height: 44px;
-  align-items: center;
-  border-left: 2px solid transparent;
-  margin-left: -1px;
-  padding: 0.5rem var(--space-md);
-  color: var(--muted-foreground);
-  text-decoration: none;
-}
-.ui-anchor__link:hover,
-.ui-anchor__link:focus-visible,
-.ui-anchor__link--active {
-  border-left-color: var(--primary);
-  color: var(--foreground);
-}
 .ui-affix {
   position: sticky;
   z-index: 20;

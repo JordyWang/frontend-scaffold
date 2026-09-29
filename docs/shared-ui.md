@@ -63,6 +63,8 @@
 
 `Transfer.items` 的 `key` 必须唯一。`onChange(nextTargetKeys, direction, movedKeys)` 在移动后调用；`direction` 为 `to-target` 或 `to-source`。搜索只影响当前可见项和“全选可见项”，已勾选但被搜索隐藏的项目仍可移动。自定义 `filterItem` 收到去除首尾空格并转为小写的查询词。
 
+`Anchor` 默认跟踪同页 `#id` 目标的滚动位置，并以 `aria-current="location"` 标记当前章节；`offsetTop` 用于固定页头的判定偏移。传入 `activeHref` 后由业务控制高亮；点击链接仍保留浏览器原生锚点跳转，`onChange` 在点击或自动切换当前章节时收到链接地址。
+
 Tree 支持 `selectedKey` 受控选择和 `defaultSelectedKey` 非受控初始选择。受控展开或数据更新后若移除了当前聚焦节点，会把焦点移到最近仍可见的祖先节点；焦点已移出 Tree 时不会重新抢占焦点。`/__ui` 可切换受控展开状态验证这一行为。
 
 Carousel 开启 `autoplay` 后，焦点、鼠标进入或触控会暂停轮转，并提供暂停/恢复按钮；系统启用减少动态效果时默认不自动轮播，用户明确恢复后才开始。

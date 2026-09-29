@@ -281,6 +281,7 @@ export type AnchorLink = { href: string; title: ReactNode }
 export type AnchorProps = {
   links: AnchorLink[]
   activeHref?: string
+  offsetTop?: number
   label?: string
   onChange?: (href: string) => void
   className?: string
@@ -289,22 +290,84 @@ export type AnchorProps = {
 export function Anchor({
   links,
   activeHref,
+  offsetTop = 0,
   label = '页内导航',
   onChange,
   className,
 }: AnchorProps) {
+  const [internalActive, setInternalActive] = useState<string | undefined>(
+    () => links[0]?.href,
+  )
+  const activeRef = useRef(internalActive)
+  const effectiveActive =
+    activeHref ??
+    (links.some((link) => link.href === internalActive)
+      ? internalActive
+      : links[0]?.href)
+
+  useEffect(() => {
+    if (activeHref !== undefined) return
+
+    function updateFromScroll() {
+      const targets = links
+        .filter((link) => link.href.startsWith('#') && link.href.length > 1)
+        .map((link) => {
+          let id: string
+          try {
+            id = decodeURIComponent(link.href.slice(1))
+          } catch {
+            return undefined
+          }
+          const element = document.getElementById(id)
+          return element
+            ? { href: link.href, top: element.getBoundingClientRect().top }
+            : undefined
+        })
+        .filter((target): target is { href: string; top: number } =>
+          Boolean(target),
+        )
+        .sort((a, b) => a.top - b.top)
+      if (!targets.length) return
+
+      const threshold = Math.max(0, offsetTop) + 1
+      const next =
+        targets.filter((target) => target.top <= threshold).at(-1)?.href ??
+        targets[0].href
+      if (next === activeRef.current) return
+      activeRef.current = next
+      setInternalActive(next)
+      onChange?.(next)
+    }
+
+    updateFromScroll()
+    window.addEventListener('scroll', updateFromScroll, { passive: true })
+    window.addEventListener('resize', updateFromScroll)
+    window.addEventListener('hashchange', updateFromScroll)
+    return () => {
+      window.removeEventListener('scroll', updateFromScroll)
+      window.removeEventListener('resize', updateFromScroll)
+      window.removeEventListener('hashchange', updateFromScroll)
+    }
+  }, [activeHref, links, offsetTop, onChange])
+
   return (
-    <nav aria-label={label} className={cn('ui-anchor', className)}>
+    <nav
+      aria-label={label}
+      className={cn('grid gap-1 border-s border-border', className)}
+    >
       {links.map((link) => (
         <a
           key={link.href}
           href={link.href}
-          aria-current={activeHref === link.href ? 'location' : undefined}
-          className={cn(
-            'ui-anchor__link',
-            activeHref === link.href && 'ui-anchor__link--active',
-          )}
-          onClick={() => onChange?.(link.href)}
+          aria-current={effectiveActive === link.href ? 'location' : undefined}
+          className="-ms-px flex min-h-11 touch-manipulation items-center border-s-2 border-transparent px-[var(--space-md)] py-2 text-muted-foreground no-underline outline-none hover:border-primary hover:text-foreground focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-[current=location]:border-primary aria-[current=location]:text-foreground"
+          onClick={() => {
+            if (activeHref === undefined) {
+              activeRef.current = link.href
+              setInternalActive(link.href)
+            }
+            onChange?.(link.href)
+          }}
         >
           {link.title}
         </a>

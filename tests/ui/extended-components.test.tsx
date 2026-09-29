@@ -840,6 +840,55 @@ describe('Ant Design-inspired shared components', () => {
     expect(screen.getByRole('treeitem', { name: '叶子' })).toBeInTheDocument()
   })
 
+  it('tracks the current anchor section while scrolling', () => {
+    const onChange = vi.fn()
+    const first = document.createElement('section')
+    first.id = 'anchor-first'
+    const second = document.createElement('section')
+    second.id = 'anchor-second'
+    document.body.append(first, second)
+    let firstTop = 0
+    let secondTop = 200
+    vi.spyOn(first, 'getBoundingClientRect').mockImplementation(
+      () => ({ top: firstTop }) as DOMRect,
+    )
+    vi.spyOn(second, 'getBoundingClientRect').mockImplementation(
+      () => ({ top: secondTop }) as DOMRect,
+    )
+    try {
+      const links = [
+        { href: '#anchor-first', title: '第一节' },
+        { href: '#anchor-second', title: '第二节' },
+      ]
+      const { rerender } = render(
+        <Anchor links={links} onChange={onChange} offsetTop={24} />,
+      )
+      expect(screen.getByRole('link', { name: '第一节' })).toHaveAttribute(
+        'aria-current',
+        'location',
+      )
+
+      firstTop = -200
+      secondTop = 20
+      fireEvent.scroll(window)
+      expect(screen.getByRole('link', { name: '第二节' })).toHaveAttribute(
+        'aria-current',
+        'location',
+      )
+      expect(onChange).toHaveBeenCalledWith('#anchor-second')
+
+      rerender(<Anchor links={links} activeHref="#anchor-first" />)
+      fireEvent.scroll(window)
+      expect(screen.getByRole('link', { name: '第一节' })).toHaveAttribute(
+        'aria-current',
+        'location',
+      )
+    } finally {
+      first.remove()
+      second.remove()
+    }
+  })
+
   it('moves tree focus with arrows and reports expansion', () => {
     const onExpand = vi.fn()
     const onSelect = vi.fn()

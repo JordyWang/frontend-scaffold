@@ -801,10 +801,9 @@ export function DesignSystemPreview() {
                   />
                 </Affix>
                 <Anchor
-                  activeHref="#preview-result"
                   links={[
-                    { href: '#preview-result', title: '结果' },
                     { href: '#preview-timeline', title: '时间线' },
+                    { href: '#preview-result', title: '结果' },
                   ]}
                 />
                 <Button
