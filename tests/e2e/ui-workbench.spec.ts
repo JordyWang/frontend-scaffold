@@ -1359,6 +1359,36 @@ test('extended navigation and feedback components expose responsive semantics', 
   expect(overflow).toBe(false)
 })
 
+test('descriptions reflow and avatar sizes remain stable across viewports', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const owner = preview.getByText('负责人', { exact: true })
+  const status = preview.getByText('状态', { exact: true })
+  const avatar = preview.getByRole('img', { name: '团队成员' })
+  const smallAvatar = preview.getByRole('img', { name: '方形头像' })
+
+  await expect(avatar).toHaveCSS('width', '40px')
+  await expect(smallAvatar).toHaveCSS('width', '32px')
+  const ownerBox = await owner.boundingBox()
+  const statusBox = await status.boundingBox()
+  expect(ownerBox).not.toBeNull()
+  expect(statusBox).not.toBeNull()
+  if (testInfo.project.name.startsWith('mobile-')) {
+    expect(statusBox!.y).toBeGreaterThan(ownerBox!.y)
+  } else {
+    expect(Math.abs(statusBox!.y - ownerBox!.y)).toBeLessThan(2)
+  }
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
+})
+
 test('vertical tabs place content beside triggers and support keyboard and touch', async ({
   page,
 }, testInfo) => {
