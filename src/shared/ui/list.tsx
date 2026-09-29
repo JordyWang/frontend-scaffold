@@ -30,9 +30,15 @@ export function List<T>({
   if (error) return <ErrorState description={error} onRetry={onRetry} />
   if (items.length === 0) return <Empty title={emptyTitle} />
   return (
-    <ul aria-label={label} className={cn('ui-list', className)}>
+    <ul
+      aria-label={label}
+      className={cn(
+        'm-0 list-none divide-y divide-border overflow-hidden rounded-[var(--radius-lg)] border border-border bg-card p-0',
+        className,
+      )}
+    >
       {items.map((item) => (
-        <li key={getKey(item)} className="ui-list__item">
+        <li key={getKey(item)} className="p-4">
           {renderItem(item)}
         </li>
       ))}

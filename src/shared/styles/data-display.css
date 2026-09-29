@@ -14,20 +14,6 @@
   padding: var(--space-lg);
   color: var(--muted-foreground);
 }
-.ui-list {
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--card);
-  list-style: none;
-  padding: 0;
-}
-.ui-list__item {
-  padding: var(--space-md);
-}
-.ui-list__item + .ui-list__item {
-  border-top: 1px solid var(--border);
-}
 .ui-table-wrap {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
