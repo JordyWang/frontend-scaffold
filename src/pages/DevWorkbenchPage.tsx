@@ -702,7 +702,7 @@ export function DevWorkbenchPage() {
                   loading={aiTask.phase === 'submitting'}
                   disabled={aiTask.isBusy && aiTask.phase !== 'submitting'}
                 />
-                <div className="ui-ai-fixtures">
+                <div className="grid gap-[var(--space-sm)] rounded-[var(--radius-md)] border border-border bg-muted p-[var(--space-md)]">
                   <p className="font-medium">Mock 状态样例</p>
                   {aiClient.fixtures.map((fixture) => (
                     <div key={fixture.id} className="grid gap-2 text-sm">
@@ -763,9 +763,13 @@ export function DevWorkbenchPage() {
                   </p>
                 )}
                 {aiTask.task?.result && (
-                  <div className="ui-ai-result">
-                    <p className="font-semibold">{aiTask.task.result.title}</p>
-                    <p>{aiTask.task.result.summary}</p>
+                  <div className="grid gap-[var(--space-sm)] rounded-[var(--radius-md)] border border-border bg-accent p-[var(--space-md)] text-accent-foreground">
+                    <p className="m-0 font-semibold">
+                      {aiTask.task.result.title}
+                    </p>
+                    <p className="m-0 leading-normal">
+                      {aiTask.task.result.summary}
+                    </p>
                   </div>
                 )}
                 <TaskActions

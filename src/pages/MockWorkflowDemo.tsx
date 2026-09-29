@@ -92,7 +92,11 @@ export function MockWorkflowDemo() {
   }
 
   return (
-    <div className="ui-workflow" role="group" aria-label="完整 Mock 示例流程">
+    <div
+      className="grid items-start gap-[var(--space-lg)] lg:grid-cols-3"
+      role="group"
+      aria-label="完整 Mock 示例流程"
+    >
       <Card>
         <CardHeader>
           <CardTitle>1. 选择并上传文件</CardTitle>

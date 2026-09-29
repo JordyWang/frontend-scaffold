@@ -15,10 +15,9 @@ test('system dark mode keeps local light surfaces and state colors distinct', as
     'background-color',
     'rgb(248, 250, 252)',
   )
-  await expect(page.locator('.ui-ai-status--completed').first()).toHaveCSS(
-    'background-color',
-    'rgb(20, 83, 45)',
-  )
+  await expect(
+    page.getByRole('status', { name: '任务状态：已完成' }).first(),
+  ).toHaveCSS('background-color', 'rgb(20, 83, 45)')
   await page.getByRole('button', { name: '普通提示' }).click()
   const darkToast = page
     .locator('[data-sonner-toast]')
@@ -1280,6 +1279,42 @@ test('AI conversation workbench streams, cancels and retries messages', async ({
   await composer.press('Enter')
   await activate(chat.getByRole('button', { name: '停止生成' }))
   await expect(chat.getByText('已取消生成')).toBeVisible({ timeout: 5_000 })
+})
+
+test('AI conversation layout stacks on H5 and uses columns on desktop', async ({
+  page,
+}) => {
+  await page.goto('/__ui')
+  const workbench = page.getByRole('region', { name: 'AI 对话工作台' })
+  const conversations = workbench.getByRole('navigation', {
+    name: '会话列表',
+  })
+  const conversation = workbench.getByRole('region', {
+    name: /当前会话：/,
+  })
+  await expect(
+    conversations.getByRole('button', { name: '新建' }),
+  ).toBeVisible()
+  for (const width of [360, 390, 1280]) {
+    await page.setViewportSize({ width, height: 844 })
+    const sidebarBox = await conversations.boundingBox()
+    const chatBox = await conversation.boundingBox()
+    expect(sidebarBox).not.toBeNull()
+    expect(chatBox).not.toBeNull()
+    if (width < 768)
+      expect(sidebarBox!.y + sidebarBox!.height).toBeLessThanOrEqual(
+        chatBox!.y + 1,
+      )
+    else
+      expect(sidebarBox!.x + sidebarBox!.width).toBeLessThanOrEqual(
+        chatBox!.x + 1,
+      )
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true)
+  }
 })
 
 test('video player supports playback, touch controls and media errors', async ({

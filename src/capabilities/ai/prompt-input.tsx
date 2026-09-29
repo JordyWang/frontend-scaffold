@@ -18,7 +18,7 @@ export function PromptInput({
     onSubmit(value)
   }
   return (
-    <form className="ui-ai-prompt" onSubmit={submit}>
+    <form className="grid gap-[var(--space-sm)]" onSubmit={submit}>
       <Textarea
         aria-label="任务描述"
         value={prompt}
@@ -26,7 +26,7 @@ export function PromptInput({
         placeholder="描述要执行的任务；输入“失败”可演示失败和重试"
         disabled={disabled || loading}
       />
-      <div className="ui-ai-prompt__footer">
+      <div className="flex flex-wrap items-center justify-between gap-[var(--space-sm)]">
         <span className="text-sm leading-normal text-muted-foreground">
           Enter 提交，Shift + Enter 换行
         </span>

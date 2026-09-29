@@ -1,24 +1,8 @@
 {
-  "legacyComponentFiles": [
-    "src/capabilities/ai/chat-workbench.tsx",
-    "src/capabilities/ai/conversation-list.tsx",
-    "src/capabilities/ai/message-bubble.tsx",
-    "src/capabilities/ai/prompt-composer.tsx",
-    "src/capabilities/ai/prompt-input.tsx",
-    "src/capabilities/ai/prompt-suggestions.tsx",
-    "src/capabilities/ai/task-progress.tsx",
-    "src/capabilities/ai/task-status.tsx",
-    "src/capabilities/ai/thinking-indicator.tsx",
-    "src/capabilities/ai/welcome-panel.tsx",
-    "src/pages/DevWorkbenchPage.tsx",
-    "src/pages/MockWorkflowDemo.tsx",
-    "src/shared/ui/theme-scope.tsx"
-  ],
+  "legacyComponentFiles": ["src/shared/ui/theme-scope.tsx"],
   "styleFiles": [
-    "src/shared/styles/ai.css",
     "src/shared/styles/base.css",
     "src/shared/styles/index.css",
-    "src/shared/styles/tokens.css",
-    "src/shared/styles/workflow.css"
+    "src/shared/styles/tokens.css"
   ]
 }

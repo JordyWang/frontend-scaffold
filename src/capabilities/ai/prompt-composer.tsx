@@ -39,7 +39,10 @@ export function PromptComposer({
   }
 
   return (
-    <form className="ui-ai-composer" onSubmit={submit}>
+    <form
+      className="grid gap-[var(--space-sm)] rounded-[var(--radius-lg)] border border-border bg-card p-[var(--space-sm)]"
+      onSubmit={submit}
+    >
       <Textarea
         aria-label="发送消息"
         className="min-h-20 resize-y border-0 p-2 focus-visible:outline-offset-[-2px]"
@@ -50,7 +53,7 @@ export function PromptComposer({
         disabled={disabled || loading}
         rows={3}
       />
-      <div className="ui-ai-composer__footer">
+      <div className="flex items-center justify-between gap-[var(--space-sm)] px-2 pb-1 max-sm:flex-wrap">
         <span className="text-sm leading-normal text-muted-foreground">
           内容会以流式消息返回
         </span>

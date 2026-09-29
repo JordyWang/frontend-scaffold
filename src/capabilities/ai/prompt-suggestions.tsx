@@ -13,9 +13,9 @@ export function PromptSuggestions({
 }: PromptSuggestionsProps) {
   if (items.length === 0) return null
   return (
-    <div className="ui-ai-prompts" aria-label="快捷提示">
-      <span className="ui-ai-prompts__label">试试这样问</span>
-      <div className="ui-ai-prompts__list">
+    <div className="grid gap-[var(--space-xs)]" aria-label="快捷提示">
+      <span className="text-[0.8125rem] text-muted-foreground">试试这样问</span>
+      <div className="flex flex-wrap gap-[var(--space-xs)]">
         {items.map((item) => (
           <Button
             key={item}

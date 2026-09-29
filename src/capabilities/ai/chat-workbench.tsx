@@ -29,9 +29,9 @@ export function AiChatWorkbench({ client }: AiChatWorkbenchProps) {
   )
 
   return (
-    <Card className="ui-ai-chat-card">
+    <Card className="min-w-0">
       <CardContent
-        className="ui-ai-chat-workbench"
+        className="grid min-w-0 grid-cols-[minmax(12rem,15rem)_minmax(0,1fr)] gap-[var(--space-lg)] max-md:grid-cols-1 max-md:gap-[var(--space-md)]"
         role="region"
         aria-label="AI 对话工作台"
       >
@@ -45,17 +45,26 @@ export function AiChatWorkbench({ client }: AiChatWorkbenchProps) {
           onDelete={isStreaming ? undefined : chat.deleteConversation}
           loading={isLoading}
         />
-        <section className="ui-ai-chat" aria-label={`当前会话：${activeTitle}`}>
-          <header className="ui-ai-chat__header">
+        <section
+          className="grid min-h-[30rem] min-w-0 grid-rows-[auto_minmax(16rem,1fr)_auto_auto] gap-[var(--space-md)] max-md:min-h-[26rem]"
+          aria-label={`当前会话：${activeTitle}`}
+        >
+          <header className="flex items-center justify-between gap-[var(--space-sm)] border-b border-border pb-[var(--space-md)]">
             <div>
-              <p className="ui-ai-chat__eyebrow">AI 对话</p>
-              <h3>{activeTitle}</h3>
+              <p className="mb-0.5 text-xs font-bold tracking-[0.08em] text-muted-foreground uppercase">
+                AI 对话
+              </p>
+              <h3 className="m-0">{activeTitle}</h3>
             </div>
-            <span className="ui-ai-chat__state" role="status">
+            <span className="text-sm text-muted-foreground" role="status">
               {isStreaming ? '正在生成' : '就绪'}
             </span>
           </header>
-          <div className="ui-ai-chat__messages" role="log" aria-live="polite">
+          <div
+            className="grid max-h-[34rem] min-h-64 min-w-0 content-start gap-[var(--space-md)] overflow-auto p-[var(--space-xs)] scroll-smooth motion-reduce:scroll-auto max-md:max-h-[28rem] max-md:min-h-52"
+            role="log"
+            aria-live="polite"
+          >
             {isLoading ? (
               <LoadingState label="正在加载对话…" />
             ) : messages.length === 0 ? (
@@ -71,7 +80,7 @@ export function AiChatWorkbench({ client }: AiChatWorkbenchProps) {
             )}
           </div>
           {chat.error && (
-            <p className="ui-ai-chat__error" role="alert">
+            <p className="m-0 text-sm text-destructive" role="alert">
               {chat.error}
             </p>
           )}

@@ -12,15 +12,20 @@ export function WelcomePanel({
   icon,
 }: WelcomePanelProps) {
   return (
-    <div className="ui-ai-welcome" role="status">
+    <div
+      className="grid min-h-64 content-center justify-items-center gap-[var(--space-sm)] px-[var(--space-md)] py-[var(--space-xl)] text-center"
+      role="status"
+    >
       <div
-        className="ui-ai-welcome__icon"
+        className="grid size-12 place-items-center rounded-2xl bg-accent font-extrabold text-accent-foreground"
         aria-hidden={icon ? undefined : true}
       >
         {icon ?? <span>AI</span>}
       </div>
-      <h3>{title}</h3>
-      <p>{description}</p>
+      <h3 className="m-0">{title}</h3>
+      <p className="m-0 max-w-md leading-[1.6] text-muted-foreground">
+        {description}
+      </p>
     </div>
   )
 }
