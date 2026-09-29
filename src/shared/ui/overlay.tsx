@@ -137,6 +137,46 @@ function callHandler<T extends { defaultPrevented: boolean }>(
   return !event.defaultPrevented
 }
 
+const focusableSelector =
+  'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
+
+function getFocusable(container: HTMLElement) {
+  return [...container.querySelectorAll<HTMLElement>(focusableSelector)].filter(
+    (element) => {
+      const style = getComputedStyle(element)
+      return (
+        !element.closest('[hidden], [inert], [aria-hidden="true"]') &&
+        element.getAttribute('aria-disabled') !== 'true' &&
+        style.display !== 'none' &&
+        style.visibility !== 'hidden'
+      )
+    },
+  )
+}
+
+function focusAdjacentToTrigger(
+  trigger: HTMLElement,
+  panel: HTMLElement,
+  backwards = false,
+) {
+  const focusable = getFocusable(trigger.ownerDocument.body)
+  const triggerIndex = focusable.indexOf(trigger)
+  if (triggerIndex < 0) {
+    trigger.focus()
+    return
+  }
+  const adjacent = backwards
+    ? focusable
+        .slice(0, triggerIndex)
+        .reverse()
+        .find((element) => !panel.contains(element))
+    : focusable
+        .slice(triggerIndex + 1)
+        .find((element) => !panel.contains(element))
+  if (adjacent) adjacent.focus()
+  else trigger.focus()
+}
+
 export type DropdownItem = {
   key: string
   label: ReactNode
@@ -172,6 +212,7 @@ export function Dropdown({
   const isOpen = open ?? internalOpen
   const rootRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const [focusLastOnOpen, setFocusLastOnOpen] = useState(false)
   const triggerId = useId()
   const menuId = `${triggerId}-menu`
   useFloatingPosition(rootRef, menuRef, isOpen, placement, direction)
@@ -186,10 +227,13 @@ export function Dropdown({
 
   useEffect(() => {
     if (!isOpen) return
-    const first = menuRef.current?.querySelector<HTMLButtonElement>(
+    const options = menuRef.current?.querySelectorAll<HTMLButtonElement>(
       'button:not(:disabled)',
     )
-    first?.focus()
+    const initialFocus = focusLastOnOpen
+      ? options?.[options.length - 1]
+      : options?.[0]
+    initialFocus?.focus()
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node
       if (
@@ -207,7 +251,17 @@ export function Dropdown({
           ?.focus()
         return
       }
-      if (!menuRef.current?.contains(document.activeElement)) return
+      if (!menuRef.current?.contains(event.target as Node)) return
+      if (event.key === 'Tab') {
+        event.preventDefault()
+        const trigger = rootRef.current?.querySelector<HTMLElement>(
+          '[data-ui-dropdown-trigger]',
+        )
+        if (trigger && menuRef.current)
+          focusAdjacentToTrigger(trigger, menuRef.current, event.shiftKey)
+        setOpen(false)
+        return
+      }
       const options = [
         ...menuRef.current.querySelectorAll<HTMLButtonElement>(
           'button:not(:disabled)',
@@ -237,28 +291,38 @@ export function Dropdown({
       document.removeEventListener('pointerdown', onPointerDown)
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [isOpen, setOpen])
+  }, [focusLastOnOpen, isOpen, setOpen])
 
+  const handleTriggerClick = (event: MouseEvent) => {
+    if (!callHandler(trigger.props.onClick, event)) return
+    setFocusLastOnOpen(false)
+    setOpen(!isOpen)
+  }
+  const handleTriggerKeyDown = (event: KeyboardEvent) => {
+    if (!callHandler(trigger.props.onKeyDown, event)) return
+    if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      setFocusLastOnOpen(true)
+      if (!isOpen) setOpen(true)
+      return
+    }
+    if (
+      event.key === 'ArrowDown' ||
+      event.key === 'Enter' ||
+      event.key === ' '
+    ) {
+      event.preventDefault()
+      setFocusLastOnOpen(false)
+      if (!isOpen) setOpen(true)
+    }
+  }
   const enhancedTrigger = cloneElement(trigger, {
     'aria-haspopup': 'menu',
     'aria-expanded': isOpen,
     'aria-controls': isOpen ? menuId : undefined,
     'data-ui-dropdown-trigger': '',
-    onClick: (event) => {
-      if (!callHandler(trigger.props.onClick, event)) return
-      setOpen(!isOpen)
-    },
-    onKeyDown: (event) => {
-      if (!callHandler(trigger.props.onKeyDown, event)) return
-      if (
-        event.key === 'ArrowDown' ||
-        event.key === 'Enter' ||
-        event.key === ' '
-      ) {
-        event.preventDefault()
-        setOpen(true)
-      }
-    },
+    onClick: handleTriggerClick,
+    onKeyDown: handleTriggerKeyDown,
   })
 
   return (
@@ -457,21 +521,36 @@ export function Popover({
       document.removeEventListener('keydown', onKeyDown)
     }
   }, [isOpen, setOpen])
+  const handleTriggerClick = (event: MouseEvent) => {
+    if (!callHandler(children.props.onClick, event)) return
+    setOpen(!isOpen)
+  }
   const trigger = cloneElement(children, {
     'aria-expanded': isOpen,
     'aria-controls': isOpen ? id : undefined,
     'aria-haspopup': 'dialog',
     'data-ui-popover-trigger': '',
-    onClick: (event) => {
-      if (!callHandler(children.props.onClick, event)) return
-      setOpen(!isOpen)
-    },
+    onClick: handleTriggerClick,
   })
   return (
     <div
       ref={rootRef}
       dir={direction}
       className={cn('relative inline-flex max-w-full', className)}
+      onKeyDown={(event) => {
+        if (event.defaultPrevented || event.key !== 'Tab' || !isOpen) return
+        if (event.shiftKey) {
+          setOpen(false)
+          return
+        }
+        const first = panelRef.current && getFocusable(panelRef.current)[0]
+        if (!first) {
+          setOpen(false)
+          return
+        }
+        event.preventDefault()
+        first.focus()
+      }}
     >
       {trigger}
       {isOpen && (
@@ -483,6 +562,25 @@ export function Popover({
             dir={direction}
             aria-label={title ? undefined : label}
             aria-labelledby={title ? titleId : undefined}
+            onKeyDown={(event) => {
+              if (event.key !== 'Tab') return
+              const focusable = getFocusable(event.currentTarget)
+              const target = event.target as HTMLElement
+              if (event.shiftKey && target === focusable[0]) {
+                event.preventDefault()
+                rootRef.current
+                  ?.querySelector<HTMLElement>('[data-ui-popover-trigger]')
+                  ?.focus()
+              } else if (!event.shiftKey && target === focusable.at(-1)) {
+                event.preventDefault()
+                setOpen(false)
+                const trigger = rootRef.current?.querySelector<HTMLElement>(
+                  '[data-ui-popover-trigger]',
+                )
+                if (trigger && panelRef.current)
+                  focusAdjacentToTrigger(trigger, panelRef.current)
+              }
+            }}
             className={cn(
               floatingPanelStyles,
               'grid min-w-60 gap-[var(--space-sm)] rounded-[var(--ui-overlay-radius)] p-[var(--space-md)] leading-normal',

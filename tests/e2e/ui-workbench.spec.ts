@@ -1933,9 +1933,18 @@ test('overlay components keep focus, touch and safe-area behavior', async ({
   } else {
     await popoverTrigger.click()
   }
-  await expect(
-    page.getByRole('dialog').filter({ hasText: '必要信息会直接展示' }),
-  ).toBeVisible()
+  const popover = page
+    .getByRole('dialog')
+    .filter({ hasText: '必要信息会直接展示' })
+  await expect(popover).toBeVisible()
+  const popoverAction = popover.getByRole('button', { name: '气泡内操作' })
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await popoverAction.tap()
+  } else {
+    await popoverAction.click()
+  }
+  await expect(page.getByText('气泡内操作完成')).toBeVisible()
+  await expect(popover).toBeVisible()
   if (testInfo.project.name.startsWith('mobile-')) {
     await popoverTrigger.tap()
   } else {
@@ -1977,6 +1986,52 @@ test('overlay components keep focus, touch and safe-area behavior', async ({
       parseFloat(getComputedStyle(element).borderTopLeftRadius),
     ),
   ).toBeGreaterThanOrEqual(floatBox!.width / 2)
+})
+
+test('overlay triggers preserve keyboard activation and tab order', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium')
+  await page.goto('/__ui')
+
+  const dropdownTrigger = page.getByRole('button', { name: '打开菜单' })
+  await dropdownTrigger.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('menuitem', { name: '复制内容' })).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(dropdownTrigger).toBeFocused()
+  await page.keyboard.press('Space')
+  await expect(page.getByRole('menuitem', { name: '复制内容' })).toBeFocused()
+  await page.keyboard.press('Escape')
+  await page.keyboard.press('ArrowDown')
+  await expect(page.getByRole('menuitem', { name: '复制内容' })).toBeFocused()
+  await page.keyboard.press('Shift+Tab')
+  await expect(page.getByRole('menu', { name: '菜单' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '打开底部面板' })).toBeFocused()
+  await dropdownTrigger.focus()
+  await page.keyboard.press('ArrowUp')
+  await expect(page.getByRole('menuitem', { name: '删除内容' })).toBeFocused()
+  const popoverTrigger = page.getByRole('button', { name: '查看说明' })
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('menu', { name: '菜单' })).toHaveCount(0)
+  await expect(popoverTrigger).toBeFocused()
+  await page.keyboard.press('Enter')
+  const popover = page.getByRole('dialog', { name: '补充说明' })
+  await expect(popover).toBeVisible()
+  await page.keyboard.press('Tab')
+  const action = popover.getByRole('button', { name: '气泡内操作' })
+  await expect(action).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(page.getByText('气泡内操作完成')).toBeVisible()
+  await page.keyboard.press('Shift+Tab')
+  await expect(popoverTrigger).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(action).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(
+    page.getByRole('button', { name: '悬停或聚焦提示' }),
+  ).toBeFocused()
+  await expect(popover).toHaveCount(0)
 })
 
 test('floating overlays stay usable inside clipped containers', async ({

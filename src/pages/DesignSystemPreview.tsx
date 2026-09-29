@@ -804,7 +804,18 @@ export function DesignSystemPreview() {
                   />
                   <Popover
                     title="补充说明"
-                    content="必要信息会直接展示，这里用于可选上下文。"
+                    content={
+                      <div className="grid gap-2">
+                        <p>必要信息会直接展示，这里用于可选上下文。</p>
+                        <Button
+                          size="small"
+                          variant="outline"
+                          onClick={() => toast({ title: '气泡内操作完成' })}
+                        >
+                          气泡内操作
+                        </Button>
+                      </div>
+                    }
                   >
                     <Button variant="outline">查看说明</Button>
                   </Popover>
