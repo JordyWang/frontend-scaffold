@@ -10,12 +10,17 @@ export type EmptyProps = {
 
 export function Empty({ title, description, action, className }: EmptyProps) {
   return (
-    <div className={cn('ui-empty', className)}>
+    <div
+      className={cn(
+        'flex min-h-48 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border p-6 text-center',
+        className,
+      )}
+    >
       <svg
         aria-hidden="true"
         viewBox="0 0 48 48"
         fill="none"
-        className="ui-empty__icon"
+        className="size-12 text-muted-foreground"
       >
         <rect
           x="7"
@@ -33,9 +38,11 @@ export function Empty({ title, description, action, className }: EmptyProps) {
           strokeLinecap="round"
         />
       </svg>
-      <p className="ui-empty__title">{title}</p>
-      {description && <p className="ui-empty__description">{description}</p>}
-      {action && <div className="ui-empty__action">{action}</div>}
+      <p className="m-0 font-semibold">{title}</p>
+      {description && (
+        <p className="m-0 text-muted-foreground">{description}</p>
+      )}
+      {action && <div className="mt-1">{action}</div>}
     </div>
   )
 }

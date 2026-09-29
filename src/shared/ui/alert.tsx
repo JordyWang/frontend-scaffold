@@ -28,8 +28,7 @@ export function Alert({
     <div
       role={tone === 'error' || tone === 'warning' ? 'alert' : 'status'}
       className={cn(
-        'ui-alert flex items-start gap-[var(--space-sm)] rounded-md border border-border bg-[var(--ui-map-info-bg)] p-[var(--space-md)] text-foreground',
-        `ui-alert--${tone}`,
+        'flex items-start gap-2 rounded-md border border-border bg-[var(--ui-map-info-bg)] p-4 text-foreground',
         toneStyles[tone],
         className,
       )}
@@ -44,11 +43,11 @@ export function Alert({
               : 'info'
         }
       />
-      <div className="ui-alert__content min-w-0 flex-1 leading-6">
+      <div className="min-w-0 flex-1 leading-6">
         <strong>{title}</strong>
         {description && <div>{description}</div>}
       </div>
-      {action && <div className="ui-alert__action shrink-0">{action}</div>}
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   )
 }
