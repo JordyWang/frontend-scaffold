@@ -36,6 +36,7 @@ export type {
   AppMessageContent,
   AppModalApi,
   AppModalOptions,
+  AppModalOpen,
   AppProps,
 } from './app'
 export { ConfigProvider } from './config-provider'

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import {
   App,
@@ -45,6 +45,7 @@ describe('App and ConfigProvider boundaries', () => {
     const scope = screen.getByTestId('config').parentElement
     expect(scope).toHaveAttribute('data-ui-theme', 'dark')
     expect(scope).toHaveAttribute('data-ui-density', 'compact')
+    expect(scope).toHaveAttribute('data-ui-component-size', 'small')
     expect(scope).toHaveStyle({ '--ui-seed-primary': '#1677ff' })
   })
 
@@ -82,6 +83,43 @@ describe('App and ConfigProvider boundaries', () => {
     )
     expect(screen.getByTestId('app-api').parentElement).toHaveAttribute(
       'data-ui-app',
+    )
+  })
+
+  it('renders modal.confirm as a real dialog and closes after confirmation', async () => {
+    const onOk = vi.fn()
+    function ModalProbe() {
+      const { modal } = useApp()
+      return (
+        <button
+          type="button"
+          onClick={() =>
+            modal.confirm({
+              title: '确认操作',
+              content: '确定继续吗？',
+              okText: '继续',
+              cancelText: '取消',
+              onOk,
+            })
+          }
+        >
+          打开确认框
+        </button>
+      )
+    }
+    render(
+      <App>
+        <ModalProbe />
+      </App>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '打开确认框' }))
+    expect(screen.getByRole('dialog', { name: '确认操作' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '继续' }))
+    expect(onOk).toHaveBeenCalledOnce()
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: '确认操作' }),
+      ).not.toBeInTheDocument(),
     )
   })
 

@@ -47,6 +47,7 @@ export function ConfigProvider({
         density={theme?.density}
         tokens={theme?.tokens}
         dir={value.direction}
+        data-ui-component-size={value.componentSize}
         className={className}
         style={style}
       >
