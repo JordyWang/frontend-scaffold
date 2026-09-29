@@ -26,6 +26,7 @@ type TriggerElement = ReactElement<{
   'aria-describedby'?: string
   'data-ui-tooltip-trigger'?: string
   'data-ui-dropdown-trigger'?: string
+  'data-ui-popover-trigger'?: string
 }>
 
 function callHandler<T extends { defaultPrevented: boolean }>(
@@ -279,7 +280,13 @@ export function Popover({
       if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
     }
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setOpen(false)
+        rootRef.current
+          ?.querySelector<HTMLElement>('[data-ui-popover-trigger]')
+          ?.focus()
+      }
     }
     document.addEventListener('pointerdown', onPointerDown)
     document.addEventListener('keydown', onKeyDown)
@@ -292,6 +299,7 @@ export function Popover({
     'aria-expanded': isOpen,
     'aria-controls': isOpen ? id : undefined,
     'aria-haspopup': 'dialog',
+    'data-ui-popover-trigger': '',
     onClick: (event) => {
       if (!callHandler(children.props.onClick, event)) return
       setOpen(!isOpen)
