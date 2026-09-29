@@ -463,6 +463,7 @@ test('mentions suggestions support keyboard, touch and narrow viewports', async 
   await page.goto('/__ui')
   const preview = page.getByRole('region', { name: '设计系统补充组件' })
   const input = preview.getByRole('combobox', { name: '提及成员' })
+  await input.scrollIntoViewIfNeeded()
   await input.fill('@de')
   const list = page.getByRole('listbox', { name: '提及建议' })
   await expect(list).toBeVisible()
@@ -551,6 +552,45 @@ test('splitter supports keyboard, pointer and touch controls without overflow', 
     .getByRole('group', { name: '不可用的垂直分隔面板' })
     .getByRole('separator')
   await expect(disabled).toHaveAttribute('aria-disabled', 'true')
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
+})
+
+test('layout sider collapses responsively and restores focus after mobile navigation', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const sider = preview.getByRole('complementary', { name: '示例导航' })
+  if (testInfo.project.name.startsWith('mobile-')) {
+    const trigger = preview.getByRole('button', { name: '展开示例导航' })
+    await expect(sider).toHaveAttribute('data-broken', 'true')
+    await trigger.tap()
+    const sheet = page.getByRole('dialog', { name: '示例导航' })
+    await expect(sheet).toBeVisible()
+    await expect(
+      sheet.getByRole('navigation', { name: '示例导航菜单' }),
+    ).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(sheet).toHaveCount(0)
+    await expect(trigger).toBeFocused()
+  } else {
+    const collapse = preview.getByRole('button', { name: '收起示例导航' })
+    await expect(sider).not.toHaveAttribute('data-broken')
+    await collapse.click()
+    await expect(sider).toHaveAttribute('data-collapsed', 'true')
+    await preview.getByRole('button', { name: '展开示例导航' }).click()
+    await expect(sider).not.toHaveAttribute('data-collapsed')
+    await page.setViewportSize({ width: 360, height: 800 })
+    await expect(sider).toHaveAttribute('data-broken', 'true')
+    await page.setViewportSize({ width: 768, height: 800 })
+    await expect(sider).not.toHaveAttribute('data-broken')
+  }
   expect(
     await page.evaluate(
       () =>

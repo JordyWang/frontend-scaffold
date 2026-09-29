@@ -31,6 +31,7 @@ import {
   Input,
   InputOTP,
   InputNumber,
+  Layout,
   PasswordInput,
   SearchInput,
   Menu,
@@ -103,6 +104,7 @@ export function DesignSystemPreview() {
   const [mentionsStatus, setMentionsStatus] = useState('尚未选择成员')
   const [splitSizes, setSplitSizes] = useState([60, 40])
   const [splitStatus, setSplitStatus] = useState('尚未调整')
+  const [layoutStatus, setLayoutStatus] = useState('可折叠侧边栏')
   const [calendarStatus, setCalendarStatus] = useState('尚未选择日期')
   const [otpValue, setOtpValue] = useState('')
   const [otpComplete, setOtpComplete] = useState(false)
@@ -248,6 +250,58 @@ export function DesignSystemPreview() {
                     },
                   ]}
                 />
+              </Stack>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent>
+              <Stack gap="md">
+                <Typography as="h3" variant="title">
+                  页面布局
+                </Typography>
+                <Layout className="h-64 overflow-hidden rounded-xl border border-border">
+                  <Layout.Header className="min-h-12 px-3">
+                    工作台页头
+                  </Layout.Header>
+                  <Layout className="flex-1">
+                    <Layout.Sider
+                      label="示例导航"
+                      width={120}
+                      collapsedWidth={0}
+                      breakpoint="md"
+                      collapsible
+                      onCollapse={(collapsed, source) =>
+                        setLayoutStatus(
+                          `${source === 'breakpoint' ? '断点' : '按钮'}：${collapsed ? '已收起' : '已展开'}`,
+                        )
+                      }
+                    >
+                      <nav aria-label="示例导航菜单" className="grid gap-2 p-3">
+                        <a
+                          href="#preview-result"
+                          className="text-primary underline"
+                        >
+                          概览
+                        </a>
+                        <a
+                          href="#preview-timeline"
+                          className="text-primary underline"
+                        >
+                          活动
+                        </a>
+                      </nav>
+                    </Layout.Sider>
+                    <Layout.Content as="div" className="p-4">
+                      内容区会随侧边栏自动伸缩。
+                    </Layout.Content>
+                  </Layout>
+                  <Layout.Footer className="px-3 py-2">
+                    工作台页脚
+                  </Layout.Footer>
+                </Layout>
+                <Typography variant="caption" tone="muted">
+                  {layoutStatus}；窄屏使用可关闭的导航面板。
+                </Typography>
               </Stack>
             </CardContent>
           </Card>
