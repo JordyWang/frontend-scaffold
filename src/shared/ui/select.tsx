@@ -98,7 +98,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
         </SelectPrimitive.Trigger>
         <SelectPrimitive.Portal container={portalContainer}>
           <SelectPrimitive.Content
-            data-ui-select-content=""
+            data-select-content=""
             dir={direction}
             className="z-[70] max-h-[min(20rem,var(--radix-select-content-available-height))] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-[var(--radius-md)] border border-border bg-card text-card-foreground shadow-xl"
             position="popper"

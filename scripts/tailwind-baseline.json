@@ -21,11 +21,7 @@
     "src/capabilities/video/video-poster.tsx",
     "src/pages/DevWorkbenchPage.tsx",
     "src/pages/MockWorkflowDemo.tsx",
-    "src/shared/ui/container.tsx",
     "src/shared/ui/navigation-extended.tsx",
-    "src/shared/ui/select.tsx",
-    "src/shared/ui/spinner.tsx",
-    "src/shared/ui/tabs.tsx",
     "src/shared/ui/theme-scope.tsx"
   ],
   "styleFiles": [

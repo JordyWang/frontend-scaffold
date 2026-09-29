@@ -321,7 +321,7 @@ test('design system controls support keyboard, touch and local themes', async ({
   const scopedSelect = preview.getByRole('combobox', { name: '局部选择' })
   if (testInfo.project.name.startsWith('mobile-')) await scopedSelect.tap()
   else await scopedSelect.click()
-  const selectContent = page.locator('[data-ui-select-content]')
+  const selectContent = page.locator('[data-select-content]')
   await expect(selectContent).toHaveCSS('background-color', 'rgb(30, 41, 59)')
   await expect
     .poll(() =>
@@ -1838,7 +1838,7 @@ test('RTL portal controls keep direction and logical option placement', async ({
   await expect(select).toHaveAttribute('dir', 'rtl')
   if (testInfo.project.name.startsWith('mobile-')) await select.tap()
   else await select.click()
-  const content = popupRoot.locator('[data-ui-select-content]')
+  const content = popupRoot.locator('[data-select-content]')
   await expect(content).toHaveAttribute('dir', 'rtl')
   await expect(content).toHaveCSS('direction', 'rtl')
   const first = content.getByRole('option', { name: 'RTL 第一项' })

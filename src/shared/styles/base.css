@@ -33,10 +33,6 @@ select {
   padding-right: max(1rem, env(safe-area-inset-right));
   padding-bottom: env(safe-area-inset-bottom);
 }
-.ui-container--content {
-  max-width: 48rem;
-}
-
 .skip-link {
   position: absolute;
   top: 0.5rem;

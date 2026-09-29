@@ -14,7 +14,7 @@ export function Container({
     <div
       className={cn(
         'page-shell',
-        width === 'content' && 'ui-container--content',
+        width === 'content' && 'max-w-3xl',
         className,
       )}
       {...props}
