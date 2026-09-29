@@ -31,39 +31,54 @@ export function Progress({
     : 8
   const text = format ? format(value) : `${value}%`
   const style = { '--ui-progress-value': `${value}%` } as CSSProperties
+  const color =
+    status === 'success'
+      ? 'var(--ui-seed-success)'
+      : status === 'exception'
+        ? 'var(--destructive)'
+        : 'var(--primary)'
   if (type === 'circle') {
     return (
       <div
-        className={cn(
-          'ui-progress ui-progress--circle',
-          `ui-progress--${status}`,
-          className,
-        )}
+        className={cn('inline-grid size-28 place-items-center', className)}
         style={
           {
             ...style,
             '--ui-progress-stroke': `${safeStrokeWidth}px`,
+            '--ui-progress-color': color,
           } as CSSProperties
         }
       >
         <div
-          className="ui-progress__circle"
+          className="relative grid size-full place-items-center rounded-full"
           role="progressbar"
           aria-label={label}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={value}
+          style={{
+            background:
+              'conic-gradient(var(--ui-progress-color) var(--ui-progress-value), var(--secondary) 0)',
+          }}
         >
-          {showInfo && <span className="ui-progress__info">{text}</span>}
+          <span
+            aria-hidden="true"
+            className="absolute inset-[var(--ui-progress-stroke)] rounded-full bg-card"
+          />
+          {showInfo && (
+            <span className="relative z-[1] text-center font-semibold text-foreground">
+              {text}
+            </span>
+          )}
         </div>
       </div>
     )
   }
   return (
-    <div className={cn('ui-progress', `ui-progress--${status}`, className)}>
-      <div className="ui-progress__line">
+    <div className={cn('w-full', className)}>
+      <div className="flex items-center gap-2">
         <div
-          className="ui-progress__track"
+          className="relative min-w-0 flex-1 overflow-hidden rounded-full bg-secondary"
           role="progressbar"
           aria-label={label}
           aria-valuemin={0}
@@ -71,9 +86,23 @@ export function Progress({
           aria-valuenow={value}
           style={{ minHeight: safeStrokeWidth }}
         >
-          <span className="ui-progress__bar" style={style} />
+          <span
+            className={cn(
+              'block min-h-[inherit] w-[var(--ui-progress-value)] rounded-[inherit] transition-[width] duration-200 motion-reduce:transition-none',
+              status === 'active' &&
+                'bg-gradient-to-r from-primary to-[var(--ui-map-primary-hover)]',
+              status === 'success' && 'bg-[var(--ui-seed-success)]',
+              status === 'exception' && 'bg-destructive',
+              status === 'normal' && 'bg-primary',
+            )}
+            style={style}
+          />
         </div>
-        {showInfo && <span className="ui-progress__info">{text}</span>}
+        {showInfo && (
+          <span className="min-w-12 shrink-0 text-end text-sm tabular-nums text-muted-foreground">
+            {text}
+          </span>
+        )}
       </div>
     </div>
   )
@@ -110,14 +139,39 @@ export function Result({
   icon,
   className,
 }: ResultProps) {
+  const iconClassName =
+    status === 'success'
+      ? 'bg-[var(--ui-map-success-bg)] text-[var(--ui-color-success)]'
+      : status === 'error' || status === '500' || status === '403'
+        ? 'bg-[var(--ui-map-error-bg)] text-[var(--ui-color-error)]'
+        : status === 'warning'
+          ? 'bg-[var(--ui-map-warning-bg)] text-[var(--ui-color-warning)]'
+          : 'bg-[var(--ui-map-info-bg)] text-primary'
   return (
-    <section className={cn('ui-result', `ui-result--${status}`, className)}>
-      <div className="ui-result__icon" aria-hidden={icon ? undefined : true}>
+    <section
+      className={cn(
+        'grid justify-items-center gap-2 px-6 py-8 text-center',
+        className,
+      )}
+    >
+      <div
+        className={cn(
+          'grid size-[4.5rem] place-items-center rounded-full',
+          iconClassName,
+        )}
+        aria-hidden={icon ? undefined : true}
+      >
         {icon ?? <Icon name={resultIcon[status]} size={48} />}
       </div>
-      <h2 className="ui-result__title">{title}</h2>
-      {subTitle && <p className="ui-result__subtitle">{subTitle}</p>}
-      {extra && <div className="ui-result__extra">{extra}</div>}
+      <h2 className="m-0 text-xl leading-tight sm:text-2xl">{title}</h2>
+      {subTitle && (
+        <p className="m-0 max-w-[40rem] leading-relaxed text-muted-foreground">
+          {subTitle}
+        </p>
+      )}
+      {extra && (
+        <div className="mt-2 flex flex-wrap justify-center gap-2">{extra}</div>
+      )}
     </section>
   )
 }

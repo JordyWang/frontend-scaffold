@@ -35,7 +35,6 @@
     "src/shared/ui/display.tsx",
     "src/shared/ui/empty.tsx",
     "src/shared/ui/feedback-state.tsx",
-    "src/shared/ui/feedback.tsx",
     "src/shared/ui/form-field.tsx",
     "src/shared/ui/form.tsx",
     "src/shared/ui/input.tsx",
