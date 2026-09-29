@@ -837,6 +837,20 @@ test('listy keeps a bounded DOM window while scrolling on narrow layouts', async
   expect(await list.getByRole('listitem').count()).toBeLessThan(20)
 })
 
+test('border beam keeps content accessible and stops motion when requested', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto('/__ui')
+  const beam = page.locator('[data-border-beam]').first()
+  await expect(beam).toBeVisible()
+  await expect(beam.getByText('内容区域保持正常键盘和触控交互。')).toBeVisible()
+  await expect(beam.locator('[data-border-beam-light]')).toHaveCSS(
+    'animation-name',
+    'none',
+  )
+})
+
 test('tree select searches collapsed branches with keyboard and touch', async ({
   page,
 }, testInfo) => {

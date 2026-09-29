@@ -6,6 +6,7 @@ import {
   Avatar,
   AutoComplete,
   Badge,
+  BorderBeam,
   Breadcrumb,
   Button,
   Card,
@@ -954,6 +955,30 @@ export function DesignSystemPreview() {
                 <Typography as="p" variant="caption" tone="muted">
                   当前树节点：{treeSelected}
                 </Typography>
+              </Stack>
+            </CardContent>
+          </Card>
+          <Card className="col-span-full">
+            <CardContent>
+              <Stack gap="md">
+                <Stack direction="row" wrap align="center" justify="between">
+                  <Typography as="h3" variant="title">
+                    动态边框
+                  </Typography>
+                  <Typography variant="caption" tone="muted">
+                    装饰动画遵循系统减少动态效果设置
+                  </Typography>
+                </Stack>
+                <BorderBeam
+                  aria-label="动态边框示例"
+                  className="max-w-xl"
+                  color="var(--primary)"
+                  duration={5}
+                >
+                  <div className="p-5">
+                    <Typography>内容区域保持正常键盘和触控交互。</Typography>
+                  </div>
+                </BorderBeam>
               </Stack>
             </CardContent>
           </Card>

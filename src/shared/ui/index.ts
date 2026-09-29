@@ -126,6 +126,8 @@ export { Spin } from './spin'
 export type { SpinProps } from './spin'
 export { Watermark } from './watermark'
 export type { WatermarkProps } from './watermark'
+export { BorderBeam } from './border-beam'
+export type { BorderBeamProps } from './border-beam'
 export { QRCode } from './qrcode'
 export type {
   QRCodeErrorLevel,
