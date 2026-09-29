@@ -8,6 +8,7 @@ import {
   getPrefixCls,
   Input,
   Select,
+  Sheet,
   Textarea,
   useApp,
   useConfig,
@@ -94,7 +95,7 @@ describe('App and ConfigProvider boundaries', () => {
       'py-3',
     )
     expect(screen.getByRole('combobox', { name: '全局选择' })).toHaveClass(
-      'ui-input--large',
+      'min-h-12',
     )
   })
 
@@ -103,19 +104,40 @@ describe('App and ConfigProvider boundaries', () => {
     document.body.appendChild(popupRoot)
 
     render(
-      <ConfigProvider getPopupContainer={() => popupRoot}>
+      <ConfigProvider direction="rtl" getPopupContainer={() => popupRoot}>
         <Dialog open title="自定义容器">
           弹层内容
         </Dialog>
       </ConfigProvider>,
     )
 
-    await waitFor(() =>
-      expect(popupRoot).toContainElement(
-        screen.getByRole('dialog', { name: '自定义容器' }),
-      ),
-    )
+    await waitFor(() => {
+      const dialog = screen.getByRole('dialog', { name: '自定义容器' })
+      expect(popupRoot).toContainElement(dialog)
+      expect(dialog).toHaveAttribute('dir', 'rtl')
+    })
     popupRoot.remove()
+  })
+
+  it('preserves direction in a sheet mounted outside its provider', async () => {
+    const popupRoot = document.createElement('div')
+    document.body.appendChild(popupRoot)
+    try {
+      render(
+        <ConfigProvider direction="rtl" getPopupContainer={() => popupRoot}>
+          <Sheet open title="RTL 面板">
+            面板内容
+          </Sheet>
+        </ConfigProvider>,
+      )
+      await waitFor(() => {
+        const sheet = screen.getByRole('dialog', { name: 'RTL 面板' })
+        expect(popupRoot).toContainElement(sheet)
+        expect(sheet).toHaveAttribute('dir', 'rtl')
+      })
+    } finally {
+      popupRoot.remove()
+    }
   })
 
   it('exposes app-level message, notification and modal APIs', () => {

@@ -17,6 +17,7 @@ import {
   Collapse,
   Cascader,
   ColorPicker,
+  ConfigProvider,
   DatePicker,
   Descriptions,
   Dialog,
@@ -141,6 +142,8 @@ export function DesignSystemPreview() {
   )
   const [tourOpen, setTourOpen] = useState(false)
   const [tourStep, setTourStep] = useState(0)
+  const [rtlPopupContainer, setRtlPopupContainer] =
+    useState<HTMLDivElement | null>(null)
   const tourTriggerRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
@@ -182,6 +185,7 @@ export function DesignSystemPreview() {
         density={density}
         className="rounded-xl border border-border p-4 sm:p-6"
       >
+        <div ref={setRtlPopupContainer} data-ui-rtl-popup-root="" />
         <Grid minItemWidth="17rem" gap="lg">
           <Card>
             <CardContent>
@@ -1319,6 +1323,52 @@ export function DesignSystemPreview() {
                     },
                   ]}
                 />
+              </Stack>
+            </CardContent>
+          </Card>
+          <Card className="col-span-full">
+            <CardContent>
+              <Stack gap="md">
+                <Typography as="h3" variant="title">
+                  RTL 弹层
+                </Typography>
+                <ConfigProvider
+                  direction="rtl"
+                  getPopupContainer={() => rtlPopupContainer ?? document.body}
+                >
+                  <div
+                    role="group"
+                    aria-label="RTL 弹层预览"
+                    className="grid max-w-sm gap-3"
+                  >
+                    <Select
+                      aria-label="RTL 选择"
+                      defaultValue="first"
+                      options={[
+                        { value: 'first', label: 'RTL 第一项' },
+                        { value: 'second', label: 'RTL 第二项' },
+                      ]}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <Dialog
+                        title="RTL 对话框"
+                        trigger={
+                          <Button variant="outline">打开 RTL 对话框</Button>
+                        }
+                      >
+                        弹层方向跟随配置。
+                      </Dialog>
+                      <Sheet
+                        title="RTL 面板"
+                        trigger={
+                          <Button variant="outline">打开 RTL 面板</Button>
+                        }
+                      >
+                        面板方向跟随配置。
+                      </Sheet>
+                    </div>
+                  </div>
+                </ConfigProvider>
               </Stack>
             </CardContent>
           </Card>

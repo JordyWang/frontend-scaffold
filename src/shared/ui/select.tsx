@@ -5,9 +5,10 @@ import {
   type KeyboardEventHandler,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
-import { useConfig } from './config-context'
+import { resolveComponentSize, useConfig } from './config-context'
 import { CheckIcon } from './icons'
 import { usePortalContainer } from './portal-context'
+import { inputSizeStyles, inputStyles } from './tailwind-styles'
 
 export type SelectOption = { value: string; label: string; disabled?: boolean }
 export type SelectProps = {
@@ -54,17 +55,12 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
     },
     ref,
   ) {
-    const { componentSize } = useConfig()
-    const resolvedSize =
-      size ??
-      (componentSize === 'small'
-        ? 'small'
-        : componentSize === 'large'
-          ? 'large'
-          : 'default')
+    const { componentSize, direction } = useConfig()
+    const resolvedSize = resolveComponentSize(componentSize, size)
     const portalContainer = usePortalContainer()
     return (
       <SelectPrimitive.Root
+        dir={direction}
         value={value}
         defaultValue={defaultValue}
         onValueChange={onValueChange}
@@ -75,11 +71,20 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
         <SelectPrimitive.Trigger
           ref={ref}
           id={id}
-          className={cn('ui-select', `ui-input--${resolvedSize}`, className)}
+          dir={direction}
+          className={cn(
+            inputStyles,
+            inputSizeStyles[resolvedSize],
+            'flex cursor-pointer touch-manipulation items-center justify-between gap-2 text-start outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 data-[placeholder]:text-muted-foreground data-[disabled]:cursor-not-allowed data-[disabled]:opacity-[0.55] aria-invalid:border-destructive',
+            className,
+          )}
           {...ariaProps}
         >
           <SelectPrimitive.Value placeholder={placeholder} />
-          <SelectPrimitive.Icon aria-hidden="true" className="ui-select__icon">
+          <SelectPrimitive.Icon
+            aria-hidden="true"
+            className="size-5 shrink-0 [&_svg]:size-5"
+          >
             <svg viewBox="0 0 20 20" fill="none">
               <path
                 d="m5 7.5 5 5 5-5"
@@ -93,25 +98,27 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
         </SelectPrimitive.Trigger>
         <SelectPrimitive.Portal container={portalContainer}>
           <SelectPrimitive.Content
-            className="ui-select__content"
+            data-ui-select-content=""
+            dir={direction}
+            className="z-[70] max-h-[min(20rem,var(--radix-select-content-available-height))] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-[var(--radius-md)] border border-border bg-card text-card-foreground shadow-xl"
             position="popper"
             sideOffset={4}
             collisionPadding={8}
           >
-            <SelectPrimitive.Viewport className="ui-select__viewport">
+            <SelectPrimitive.Viewport className="p-[var(--space-xs)]">
               {options.map((option) => (
                 <SelectPrimitive.Item
                   key={option.value}
                   value={option.value}
                   disabled={option.disabled}
-                  className="ui-select__item"
+                  className="relative flex min-h-11 touch-manipulation items-center rounded-[var(--radius-sm)] py-2.5 pe-8 ps-3 outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50"
                 >
                   <SelectPrimitive.ItemText>
                     {option.label}
                   </SelectPrimitive.ItemText>
                   <SelectPrimitive.ItemIndicator
                     aria-hidden="true"
-                    className="ui-select__check"
+                    className="absolute end-3"
                   >
                     <CheckIcon />
                   </SelectPrimitive.ItemIndicator>

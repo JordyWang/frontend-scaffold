@@ -15,3 +15,5 @@
 后续应先补真实缺口，再逐类检查现有入口的状态预览、可访问性、PC/H5 响应式和测试覆盖。AI、音视频与文件能力保持在 `capabilities`，不为追求组件名对齐而移入 `shared/ui`。
 
 `Spinner` 和 `Spin` 已统一小号、默认和大号指示器尺寸及动画，在 `/__ui` 并排预览，并通过桌面和 H5 浏览器检查减少动态效果设置。
+
+ConfigProvider 的 RTL 方向已覆盖 Select、Dialog、Sheet 的自定义弹层容器，Select 的触发器和选项使用 Tailwind 逻辑方向样式；`/__ui` 提供键盘与 H5 触控预览。

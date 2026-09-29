@@ -281,7 +281,7 @@ test('design system controls support keyboard, touch and local themes', async ({
   const scopedSelect = preview.getByRole('combobox', { name: '局部选择' })
   if (testInfo.project.name.startsWith('mobile-')) await scopedSelect.tap()
   else await scopedSelect.click()
-  const selectContent = page.locator('.ui-select__content')
+  const selectContent = page.locator('[data-ui-select-content]')
   await expect(selectContent).toHaveCSS('background-color', 'rgb(30, 41, 59)')
   await expect
     .poll(() =>
@@ -1572,4 +1572,60 @@ test('overlay components keep focus, touch and safe-area behavior', async ({
   }
   await expect(page.getByRole('dialog', { name: '确认删除？' })).toHaveCount(0)
   await expect(preview.getByRole('button', { name: '回到顶部' })).toBeVisible()
+})
+
+test('RTL portal controls keep direction and logical option placement', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const demo = preview.getByRole('group', { name: 'RTL 弹层预览' })
+  const popupRoot = preview.locator('[data-ui-rtl-popup-root]')
+  const select = demo.getByRole('combobox', { name: 'RTL 选择' })
+  await expect(select).toHaveAttribute('dir', 'rtl')
+  if (testInfo.project.name.startsWith('mobile-')) await select.tap()
+  else await select.click()
+  const content = popupRoot.locator('[data-ui-select-content]')
+  await expect(content).toHaveAttribute('dir', 'rtl')
+  await expect(content).toHaveCSS('direction', 'rtl')
+  const first = content.getByRole('option', { name: 'RTL 第一项' })
+  const firstBox = await first.boundingBox()
+  const indicatorBox = await first.locator('svg').boundingBox()
+  expect(firstBox).not.toBeNull()
+  expect(indicatorBox).not.toBeNull()
+  expect(indicatorBox!.x).toBeLessThan(firstBox!.x + firstBox!.width / 2)
+  if (testInfo.project.name.startsWith('mobile-'))
+    await content.getByRole('option', { name: 'RTL 第二项' }).tap()
+  else {
+    await expect(first).toBeFocused()
+    await page.keyboard.press('ArrowDown')
+    await expect(
+      content.getByRole('option', { name: 'RTL 第二项' }),
+    ).toBeFocused()
+    await page.keyboard.press('Enter')
+  }
+  await expect(select).toContainText('RTL 第二项')
+
+  const openDialog = demo.getByRole('button', { name: '打开 RTL 对话框' })
+  if (testInfo.project.name.startsWith('mobile-')) await openDialog.tap()
+  else await openDialog.click()
+  const dialog = popupRoot.getByRole('dialog', { name: 'RTL 对话框' })
+  await expect(dialog).toHaveAttribute('dir', 'rtl')
+  await expect(dialog).toHaveCSS('direction', 'rtl')
+  await dialog.getByRole('button', { name: '关闭对话框' }).click()
+
+  const openSheet = demo.getByRole('button', { name: '打开 RTL 面板' })
+  if (testInfo.project.name.startsWith('mobile-')) await openSheet.tap()
+  else await openSheet.click()
+  const sheet = popupRoot.getByRole('dialog', { name: 'RTL 面板' })
+  await expect(sheet).toHaveAttribute('dir', 'rtl')
+  await expect(sheet).toHaveCSS('direction', 'rtl')
+  await sheet.getByRole('button', { name: '关闭面板' }).click()
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
 })

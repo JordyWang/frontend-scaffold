@@ -1,6 +1,7 @@
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { type ReactElement, type ReactNode } from 'react'
 import { Button } from './button'
+import { useConfig } from './config-context'
 import { CloseIcon } from './icons'
 import { usePortalContainer } from './portal-context'
 
@@ -29,6 +30,7 @@ export function Sheet({
   side = 'right',
   closeLabel = '关闭面板',
 }: SheetProps) {
+  const { direction } = useConfig()
   const portalContainer = usePortalContainer()
   return (
     <DialogPrimitive.Root
@@ -42,6 +44,7 @@ export function Sheet({
       <DialogPrimitive.Portal container={portalContainer}>
         <DialogPrimitive.Overlay className="ui-overlay" />
         <DialogPrimitive.Content
+          dir={direction}
           className={`ui-sheet ui-sheet--${side}`}
           aria-describedby={description ? undefined : ''}
         >
