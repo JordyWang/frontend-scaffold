@@ -30,6 +30,8 @@ import {
   Input,
   InputOTP,
   InputNumber,
+  PasswordInput,
+  SearchInput,
   Menu,
   Popconfirm,
   Popover,
@@ -93,6 +95,7 @@ export function DesignSystemPreview() {
   const [volume, setVolume] = useState(42)
   const [colorValue, setColorValue] = useState('#4338ca')
   const [formStatus, setFormStatus] = useState('尚未提交')
+  const [searchStatus, setSearchStatus] = useState('尚未搜索')
   const [otpValue, setOtpValue] = useState('')
   const [otpComplete, setOtpComplete] = useState(false)
   const [treeSelected, setTreeSelected] = useState('button')
@@ -285,6 +288,46 @@ export function DesignSystemPreview() {
                   length={4}
                   defaultValue="12"
                   invalid
+                />
+                <FormField
+                  label="搜索组件"
+                  control={
+                    <SearchInput
+                      defaultValue="按钮"
+                      allowClear
+                      onSearch={(query) =>
+                        setSearchStatus(`已搜索：${query || '空查询'}`)
+                      }
+                    />
+                  }
+                />
+                <Typography variant="caption" tone="muted">
+                  {searchStatus}
+                </Typography>
+                <SearchInput
+                  aria-label="加载中的搜索"
+                  defaultValue="卡片"
+                  loading
+                />
+                <FormField
+                  label="登录密码"
+                  control={
+                    <PasswordInput
+                      defaultValue="example-123"
+                      autoComplete="current-password"
+                    />
+                  }
+                />
+                <FormField
+                  label="错误密码"
+                  error="密码不符合要求"
+                  control={<PasswordInput defaultValue="short" />}
+                />
+                <PasswordInput
+                  aria-label="不可用密码"
+                  value="disabled"
+                  disabled
+                  readOnly
                 />
                 <Form
                   initialValues={{ email: '', view: 'list' }}

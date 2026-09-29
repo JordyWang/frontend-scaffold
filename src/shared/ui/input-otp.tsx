@@ -147,14 +147,14 @@ export const InputOTP = forwardRef<HTMLDivElement, InputOTPProps>(
         aria-describedby={ariaDescribedBy}
         aria-invalid={invalid || ariaInvalid || undefined}
         aria-required={required || undefined}
-        className={cn('ui-input-otp', className)}
+        className={cn('grid max-w-full gap-[var(--space-xs)]', className)}
       >
         {label && (
-          <span id={labelId} className="ui-input-otp__label">
+          <span id={labelId} className="font-semibold">
             {label}
           </span>
         )}
-        <div className="ui-input-otp__slots">
+        <div className="flex flex-wrap gap-[var(--space-xs)]">
           {Array.from({ length: slotCount }, (_, index) => (
             <input
               key={index}
@@ -172,7 +172,7 @@ export const InputOTP = forwardRef<HTMLDivElement, InputOTPProps>(
               value={currentValue[index] ?? ''}
               disabled={disabled}
               readOnly={readOnly}
-              className="ui-input-otp__slot"
+              className="size-[max(44px,var(--ui-control-height))] shrink-0 touch-manipulation rounded-[var(--ui-field-radius)] border border-input bg-card p-0 text-center text-lg leading-none text-card-foreground focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-[0.55]"
               onChange={(event) => {
                 const raw = event.target.value
                 if (!raw) {

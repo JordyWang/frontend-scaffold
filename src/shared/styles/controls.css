@@ -14,46 +14,6 @@
   padding-block: 0.5rem;
 }
 
-.ui-input-otp {
-  display: grid;
-  max-width: 100%;
-  gap: var(--space-xs);
-}
-.ui-input-otp__label {
-  font-weight: 600;
-}
-.ui-input-otp__slots {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-}
-.ui-input-otp__slot {
-  width: max(44px, var(--ui-control-height));
-  height: max(44px, var(--ui-control-height));
-  flex: none;
-  border: 1px solid var(--input);
-  border-radius: var(--ui-field-radius);
-  background: var(--card);
-  color: var(--card-foreground);
-  padding: 0;
-  text-align: center;
-  font-size: 1.125rem;
-  line-height: 1;
-  touch-action: manipulation;
-}
-.ui-input-otp__slot:focus-visible {
-  border-color: var(--ring);
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-}
-.ui-input-otp[aria-invalid='true'] .ui-input-otp__slot,
-.ui-input-otp__slot[aria-invalid='true'] {
-  border-color: var(--destructive);
-}
-.ui-input-otp__slot:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
 .ui-input-number {
   display: inline-flex;
   width: 100%;

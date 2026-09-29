@@ -112,12 +112,6 @@
 .ui-typography--danger {
   color: var(--destructive);
 }
-.ui-icon {
-  display: inline-block;
-  flex: none;
-  vertical-align: middle;
-}
-
 .ui-choice,
 .ui-switch {
   position: relative;

@@ -38,8 +38,6 @@
     "src/shared/ui/feedback.tsx",
     "src/shared/ui/form-field.tsx",
     "src/shared/ui/form.tsx",
-    "src/shared/ui/icon.tsx",
-    "src/shared/ui/input-otp.tsx",
     "src/shared/ui/input.tsx",
     "src/shared/ui/layout.tsx",
     "src/shared/ui/list.tsx",

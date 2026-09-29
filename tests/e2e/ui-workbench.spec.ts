@@ -348,7 +348,7 @@ test('one-time-code input supports entry, correction and touch-sized slots', asy
   await page.goto('/__ui')
   const preview = page.getByRole('region', { name: '设计系统补充组件' })
   const group = preview.getByRole('group', { name: '一次性验证码' })
-  const slots = group.locator('.ui-input-otp__slot')
+  const slots = group.getByRole('textbox', { name: /一次性验证码第/ })
   await expect(slots).toHaveCount(6)
   await expect(slots.first()).toHaveAttribute('inputmode', 'numeric')
   if (testInfo.project.name.startsWith('mobile')) await slots.first().tap()
@@ -370,6 +370,52 @@ test('one-time-code input supports entry, correction and touch-sized slots', asy
   await expect(
     preview.getByRole('group', { name: '错误验证码' }),
   ).toHaveAttribute('aria-invalid', 'true')
+})
+
+test('search and password inputs support keyboard, touch and status feedback', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const search = preview.getByRole('searchbox', { name: '搜索组件' })
+  await search.fill('Tailwind')
+  if (testInfo.project.name.startsWith('mobile')) {
+    await search
+      .locator('..')
+      .getByRole('button', { name: '搜索', exact: true })
+      .tap()
+  } else {
+    await search.press('Enter')
+  }
+  await expect(preview.getByText('已搜索：Tailwind')).toBeVisible()
+  const clear = search.locator('..').getByRole('button', { name: '清空搜索' })
+  if (testInfo.project.name.startsWith('mobile')) await clear.tap()
+  else await clear.click()
+  await expect(search).toHaveValue('')
+  await expect(search).toBeFocused()
+
+  const password = preview.getByLabel('登录密码')
+  await expect(password).toHaveAttribute('type', 'password')
+  const show = password.locator('..').getByRole('button', { name: '显示密码' })
+  if (testInfo.project.name.startsWith('mobile')) await show.tap()
+  else {
+    await show.focus()
+    await page.keyboard.press('Space')
+  }
+  await expect(password).toHaveAttribute('type', 'text')
+  await expect(password).toHaveValue('example-123')
+  const buttonBounds = await password
+    .locator('..')
+    .getByRole('button', { name: '隐藏密码' })
+    .boundingBox()
+  expect(buttonBounds).not.toBeNull()
+  expect(buttonBounds!.width).toBeGreaterThanOrEqual(44)
+  expect(buttonBounds!.height).toBeGreaterThanOrEqual(44)
+  await expect(preview.getByLabel('不可用密码')).toBeDisabled()
+  await expect(preview.getByLabel('错误密码')).toHaveAttribute(
+    'aria-invalid',
+    'true',
+  )
 })
 
 test('tree select searches collapsed branches with keyboard and touch', async ({
