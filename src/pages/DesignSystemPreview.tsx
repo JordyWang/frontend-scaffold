@@ -64,6 +64,7 @@ import {
   Switch,
   Table,
   Tag,
+  Textarea,
   ThemeScope,
   Timeline,
   TimePicker,
@@ -404,6 +405,18 @@ export function DesignSystemPreview() {
                   }
                 />
                 <Checkbox label="不可用复选框" disabled />
+                <FormField
+                  label="可清空输入"
+                  control={
+                    <Input allowClear defaultValue="可用键盘或触控清空" />
+                  }
+                />
+                <FormField
+                  label="可清空文本域"
+                  control={
+                    <Textarea allowClear defaultValue="多行内容也支持清空" />
+                  }
+                />
                 <FormField
                   required
                   error={choice === 'a' ? '请选择网格展示以继续' : undefined}

@@ -259,6 +259,37 @@ test('table filters rows with keyboard, touch and focus restoration', async ({
   await expect(visibleRows.getByText('已完成')).toBeVisible()
 })
 
+test('clearable Input and Textarea restore focus on desktop and H5', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const input = preview.getByRole('textbox', { name: '可清空输入' })
+  const textarea = preview.getByRole('textbox', { name: '可清空文本域' })
+  const clearInput = input
+    .locator('..')
+    .getByRole('button', { name: '清空输入' })
+  const clearTextarea = textarea
+    .locator('..')
+    .getByRole('button', { name: '清空输入' })
+  for (const [control, clear] of [
+    [input, clearInput],
+    [textarea, clearTextarea],
+  ] as const) {
+    const box = await clear.boundingBox()
+    expect(box!.width).toBeGreaterThanOrEqual(44)
+    expect(box!.height).toBeGreaterThanOrEqual(44)
+    if (testInfo.project.name.startsWith('mobile-')) await clear.tap()
+    else {
+      await clear.focus()
+      await clear.press('Enter')
+    }
+    await expect(control).toHaveValue('')
+    await expect(clear).toHaveCount(0)
+    await expect(control).toBeFocused()
+  }
+})
+
 test('system dark mode keeps local light surfaces and state colors distinct', async ({
   page,
 }, testInfo) => {
