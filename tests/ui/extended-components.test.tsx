@@ -443,6 +443,25 @@ describe('Ant Design-inspired shared components', () => {
     ).toHaveAttribute('aria-valuenow', '100')
   })
 
+  it('renders linear progress as partially filled semantic steps', () => {
+    render(
+      <Progress percent={62} steps={5} status="active" label="分段上传进度" />,
+    )
+    const progress = screen.getByRole('progressbar', { name: '分段上传进度' })
+    expect(progress).toHaveAttribute('aria-valuenow', '62')
+    expect(progress).toHaveAttribute('data-ui-progress-steps', '5')
+    expect(progress.querySelectorAll('[data-ui-progress-step]')).toHaveLength(5)
+    expect(
+      progress.querySelectorAll('[data-ui-progress-step-value="100"]'),
+    ).toHaveLength(3)
+    expect(
+      progress.querySelector('[data-ui-progress-step-value="10"]'),
+    ).toBeInTheDocument()
+    expect(
+      progress.querySelector('[data-ui-progress-step-value="0"]'),
+    ).toBeInTheDocument()
+  })
+
   it('normalizes invalid progress and slider values', () => {
     render(
       <>

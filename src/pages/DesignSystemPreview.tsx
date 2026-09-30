@@ -1515,6 +1515,12 @@ export function DesignSystemPreview() {
                   percent={step === 2 ? 100 : step * 50}
                   status={step === 2 ? 'success' : 'active'}
                 />
+                <Progress
+                  label="分段上传进度"
+                  percent={step === 2 ? 100 : 62}
+                  steps={5}
+                  status={step === 2 ? 'success' : 'active'}
+                />
                 <Space wrap size="small">
                   <Button
                     size="small"

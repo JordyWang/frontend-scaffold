@@ -2933,8 +2933,15 @@ test('extended navigation and feedback components expose responsive semantics', 
   await expect(breadcrumb).toBeVisible()
   await expect(steps).toBeVisible()
   await expect(
-    preview.getByRole('progressbar', { name: '进度' }),
+    preview.getByRole('progressbar', { name: '进度', exact: true }),
   ).toHaveAttribute('aria-valuenow', '50')
+  const steppedProgress = preview.getByRole('progressbar', {
+    name: '分段上传进度',
+  })
+  await expect(steppedProgress).toHaveAttribute('data-ui-progress-steps', '5')
+  await expect(steppedProgress.locator('[data-ui-progress-step]')).toHaveCount(
+    5,
+  )
 
   const details = preview.getByRole('button', { name: '实现说明' })
   await expect(details).toHaveAttribute('aria-expanded', 'true')
@@ -2947,7 +2954,7 @@ test('extended navigation and feedback components expose responsive semantics', 
   }
   await expect(details).toHaveAttribute('aria-expanded', 'false')
   await expect(
-    preview.getByRole('progressbar', { name: '进度' }),
+    preview.getByRole('progressbar', { name: '进度', exact: true }),
   ).toHaveAttribute('aria-valuenow', '100')
   await expect(
     preview.getByRole('heading', { name: '流程已完成' }),

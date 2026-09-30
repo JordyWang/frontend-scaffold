@@ -22,6 +22,8 @@
 
 `FloatButton` 的 `href` 模式使用原生链接，保留键盘导航、打开新页、禁用与加载状态；`/__ui` 可切换带安全区间距的首页浮动链接三种状态。
 
+`Progress` 的线性模式支持 `steps` 分段进度：每段按百分比填充，保留同一 `progressbar` 语义、状态颜色和减少动态效果；`/__ui` 展示普通与分段进度。
+
 `Spinner` 和 `Spin` 已统一小号、默认和大号指示器尺寸及动画，在 `/__ui` 并排预览，并通过桌面和 H5 浏览器检查减少动态效果设置。
 
 ConfigProvider 的 RTL 方向已覆盖 Select、Dialog、Sheet、Dropdown、Popover、Tooltip 的弹层容器，Select 的触发器和选项使用 Tailwind 逻辑方向样式；`/__ui` 提供键盘与 H5 触控预览。

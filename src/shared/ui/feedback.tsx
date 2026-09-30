@@ -6,6 +6,7 @@ export type ProgressProps = {
   percent?: number
   status?: 'normal' | 'active' | 'success' | 'exception'
   type?: 'line' | 'circle'
+  steps?: number
   showInfo?: boolean
   strokeWidth?: number
   label?: string
@@ -18,6 +19,7 @@ export function Progress({
   percent = 0,
   status = 'normal',
   type = 'line',
+  steps,
   showInfo = true,
   strokeWidth = 8,
   label = '进度',
@@ -31,6 +33,10 @@ export function Progress({
     : 8
   const text = format ? format(value) : `${value}%`
   const style = { '--ui-progress-value': `${value}%` } as CSSProperties
+  const stepCount =
+    Number.isFinite(steps) && steps !== undefined
+      ? Math.max(1, Math.floor(steps))
+      : 0
   const color =
     status === 'success'
       ? 'var(--ui-seed-success)'
@@ -67,6 +73,56 @@ export function Progress({
           />
           {showInfo && (
             <span className="relative z-[1] text-center font-semibold text-foreground">
+              {text}
+            </span>
+          )}
+        </div>
+      </div>
+    )
+  }
+  if (stepCount > 0) {
+    const progressRatio = (value / 100) * stepCount
+    const segmentClass = cn(
+      'block h-full rounded-[inherit] transition-[width] duration-200 motion-reduce:transition-none',
+      status === 'active' &&
+        'bg-gradient-to-r from-primary to-[var(--ui-map-primary-hover)]',
+      status === 'success' && 'bg-[var(--ui-seed-success)]',
+      status === 'exception' && 'bg-destructive',
+      status === 'normal' && 'bg-primary',
+    )
+    return (
+      <div className={cn('w-full', className)}>
+        <div className="flex items-center gap-2">
+          <div
+            className="flex min-w-0 flex-1 gap-1"
+            role="progressbar"
+            aria-label={label}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={value}
+            data-ui-progress-steps={stepCount}
+          >
+            {Array.from({ length: stepCount }, (_, index) => {
+              const segmentValue = Math.round(
+                Math.min(100, Math.max(0, (progressRatio - index) * 100)),
+              )
+              return (
+                <span
+                  key={index}
+                  className="min-w-0 flex-1 overflow-hidden rounded-[var(--radius-sm)] bg-secondary"
+                  data-ui-progress-step={index}
+                >
+                  <span
+                    className={segmentClass}
+                    style={{ width: `${segmentValue}%` }}
+                    data-ui-progress-step-value={segmentValue}
+                  />
+                </span>
+              )
+            })}
+          </div>
+          {showInfo && (
+            <span className="min-w-12 shrink-0 text-end text-sm tabular-nums text-muted-foreground">
               {text}
             </span>
           )}
