@@ -143,7 +143,9 @@ export function DesignSystemPreview() {
   const [checked, setChecked] = useState(false)
   const [enabled, setEnabled] = useState(true)
   const [choice, setChoice] = useState('a')
-  const [segmentedValue, setSegmentedValue] = useState('list')
+  const [segmentedValue, setSegmentedValue] = useState<string | undefined>(
+    'list',
+  )
   const [mode, setMode] = useState<'light' | 'dark'>('light')
   const [density, setDensity] = useState<'default' | 'compact'>('default')
   const [step, setStep] = useState(1)
@@ -646,6 +648,18 @@ export function DesignSystemPreview() {
                     { value: 'disabled', label: '不可用', disabled: true },
                   ]}
                 />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="small"
+                    onClick={() => setSegmentedValue(undefined)}
+                  >
+                    清空数据视图
+                  </Button>
+                  <span role="status">
+                    当前视图：{segmentedValue ?? '未选择'}
+                  </span>
+                </div>
                 <Segmented
                   aria-label="不可用数据视图"
                   disabled

@@ -690,6 +690,48 @@ describe('Ant Design-inspired shared components', () => {
     expect(screen.getByRole('radio', { name: '列表' })).toBeChecked()
     fireEvent.click(screen.getByRole('radio', { name: '网格' }))
     expect(screen.getByRole('radio', { name: '列表' })).toBeChecked()
+    rerender(
+      <Segmented
+        aria-label="视图"
+        value={undefined}
+        onChange={onChange}
+        options={[
+          { value: 'list', label: '列表' },
+          { value: 'grid', label: '网格' },
+        ]}
+      />,
+    )
+    for (const radio of screen.getAllByRole('radio'))
+      expect(radio).not.toBeChecked()
+    fireEvent.click(screen.getByRole('radio', { name: '网格' }))
+    expect(onChange).toHaveBeenLastCalledWith('grid')
+    expect(screen.getByRole('radio', { name: '网格' })).not.toBeChecked()
+  })
+
+  it('falls back to an enabled segment when its uncontrolled choice disappears', () => {
+    const { rerender } = render(
+      <Segmented
+        aria-label="动态视图"
+        defaultValue="grid"
+        options={[
+          { value: 'list', label: '列表' },
+          { value: 'grid', label: '网格' },
+        ]}
+      />,
+    )
+    expect(screen.getByRole('radio', { name: '网格' })).toBeChecked()
+    rerender(
+      <Segmented
+        aria-label="动态视图"
+        defaultValue="grid"
+        options={[
+          { value: 'list', label: '列表' },
+          { value: 'grid', label: '网格', disabled: true },
+        ]}
+      />,
+    )
+    expect(screen.getByRole('radio', { name: '列表' })).toBeChecked()
+    expect(screen.getByRole('radio', { name: '网格' })).toBeDisabled()
   })
 
   it('applies the provider size to segmented controls', () => {

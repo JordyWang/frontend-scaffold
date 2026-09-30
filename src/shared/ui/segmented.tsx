@@ -34,24 +34,26 @@ export type SegmentedProps = Omit<
 }
 
 /** A compact mutually-exclusive choice built on native radio inputs. */
-export function Segmented({
-  options,
-  value,
-  defaultValue,
-  onChange,
-  size,
-  block = false,
-  disabled = false,
-  name,
-  required,
-  'aria-describedby': ariaDescribedBy,
-  'aria-invalid': ariaInvalid,
-  'aria-label': ariaLabel,
-  'aria-labelledby': ariaLabelledBy,
-  id,
-  className,
-  ...props
-}: SegmentedProps) {
+export function Segmented(allProps: SegmentedProps) {
+  const controlled = Object.prototype.hasOwnProperty.call(allProps, 'value')
+  const {
+    options,
+    value,
+    defaultValue,
+    onChange,
+    size,
+    block = false,
+    disabled = false,
+    name,
+    required,
+    'aria-describedby': ariaDescribedBy,
+    'aria-invalid': ariaInvalid,
+    'aria-label': ariaLabel,
+    'aria-labelledby': ariaLabelledBy,
+    id,
+    className,
+    ...props
+  } = allProps
   const { componentSize } = useConfig()
   const resolvedSize =
     size ??
@@ -65,11 +67,17 @@ export function Segmented({
   const [internalValue, setInternalValue] = useState(
     defaultValue ?? fallback ?? '',
   )
-  const selected = value ?? internalValue
+  const selected = controlled
+    ? value
+    : options.some(
+          (option) => option.value === internalValue && !option.disabled,
+        )
+      ? internalValue
+      : fallback
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const next = event.currentTarget.value
-    if (value === undefined) setInternalValue(next)
+    if (!controlled) setInternalValue(next)
     onChange?.(next)
   }
 

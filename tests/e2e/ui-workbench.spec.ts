@@ -248,6 +248,39 @@ test('controlled Rate clears and reselects with keyboard and touch', async ({
   await expect(rating.locator('input:checked')).toHaveCount(0)
 })
 
+test('controlled Segmented clears and selects with keyboard and touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const segmented = preview.getByRole('group', {
+    name: '数据视图',
+    exact: true,
+  })
+  const list = segmented.getByRole('radio', { name: '紧凑列表' })
+  const grid = segmented.getByRole('radio', { name: '宽卡片' })
+  const clear = preview.getByRole('button', { name: '清空数据视图' })
+  await expect(list).toBeChecked()
+  const box = await clear.boundingBox()
+  expect(box!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await clear.tap()
+  else {
+    await clear.focus()
+    await clear.press('Enter')
+  }
+  await expect(segmented.locator('input:checked')).toHaveCount(0)
+  await expect(preview.getByText('当前视图：未选择')).toBeVisible()
+
+  if (testInfo.project.name.startsWith('mobile-'))
+    await grid.locator('..').tap()
+  else {
+    await list.focus()
+    await list.press('ArrowRight')
+  }
+  await expect(grid).toBeChecked()
+  await expect(preview.getByText('当前视图：grid')).toBeVisible()
+})
+
 test('pagination changes page size and jumps to a valid page on desktop and H5', async ({
   page,
 }, testInfo) => {
@@ -882,7 +915,10 @@ test('design system controls support keyboard, touch and local themes', async ({
   await expect(preview.getByText('当前：深色 · 紧凑')).toBeVisible()
   const choiceGroup = preview.getByRole('group', { name: '展示方式' })
   const radio = choiceGroup.getByRole('radio', { name: '网格' })
-  const segmented = preview.getByRole('group', { name: '数据视图' })
+  const segmented = preview.getByRole('group', {
+    name: '数据视图',
+    exact: true,
+  })
   const compactView = segmented.getByRole('radio', { name: '紧凑列表' })
   const wideView = segmented.locator('label').filter({ hasText: '宽卡片' })
   if (testInfo.project.name.startsWith('mobile-'))
