@@ -2,6 +2,12 @@ import type { SVGProps } from 'react'
 import { cn } from '@/shared/lib/utils'
 
 const paths = {
+  home: (
+    <>
+      <path d="m3 9 7-6 7 6v8H3z" />
+      <path d="M8 17v-5h4v5" />
+    </>
+  ),
   check: <path d="m4 10 4 4 8-8" />,
   close: <path d="M5 5l10 10M15 5 5 15" />,
   info: (

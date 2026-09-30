@@ -8,14 +8,21 @@ import {
   useRef,
   useState,
   type FocusEvent,
+  type AnchorHTMLAttributes,
   type KeyboardEvent,
   type MouseEvent,
   type PointerEvent as ReactPointerEvent,
+  type Ref,
   type ReactElement,
   type ReactNode,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { Button, type ButtonProps } from './button'
+import {
+  buttonSizeStyles,
+  buttonStyles,
+  buttonVariantStyles,
+} from './button-styles'
 import { useConfig } from './config-context'
 import { Dialog } from './dialog'
 import { Badge, type BadgeProps } from './display'
@@ -23,9 +30,11 @@ import {
   floatButtonControlStyles,
   floatButtonPositionStyles,
   floatButtonShapeStyles,
+  floatLinkInteractionStyles,
   type FloatButtonPosition,
 } from './float-button-styles'
 import { Portal } from './portal'
+import { spinnerStyles } from './tailwind-styles'
 
 const floatingPanelStyles =
   'invisible fixed z-[70] max-h-[calc(100dvh-1rem)] min-w-48 max-w-[min(22rem,calc(100vw-1rem))] overflow-auto border border-border bg-card text-card-foreground shadow-[0_12px_30px_rgb(0_0_0_/_0.16)]'
@@ -674,35 +683,134 @@ export function Popconfirm({
   )
 }
 
-export type FloatButtonProps = Omit<ButtonProps, 'size' | 'shape'> & {
+type FloatButtonCommonProps = {
   label: string
   shape?: 'circle' | 'square'
   position?: FloatButtonPosition
   tooltip?: ReactNode
   badge?: Omit<BadgeProps, 'children' | 'className'>
   containerClassName?: string
+  className?: string
+  variant?: ButtonProps['variant']
+  danger?: boolean
+  disabled?: boolean
+  loading?: boolean
+  icon?: ReactNode
+  iconPosition?: ButtonProps['iconPosition']
+  children?: ReactNode
 }
 
-export const FloatButton = forwardRef<HTMLButtonElement, FloatButtonProps>(
-  function FloatButton(
-    {
-      label,
-      shape = 'circle',
-      position = 'bottom-right',
-      tooltip,
-      badge,
-      containerClassName,
-      className,
-      ...props
-    },
-    ref,
-  ) {
-    const control = (
+export type FloatButtonButtonProps = FloatButtonCommonProps &
+  Omit<
+    ButtonProps,
+    | 'size'
+    | 'shape'
+    | 'className'
+    | 'variant'
+    | 'danger'
+    | 'disabled'
+    | 'loading'
+    | 'icon'
+    | 'iconPosition'
+    | 'children'
+  > & {
+    href?: never
+    linkTarget?: never
+  }
+
+export type FloatButtonLinkProps = FloatButtonCommonProps &
+  Omit<
+    AnchorHTMLAttributes<HTMLAnchorElement>,
+    'children' | 'className' | 'href' | 'target' | 'onClick'
+  > & {
+    href: string
+    linkTarget?: string
+    onClick?: (event: MouseEvent<HTMLAnchorElement>) => void
+  }
+
+export type FloatButtonProps = FloatButtonButtonProps | FloatButtonLinkProps
+
+export const FloatButton = forwardRef<
+  HTMLButtonElement | HTMLAnchorElement,
+  FloatButtonProps
+>(function FloatButton(
+  {
+    label,
+    shape = 'circle',
+    position = 'bottom-right',
+    tooltip,
+    badge,
+    containerClassName,
+    className,
+    ...nativeProps
+  },
+  ref,
+) {
+  let control: ReactElement
+  if (nativeProps.href !== undefined) {
+    const {
+      href,
+      linkTarget,
+      disabled = false,
+      loading = false,
+      variant = 'primary',
+      danger = false,
+      icon,
+      iconPosition = 'start',
+      children,
+      onClick,
+      ...anchorProps
+    } = nativeProps as FloatButtonLinkProps
+    const inactive = disabled || loading
+    const resolvedVariant = danger ? 'destructive' : variant
+    control = (
+      <a
+        {...anchorProps}
+        ref={ref as Ref<HTMLAnchorElement>}
+        href={inactive ? undefined : href}
+        target={linkTarget}
+        rel={
+          anchorProps.rel ??
+          (linkTarget === '_blank' ? 'noopener noreferrer' : undefined)
+        }
+        role={inactive ? 'link' : undefined}
+        tabIndex={inactive ? -1 : anchorProps.tabIndex}
+        aria-label={anchorProps['aria-label'] ?? label}
+        aria-disabled={inactive || undefined}
+        aria-busy={loading || undefined}
+        data-ui-float-button-link=""
+        className={cn(
+          buttonStyles,
+          buttonVariantStyles[resolvedVariant],
+          buttonSizeStyles.icon,
+          !inactive && floatLinkInteractionStyles[resolvedVariant],
+          inactive && 'cursor-not-allowed opacity-[0.55]',
+          'relative',
+          floatButtonControlStyles,
+          floatButtonShapeStyles[shape],
+          className,
+        )}
+        onClick={(event) => {
+          if (inactive) {
+            event.preventDefault()
+            return
+          }
+          onClick?.(event)
+        }}
+      >
+        {iconPosition === 'start' && icon}
+        {loading && <span className={spinnerStyles} aria-hidden="true" />}
+        {children}
+        {iconPosition === 'end' && icon}
+      </a>
+    )
+  } else {
+    control = (
       <Button
-        {...props}
-        ref={ref}
+        {...(nativeProps as ButtonProps)}
+        ref={ref as Ref<HTMLButtonElement>}
         size="icon"
-        aria-label={props['aria-label'] ?? label}
+        aria-label={nativeProps['aria-label'] ?? label}
         className={cn(
           'relative',
           floatButtonControlStyles,
@@ -711,23 +819,23 @@ export const FloatButton = forwardRef<HTMLButtonElement, FloatButtonProps>(
         )}
       />
     )
-    const withTooltip = tooltip ? (
-      <Tooltip title={tooltip}>{control}</Tooltip>
-    ) : (
-      control
-    )
+  }
+  const withTooltip = tooltip ? (
+    <Tooltip title={tooltip}>{control as TriggerElement}</Tooltip>
+  ) : (
+    control
+  )
 
-    return (
-      <span
-        data-ui-float-button-container=""
-        className={cn(
-          'fixed z-[60]',
-          floatButtonPositionStyles[position],
-          containerClassName,
-        )}
-      >
-        {badge ? <Badge {...badge}>{withTooltip}</Badge> : withTooltip}
-      </span>
-    )
-  },
-)
+  return (
+    <span
+      data-ui-float-button-container=""
+      className={cn(
+        'fixed z-[60]',
+        floatButtonPositionStyles[position],
+        containerClassName,
+      )}
+    >
+      {badge ? <Badge {...badge}>{withTooltip}</Badge> : withTooltip}
+    </span>
+  )
+})

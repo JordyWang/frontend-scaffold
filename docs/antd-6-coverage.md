@@ -20,6 +20,8 @@
 
 `FloatButton` 的提示与徽标现在使用项目公共 Tooltip、Badge；提示锚点和徽标都跟随浮动按钮，`/__ui` 预览桌面聚焦与 H5 触控状态。
 
+`FloatButton` 的 `href` 模式使用原生链接，保留键盘导航、打开新页、禁用与加载状态；`/__ui` 可切换带安全区间距的首页浮动链接三种状态。
+
 `Spinner` 和 `Spin` 已统一小号、默认和大号指示器尺寸及动画，在 `/__ui` 并排预览，并通过桌面和 H5 浏览器检查减少动态效果设置。
 
 ConfigProvider 的 RTL 方向已覆盖 Select、Dialog、Sheet、Dropdown、Popover、Tooltip 的弹层容器，Select 的触发器和选项使用 Tailwind 逻辑方向样式；`/__ui` 提供键盘与 H5 触控预览。

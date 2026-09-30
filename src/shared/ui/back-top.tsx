@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { cn } from '@/shared/lib/utils'
-import { FloatButton, type FloatButtonProps } from './overlay'
+import { FloatButton, type FloatButtonButtonProps } from './overlay'
 
-export type BackTopProps = Omit<FloatButtonProps, 'label'> & {
+export type BackTopProps = Omit<FloatButtonButtonProps, 'label'> & {
   label?: string
   target?: () => Window | HTMLElement | null
   visibilityHeight?: number

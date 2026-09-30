@@ -154,6 +154,9 @@ export function DesignSystemPreview() {
     'click' | 'hover' | 'always'
   >('click')
   const [floatOpen, setFloatOpen] = useState(false)
+  const [floatLinkState, setFloatLinkState] = useState<
+    'active' | 'disabled' | 'loading'
+  >('active')
   const [step, setStep] = useState(1)
   const [uncontrolledStepEvent, setUncontrolledStepEvent] = useState(0)
   const [quantity, setQuantity] = useState<number | undefined>(3)
@@ -253,6 +256,20 @@ export function DesignSystemPreview() {
         >
           切换浮动菜单触发方式
         </Button>
+        <Button
+          variant="outline"
+          onClick={() =>
+            setFloatLinkState(
+              floatLinkState === 'active'
+                ? 'disabled'
+                : floatLinkState === 'disabled'
+                  ? 'loading'
+                  : 'active',
+            )
+          }
+        >
+          切换浮动链接状态
+        </Button>
         <Typography as="span" variant="caption" tone="muted">
           当前：{mode === 'light' ? '浅色' : '深色'} ·{' '}
           {density === 'default' ? '常规' : '紧凑'} · 浮动菜单
@@ -260,7 +277,13 @@ export function DesignSystemPreview() {
             ? '点击'
             : floatTrigger === 'hover'
               ? '悬停'
-              : '常驻'}
+              : '常驻'}{' '}
+          · 浮动链接
+          {floatLinkState === 'active'
+            ? '可用'
+            : floatLinkState === 'disabled'
+              ? '禁用'
+              : '加载'}
         </Typography>
       </Stack>
       <ThemeScope
@@ -2211,6 +2234,18 @@ export function DesignSystemPreview() {
         onClick={() => toast({ title: '已收到反馈' })}
       >
         <Icon name="info" />
+      </FloatButton>
+      <FloatButton
+        label="首页快捷入口"
+        href="/"
+        disabled={floatLinkState === 'disabled'}
+        loading={floatLinkState === 'loading'}
+        tooltip="打开首页"
+        position="bottom-left"
+        containerClassName="bottom-[max(5rem,calc(env(safe-area-inset-bottom)+4rem))]"
+        variant="outline"
+      >
+        <Icon name="home" />
       </FloatButton>
       <ThemeScope
         mode={mode === 'light' ? 'dark' : 'light'}

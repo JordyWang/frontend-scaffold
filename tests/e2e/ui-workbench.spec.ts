@@ -3435,6 +3435,60 @@ test('BackTop appears after scrolling and supports keyboard or touch', async ({
   await expect(backTop).toHaveCount(0)
 })
 
+test('floating link keeps native navigation and touch spacing', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  await expect(preview).toBeVisible()
+  const link = preview.getByRole('link', { name: '首页快捷入口' })
+  const feedback = preview.getByRole('button', { name: '浮动反馈' })
+  await expect(link).toHaveAttribute('href', '/')
+  await expect(link).toHaveAttribute('data-ui-float-button-link')
+  const linkBox = await link.boundingBox()
+  const feedbackBox = await feedback.boundingBox()
+  expect(linkBox).not.toBeNull()
+  expect(feedbackBox).not.toBeNull()
+  expect(linkBox!.width).toBeGreaterThanOrEqual(44)
+  expect(linkBox!.height).toBeGreaterThanOrEqual(44)
+  expect(linkBox!.y + linkBox!.height).toBeLessThanOrEqual(feedbackBox!.y - 8)
+
+  const switchState = preview.getByRole('button', {
+    name: '切换浮动链接状态',
+  })
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await switchState.tap()
+  } else {
+    await switchState.click()
+  }
+  await expect(link).toHaveAttribute('aria-disabled', 'true')
+  await expect(link).not.toHaveAttribute('href')
+  await expect(link).toHaveAttribute('tabindex', '-1')
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await switchState.tap()
+  } else {
+    await switchState.click()
+  }
+  await expect(page).toHaveURL('http://127.0.0.1:4173/__ui')
+  await expect(link).toHaveAttribute('aria-busy', 'true')
+  await expect(link).not.toHaveAttribute('href')
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await switchState.tap()
+  } else {
+    await switchState.click()
+  }
+  await expect(link).toHaveAttribute('href', '/')
+
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await link.tap()
+  } else {
+    await link.focus()
+    await expect(page.getByRole('tooltip', { name: '打开首页' })).toBeVisible()
+    await page.keyboard.press('Enter')
+  }
+  await expect(page).toHaveURL('http://127.0.0.1:4173/')
+})
+
 test('floating action group supports keyboard, hover and H5 touch', async ({
   page,
 }, testInfo) => {

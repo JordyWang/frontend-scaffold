@@ -218,6 +218,8 @@ export type {
 export type {
   DropdownItem,
   DropdownProps,
+  FloatButtonButtonProps,
+  FloatButtonLinkProps,
   FloatButtonProps,
   PopconfirmProps,
   PopoverProps,

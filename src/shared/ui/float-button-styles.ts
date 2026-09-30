@@ -19,3 +19,12 @@ export const floatButtonShapeStyles = {
   circle: 'rounded-full',
   square: 'rounded-[var(--radius-md)]',
 } as const
+
+export const floatLinkInteractionStyles = {
+  primary:
+    'hover:bg-[var(--ui-map-primary-hover)] active:bg-[var(--ui-map-primary-active)]',
+  secondary: 'hover:opacity-90 active:opacity-80',
+  outline: 'hover:opacity-90 active:opacity-80',
+  ghost: 'hover:opacity-90 active:opacity-80',
+  destructive: 'hover:opacity-90 active:opacity-80',
+} as const
