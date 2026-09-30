@@ -82,6 +82,53 @@ test('pagination changes page size and jumps to a valid page on desktop and H5',
   ).toBe(true)
 })
 
+test('table sorting stays available in desktop headers and mobile cards', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const section = page.getByRole('region', { name: '导航与数据' })
+  const table = section.getByRole('region', { name: '示例任务表' })
+  const mobile = testInfo.project.name.startsWith('mobile-')
+  const sort = table.getByRole('button', { name: /按任务排序/ })
+  const names = () =>
+    mobile
+      ? table
+          .getByRole('list', { name: '示例任务表' })
+          .getByRole('listitem')
+          .locator('strong')
+          .allTextContents()
+      : table
+          .getByRole('table')
+          .locator('tbody tr td:first-child')
+          .allTextContents()
+  await expect.poll(names).toHaveLength(3)
+  const original = await names()
+  const sortBox = await sort.boundingBox()
+  expect(sortBox!.width).toBeGreaterThanOrEqual(44)
+  expect(sortBox!.height).toBeGreaterThanOrEqual(44)
+  if (mobile) await sort.tap()
+  else {
+    await sort.focus()
+    await sort.press('Enter')
+  }
+  const ascending = await names()
+  expect(ascending).toEqual(
+    [...original].sort((left, right) => left.localeCompare(right, 'zh-CN')),
+  )
+  if (mobile) await expect(sort).toHaveAttribute('aria-pressed', 'true')
+  else
+    await expect(table.getByRole('columnheader').first()).toHaveAttribute(
+      'aria-sort',
+      'ascending',
+    )
+  if (mobile) await sort.tap()
+  else await sort.press('Enter')
+  await expect.poll(names).toEqual([...ascending].reverse())
+  if (mobile) await sort.tap()
+  else await sort.press('Enter')
+  await expect.poll(names).toEqual(original)
+})
+
 test('system dark mode keeps local light surfaces and state colors distinct', async ({
   page,
 }, testInfo) => {

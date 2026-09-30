@@ -602,7 +602,13 @@ export function DevWorkbenchPage() {
                 error={dataState === 'error' ? '示例表格加载失败' : undefined}
                 onRetry={() => setDataState('filled')}
                 columns={[
-                  { key: 'name', header: '任务', render: (row) => row.name },
+                  {
+                    key: 'name',
+                    header: '任务',
+                    render: (row) => row.name,
+                    sorter: (left, right) =>
+                      left.name.localeCompare(right.name, 'zh-CN'),
+                  },
                   {
                     key: 'status',
                     header: '状态',
