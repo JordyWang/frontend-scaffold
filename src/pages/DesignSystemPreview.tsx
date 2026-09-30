@@ -833,6 +833,35 @@ export function DesignSystemPreview() {
                     />
                   }
                 />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <FormField
+                    label="填充选择"
+                    control={
+                      <Select
+                        variant="filled"
+                        defaultValue="one"
+                        options={[
+                          { value: 'one', label: '选项一' },
+                          { value: 'two', label: '选项二' },
+                        ]}
+                      />
+                    }
+                  />
+                  <FormField
+                    label="下划线警告选择"
+                    control={
+                      <Select
+                        variant="underlined"
+                        status="warning"
+                        defaultValue="one"
+                        options={[
+                          { value: 'one', label: '选项一' },
+                          { value: 'two', label: '选项二' },
+                        ]}
+                      />
+                    }
+                  />
+                </div>
                 <FormField
                   label="多选分类"
                   control={

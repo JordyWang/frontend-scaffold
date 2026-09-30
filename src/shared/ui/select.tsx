@@ -10,7 +10,13 @@ import { cn } from '@/shared/lib/utils'
 import { resolveComponentSize, useConfig } from './config-context'
 import { CheckIcon } from './icons'
 import { usePortalContainer } from './portal-context'
-import { inputSizeStyles, inputStyles } from './tailwind-styles'
+import {
+  inputSizeStyles,
+  inputStatusStyles,
+  inputStyles,
+  inputVariantStyles,
+} from './tailwind-styles'
+import type { InputStatus, InputVariant } from './input'
 
 export type SelectOption = { value: string; label: string; disabled?: boolean }
 export type SelectProps = {
@@ -21,6 +27,8 @@ export type SelectProps = {
   allowClear?: boolean
   label?: string
   placeholder?: string
+  variant?: InputVariant
+  status?: InputStatus
   size?: 'default' | 'small' | 'large'
   disabled?: boolean
   required?: boolean
@@ -52,12 +60,15 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
       allowClear = false,
       label,
       placeholder = '请选择',
+      variant = 'outlined',
+      status = 'default',
       size,
       disabled,
       required,
       name,
       id,
       className,
+      'aria-invalid': ariaInvalid,
       ...ariaProps
     } = allProps
     const { componentSize, direction } = useConfig()
@@ -92,12 +103,16 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
             dir={direction}
             className={cn(
               inputStyles,
+              inputVariantStyles[variant],
+              inputStatusStyles[status],
               inputSizeStyles[resolvedSize],
               'flex cursor-pointer touch-manipulation items-center justify-between gap-2 text-start outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 data-[placeholder]:text-muted-foreground data-[disabled]:cursor-not-allowed data-[disabled]:opacity-[0.55] aria-invalid:border-destructive',
               allowClear && currentValue && 'pe-12',
               className,
             )}
             {...ariaProps}
+            aria-invalid={status === 'error' || ariaInvalid || undefined}
+            data-status={status === 'default' ? undefined : status}
           >
             <SelectPrimitive.Value placeholder={placeholder} />
             <SelectPrimitive.Icon

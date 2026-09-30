@@ -72,7 +72,9 @@
 
 `TableColumn.filterOptions` 提供 `{ value, label, matches(row) }`，表头和手机工具栏共用筛选弹层。`filters` / `defaultFilters` 使用列键到值数组的映射，`onFiltersChange` 接收新映射；应用或重置后弹层触发器恢复焦点，筛选与排序、行选择按当前显示行协作。
 
-`Input` 和 `Textarea` 的 `allowClear` 在有值且未禁用时显示 44px 清空按钮；清空后触发 `onValueChange('')` 和原生 `onChange`，非受控值立即显示为空并恢复输入焦点。`clearLabel` 可定制按钮名称，受控值仍由外部更新；两者均可作为 `FormItem` 的 `onValueChange` 控件。 两者还支持 `variant`（outlined、filled、borderless、underlined）和 `status`（error、warning），状态使用主题 Token 表现。
+`Input` 和 `Textarea` 的 `allowClear` 在有值且未禁用时显示 44px 清空按钮；清空后触发 `onValueChange('')` 和原生 `onChange`，非受控值立即显示为空并恢复输入焦点。`clearLabel` 可定制按钮名称，受控值仍由外部更新；两者均可作为 `FormItem` 的 `onValueChange` 控件。两者还支持 `variant`（outlined、filled、borderless、underlined）和 `status`（error、warning），状态使用主题 Token 表现。
+
+`Select` 使用相同的 `variant` 和 `status` 字段契约；`status="error"` 同时暴露 `aria-invalid="true"`，便于表单校验和辅助技术识别。
 
 `InputNumber` 输入期间保留原始数字草稿，`onChange` 会收到当前数值或清空时的 `undefined`；失焦时再按 `min` / `max` 限制数值，并在修正后再次调用 `onChange`。受控用法可传入 `value={undefined}` 表示空值，并在 `onChange` 中同步更新。
 

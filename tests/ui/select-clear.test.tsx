@@ -97,4 +97,40 @@ describe('Select clear action', () => {
     )
     expect(screen.getByRole('button', { name: '清空错误视图' })).toBeVisible()
   })
+
+  it('supports field variants and warning or error statuses', () => {
+    render(
+      <>
+        <Select
+          aria-label="填充视图"
+          variant="filled"
+          defaultValue="list"
+          options={options}
+        />
+        <Select
+          aria-label="警告视图"
+          variant="underlined"
+          status="warning"
+          defaultValue="grid"
+          options={options}
+        />
+        <Select aria-label="错误视图" status="error" options={options} />
+      </>,
+    )
+
+    expect(screen.getByRole('combobox', { name: '填充视图' })).toHaveClass(
+      'bg-muted',
+    )
+    expect(screen.getByRole('combobox', { name: '警告视图' })).toHaveClass(
+      'border-b',
+    )
+    expect(screen.getByRole('combobox', { name: '警告视图' })).toHaveAttribute(
+      'data-status',
+      'warning',
+    )
+    expect(screen.getByRole('combobox', { name: '错误视图' })).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    )
+  })
 })
