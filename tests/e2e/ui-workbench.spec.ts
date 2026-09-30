@@ -597,6 +597,51 @@ test('date range keeps an ordered pair on keyboard and H5 input', async ({
   await expect(end).toBeFocused()
 })
 
+test('time range keeps a same-day interval on desktop and H5', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const group = preview.getByRole('group', { name: '时间范围', exact: true })
+  const start = group.locator('input[type="time"]').first()
+  const end = group.locator('input[type="time"]').last()
+  await expect(start).toHaveAttribute('min', '08:00')
+  await expect(end).toHaveAttribute('max', '22:00')
+  await expect(start).toHaveAttribute('step', '300')
+  await start.fill('09:00')
+  await end.fill('17:00')
+  await expect(preview.getByText('已选时间：09:00 → 17:00')).toBeVisible()
+  await start.fill('18:00')
+  await expect(end).toHaveValue('')
+  await expect(preview.getByText('已选时间：18:00 → 未选结束')).toBeVisible()
+
+  await page.setViewportSize({ width: 360, height: 780 })
+  const startBox = await start.boundingBox()
+  const endBox = await end.boundingBox()
+  expect(startBox!.height).toBeGreaterThanOrEqual(44)
+  expect(endBox!.height).toBeGreaterThanOrEqual(44)
+  expect(endBox!.y).toBeGreaterThan(startBox!.y)
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
+  await expect(
+    preview
+      .getByRole('group', { name: '不可用时间范围' })
+      .locator('input')
+      .first(),
+  ).toBeDisabled()
+  await expect(
+    preview.getByRole('group', { name: '错误时间范围' }),
+  ).toHaveAttribute('aria-invalid', 'true')
+  if (testInfo.project.name.startsWith('mobile-')) await end.tap()
+  else await end.focus()
+  await expect(end).toBeFocused()
+})
+
 test('cascader popup completes a path and inline options stay current', async ({
   page,
 }, testInfo) => {

@@ -15,6 +15,7 @@
 | InputNumber / Slider            | `value` / `defaultValue`、`min`、`max`、`step`、`onChange`、`label`                                                                              | 使用原生 number/range 控件；数值提交时限制在范围内，键盘和触控由浏览器处理                                                  |
 | DatePicker / TimePicker         | 原生日期/时间属性、`value`、`defaultValue`、`onChange`、`size`                                                                                   | 输出 ISO 日期或本地时间字符串；输入由浏览器提供键盘和触控选择器                                                             |
 | DateRangePicker                 | `value` / `defaultValue`、`onChange`、`min`、`max`、`required`、`disabled`、`name`、`size`                                                       | 两个原生日期输入组成一个 `[开始, 结束]` 值；窄屏纵向排列，触控区域至少 44px                                                 |
+| TimeRangePicker                 | `value` / `defaultValue`、`onChange`、`min`、`max`、`step`、`required`、`disabled`、`name`、`size`                                               | 两个原生时间输入组成同日时间区间；可精确到秒，窄屏纵向排列                                                                  |
 | Calendar                        | `value` / `defaultValue`、`month` / `defaultMonth`、`onChange`、`onMonthChange`、`minDate`、`maxDate`、`disabledDate`、`renderDate`              | 选中日期使用 `YYYY-MM-DD`，月份使用 `YYYY-MM`；网格支持方向键、Home/End、PageUp/PageDown；日期按钮至少 44px                 |
 | ColorPicker                     | `value` / `defaultValue`、`onChange`、`showText`、`size`、`label`、常用 `aria-*`                                                                 | 使用原生颜色控件，统一输出六位小写 hex；保留键盘、系统颜色面板和 44px 触控区域                                              |
 | AutoComplete / Cascader         | `options`、`value` / `defaultValue`、`onChange`、`label`；AutoComplete 有 `onSelect`，Cascader 有 `mode`、`allowClear`                           | 自动完成使用 `combobox` + `listbox`；级联选择默认单入口弹层，`mode="inline"` 保留原生分级表单控件                           |
@@ -67,6 +68,8 @@
 `InputNumber` 输入期间保留原始数字草稿，`onChange` 会收到当前数值或清空时的 `undefined`；失焦时再按 `min` / `max` 限制数值，并在修正后再次调用 `onChange`。受控用法可传入 `value={undefined}` 表示空值，并在 `onChange` 中同步更新。
 
 `DateRangePicker` 以 `YYYY-MM-DD` 字符串元组表示范围，清空任一端保留另一端；若新选日期越过另一端，会清空另一端以避免倒序。`name` 将完整元组以 JSON 数组字符串提交。两个原生日期输入都支持浏览器键盘和 H5 日期选择器。与 `FormItem` 配合时传入 `emptyValue={[]}`；如果提交必须同时包含起止日期，应另加 `validator` 检查两个端点。
+
+`TimeRangePicker` 使用相同的 `[开始, 结束]` 值契约，时间为浏览器原生 `HH:mm` 或含秒字符串；默认表示同一天，越过另一端时清空另一端。`step` 以秒为单位传给两个时间控件。跨午夜区间应由业务使用日期和时间组合表示。与 `FormItem` 配合时同样使用 `emptyValue={[]}` 和完整区间校验。
 
 `InputOTP` 的左右方向键按格子的视觉顺序移动焦点；方向默认跟随 `ConfigProvider.direction`，也可通过原生 `dir` 属性覆盖。RTL 格子顺序和 44px 触控区域在 `/__ui` 中预览。
 

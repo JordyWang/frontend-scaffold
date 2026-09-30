@@ -44,4 +44,6 @@ InputOTP 的方向键现在跟随 RTL 格子的视觉顺序；`/__ui` 提供 RTL
 
 DatePicker 补充了项目 API 的 `DateRangePicker`：两个原生日期控件组成起止元组，日期交叉时清空另一端，窄屏纵向排列；`/__ui` 展示受控、禁用和错误状态。
 
+TimePicker 补充了同日 `TimeRangePicker`：复用范围输入契约，支持分钟或秒精度、受控值、交叉清空和 H5 原生时间控件；`/__ui` 展示各状态。
+
 FormItem 可用 `emptyValue={[]}` 连接数组值控件；`/__ui` 的多选树表单预览覆盖初始空值、选择和重置，避免把空字符串误当作选中项。TreeSelect 首次打开时聚焦树节点不会把长页面滚离触发器，桌面和 H5 均有回归。

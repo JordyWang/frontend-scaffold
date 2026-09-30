@@ -66,6 +66,7 @@ import {
   ThemeScope,
   Timeline,
   TimePicker,
+  TimeRangePicker,
   Tour,
   Tree,
   TreeSelect,
@@ -77,6 +78,7 @@ import {
   notification,
   toast,
   type DateRange,
+  type TimeRange,
 } from '@/shared/ui'
 
 const teamTreeData = [
@@ -146,6 +148,7 @@ export function DesignSystemPreview() {
   const [volume, setVolume] = useState(42)
   const [colorValue, setColorValue] = useState('#1677ff')
   const [dateRange, setDateRange] = useState<DateRange>(['', ''])
+  const [timeRange, setTimeRange] = useState<TimeRange>(['', ''])
   const [formStatus, setFormStatus] = useState('尚未提交')
   const [searchStatus, setSearchStatus] = useState('尚未搜索')
   const [city, setCity] = useState('')
@@ -788,6 +791,32 @@ export function DesignSystemPreview() {
                 <FormField
                   label="开始时间"
                   control={<TimePicker aria-label="开始时间" />}
+                />
+                <FormField
+                  label="时间范围"
+                  control={
+                    <TimeRangePicker
+                      value={timeRange}
+                      onChange={setTimeRange}
+                      min="08:00"
+                      max="22:00"
+                      step={300}
+                    />
+                  }
+                />
+                <Typography variant="caption" tone="muted">
+                  已选时间：{timeRange[0] || '未选开始'} →{' '}
+                  {timeRange[1] || '未选结束'}
+                </Typography>
+                <TimeRangePicker
+                  label="不可用时间范围"
+                  defaultValue={['09:00', '17:00']}
+                  disabled
+                />
+                <FormField
+                  label="错误时间范围"
+                  error="请选择完整时间范围"
+                  control={<TimeRangePicker />}
                 />
                 <FormField
                   label="城市"
