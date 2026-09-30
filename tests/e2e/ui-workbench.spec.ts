@@ -597,6 +597,36 @@ test('date range keeps an ordered pair on keyboard and H5 input', async ({
   await expect(end).toBeFocused()
 })
 
+test('single select clears with keyboard or touch and restores its placeholder', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const trigger = preview.getByRole('combobox', { name: '可清空单选' })
+  const clear = preview.getByRole('button', { name: '清空可清空单选' })
+  await expect(trigger).toContainText('选项一')
+  const clearBox = await clear.boundingBox()
+  expect(clearBox!.width).toBeGreaterThanOrEqual(44)
+  expect(clearBox!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await clear.tap()
+  else {
+    await trigger.focus()
+    await trigger.press('Tab')
+    await expect(clear).toBeFocused()
+    await clear.press('Enter')
+  }
+  await expect(clear).toHaveCount(0)
+  await expect(trigger).toContainText('请选择')
+  await expect(trigger).toBeFocused()
+  if (testInfo.project.name.startsWith('mobile-')) await trigger.tap()
+  else await trigger.press('ArrowDown')
+  const second = page.getByRole('option', { name: '选项二' })
+  if (testInfo.project.name.startsWith('mobile-')) await second.tap()
+  else await second.click()
+  await expect(trigger).toContainText('选项二')
+  await expect(clear).toBeVisible()
+})
+
 test('multi-select searches, keeps selections open and clears with keyboard or touch', async ({
   page,
 }, testInfo) => {

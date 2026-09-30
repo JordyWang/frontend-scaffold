@@ -46,6 +46,6 @@ DatePicker 补充了项目 API 的 `DateRangePicker`：两个原生日期控件�
 
 TimePicker 补充了同日 `TimeRangePicker`：复用范围输入契约，支持分钟或秒精度、受控值、交叉清空和 H5 原生时间控件；`/__ui` 展示各状态。
 
-Select 补充项目 API 的 `MultiSelect`：多值选择、过滤、禁用项、清空、受控表单值及 RTL 弹层方向，保持原有单选 API。`/__ui` 展示默认、禁用和错误状态。
+Select 补充项目 API 的 `MultiSelect`：多值选择、过滤、禁用项、清空、受控表单值及 RTL 弹层方向。单选 `Select` 也支持 `allowClear`，清空后恢复触发器焦点。`/__ui` 展示可清空单选及多选的默认、禁用和错误状态。
 
 FormItem 可用 `emptyValue={[]}` 连接数组值控件；`/__ui` 的多选树表单预览覆盖初始空值、选择和重置，避免把空字符串误当作选中项。TreeSelect 首次打开时聚焦树节点不会把长页面滚离触发器，桌面和 H5 均有回归。

@@ -780,6 +780,20 @@ export function DesignSystemPreview() {
                   }
                 />
                 <FormField
+                  label="可清空单选"
+                  control={
+                    <Select
+                      label="可清空单选"
+                      defaultValue="one"
+                      allowClear
+                      options={[
+                        { value: 'one', label: '选项一' },
+                        { value: 'two', label: '选项二' },
+                      ]}
+                    />
+                  }
+                />
+                <FormField
                   label="多选分类"
                   control={
                     <MultiSelect
