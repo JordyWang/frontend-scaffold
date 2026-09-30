@@ -830,9 +830,65 @@ describe('Ant Design-inspired shared components', () => {
     expect(autocomplete).toHaveValue('北')
     expect(onAutoCompleteChange).toHaveBeenCalledWith('北')
     expect(autocomplete).toHaveAttribute('aria-expanded', 'true')
+    expect(
+      screen.getByRole('listbox', { name: '自动完成建议' }),
+    ).toContainElement(screen.getByRole('option', { name: '北京' }))
     const number = screen.getByRole('spinbutton', { name: '数量' })
     expect(number).toHaveAttribute('aria-invalid', 'true')
     expect(number.parentElement).toHaveAttribute('aria-invalid', 'true')
+  })
+
+  it('navigates autocomplete suggestions and skips disabled options', () => {
+    const onChange = vi.fn()
+    const onSelect = vi.fn()
+    const options = [
+      { value: '上海' },
+      { value: '北京', disabled: true },
+      { value: '广州', label: '广州城市' },
+    ]
+    render(
+      <AutoComplete
+        label="城市"
+        options={options}
+        onChange={onChange}
+        onSelect={onSelect}
+      />,
+    )
+    const input = screen.getByRole('combobox', { name: '城市' })
+    fireEvent.focus(input)
+    const choices = screen.getAllByRole('option')
+    expect(choices).toHaveLength(3)
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    expect(input).toHaveAttribute('aria-activedescendant', choices[0].id)
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    expect(input).toHaveAttribute('aria-activedescendant', choices[2].id)
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(input).toHaveValue('广州')
+    expect(input).toHaveAttribute('aria-expanded', 'false')
+    expect(onChange).toHaveBeenLastCalledWith('广州')
+    expect(onSelect).toHaveBeenCalledWith('广州', options[2])
+  })
+
+  it('does not select an autocomplete option while swiping the suggestion list', () => {
+    const onSelect = vi.fn()
+    render(
+      <AutoComplete
+        label="城市"
+        options={[{ value: '上海' }]}
+        onSelect={onSelect}
+      />,
+    )
+    const input = screen.getByRole('combobox', { name: '城市' })
+    fireEvent.focus(input)
+    const option = screen.getByRole('option', { name: '上海' })
+    fireEvent.touchStart(option, {
+      touches: [{ clientX: 10, clientY: 10 }],
+    })
+    fireEvent.touchEnd(option, {
+      changedTouches: [{ clientX: 10, clientY: 40 }],
+    })
+    expect(onSelect).not.toHaveBeenCalled()
+    expect(input).toHaveValue('')
   })
 
   it('passes form semantics through the upload entry point', () => {
@@ -886,7 +942,8 @@ describe('Ant Design-inspired shared components', () => {
     expect(screen.getByLabelText('开始日期')).toHaveValue('2026-09-28')
     expect(screen.getByLabelText('开始时间')).toHaveValue('09:30')
     expect(screen.getByRole('combobox', { name: '城市' })).toHaveAttribute(
-      'list',
+      'aria-haspopup',
+      'listbox',
     )
     const region = screen.getByRole('combobox', { name: '地区' })
     fireEvent.change(region, { target: { value: 'cn' } })

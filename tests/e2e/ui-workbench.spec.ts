@@ -532,6 +532,60 @@ test('controlled number input accepts drafts, clamps on blur and can be cleared'
   await expect(number).toHaveValue('12')
 })
 
+test('autocomplete filters suggestions and supports keyboard and touch selection', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const city = preview.getByRole('combobox', { name: '城市' })
+  await city.fill('北')
+  const suggestions = page.getByRole('listbox', { name: '城市建议' })
+  await expect(suggestions.getByRole('option', { name: '北京' })).toBeVisible()
+  await expect(suggestions.getByRole('option', { name: '上海' })).toHaveCount(0)
+  await city.press('ArrowDown')
+  const activeId = await suggestions
+    .getByRole('option', { name: '北京' })
+    .getAttribute('id')
+  expect(activeId).not.toBeNull()
+  await expect(city).toHaveAttribute('aria-activedescendant', activeId!)
+  await city.press('Enter')
+  await expect(city).toHaveValue('北京')
+  await expect(preview.getByText('已选择：北京')).toBeVisible()
+  await expect(suggestions).toHaveCount(0)
+
+  await city.fill('')
+  await page.setViewportSize({ width: 360, height: 780 })
+  await city.evaluate((element) =>
+    element.scrollIntoView({ block: 'nearest', inline: 'nearest' }),
+  )
+  await expect(suggestions).toBeVisible()
+  const panel = await suggestions.boundingBox()
+  expect(panel).not.toBeNull()
+  const visualBounds = await page.evaluate(() => ({
+    left: window.visualViewport?.offsetLeft ?? 0,
+    right:
+      (window.visualViewport?.offsetLeft ?? 0) +
+      (window.visualViewport?.width ?? window.innerWidth),
+  }))
+  expect(panel!.x).toBeGreaterThanOrEqual(visualBounds.left + 7)
+  expect(panel!.x + panel!.width).toBeLessThanOrEqual(visualBounds.right - 7)
+  const shanghai = suggestions.getByRole('option', { name: '上海' })
+  const box = await shanghai.boundingBox()
+  expect(box).not.toBeNull()
+  expect(box!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await shanghai.tap()
+  else await shanghai.click()
+  await expect(city).toHaveValue('上海')
+  await expect(preview.getByText('已选择：上海')).toBeVisible()
+
+  await city.fill('')
+  const disabled = suggestions.getByRole('option', { name: '杭州' })
+  await expect(disabled).toHaveAttribute('aria-disabled', 'true')
+  await city.press('Escape')
+  await expect(suggestions).toHaveCount(0)
+  await expect(city).toBeFocused()
+})
+
 test('accordion preview keeps one panel open with keyboard and touch', async ({
   page,
 }, testInfo) => {

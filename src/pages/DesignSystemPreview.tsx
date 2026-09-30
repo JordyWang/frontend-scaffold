@@ -145,6 +145,8 @@ export function DesignSystemPreview() {
   const [colorValue, setColorValue] = useState('#1677ff')
   const [formStatus, setFormStatus] = useState('尚未提交')
   const [searchStatus, setSearchStatus] = useState('尚未搜索')
+  const [city, setCity] = useState('')
+  const [selectedCity, setSelectedCity] = useState('尚未选择城市')
   const [mentionsValue, setMentionsValue] = useState('')
   const [mentionsStatus, setMentionsStatus] = useState('尚未选择成员')
   const [splitSizes, setSplitSizes] = useState([60, 40])
@@ -746,11 +748,27 @@ export function DesignSystemPreview() {
                   label="城市"
                   control={
                     <AutoComplete
+                      label="城市"
                       aria-label="城市"
-                      options={[{ value: '上海' }, { value: '北京' }]}
+                      value={city}
+                      onChange={(next) => {
+                        setCity(next)
+                        setSelectedCity('尚未选择城市')
+                      }}
+                      onSelect={(_, option) =>
+                        setSelectedCity(`已选择：${option.value}`)
+                      }
+                      options={[
+                        { value: '上海' },
+                        { value: '北京' },
+                        { value: '杭州', disabled: true },
+                      ]}
                     />
                   }
                 />
+                <Typography variant="caption" tone="muted">
+                  {selectedCity}
+                </Typography>
                 <FormField
                   label="地区"
                   control={

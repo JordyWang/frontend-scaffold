@@ -1,6 +1,7 @@
 import {
   forwardRef,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   type ChangeEvent,
@@ -16,6 +17,7 @@ import {
 } from './config-context'
 import { inputSizeStyles, inputStyles } from './tailwind-styles'
 import { Button } from './button'
+import { Portal } from './portal'
 
 const inputNumberSizeStyles = {
   default: '',
@@ -258,16 +260,21 @@ export const TimePicker = forwardRef<HTMLInputElement, TimePickerProps>(
   },
 )
 
-export type AutoCompleteOption = { value: string; label?: ReactNode }
+export type AutoCompleteOption = {
+  value: string
+  label?: ReactNode
+  disabled?: boolean
+}
 export type AutoCompleteProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
-  'value' | 'defaultValue' | 'onChange' | 'size'
+  'value' | 'defaultValue' | 'onChange' | 'onSelect' | 'size'
 > & {
   options: AutoCompleteOption[]
   value?: string
   defaultValue?: string
   size?: ControlSize
   onChange?: (value: string) => void
+  onSelect?: (value: string, option: AutoCompleteOption) => void
   label?: string
 }
 
@@ -279,58 +286,245 @@ export const AutoComplete = forwardRef<HTMLInputElement, AutoCompleteProps>(
       defaultValue,
       size,
       onChange,
+      onSelect,
       label = '自动完成',
       className,
       ...props
     },
     ref,
   ) {
-    const { componentSize } = useConfig()
+    const { componentSize, direction } = useConfig()
     const resolvedSize = resolveComponentSize(componentSize, size)
     const id = useId()
-    const [focused, setFocused] = useState(false)
+    const listId = `${id}-list`
+    const inputRef = useRef<HTMLInputElement>(null)
+    const panelRef = useRef<HTMLDivElement>(null)
+    const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+    const suppressFocusOpenRef = useRef(false)
+    const [open, setOpen] = useState(false)
+    const [activeValue, setActiveValue] = useState<string | null>(null)
     const [internalValue, setInternalValue] = useState(defaultValue ?? '')
-    const currentValue = value ?? internalValue
+    const currentValue = value === undefined ? internalValue : value
     const filtered = options.filter((option) =>
-      String(option.value)
+      option.value
         .toLocaleLowerCase()
-        .includes(String(currentValue).toLocaleLowerCase()),
+        .includes(currentValue.toLocaleLowerCase()),
     )
+    const visible = open && !props.disabled && filtered.length > 0
+    const activeIndex = filtered.findIndex(
+      (option) => option.value === activeValue && !option.disabled,
+    )
+
+    useLayoutEffect(() => {
+      if (!visible) return
+      const input = inputRef.current
+      const panel = panelRef.current
+      if (!input || !panel) return
+
+      const position = () => {
+        const anchor = input.getBoundingClientRect()
+        const viewport = window.visualViewport
+        const viewportLeft = viewport?.offsetLeft ?? 0
+        const viewportTop = viewport?.offsetTop ?? 0
+        const viewportWidth = viewport?.width ?? window.innerWidth
+        const viewportHeight = viewport?.height ?? window.innerHeight
+        const viewportRight = viewportLeft + viewportWidth
+        const viewportBottom = viewportTop + viewportHeight
+        if (
+          anchor.bottom < viewportTop ||
+          anchor.top > viewportBottom ||
+          anchor.right < viewportLeft ||
+          anchor.left > viewportRight
+        ) {
+          panel.style.visibility = 'hidden'
+          return
+        }
+        panel.style.width = `${Math.min(Math.max(anchor.width, 192), viewportWidth - 16)}px`
+        const popup = panel.getBoundingClientRect()
+        const preferredLeft =
+          direction === 'rtl' ? anchor.right - popup.width : anchor.left
+        const left = Math.max(
+          viewportLeft + 8,
+          Math.min(preferredLeft, viewportRight - popup.width - 8),
+        )
+        const roomBelow = viewportBottom - anchor.bottom - 8
+        const roomAbove = anchor.top - viewportTop - 8
+        const top =
+          roomBelow >= popup.height || roomBelow >= roomAbove
+            ? anchor.bottom + 4
+            : anchor.top - popup.height - 4
+        panel.style.left = `${left}px`
+        panel.style.top = `${Math.max(viewportTop + 8, Math.min(top, viewportBottom - popup.height - 8))}px`
+        panel.style.visibility = 'visible'
+      }
+
+      position()
+      window.addEventListener('scroll', position, true)
+      window.addEventListener('resize', position)
+      window.visualViewport?.addEventListener('resize', position)
+      window.visualViewport?.addEventListener('scroll', position)
+      const observer =
+        typeof ResizeObserver === 'undefined'
+          ? null
+          : new ResizeObserver(position)
+      observer?.observe(input)
+      observer?.observe(panel)
+      return () => {
+        window.removeEventListener('scroll', position, true)
+        window.removeEventListener('resize', position)
+        window.visualViewport?.removeEventListener('resize', position)
+        window.visualViewport?.removeEventListener('scroll', position)
+        observer?.disconnect()
+      }
+    }, [direction, visible])
+
+    function selectOption(option: AutoCompleteOption) {
+      if (option.disabled) return
+      if (value === undefined) setInternalValue(option.value)
+      onChange?.(option.value)
+      onSelect?.(option.value, option)
+      setOpen(false)
+      setActiveValue(null)
+      if (inputRef.current && document.activeElement !== inputRef.current) {
+        suppressFocusOpenRef.current = true
+        inputRef.current.focus()
+        suppressFocusOpenRef.current = false
+      }
+    }
+
     return (
       <>
         <input
           {...props}
-          ref={ref}
+          ref={(element) => {
+            inputRef.current = element
+            if (typeof ref === 'function') ref(element)
+            else if (ref) ref.current = element
+          }}
           role="combobox"
           aria-label={props['aria-label'] ?? label}
           aria-autocomplete="list"
-          aria-expanded={focused && filtered.length > 0}
-          aria-controls={focused && filtered.length > 0 ? id : undefined}
+          aria-expanded={visible}
+          aria-controls={visible ? listId : undefined}
+          aria-activedescendant={
+            visible && activeIndex >= 0
+              ? `${id}-option-${activeIndex}`
+              : undefined
+          }
           aria-haspopup="listbox"
-          list={id}
+          autoComplete={props.autoComplete ?? 'off'}
           className={cn(inputStyles, inputSizeStyles[resolvedSize], className)}
-          value={value === undefined ? internalValue : value}
+          value={currentValue}
           onFocus={(event) => {
-            setFocused(true)
+            event.currentTarget.scrollIntoView?.({
+              block: 'nearest',
+              inline: 'nearest',
+            })
+            if (!suppressFocusOpenRef.current) setOpen(true)
             props.onFocus?.(event)
           }}
           onBlur={(event) => {
-            setFocused(false)
+            setOpen(false)
+            setActiveValue(null)
             props.onBlur?.(event)
           }}
           onChange={(event) => {
             const next = event.currentTarget.value
             if (value === undefined) setInternalValue(next)
+            setActiveValue(null)
+            setOpen(true)
             onChange?.(next)
           }}
+          onKeyDown={(event) => {
+            props.onKeyDown?.(event)
+            if (event.defaultPrevented) return
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+              const enabled = filtered
+                .map((option, index) => (!option.disabled ? index : -1))
+                .filter((index) => index >= 0)
+              if (!enabled.length) return
+              event.preventDefault()
+              const current = enabled.indexOf(activeIndex)
+              const next =
+                current < 0
+                  ? event.key === 'ArrowDown'
+                    ? 0
+                    : enabled.length - 1
+                  : (current +
+                      (event.key === 'ArrowDown' ? 1 : -1) +
+                      enabled.length) %
+                    enabled.length
+              setActiveValue(filtered[enabled[next]].value)
+              setOpen(true)
+            } else if (event.key === 'Enter' && visible && activeIndex >= 0) {
+              event.preventDefault()
+              selectOption(filtered[activeIndex])
+            } else if (event.key === 'Escape' && visible) {
+              event.preventDefault()
+              setOpen(false)
+              setActiveValue(null)
+            }
+          }}
         />
-        <datalist id={id}>
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </datalist>
+        {visible && (
+          <Portal>
+            <div
+              ref={panelRef}
+              id={listId}
+              role="listbox"
+              aria-label={`${label}建议`}
+              dir={direction}
+              className="invisible fixed z-[70] max-h-[min(20rem,calc(100dvh-1rem))] overflow-auto rounded-[var(--radius-md)] border border-border bg-card p-[var(--space-xs)] text-card-foreground shadow-xl"
+              onPointerDown={(event) => event.preventDefault()}
+            >
+              {filtered.map((option, index) => (
+                <div
+                  key={option.value}
+                  id={`${id}-option-${index}`}
+                  role="option"
+                  aria-selected={option.value === currentValue}
+                  aria-disabled={option.disabled || undefined}
+                  className={cn(
+                    'flex min-h-11 cursor-pointer touch-manipulation items-center rounded-[var(--radius-sm)] px-3 py-2.5 text-sm',
+                    activeIndex === index && 'bg-accent text-accent-foreground',
+                    option.disabled && 'cursor-not-allowed opacity-50',
+                  )}
+                  onPointerEnter={() => {
+                    if (!option.disabled) setActiveValue(option.value)
+                  }}
+                  onTouchStart={(event) => {
+                    const touch = event.touches[0]
+                    touchStartRef.current = touch
+                      ? { x: touch.clientX, y: touch.clientY }
+                      : null
+                  }}
+                  onTouchEnd={(event) => {
+                    const start = touchStartRef.current
+                    const touch = event.changedTouches[0]
+                    touchStartRef.current = null
+                    if (
+                      !start ||
+                      !touch ||
+                      Math.hypot(
+                        touch.clientX - start.x,
+                        touch.clientY - start.y,
+                      ) > 8
+                    )
+                      return
+                    event.preventDefault()
+                    selectOption(option)
+                  }}
+                  onTouchCancel={() => {
+                    touchStartRef.current = null
+                  }}
+                  onClick={() => selectOption(option)}
+                >
+                  {option.label ?? option.value}
+                </div>
+              ))}
+            </div>
+          </Portal>
+        )}
       </>
     )
   },
