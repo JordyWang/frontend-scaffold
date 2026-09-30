@@ -28,6 +28,7 @@ export type CascaderProps = {
   defaultValue?: string[]
   onChange?: (value: string[]) => void
   mode?: 'popup' | 'inline'
+  allowClear?: boolean
   placeholder?: string
   label?: string
   id?: string
@@ -158,6 +159,7 @@ export function Cascader({
   defaultValue = [],
   onChange,
   mode = 'popup',
+  allowClear = false,
   placeholder = '请选择',
   label = '级联选择',
   id,
@@ -347,6 +349,7 @@ export function Cascader({
           inputStyles,
           inputSizeStyles[resolvedSize],
           'flex cursor-pointer touch-manipulation items-center justify-between gap-2 text-start focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20',
+          allowClear && validPath.length > 0 && 'pe-12',
           selectedLabels.length === 0 && 'text-muted-foreground',
         )}
         onClick={() => {
@@ -376,10 +379,23 @@ export function Cascader({
               ))
             : placeholder}
         </span>
-        <span aria-hidden="true" className="shrink-0 text-muted-foreground">
-          ▾
-        </span>
+        {(!allowClear || validPath.length === 0) && (
+          <span aria-hidden="true" className="shrink-0 text-muted-foreground">
+            ▾
+          </span>
+        )}
       </button>
+      {allowClear && validPath.length > 0 && (
+        <button
+          type="button"
+          aria-label={`清空${label}`}
+          disabled={disabled}
+          className="absolute inset-y-0 end-0 z-10 flex min-h-11 w-11 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-[0.55]"
+          onClick={() => changePath([])}
+        >
+          <span aria-hidden="true">×</span>
+        </button>
+      )}
       {name && (
         <input
           type="hidden"

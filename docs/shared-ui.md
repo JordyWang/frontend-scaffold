@@ -16,7 +16,7 @@
 | DatePicker / TimePicker         | 原生日期/时间属性、`value`、`defaultValue`、`onChange`、`size`                                                                                   | 输出 ISO 日期或本地时间字符串；输入由浏览器提供键盘和触控选择器                                                             |
 | Calendar                        | `value` / `defaultValue`、`month` / `defaultMonth`、`onChange`、`onMonthChange`、`minDate`、`maxDate`、`disabledDate`、`renderDate`              | 选中日期使用 `YYYY-MM-DD`，月份使用 `YYYY-MM`；网格支持方向键、Home/End、PageUp/PageDown；日期按钮至少 44px                 |
 | ColorPicker                     | `value` / `defaultValue`、`onChange`、`showText`、`size`、`label`、常用 `aria-*`                                                                 | 使用原生颜色控件，统一输出六位小写 hex；保留键盘、系统颜色面板和 44px 触控区域                                              |
-| AutoComplete / Cascader         | `options`、`value` / `defaultValue`、`onChange`、`label`；AutoComplete 有 `onSelect`，Cascader 有 `mode`                                         | 自动完成使用 `combobox` + `listbox`；级联选择默认单入口弹层，`mode="inline"` 保留原生分级表单控件                           |
+| AutoComplete / Cascader         | `options`、`value` / `defaultValue`、`onChange`、`label`；AutoComplete 有 `onSelect`，Cascader 有 `mode`、`allowClear`                           | 自动完成使用 `combobox` + `listbox`；级联选择默认单入口弹层，`mode="inline"` 保留原生分级表单控件                           |
 | TreeSelect                      | `treeData`、`value` / `defaultValue`、`onChange`、`multiple`、`showSearch`、`allowClear`、`defaultExpandedValues`                                | 项目树形选择契约；单选或多选，搜索会显示匹配项及其祖先，键盘使用方向键与 Enter，H5 提供 44px 触控区域                       |
 | Transfer                        | `items`、`targetKeys` / `defaultTargetKeys`、`selectedKeys` / `defaultSelectedKeys`、`onChange`、`showSearch`、`filterItem`                      | 双栏穿梭框；可见项批量选择、禁用项保护、方向操作、键盘和 H5 单列布局                                                        |
 | Upload                          | `accept`、`multiple`、`beforeUpload`、`onFiles`、`disabled`                                                                                      | 仅负责文件入口和筛选；预览、校验、上传进度继续使用 `capabilities/files`                                                     |
@@ -67,7 +67,7 @@
 
 `AutoComplete` 根据选项 `value` 过滤候选；`onChange` 接收输入或选中的字符串，`onSelect(value, option)` 只在选中建议时调用。候选项可设置 `disabled`。输入框保留焦点，通过上下方向键浏览、Enter 选择、Escape 关闭；候选面板在主题作用域内浮动，H5 可直接触控选择。
 
-`Cascader` 默认使用单个触发器显示路径，在主题作用域弹层中逐级选择；选到叶节点后关闭并恢复焦点。弹层支持 Escape、正反向 Tab、外部点击和 H5 触控。`mode="inline"` 保留多级原生选择框，适合需要浏览器原生 `required` 校验的表单；弹层模式以 `aria-required` 表达必填，应使用 `FormItem.rules` 校验。`onChange` 返回从第一级开始的有效路径；选择“请选择”会截断该级及其后续路径，根级清空返回 `[]`。选项移除或禁用时暂时显示最后有效的前缀，原选项恢复后可恢复未被用户改动的选择。传入 `name` 时，表单以 JSON 数组字符串提交完整有效路径。
+`Cascader` 默认使用单个触发器显示路径，在主题作用域弹层中逐级选择；选到叶节点后关闭并恢复焦点。弹层支持 Escape、正反向 Tab、外部点击和 H5 触控。`allowClear` 在有有效路径时提供独立的键盘和触控清空按钮；`mode="inline"` 保留多级原生选择框，适合需要浏览器原生 `required` 校验的表单；弹层模式以 `aria-required` 表达必填，应使用 `FormItem.rules` 校验。`onChange` 返回从第一级开始的有效路径；选择“请选择”会截断该级及其后续路径，根级清空返回 `[]`。选项移除或禁用时暂时显示最后有效的前缀，原选项恢复后可恢复未被用户改动的选择。传入 `name` 时，表单以 JSON 数组字符串提交完整有效路径。
 
 `Tabs` 在非受控模式下会在当前项被移除或禁用时显示第一个可用面板；原项重新可用后会恢复之前的选择。若键盘焦点停在被移除或禁用的标签上，焦点会转到当前可用标签。受控模式仍以传入的 `value` 为准。
 

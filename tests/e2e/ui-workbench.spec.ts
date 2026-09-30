@@ -551,6 +551,19 @@ test('cascader popup completes a path and inline options stay current', async ({
   await expect(popup).toHaveCount(0)
   await expect(trigger).toContainText('中国 / 上海')
 
+  const clear = preview.getByRole('button', { name: '清空地区' })
+  const clearBox = await clear.boundingBox()
+  expect(clearBox?.width).toBeGreaterThanOrEqual(44)
+  expect(clearBox?.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await clear.tap()
+  else await clear.click()
+  await expect(trigger).toContainText('请选择')
+  await expect(clear).toHaveCount(0)
+
+  if (testInfo.project.name.startsWith('mobile-')) await trigger.tap()
+  else await trigger.click()
+  await country.selectOption('cn')
+  await city.selectOption('sh')
   if (testInfo.project.name.startsWith('mobile-')) await trigger.tap()
   else await trigger.click()
   await country.selectOption('')
@@ -605,6 +618,12 @@ test('cascader popup restores focus and preserves keyboard tab order', async ({
   await city.press('Tab')
   await expect(popup).toHaveCount(0)
   await expect(trigger).not.toBeFocused()
+
+  const clear = preview.getByRole('button', { name: '清空地区' })
+  await clear.focus()
+  await clear.press('Enter')
+  await expect(clear).toHaveCount(0)
+  await expect(trigger).toBeFocused()
 })
 
 test('controlled number input accepts drafts, clamps on blur and can be cleared', async ({

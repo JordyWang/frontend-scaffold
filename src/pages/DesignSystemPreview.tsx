@@ -776,6 +776,7 @@ export function DesignSystemPreview() {
                   control={
                     <Cascader
                       label="地区"
+                      allowClear
                       options={[
                         {
                           value: 'cn',

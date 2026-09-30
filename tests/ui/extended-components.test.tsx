@@ -1009,6 +1009,7 @@ describe('Ant Design-inspired shared components', () => {
     render(
       <Cascader
         label="地区"
+        allowClear
         onChange={onChange}
         options={[
           {
@@ -1034,6 +1035,10 @@ describe('Ant Design-inspired shared components', () => {
     expect(onChange).toHaveBeenLastCalledWith(['cn', 'sh'])
     expect(trigger).toHaveTextContent('中国 / 上海')
     expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(screen.getByRole('button', { name: '清空地区' }))
+    expect(onChange).toHaveBeenLastCalledWith([])
+    expect(trigger).toHaveTextContent('请选择')
+    expect(screen.queryByRole('button', { name: '清空地区' })).toBeNull()
   })
 
   it('keeps cascader selections valid when options change', () => {
