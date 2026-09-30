@@ -214,6 +214,51 @@ test('checkbox and radio marks remain visible after selection', async ({
   await expect(mark(checkbox)).toHaveCSS('opacity', '1')
 })
 
+test('table filters rows with keyboard, touch and focus restoration', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const table = page
+    .getByRole('region', { name: '导航与数据' })
+    .getByRole('region', { name: '示例任务表' })
+  const triggers = table.getByRole('button', { name: /^筛选状态/ })
+  const trigger = triggers.first()
+  const mobile = testInfo.project.name.startsWith('mobile-')
+  const visibleRows = mobile
+    ? table.getByRole('list', { name: '示例任务表' })
+    : table.getByRole('table')
+  if (mobile) await trigger.tap()
+  else {
+    await trigger.focus()
+    await trigger.press('Enter')
+  }
+  const panel = page.getByRole('dialog', { name: '筛选状态' })
+  const active = panel.getByRole('checkbox', { name: '进行中' })
+  if (mobile) await active.tap()
+  else {
+    await active.focus()
+    await active.press('Space')
+  }
+  const apply = panel.getByRole('button', { name: '应用' })
+  if (mobile) await apply.tap()
+  else await apply.press('Enter')
+  await expect(visibleRows.getByText('进行中')).toBeVisible()
+  await expect(visibleRows.getByText('已完成')).toHaveCount(0)
+  await expect(trigger).toBeFocused()
+  const filteredBox = await trigger.boundingBox()
+  expect(filteredBox!.height).toBeGreaterThanOrEqual(44)
+  if (mobile) await trigger.tap()
+  else await trigger.press('Enter')
+  const reset = page
+    .getByRole('dialog', { name: '筛选状态' })
+    .getByRole('button', {
+      name: '重置',
+    })
+  if (mobile) await reset.tap()
+  else await reset.press('Enter')
+  await expect(visibleRows.getByText('已完成')).toBeVisible()
+})
+
 test('system dark mode keeps local light surfaces and state colors distinct', async ({
   page,
 }, testInfo) => {

@@ -3,6 +3,11 @@ import { cn } from '@/shared/lib/utils'
 import { Checkbox } from './choice'
 import { Empty } from './empty'
 import { ErrorState, LoadingState } from './feedback-state'
+import {
+  TableFilterControl,
+  type TableFilterOption,
+  type TableFilters,
+} from './table-filter'
 
 export type TableColumn<T> = {
   key: string
@@ -10,6 +15,8 @@ export type TableColumn<T> = {
   render: (row: T) => ReactNode
   sorter?: (left: T, right: T) => number
   sortLabel?: string
+  filterOptions?: TableFilterOption<T>[]
+  filterLabel?: string
   align?: 'left' | 'center' | 'right'
   /** Render this data cell as a row header for assistive technology. */
   rowScope?: 'row' | 'rowgroup'
@@ -48,6 +55,9 @@ export type TableProps<T> = {
   sort?: TableSort | null
   defaultSort?: TableSort | null
   onSortChange?: (sort: TableSort | null) => void
+  filters?: TableFilters
+  defaultFilters?: TableFilters
+  onFiltersChange?: (filters: TableFilters) => void
   selection?: TableSelection<T>
   className?: string
 }
@@ -67,6 +77,9 @@ export function Table<T>(allProps: TableProps<T>) {
     sort,
     defaultSort = null,
     onSortChange,
+    filters,
+    defaultFilters = {},
+    onFiltersChange,
     selection,
     className,
   } = allProps
@@ -79,10 +92,24 @@ export function Table<T>(allProps: TableProps<T>) {
   )
   const activeSort = sortColumn ? requestedSort : null
   const sorter = sortColumn?.sorter
+  const [internalFilters, setInternalFilters] =
+    useState<TableFilters>(defaultFilters)
+  const activeFilters = filters ?? internalFilters
   const displayedRows = useMemo(() => {
-    if (!activeSort || !sorter) return rows
+    const filteredRows = rows.filter((row) =>
+      columns.every((column) => {
+        const values = activeFilters[column.key]
+        if (!values?.length || !column.filterOptions) return true
+        return values.some((value) =>
+          column.filterOptions
+            ?.find((option) => option.value === value)
+            ?.matches(row),
+        )
+      }),
+    )
+    if (!activeSort || !sorter) return filteredRows
     const multiplier = activeSort.direction === 'asc' ? 1 : -1
-    return rows
+    return filteredRows
       .map((row, index) => ({ row, index }))
       .sort((left, right) => {
         const result = sorter(left.row, right.row)
@@ -92,7 +119,7 @@ export function Table<T>(allProps: TableProps<T>) {
         )
       })
       .map(({ row }) => row)
-  }, [activeSort, rows, sorter])
+  }, [activeFilters, activeSort, columns, rows, sorter])
   const [internalSelectedKeys, setInternalSelectedKeys] = useState<Key[]>(
     selection?.defaultSelectedKeys ?? [],
   )
@@ -116,6 +143,14 @@ export function Table<T>(allProps: TableProps<T>) {
   const allSelected =
     enabledKeys.length > 0 && enabledKeys.every((key) => selectedSet.has(key))
   const someSelected = enabledKeys.some((key) => selectedSet.has(key))
+
+  function changeFilter(columnKey: string, values: string[]) {
+    const next = { ...activeFilters }
+    if (values.length) next[columnKey] = values
+    else delete next[columnKey]
+    if (filters === undefined) setInternalFilters(next)
+    onFiltersChange?.(next)
+  }
 
   function changeSelection(next: Key[]) {
     const unique = [...new Set(next)]
@@ -212,6 +247,22 @@ export function Table<T>(allProps: TableProps<T>) {
     )
   }
 
+  function filterButton(column: TableColumn<T>, mobile = false) {
+    if (!column.filterOptions?.length) return null
+    return (
+      <TableFilterControl
+        label={
+          column.filterLabel ??
+          (typeof column.header === 'string' ? column.header : column.key)
+        }
+        options={column.filterOptions}
+        selectedValues={activeFilters[column.key] ?? []}
+        onApply={(values) => changeFilter(column.key, values)}
+        mobile={mobile}
+      />
+    )
+  }
+
   const regionClassName = cn(
     'overflow-hidden rounded-[var(--radius)] border border-border bg-card text-card-foreground',
     className,
@@ -238,7 +289,7 @@ export function Table<T>(allProps: TableProps<T>) {
         </div>
       </section>
     )
-  if (rows.length === 0)
+  if (displayedRows.length === 0)
     return (
       <section aria-label={caption} className={regionClassName}>
         <div role="status" className={stateClassName}>
@@ -289,7 +340,10 @@ export function Table<T>(allProps: TableProps<T>) {
                     alignmentClassName(column.align),
                   )}
                 >
-                  {column.sorter ? sortButton(column) : column.header}
+                  <span className="inline-flex items-center gap-1">
+                    {column.sorter ? sortButton(column) : column.header}
+                    {filterButton(column)}
+                  </span>
                 </th>
               ))}
             </tr>
@@ -329,20 +383,31 @@ export function Table<T>(allProps: TableProps<T>) {
       </div>
       {renderMobileRow && (
         <div className="sm:hidden">
-          {(selection || columns.some((column) => column.sorter)) && (
+          {(selection ||
+            columns.some(
+              (column) => column.sorter || column.filterOptions?.length,
+            )) && (
             <div className="flex flex-wrap items-center gap-2 border-b border-border p-2">
               {selection && selectAllCheckbox(true)}
-              {columns.some((column) => column.sorter) && (
+              {(columns.some((column) => column.sorter) ||
+                columns.some((column) => column.filterOptions?.length)) && (
                 <div
                   role="group"
-                  aria-label={`${caption}排序`}
+                  aria-label={`${caption}筛选和排序`}
                   className="flex min-w-0 gap-2 overflow-x-auto"
                 >
-                  {columns
-                    .filter((column) => column.sorter)
-                    .map((column) => (
-                      <span key={column.key}>{sortButton(column, true)}</span>
-                    ))}
+                  {columns.flatMap((column) => [
+                    column.sorter ? (
+                      <span key={`${column.key}-sort`}>
+                        {sortButton(column, true)}
+                      </span>
+                    ) : null,
+                    column.filterOptions?.length ? (
+                      <span key={`${column.key}-filter`}>
+                        {filterButton(column, true)}
+                      </span>
+                    ) : null,
+                  ])}
                 </div>
               )}
             </div>

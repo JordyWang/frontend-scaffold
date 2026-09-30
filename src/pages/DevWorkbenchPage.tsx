@@ -613,6 +613,23 @@ export function DevWorkbenchPage() {
                     key: 'status',
                     header: '状态',
                     render: (row) => row.status,
+                    filterOptions: [
+                      {
+                        value: 'done',
+                        label: '已完成',
+                        matches: (row) => row.status === '已完成',
+                      },
+                      {
+                        value: 'active',
+                        label: '进行中',
+                        matches: (row) => row.status === '进行中',
+                      },
+                      {
+                        value: 'todo',
+                        label: '待开始',
+                        matches: (row) => row.status === '待开始',
+                      },
+                    ],
                   },
                   {
                     key: 'owner',

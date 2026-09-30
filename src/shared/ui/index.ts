@@ -82,6 +82,7 @@ export type {
   TableSort,
   TableSelection,
 } from './table'
+export type { TableFilterOption, TableFilters } from './table-filter'
 export { ThemeScope } from './theme-scope'
 export type { ThemeScopeProps, ThemeTokens } from './theme-scope'
 export { Icon } from './icon'
