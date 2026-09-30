@@ -80,6 +80,8 @@
 
 `Button` 在原有 `variant`、`size`、`loading` 基础上支持 `danger`、`block`、`shape`（default、round、circle）以及 `icon` / `iconPosition` 插槽；`danger` 会优先使用错误主题色。
 
+`InputNumber`、`DatePicker`、`TimePicker`、`DateRangePicker`、`TimeRangePicker` 和 `AutoComplete` 同样支持 `variant` 与 `status`；错误状态通过 `aria-invalid` 传递，日期和时间控件仍使用浏览器原生键盘与触控选择器。
+
 `InputNumber` 输入期间保留原始数字草稿，`onChange` 会收到当前数值或清空时的 `undefined`；失焦时再按 `min` / `max` 限制数值，并在修正后再次调用 `onChange`。受控用法可传入 `value={undefined}` 表示空值，并在 `onChange` 中同步更新。
 
 `DateRangePicker` 以 `YYYY-MM-DD` 字符串元组表示范围，清空任一端保留另一端；若新选日期越过另一端，会清空另一端以避免倒序。`name` 将完整元组以 JSON 数组字符串提交。两个原生日期输入都支持浏览器键盘和 H5 日期选择器。与 `FormItem` 配合时传入 `emptyValue={[]}`；如果提交必须同时包含起止日期，应另加 `validator` 检查两个端点。

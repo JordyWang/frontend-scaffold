@@ -5,7 +5,13 @@ import {
   useConfig,
   type ControlSize,
 } from './config-context'
-import { inputSizeStyles, inputStyles } from './tailwind-styles'
+import type { InputStatus, InputVariant } from './input'
+import {
+  inputSizeStyles,
+  inputStatusStyles,
+  inputStyles,
+  inputVariantStyles,
+} from './tailwind-styles'
 
 type RangeValue = [start: string, end: string]
 export type DateRange = RangeValue
@@ -26,6 +32,8 @@ type NativeRangePickerProps = {
   name?: string
   id?: string
   size?: ControlSize
+  variant?: InputVariant
+  status?: InputStatus
   required?: boolean
   disabled?: boolean
   className?: string
@@ -67,6 +75,8 @@ const NativeRangePicker = forwardRef<HTMLInputElement, NativeRangePickerProps>(
       name,
       id,
       size,
+      variant = 'outlined',
+      status = 'default',
       required,
       disabled,
       className,
@@ -97,7 +107,8 @@ const NativeRangePicker = forwardRef<HTMLInputElement, NativeRangePickerProps>(
         aria-label={ariaLabelledBy ? undefined : (ariaLabel ?? label)}
         aria-labelledby={ariaLabelledBy}
         aria-describedby={ariaDescribedBy}
-        aria-invalid={ariaInvalid || undefined}
+        aria-invalid={status === 'error' || ariaInvalid || undefined}
+        data-status={status === 'default' ? undefined : status}
         aria-required={required || undefined}
         disabled={disabled}
         className={cn('m-0 min-w-0 border-0 p-0', className)}
@@ -125,10 +136,12 @@ const NativeRangePicker = forwardRef<HTMLInputElement, NativeRangePickerProps>(
               step={step}
               required={required}
               disabled={disabled}
-              aria-invalid={ariaInvalid || undefined}
+              aria-invalid={status === 'error' || ariaInvalid || undefined}
               aria-describedby={ariaDescribedBy}
               className={cn(
                 inputStyles,
+                inputVariantStyles[variant],
+                inputStatusStyles[status],
                 inputSizeStyles[resolvedSize],
                 'min-w-0 touch-manipulation focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20',
               )}
@@ -164,10 +177,12 @@ const NativeRangePicker = forwardRef<HTMLInputElement, NativeRangePickerProps>(
               step={step}
               required={required}
               disabled={disabled}
-              aria-invalid={ariaInvalid || undefined}
+              aria-invalid={status === 'error' || ariaInvalid || undefined}
               aria-describedby={ariaDescribedBy}
               className={cn(
                 inputStyles,
+                inputVariantStyles[variant],
+                inputStatusStyles[status],
                 inputSizeStyles[resolvedSize],
                 'min-w-0 touch-manipulation focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20',
               )}

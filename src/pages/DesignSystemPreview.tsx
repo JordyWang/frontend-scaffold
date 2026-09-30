@@ -968,6 +968,16 @@ export function DesignSystemPreview() {
                     />
                   }
                 />
+                <FormField
+                  label="下划线时间范围"
+                  control={
+                    <TimeRangePicker
+                      variant="underlined"
+                      status="warning"
+                      defaultValue={['09:00', '10:00']}
+                    />
+                  }
+                />
                 <Typography variant="caption" tone="muted">
                   已选范围：{dateRange[0] || '未选开始'} →{' '}
                   {dateRange[1] || '未选结束'}
@@ -1319,6 +1329,28 @@ export function DesignSystemPreview() {
                   ]}
                 />
                 <Stack direction="row" wrap gap="lg" align="center">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <FormField
+                      label="填充数字"
+                      control={
+                        <InputNumber
+                          variant="filled"
+                          defaultValue={8}
+                          aria-label="填充数字"
+                        />
+                      }
+                    />
+                    <FormField
+                      label="警告日期"
+                      control={
+                        <DatePicker
+                          variant="underlined"
+                          status="warning"
+                          aria-label="警告日期"
+                        />
+                      }
+                    />
+                  </div>
                   <FormField
                     label="数量"
                     control={

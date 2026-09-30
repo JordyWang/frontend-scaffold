@@ -15,6 +15,7 @@ import {
   ConfigProvider,
   Descriptions,
   DatePicker,
+  DateRangePicker,
   Dropdown,
   FloatButton,
   Form,
@@ -572,6 +573,45 @@ describe('Ant Design-inspired shared components', () => {
     const slider = screen.getByRole('slider', { name: '音量' })
     fireEvent.change(slider, { target: { value: '7' } })
     expect(onSliderChange).toHaveBeenCalledWith(7)
+  })
+
+  it('shares field variants and statuses across native data controls', () => {
+    render(
+      <>
+        <InputNumber aria-label="填充数量" variant="filled" defaultValue={2} />
+        <DatePicker
+          aria-label="警告日期"
+          variant="underlined"
+          status="warning"
+        />
+        <TimePicker aria-label="错误时间" status="error" />
+        <AutoComplete
+          aria-label="无边框城市"
+          variant="borderless"
+          options={[]}
+        />
+        <DateRangePicker aria-label="错误日期范围" status="error" />
+      </>,
+    )
+    expect(
+      screen.getByRole('spinbutton', { name: '填充数量' }).parentElement,
+    ).toHaveClass('bg-muted')
+    expect(screen.getByLabelText('警告日期')).toHaveClass('border-b')
+    expect(screen.getByLabelText('警告日期')).toHaveAttribute(
+      'data-status',
+      'warning',
+    )
+    expect(screen.getByLabelText('错误时间')).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    )
+    expect(screen.getByRole('combobox', { name: '无边框城市' })).toHaveClass(
+      'bg-transparent',
+    )
+    expect(screen.getByRole('group', { name: '错误日期范围' })).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    )
   })
 
   it('keeps controlled numeric drafts editable and accepts an explicit empty value', () => {

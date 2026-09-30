@@ -15,7 +15,13 @@ import {
   useConfig,
   type ControlSize,
 } from './config-context'
-import { inputSizeStyles, inputStyles } from './tailwind-styles'
+import type { InputStatus, InputVariant } from './input'
+import {
+  inputSizeStyles,
+  inputStatusStyles,
+  inputStyles,
+  inputVariantStyles,
+} from './tailwind-styles'
 import { Button } from './button'
 import { Portal } from './portal'
 
@@ -38,6 +44,8 @@ export type InputNumberProps = Omit<
   prefix?: React.ReactNode
   suffix?: React.ReactNode
   invalid?: boolean
+  variant?: InputVariant
+  status?: InputStatus
   onChange?: (value: number | undefined) => void
 }
 
@@ -55,6 +63,8 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
       prefix,
       suffix,
       invalid,
+      variant = 'outlined',
+      status = 'default',
       'aria-invalid': ariaInvalid,
       className,
       disabled,
@@ -113,10 +123,13 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
 
     return (
       <span
-        aria-invalid={invalid || ariaInvalid || undefined}
+        aria-invalid={invalid || status === 'error' || ariaInvalid || undefined}
+        data-status={status === 'default' ? undefined : status}
         data-disabled={disabled || undefined}
         className={cn(
           'inline-flex w-full min-h-[max(44px,var(--ui-control-height))] items-center gap-[var(--space-xs)] rounded-[var(--ui-field-radius)] border border-input bg-card px-3 text-card-foreground focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20 aria-invalid:border-destructive data-disabled:cursor-not-allowed data-disabled:opacity-[0.55]',
+          inputVariantStyles[variant],
+          inputStatusStyles[status],
           inputNumberSizeStyles[resolvedSize],
           className,
         )}
@@ -134,7 +147,9 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
           max={max}
           step={step}
           disabled={disabled}
-          aria-invalid={invalid || ariaInvalid || undefined}
+          aria-invalid={
+            invalid || status === 'error' || ariaInvalid || undefined
+          }
           onChange={handleChange}
           onFocus={handleFocus}
           onBlur={handleBlur}
@@ -215,6 +230,8 @@ type NativePickerProps = Omit<
   value?: string
   defaultValue?: string
   size?: ControlSize
+  variant?: InputVariant
+  status?: InputStatus
   onChange?: (value: string) => void
 }
 
@@ -222,7 +239,18 @@ const NativePicker = forwardRef<
   HTMLInputElement,
   NativePickerProps & { type: 'date' | 'time' }
 >(function NativePicker(
-  { type, value, defaultValue, size, onChange, className, ...props },
+  {
+    type,
+    value,
+    defaultValue,
+    size,
+    variant = 'outlined',
+    status = 'default',
+    onChange,
+    className,
+    'aria-invalid': ariaInvalid,
+    ...props
+  },
   ref,
 ) {
   const { componentSize } = useConfig()
@@ -234,10 +262,14 @@ const NativePicker = forwardRef<
       type={type}
       className={cn(
         inputStyles,
+        inputVariantStyles[variant],
+        inputStatusStyles[status],
         inputSizeStyles[resolvedSize],
         'touch-manipulation',
         className,
       )}
+      aria-invalid={status === 'error' || ariaInvalid || undefined}
+      data-status={status === 'default' ? undefined : status}
       value={value}
       defaultValue={defaultValue}
       onChange={(event) => onChange?.(event.currentTarget.value)}
@@ -273,6 +305,8 @@ export type AutoCompleteProps = Omit<
   value?: string
   defaultValue?: string
   size?: ControlSize
+  variant?: InputVariant
+  status?: InputStatus
   onChange?: (value: string) => void
   onSelect?: (value: string, option: AutoCompleteOption) => void
   label?: string
@@ -285,6 +319,8 @@ export const AutoComplete = forwardRef<HTMLInputElement, AutoCompleteProps>(
       value,
       defaultValue,
       size,
+      variant = 'outlined',
+      status = 'default',
       onChange,
       onSelect,
       label = '自动完成',
@@ -413,7 +449,17 @@ export const AutoComplete = forwardRef<HTMLInputElement, AutoCompleteProps>(
           }
           aria-haspopup="listbox"
           autoComplete={props.autoComplete ?? 'off'}
-          className={cn(inputStyles, inputSizeStyles[resolvedSize], className)}
+          className={cn(
+            inputStyles,
+            inputVariantStyles[variant],
+            inputStatusStyles[status],
+            inputSizeStyles[resolvedSize],
+            className,
+          )}
+          aria-invalid={
+            status === 'error' || props['aria-invalid'] || undefined
+          }
+          data-status={status === 'default' ? undefined : status}
           value={currentValue}
           onFocus={(event) => {
             event.currentTarget.scrollIntoView?.({
