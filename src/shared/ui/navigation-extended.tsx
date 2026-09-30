@@ -487,12 +487,34 @@ export function Anchor({
 
     updateFromScroll()
     window.addEventListener('scroll', updateFromScroll, { passive: true })
+    document.addEventListener('scroll', updateFromScroll, {
+      capture: true,
+      passive: true,
+    })
     window.addEventListener('resize', updateFromScroll)
     window.addEventListener('hashchange', updateFromScroll)
+    const observer =
+      typeof IntersectionObserver === 'undefined'
+        ? null
+        : new IntersectionObserver(updateFromScroll)
+    if (observer)
+      for (const link of links) {
+        if (!link.href.startsWith('#') || link.href.length < 2) continue
+        try {
+          const target = document.getElementById(
+            decodeURIComponent(link.href.slice(1)),
+          )
+          if (target) observer.observe(target)
+        } catch {
+          continue
+        }
+      }
     return () => {
       window.removeEventListener('scroll', updateFromScroll)
+      document.removeEventListener('scroll', updateFromScroll, true)
       window.removeEventListener('resize', updateFromScroll)
       window.removeEventListener('hashchange', updateFromScroll)
+      observer?.disconnect()
     }
   }, [activeHref, links, offsetTop, onChange])
 

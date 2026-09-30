@@ -475,6 +475,26 @@ export function DesignSystemPreview() {
                     control={<Input status="error" />}
                   />
                 </div>
+                <form
+                  aria-label="原生表单重置预览"
+                  className="grid gap-3 rounded-[var(--radius-md)] border border-border p-4"
+                >
+                  <FormField
+                    label="原生标题"
+                    control={<Input defaultValue="默认标题" allowClear />}
+                  />
+                  <FormField
+                    label="原生说明"
+                    control={<Textarea defaultValue="默认说明" allowClear />}
+                  />
+                  <FormField
+                    label="原生搜索"
+                    control={<SearchInput defaultValue="默认搜索" allowClear />}
+                  />
+                  <Button type="reset" variant="outline" size="small">
+                    重置原生表单
+                  </Button>
+                </form>
                 <FormField
                   required
                   error={choice === 'a' ? '请选择网格展示以继续' : undefined}

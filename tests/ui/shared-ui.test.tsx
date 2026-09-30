@@ -14,9 +14,11 @@ import {
   Pagination,
   Portal,
   RadioGroup,
+  SearchInput,
   Switch,
   Table,
   Tabs,
+  Textarea,
   ThemeScope,
   Drawer,
 } from '@/shared/ui'
@@ -112,6 +114,48 @@ describe('shared/ui contracts', () => {
     expect(ids).toHaveLength(2)
     expect(document.getElementById(ids[0])).toHaveTextContent('至少两个字符')
     expect(document.getElementById(ids[1])).toHaveTextContent('名称太短')
+  })
+
+  it('restores uncontrolled input defaults on native form reset', () => {
+    const onInputChange = vi.fn()
+    const onTextareaChange = vi.fn()
+    const onSearchChange = vi.fn()
+    render(
+      <form aria-label="原生重置示例">
+        <Input
+          aria-label="名称"
+          defaultValue="默认名称"
+          allowClear
+          onValueChange={onInputChange}
+        />
+        <Textarea
+          aria-label="说明"
+          defaultValue="默认说明"
+          allowClear
+          onValueChange={onTextareaChange}
+        />
+        <SearchInput
+          aria-label="搜索词"
+          defaultValue="默认搜索"
+          allowClear
+          onValueChange={onSearchChange}
+        />
+        <button type="reset">重置</button>
+      </form>,
+    )
+    const name = screen.getByRole('textbox', { name: '名称' })
+    const description = screen.getByRole('textbox', { name: '说明' })
+    const search = screen.getByRole('searchbox', { name: '搜索词' })
+    fireEvent.change(name, { target: { value: '新名称' } })
+    fireEvent.change(description, { target: { value: '新说明' } })
+    fireEvent.change(search, { target: { value: '新搜索' } })
+    fireEvent.click(screen.getByRole('button', { name: '重置' }))
+    expect(name).toHaveValue('默认名称')
+    expect(description).toHaveValue('默认说明')
+    expect(search).toHaveValue('默认搜索')
+    expect(onInputChange).toHaveBeenCalledTimes(1)
+    expect(onTextareaChange).toHaveBeenCalledTimes(1)
+    expect(onSearchChange).toHaveBeenCalledTimes(1)
   })
 
   it('connects self-labelled checkbox errors without nesting labels', () => {

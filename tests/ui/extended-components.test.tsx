@@ -1291,6 +1291,14 @@ describe('Ant Design-inspired shared components', () => {
       )
       expect(onChange).toHaveBeenCalledWith('#anchor-second')
 
+      firstTop = 0
+      secondTop = 200
+      fireEvent.scroll(document)
+      expect(screen.getByRole('link', { name: '第一节' })).toHaveAttribute(
+        'aria-current',
+        'location',
+      )
+
       rerender(<Anchor links={links} activeHref="#anchor-first" />)
       fireEvent.scroll(window)
       expect(screen.getByRole('link', { name: '第一节' })).toHaveAttribute(

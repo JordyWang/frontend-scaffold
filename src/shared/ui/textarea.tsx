@@ -8,6 +8,7 @@ import {
 import { cn } from '@/shared/lib/utils'
 import { clearNativeInput } from './clear-native-input'
 import { useConfig } from './config-context'
+import { useNativeFormReset } from './native-form-reset'
 import {
   inputSizeStyles,
   inputStatusStyles,
@@ -56,6 +57,12 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     const textareaRef = useRef<HTMLTextAreaElement>(null)
     const [internalValue, setInternalValue] = useState(
       defaultValue === undefined ? '' : String(defaultValue),
+    )
+    useNativeFormReset(
+      textareaRef,
+      controlled,
+      defaultValue === undefined ? '' : String(defaultValue),
+      setInternalValue,
     )
     const currentValue = controlled
       ? value === undefined || value === null

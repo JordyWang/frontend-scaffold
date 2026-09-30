@@ -290,6 +290,45 @@ test('clearable Input and Textarea restore focus on desktop and H5', async ({
   }
 })
 
+test('native form reset restores uncontrolled inputs on keyboard and H5 touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const form = page.getByRole('form', { name: '原生表单重置预览' })
+  const title = form.getByRole('textbox', { name: '原生标题' })
+  const description = form.getByRole('textbox', { name: '原生说明' })
+  const search = form.getByRole('searchbox', { name: '原生搜索' })
+  const reset = form.getByRole('button', { name: '重置原生表单' })
+  await title.fill('更新标题')
+  await description.fill('更新说明')
+  await search.fill('更新搜索')
+  if (testInfo.project.name.startsWith('mobile-')) await reset.tap()
+  else {
+    await reset.focus()
+    await reset.press('Enter')
+  }
+  await expect(title).toHaveValue('默认标题')
+  await expect(description).toHaveValue('默认说明')
+  await expect(search).toHaveValue('默认搜索')
+
+  const clearTitle = title.locator('..').getByRole('button', {
+    name: '清空输入',
+  })
+  if (testInfo.project.name.startsWith('mobile-')) await clearTitle.tap()
+  else await clearTitle.press('Enter')
+  await expect(title).toHaveValue('')
+  if (testInfo.project.name.startsWith('mobile-')) await reset.tap()
+  else await reset.press('Enter')
+  await expect(title).toHaveValue('默认标题')
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
+})
+
 test('system dark mode keeps local light surfaces and state colors distinct', async ({
   page,
 }, testInfo) => {

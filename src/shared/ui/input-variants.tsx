@@ -2,6 +2,7 @@ import { forwardRef, useRef, useState, type InputHTMLAttributes } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { useConfig } from './config-context'
 import { Icon } from './icon'
+import { useNativeFormReset } from './native-form-reset'
 import {
   affixActionStyles,
   affixInputStyles,
@@ -30,8 +31,9 @@ export type SearchInputProps = Omit<
 
 /** Search entry with a project-owned value and submit contract. */
 export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
-  function SearchInput(
-    {
+  function SearchInput(allProps, ref) {
+    const controlled = Object.prototype.hasOwnProperty.call(allProps, 'value')
+    const {
       value,
       defaultValue = '',
       onValueChange,
@@ -47,9 +49,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
       onKeyDown,
       'aria-invalid': ariaInvalid,
       ...inputProps
-    },
-    ref,
-  ) {
+    } = allProps
     const { componentSize } = useConfig()
     const resolvedSize =
       size ??
@@ -59,12 +59,13 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           ? 'large'
           : 'default')
     const [internalValue, setInternalValue] = useState(defaultValue)
-    const currentValue = value ?? internalValue
+    const currentValue = controlled ? (value ?? '') : internalValue
     const inputRef = useRef<HTMLInputElement | null>(null)
+    useNativeFormReset(inputRef, controlled, defaultValue, setInternalValue)
     const isInvalid = invalid || ariaInvalid === true || ariaInvalid === 'true'
 
     function change(nextValue: string) {
-      if (value === undefined) setInternalValue(nextValue)
+      if (!controlled) setInternalValue(nextValue)
       onValueChange?.(nextValue)
     }
 
