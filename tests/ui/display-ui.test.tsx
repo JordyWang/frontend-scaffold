@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import {
   Alert,
   Badge,
@@ -41,6 +41,27 @@ describe('display and feedback semantics', () => {
     ).toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('已保存')
     expect(screen.getByRole('alert')).toHaveTextContent('保存失败')
+  })
+
+  it('dismisses an Alert without submitting its surrounding form', () => {
+    const onDismiss = vi.fn()
+    const onSubmit = vi.fn((event: React.FormEvent) => event.preventDefault())
+    render(
+      <form onSubmit={onSubmit}>
+        <Alert
+          title="临时提示"
+          closable
+          closeLabel="关闭临时通知"
+          onDismiss={onDismiss}
+        />
+      </form>,
+    )
+    const close = screen.getByRole('button', { name: '关闭临时通知' })
+    expect(close).toHaveAttribute('type', 'button')
+    fireEvent.click(close)
+    expect(screen.queryByText('临时提示')).not.toBeInTheDocument()
+    expect(onDismiss).toHaveBeenCalledTimes(1)
+    expect(onSubmit).not.toHaveBeenCalled()
   })
 
   it('announces the exact badge count while capping the visible count', () => {

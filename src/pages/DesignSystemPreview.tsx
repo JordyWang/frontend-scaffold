@@ -156,6 +156,8 @@ export function DesignSystemPreview() {
   const [consentStatus, setConsentStatus] = useState('尚未提交')
   const [searchStatus, setSearchStatus] = useState('尚未搜索')
   const [smallCardStatus, setSmallCardStatus] = useState('尚未操作')
+  const [alertKey, setAlertKey] = useState(0)
+  const [alertStatus, setAlertStatus] = useState('提示可关闭')
   const [city, setCity] = useState('')
   const [selectedCity, setSelectedCity] = useState('尚未选择城市')
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
@@ -190,6 +192,7 @@ export function DesignSystemPreview() {
   const [rtlPopupContainer, setRtlPopupContainer] =
     useState<HTMLDivElement | null>(null)
   const tourTriggerRef = useRef<HTMLButtonElement>(null)
+  const alertRestoreRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (!fullscreenLoading) return
@@ -888,6 +891,40 @@ export function DesignSystemPreview() {
                 <Alert title="信息" description="展示当前状态。" />
                 <Alert tone="success" title="已完成" />
                 <Alert tone="warning" title="需要检查" />
+                <Alert
+                  key={alertKey}
+                  title="可关闭提示"
+                  description="处理完毕后可以关闭，必要时再恢复。"
+                  closable
+                  action={
+                    <Button
+                      variant="outline"
+                      size="small"
+                      onClick={() => setAlertStatus('已查看提示详情')}
+                    >
+                      查看详情
+                    </Button>
+                  }
+                  onDismiss={() => {
+                    setAlertStatus('提示已关闭')
+                    alertRestoreRef.current?.focus()
+                  }}
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    ref={alertRestoreRef}
+                    variant="outline"
+                    onClick={() => {
+                      setAlertKey((key) => key + 1)
+                      setAlertStatus('提示已恢复')
+                    }}
+                  >
+                    恢复提示
+                  </Button>
+                  <span data-testid="alert-state" aria-live="polite">
+                    {alertStatus}
+                  </span>
+                </div>
                 <Alert
                   tone="error"
                   title="操作失败"

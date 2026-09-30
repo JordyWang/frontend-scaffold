@@ -67,6 +67,47 @@ test('small Card applies its size to slots and keeps actions touchable', async (
   await expect(compact.getByRole('status')).toHaveText('已执行操作')
 })
 
+test('closable Alert supports keyboard and touch dismissal with focus recovery', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  await page.setViewportSize({ width: 360, height: 844 })
+  const alert = page.getByRole('status').filter({ hasText: '可关闭提示' })
+  const details = alert.getByRole('button', { name: '查看详情' })
+  const close = alert.getByRole('button', { name: '关闭可关闭提示' })
+  const restore = page.getByRole('button', { name: '恢复提示' })
+
+  await expect(alert).toBeVisible()
+  expect(
+    await alert.evaluate(
+      (element) => element.scrollWidth <= element.clientWidth,
+    ),
+  ).toBe(true)
+  const box = await close.boundingBox()
+  expect(box!.width).toBeGreaterThanOrEqual(44)
+  expect(box!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await details.tap()
+  else {
+    await details.focus()
+    await details.press('Enter')
+  }
+  await expect(page.getByTestId('alert-state')).toHaveText('已查看提示详情')
+
+  if (testInfo.project.name.startsWith('mobile-')) await close.tap()
+  else {
+    await close.focus()
+    await close.press('Space')
+  }
+  await expect(alert).toHaveCount(0)
+  await expect(restore).toBeFocused()
+  await expect(page.getByTestId('alert-state')).toHaveText('提示已关闭')
+
+  if (testInfo.project.name.startsWith('mobile-')) await restore.tap()
+  else await restore.press('Enter')
+  await expect(alert).toBeVisible()
+  await expect(page.getByTestId('alert-state')).toHaveText('提示已恢复')
+})
+
 test('pagination changes page size and jumps to a valid page on desktop and H5', async ({
   page,
 }, testInfo) => {
