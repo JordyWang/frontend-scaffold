@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { useConfig } from './config-context'
 
 const transferPanelStyles =
   'flex min-w-0 flex-col overflow-hidden rounded-[var(--ui-transfer-radius)] border border-border bg-card text-card-foreground aria-[invalid=true]:border-destructive'
@@ -68,6 +69,7 @@ export function Transfer({
   'aria-labelledby': ariaLabelledBy,
   className,
 }: TransferProps) {
+  const { direction } = useConfig()
   const [internalTargetKeys, setInternalTargetKeys] =
     useState(defaultTargetKeys)
   const [internalSelectedKeys, setInternalSelectedKeys] =
@@ -253,6 +255,7 @@ export function Transfer({
   return (
     <div
       id={id}
+      dir={direction}
       role="group"
       aria-label={ariaLabel ?? (ariaLabelledBy ? undefined : label)}
       aria-labelledby={ariaLabelledBy}
@@ -278,7 +281,12 @@ export function Transfer({
           disabled={disabled || movableSource.length === 0}
           onClick={() => move('to-target')}
         >
-          <span aria-hidden="true">→</span>
+          <span aria-hidden="true" className="max-sm:hidden">
+            {direction === 'rtl' ? '←' : '→'}
+          </span>
+          <span aria-hidden="true" className="sm:hidden">
+            ↓
+          </span>
           <span>移至{titles[1]}</span>
         </button>
         <button
@@ -287,7 +295,12 @@ export function Transfer({
           disabled={disabled || movableTarget.length === 0}
           onClick={() => move('to-source')}
         >
-          <span aria-hidden="true">←</span>
+          <span aria-hidden="true" className="max-sm:hidden">
+            {direction === 'rtl' ? '→' : '←'}
+          </span>
+          <span aria-hidden="true" className="sm:hidden">
+            ↑
+          </span>
           <span>移回{titles[0]}</span>
         </button>
       </div>

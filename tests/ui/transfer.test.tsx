@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { FormField, ThemeScope, Transfer } from '@/shared/ui'
+import { ConfigProvider, FormField, ThemeScope, Transfer } from '@/shared/ui'
 
 const items = [
   { key: 'design', title: '设计规范' },
@@ -119,6 +119,41 @@ describe('Transfer', () => {
         },
       ),
     ).toBeInTheDocument()
+  })
+
+  it('reverses horizontal move arrows in RTL while keeping move semantics', () => {
+    const onChange = vi.fn()
+    render(
+      <ConfigProvider direction="rtl">
+        <Transfer
+          items={items}
+          defaultTargetKeys={['analysis']}
+          onChange={onChange}
+        />
+      </ConfigProvider>,
+    )
+    const group = screen.getByRole('group', { name: '穿梭框' })
+    expect(group).toHaveAttribute('dir', 'rtl')
+    const toTarget = screen.getByRole('button', { name: '移至已选' })
+    const toSource = screen.getByRole('button', { name: '移回待选' })
+    expect(
+      toTarget.querySelector('span[aria-hidden="true"]'),
+    ).toHaveTextContent('←')
+    expect(
+      toSource.querySelector('span[aria-hidden="true"]'),
+    ).toHaveTextContent('→')
+    fireEvent.click(
+      within(screen.getByRole('region', { name: '待选' })).getByRole(
+        'checkbox',
+        { name: '设计规范' },
+      ),
+    )
+    fireEvent.click(toTarget)
+    expect(onChange).toHaveBeenLastCalledWith(
+      ['analysis', 'design'],
+      'to-target',
+      ['design'],
+    )
   })
 
   it('disables interaction and accepts scoped component tokens', () => {

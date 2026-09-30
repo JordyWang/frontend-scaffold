@@ -1434,6 +1434,44 @@ test('transfer moves filtered choices with keyboard and touch', async ({
   expect(row?.height).toBeGreaterThanOrEqual(44)
 })
 
+test('RTL transfer points toward its target in desktop and stacked layouts', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const transfer = preview.getByRole('group', { name: 'RTL 模块分配' })
+  const source = transfer.getByRole('region', { name: '待分配' })
+  const target = transfer.getByRole('region', { name: '已分配' })
+  const move = transfer.getByRole('button', { name: '移至已分配' })
+  const arrows = move.locator('span[aria-hidden="true"]')
+
+  await page.setViewportSize({ width: 800, height: 900 })
+  await expect(transfer).toHaveCSS('direction', 'rtl')
+  expect((await source.boundingBox())!.x).toBeGreaterThan(
+    (await target.boundingBox())!.x,
+  )
+  await expect(arrows.first()).toHaveText('←')
+  await expect(arrows.first()).toBeVisible()
+  await expect(arrows.last()).toBeHidden()
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  expect((await source.boundingBox())!.y).toBeLessThan(
+    (await target.boundingBox())!.y,
+  )
+  await expect(arrows.first()).toBeHidden()
+  await expect(arrows.last()).toHaveText('↓')
+  await expect(arrows.last()).toBeVisible()
+  const task = source.getByRole('checkbox', { name: '任务 A' })
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await task.locator('..').tap()
+    await move.tap()
+  } else {
+    await task.check()
+    await move.click()
+  }
+  await expect(target.getByRole('checkbox', { name: '任务 A' })).toBeVisible()
+})
+
 test('keyboard controls retain focus and expose data states', async ({
   page,
 }, testInfo) => {

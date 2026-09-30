@@ -1566,7 +1566,7 @@ export function DesignSystemPreview() {
                   <div
                     role="group"
                     aria-label="RTL 控件预览"
-                    className="grid max-w-sm gap-3"
+                    className="grid w-full max-w-3xl gap-3"
                   >
                     <Select
                       aria-label="RTL 选择"
@@ -1626,6 +1626,15 @@ export function DesignSystemPreview() {
                           render: (row) => row.status,
                         },
                       ]}
+                    />
+                    <Transfer
+                      label="RTL 模块分配"
+                      titles={['待分配', '已分配']}
+                      items={[
+                        { key: 'a', title: '任务 A' },
+                        { key: 'b', title: '任务 B' },
+                      ]}
+                      defaultTargetKeys={['b']}
                     />
                   </div>
                 </ConfigProvider>
