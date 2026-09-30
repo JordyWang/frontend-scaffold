@@ -879,6 +879,28 @@ export function DesignSystemPreview() {
                     />
                   }
                 />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <FormField
+                    label="填充多选"
+                    control={
+                      <MultiSelect
+                        variant="filled"
+                        defaultValue={['design']}
+                        options={[{ value: 'design', label: '设计' }]}
+                      />
+                    }
+                  />
+                  <FormField
+                    label="下划线警告多选"
+                    control={
+                      <MultiSelect
+                        variant="underlined"
+                        status="warning"
+                        options={[{ value: 'design', label: '设计' }]}
+                      />
+                    }
+                  />
+                </div>
                 <Typography variant="caption" tone="muted">
                   已选分类：
                   {selectedCategories.length

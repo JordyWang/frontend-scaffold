@@ -16,7 +16,13 @@ import {
 } from './config-context'
 import { Portal } from './portal'
 import type { SelectOption } from './select'
-import { inputSizeStyles, inputStyles } from './tailwind-styles'
+import type { InputStatus, InputVariant } from './input'
+import {
+  inputSizeStyles,
+  inputStatusStyles,
+  inputStyles,
+  inputVariantStyles,
+} from './tailwind-styles'
 
 export type MultiSelectProps = {
   options: SelectOption[]
@@ -27,6 +33,8 @@ export type MultiSelectProps = {
   placeholder?: string
   showSearch?: boolean
   allowClear?: boolean
+  variant?: InputVariant
+  status?: InputStatus
   disabled?: boolean
   required?: boolean
   name?: string
@@ -65,6 +73,8 @@ export const MultiSelect = forwardRef<HTMLButtonElement, MultiSelectProps>(
       placeholder = '请选择',
       showSearch = false,
       allowClear = false,
+      variant = 'outlined',
+      status = 'default',
       disabled = false,
       required,
       name,
@@ -314,7 +324,8 @@ export const MultiSelect = forwardRef<HTMLButtonElement, MultiSelectProps>(
           aria-describedby={[ariaDescribedBy, valueId]
             .filter(Boolean)
             .join(' ')}
-          aria-invalid={ariaInvalid || undefined}
+          aria-invalid={status === 'error' || ariaInvalid || undefined}
+          data-status={status === 'default' ? undefined : status}
           aria-required={required || undefined}
           aria-expanded={isOpen}
           aria-haspopup="listbox"
@@ -327,6 +338,8 @@ export const MultiSelect = forwardRef<HTMLButtonElement, MultiSelectProps>(
           disabled={disabled}
           className={cn(
             inputStyles,
+            inputVariantStyles[variant],
+            inputStatusStyles[status],
             inputSizeStyles[resolvedSize],
             'flex cursor-pointer touch-manipulation flex-wrap items-center gap-1 text-start focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20',
             allowClear && selected.length > 0 && 'pe-12',

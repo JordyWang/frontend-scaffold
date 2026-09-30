@@ -176,4 +176,39 @@ describe('MultiSelect', () => {
       expect(onFinish).toHaveBeenCalledWith({ teams: ['design'] }),
     )
   })
+
+  it('supports shared field variants and statuses', () => {
+    render(
+      <>
+        <MultiSelect
+          aria-label="填充团队"
+          variant="filled"
+          options={options}
+          defaultValue={['design']}
+        />
+        <MultiSelect
+          aria-label="警告团队"
+          variant="underlined"
+          status="warning"
+          options={options}
+        />
+        <MultiSelect aria-label="错误团队" status="error" options={options} />
+      </>,
+    )
+
+    expect(screen.getByRole('combobox', { name: '填充团队' })).toHaveClass(
+      'bg-muted',
+    )
+    expect(screen.getByRole('combobox', { name: '警告团队' })).toHaveClass(
+      'border-b',
+    )
+    expect(screen.getByRole('combobox', { name: '警告团队' })).toHaveAttribute(
+      'data-status',
+      'warning',
+    )
+    expect(screen.getByRole('combobox', { name: '错误团队' })).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    )
+  })
 })

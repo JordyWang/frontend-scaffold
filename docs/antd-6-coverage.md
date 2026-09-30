@@ -38,7 +38,7 @@ Input 与 Textarea 增加 `allowClear`，清空按钮保持 44px 触控区域并
 
 Input 与 Textarea 提供项目自己的 `variant`（outlined、filled、borderless、underlined）和 `status`（error、warning），状态通过主题 Token 和 `aria-invalid` 暴露。
 
-Select 复用同一组外观与状态字段，错误状态会同步设置 `aria-invalid`，`/__ui` 展示填充和下划线警告选择器。
+Select 与 MultiSelect 复用同一组外观与状态字段，错误状态会同步设置 `aria-invalid`，`/__ui` 展示填充和下划线警告选择器。
 
 Tabs 非受控状态下移除或禁用当前标签时会显示可用面板，并在原标签持有焦点时恢复到可用标签；`/__ui` 提供动态分组预览和桌面、H5 回归。
 
