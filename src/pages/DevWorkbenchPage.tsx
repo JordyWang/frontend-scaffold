@@ -629,6 +629,11 @@ export function DevWorkbenchPage() {
                         label: '待开始',
                         matches: (row) => row.status === '待开始',
                       },
+                      {
+                        value: 'archived',
+                        label: '已归档',
+                        matches: (row) => row.status === '已归档',
+                      },
                     ],
                   },
                   {

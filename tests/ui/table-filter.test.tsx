@@ -33,6 +33,11 @@ const props = {
           label: '进行中',
           matches: (row: (typeof rows)[number]) => row.status === '进行中',
         },
+        {
+          value: 'archived',
+          label: '已归档',
+          matches: (row: (typeof rows)[number]) => row.status === '已归档',
+        },
       ],
     },
   ],
@@ -86,11 +91,18 @@ describe('Table filters', () => {
     expect(table).toHaveTextContent('进行中')
   })
 
-  it('shows the empty state when a valid filter removes every row', () => {
-    render(<Table {...props} filters={{ status: ['missing'] }} />)
-    expect(screen.getByRole('status')).toHaveTextContent('暂无数据')
+  it('keeps both filter controls available when no rows match', () => {
+    render(<Table {...props} defaultFilters={{ status: ['archived'] }} />)
+    const region = screen.getByRole('region', { name: '任务表' })
+    expect(within(region).getAllByRole('status')).toHaveLength(2)
     expect(
-      screen.getByRole('region', { name: '任务表' }),
-    ).not.toHaveTextContent('已完成')
+      within(region).getAllByRole('button', { name: /筛选状态/ }),
+    ).toHaveLength(2)
+    expect(region).not.toHaveTextContent('已完成')
+    fireEvent.click(
+      within(region).getAllByRole('button', { name: /筛选状态/ })[0],
+    )
+    fireEvent.click(screen.getByRole('button', { name: '重置' }))
+    expect(region).toHaveTextContent('已完成')
   })
 })

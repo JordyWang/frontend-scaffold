@@ -257,6 +257,34 @@ test('table filters rows with keyboard, touch and focus restoration', async ({
   if (mobile) await reset.tap()
   else await reset.press('Enter')
   await expect(visibleRows.getByText('已完成')).toBeVisible()
+
+  if (mobile) await trigger.tap()
+  else await trigger.press('Enter')
+  const archived = page
+    .getByRole('dialog', { name: '筛选状态' })
+    .getByRole('checkbox', { name: '已归档' })
+  if (mobile) await archived.tap()
+  else await archived.press('Space')
+  const applyEmpty = page
+    .getByRole('dialog', { name: '筛选状态' })
+    .getByRole('button', { name: '应用' })
+  if (mobile) await applyEmpty.tap()
+  else await applyEmpty.press('Enter')
+  await expect(table.getByRole('status')).toContainText(
+    '调整或清空筛选条件以查看数据。',
+  )
+  await expect(trigger).toBeVisible()
+  await expect(trigger).toBeFocused()
+  if (mobile) await trigger.tap()
+  else await trigger.press('Enter')
+  const clearEmpty = page
+    .getByRole('dialog', { name: '筛选状态' })
+    .getByRole('button', { name: '重置' })
+  if (mobile) await clearEmpty.tap()
+  else await clearEmpty.press('Enter')
+  await expect(visibleRows.getByText('已完成')).toBeVisible()
+  await expect(table.getByRole('status')).toHaveCount(0)
+  await expect(trigger).toBeFocused()
 })
 
 test('clearable Input and Textarea restore focus on desktop and H5', async ({

@@ -95,6 +95,9 @@ export function Table<T>(allProps: TableProps<T>) {
   const [internalFilters, setInternalFilters] =
     useState<TableFilters>(defaultFilters)
   const activeFilters = filters ?? internalFilters
+  const hasActiveFilters = Object.values(activeFilters).some(
+    (values) => values.length > 0,
+  )
   const displayedRows = useMemo(() => {
     const filteredRows = rows.filter((row) =>
       columns.every((column) => {
@@ -289,7 +292,7 @@ export function Table<T>(allProps: TableProps<T>) {
         </div>
       </section>
     )
-  if (displayedRows.length === 0)
+  if (displayedRows.length === 0 && !hasActiveFilters)
     return (
       <section aria-label={caption} className={regionClassName}>
         <div role="status" className={stateClassName}>
@@ -349,6 +352,21 @@ export function Table<T>(allProps: TableProps<T>) {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
+            {displayedRows.length === 0 && (
+              <tr>
+                <td
+                  colSpan={Math.max(1, columns.length + (selection ? 1 : 0))}
+                  className="p-[var(--space-lg)]"
+                >
+                  <div role="status">
+                    <Empty
+                      title={emptyTitle}
+                      description="调整或清空筛选条件以查看数据。"
+                    />
+                  </div>
+                </td>
+              </tr>
+            )}
             {displayedRows.map((row) => (
               <tr key={getRowKey(row)}>
                 {selection && <td className="w-14 px-2">{rowCheckbox(row)}</td>}
@@ -416,6 +434,16 @@ export function Table<T>(allProps: TableProps<T>) {
             aria-label={caption}
             className="m-0 list-none divide-y divide-border p-0"
           >
+            {displayedRows.length === 0 && (
+              <li className="p-[var(--space-md)]">
+                <div role="status">
+                  <Empty
+                    title={emptyTitle}
+                    description="调整或清空筛选条件以查看数据。"
+                  />
+                </div>
+              </li>
+            )}
             {displayedRows.map((row) => (
               <li
                 key={getRowKey(row)}

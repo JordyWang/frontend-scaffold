@@ -72,6 +72,8 @@
 
 `TableColumn.filterOptions` 提供 `{ value, label, matches(row) }`，表头和手机工具栏共用筛选弹层。`filters` / `defaultFilters` 使用列键到值数组的映射，`onFiltersChange` 接收新映射；应用或重置后弹层触发器恢复焦点，筛选与排序、行选择按当前显示行协作。
 
+筛选后无匹配行时，Table 保留桌面表头和 H5 筛选工具栏，空状态提示用户调整或清空筛选条件；筛选触发器仍可操作，恢复数据后焦点回到触发器。
+
 `Input` 和 `Textarea` 的 `allowClear` 在有值且未禁用时显示 44px 清空按钮；清空会触发真实的 `input` 事件，使 `onValueChange('')` 和 `onChange` 均收到空值，非受控值立即显示为空并恢复输入焦点。`clearLabel` 可定制按钮名称，受控值仍由外部更新；两者均可作为 `FormItem` 的 `onValueChange` 控件。两者还支持 `variant`（outlined、filled、borderless、underlined）和 `status`（error、warning），状态使用主题 Token 表现。
 
 未受控的 `Input`、`Textarea`、`SearchInput` 在原生 `<form>` 重置时恢复初始 `defaultValue`，并同步清空按钮状态；重置不会触发值变更回调。受控值继续由调用方负责。
