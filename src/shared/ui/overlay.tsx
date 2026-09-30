@@ -17,6 +17,12 @@ import { cn } from '@/shared/lib/utils'
 import { Button, type ButtonProps } from './button'
 import { useConfig } from './config-context'
 import { Dialog } from './dialog'
+import {
+  floatButtonControlStyles,
+  floatButtonPositionStyles,
+  floatButtonShapeStyles,
+  type FloatButtonPosition,
+} from './float-button-styles'
 import { Portal } from './portal'
 
 const floatingPanelStyles =
@@ -666,10 +672,10 @@ export function Popconfirm({
   )
 }
 
-export type FloatButtonProps = Omit<ButtonProps, 'size'> & {
+export type FloatButtonProps = Omit<ButtonProps, 'size' | 'shape'> & {
   label: string
   shape?: 'circle' | 'square'
-  position?: 'bottom-right' | 'bottom-left'
+  position?: FloatButtonPosition
 }
 
 export function FloatButton({
@@ -685,10 +691,10 @@ export function FloatButton({
       size="icon"
       aria-label={props['aria-label'] ?? label}
       className={cn(
-        'fixed z-[60] right-[max(1rem,env(safe-area-inset-right))] bottom-[max(1rem,env(safe-area-inset-bottom))] left-auto size-[max(44px,var(--ui-button-height))] border-border shadow-[0_8px_24px_rgb(0_0_0_/_0.18)]',
-        shape === 'circle' ? 'rounded-full' : 'rounded-[var(--radius-md)]',
-        position === 'bottom-left' &&
-          'right-auto left-[max(1rem,env(safe-area-inset-left))]',
+        'fixed z-[60]',
+        floatButtonPositionStyles[position],
+        floatButtonControlStyles,
+        floatButtonShapeStyles[shape],
         className,
       )}
     />

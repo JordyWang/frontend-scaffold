@@ -3416,6 +3416,105 @@ test('BackTop appears after scrolling and supports keyboard or touch', async ({
   await expect(backTop).toHaveCount(0)
 })
 
+test('floating action group supports keyboard, hover and H5 touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  await expect(preview).toBeVisible()
+  const group = preview.getByRole('group', { name: '展开快捷操作' })
+  const trigger = group.getByRole('button', { name: '展开快捷操作' })
+  const help = group.getByRole('button', { name: '浮动帮助' })
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+  await expect(help).toHaveCount(0)
+
+  const triggerBox = await trigger.boundingBox()
+  expect(triggerBox).not.toBeNull()
+  expect(triggerBox!.width).toBeGreaterThanOrEqual(44)
+  expect(triggerBox!.height).toBeGreaterThanOrEqual(44)
+  expect(
+    await trigger.evaluate((element) =>
+      parseFloat(getComputedStyle(element).borderTopLeftRadius),
+    ),
+  ).toBeLessThan(triggerBox!.width / 2)
+  expect(triggerBox!.y).toBeGreaterThanOrEqual(16)
+  expect(triggerBox!.x + triggerBox!.width).toBeLessThanOrEqual(
+    page.viewportSize()!.width - 15,
+  )
+
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await trigger.tap()
+  } else {
+    await trigger.focus()
+    await page.keyboard.press('Enter')
+  }
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+  await expect(help).toBeVisible()
+  await expect(group.locator('[data-ui-float-button-list]')).toHaveAttribute(
+    'data-placement',
+    'bottom',
+  )
+  const helpBox = await help.boundingBox()
+  expect(helpBox).not.toBeNull()
+  expect(helpBox!.width).toBeGreaterThanOrEqual(44)
+  expect(helpBox!.y).toBeGreaterThan(triggerBox!.y + triggerBox!.height)
+
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await help.tap()
+    await expect(page.getByText('打开浮动帮助')).toBeVisible()
+  } else {
+    await page.keyboard.press('Tab')
+    await expect(help).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(trigger).toBeFocused()
+  }
+  await expect(help).toHaveCount(0)
+
+  const switchTrigger = preview.getByRole('button', {
+    name: '切换浮动菜单触发方式',
+  })
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await switchTrigger.tap()
+    await trigger.tap()
+  } else {
+    await switchTrigger.click()
+    await trigger.hover()
+  }
+  await expect(help).toBeVisible()
+  if (!testInfo.project.name.startsWith('mobile-')) {
+    const hoverHelpBox = await help.boundingBox()
+    expect(hoverHelpBox).not.toBeNull()
+    await page.mouse.move(
+      hoverHelpBox!.x + hoverHelpBox!.width / 2,
+      hoverHelpBox!.y + hoverHelpBox!.height / 2,
+      { steps: 12 },
+    )
+    await expect(help).toBeVisible()
+  }
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await group.getByRole('button', { name: '浮动确认' }).tap()
+  } else {
+    await group.getByRole('button', { name: '浮动确认' }).click()
+  }
+  await expect(page.getByText('已完成浮动操作')).toBeVisible()
+  await expect(help).toHaveCount(0)
+
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await switchTrigger.tap()
+  } else {
+    await switchTrigger.click()
+  }
+  await expect(trigger).toHaveCount(0)
+  await expect(help).toBeVisible()
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await switchTrigger.tap()
+  } else {
+    await switchTrigger.click()
+  }
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+  await expect(help).toHaveCount(0)
+})
+
 test('overlay triggers preserve keyboard activation and tab order', async ({
   page,
 }, testInfo) => {

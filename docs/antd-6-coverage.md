@@ -16,6 +16,8 @@
 
 `BackTop` 是项目独立入口：页面或指定容器滚动超过阈值后显示，可选滚动进度环；继承 `FloatButton` 的位置、安全区和触控尺寸。`/__ui` 使用页面滚动预览，减少动态效果时回顶不使用平滑滚动。
 
+`FloatButtonGroup` 补齐固定按钮组和点击/悬停菜单模式，支持受控开合、四向弹出、键盘关闭与 H5 触控；`/__ui` 预览顶端按钮组，并验证触控尺寸与安全区。
+
 `Spinner` 和 `Spin` 已统一小号、默认和大号指示器尺寸及动画，在 `/__ui` 并排预览，并通过桌面和 H5 浏览器检查减少动态效果设置。
 
 ConfigProvider 的 RTL 方向已覆盖 Select、Dialog、Sheet、Dropdown、Popover、Tooltip 的弹层容器，Select 的触发器和选项使用 Tailwind 逻辑方向样式；`/__ui` 提供键盘与 H5 触控预览。

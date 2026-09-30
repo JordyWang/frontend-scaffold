@@ -210,6 +210,11 @@ export type {
 export { Dropdown, FloatButton, Popconfirm, Popover, Tooltip } from './overlay'
 export { BackTop } from './back-top'
 export type { BackTopProps } from './back-top'
+export { FloatButtonGroup } from './float-button-group'
+export type {
+  FloatButtonGroupItem,
+  FloatButtonGroupProps,
+} from './float-button-group'
 export type {
   DropdownItem,
   DropdownProps,
@@ -218,6 +223,7 @@ export type {
   PopoverProps,
   TooltipProps,
 } from './overlay'
+export type { FloatButtonPosition } from './float-button-styles'
 export { Affix, Anchor, Carousel, Menu, Tree } from './navigation-extended'
 export type {
   AffixProps,

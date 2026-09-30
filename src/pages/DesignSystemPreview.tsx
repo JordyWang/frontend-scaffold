@@ -28,6 +28,7 @@ import {
   Dropdown,
   Empty,
   FloatButton,
+  FloatButtonGroup,
   Form,
   FormField,
   FormItem,
@@ -149,6 +150,10 @@ export function DesignSystemPreview() {
   )
   const [mode, setMode] = useState<'light' | 'dark'>('light')
   const [density, setDensity] = useState<'default' | 'compact'>('default')
+  const [floatTrigger, setFloatTrigger] = useState<
+    'click' | 'hover' | 'always'
+  >('click')
+  const [floatOpen, setFloatOpen] = useState(false)
   const [step, setStep] = useState(1)
   const [uncontrolledStepEvent, setUncontrolledStepEvent] = useState(0)
   const [quantity, setQuantity] = useState<number | undefined>(3)
@@ -233,9 +238,29 @@ export function DesignSystemPreview() {
         >
           切换预览密度
         </Button>
+        <Button
+          variant="outline"
+          onClick={() => {
+            setFloatOpen(false)
+            setFloatTrigger(
+              floatTrigger === 'click'
+                ? 'hover'
+                : floatTrigger === 'hover'
+                  ? 'always'
+                  : 'click',
+            )
+          }}
+        >
+          切换浮动菜单触发方式
+        </Button>
         <Typography as="span" variant="caption" tone="muted">
           当前：{mode === 'light' ? '浅色' : '深色'} ·{' '}
-          {density === 'default' ? '常规' : '紧凑'}
+          {density === 'default' ? '常规' : '紧凑'} · 浮动菜单
+          {floatTrigger === 'click'
+            ? '点击'
+            : floatTrigger === 'hover'
+              ? '悬停'
+              : '常驻'}
         </Typography>
       </Stack>
       <ThemeScope
@@ -2162,6 +2187,21 @@ export function DesignSystemPreview() {
         </Grid>
       </ThemeScope>
       <BackTop showProgress />
+      <FloatButtonGroup
+        label="展开快捷操作"
+        trigger={floatTrigger}
+        open={floatOpen}
+        onOpenChange={setFloatOpen}
+        shape="square"
+        position="top-right"
+        items={[
+          { key: 'help', label: '浮动帮助', icon: <Icon name="info" /> },
+          { key: 'done', label: '浮动确认', icon: <Icon name="check" /> },
+        ]}
+        onSelect={(key) =>
+          toast({ title: key === 'help' ? '打开浮动帮助' : '已完成浮动操作' })
+        }
+      />
       <FloatButton
         label="浮动反馈"
         position="bottom-left"
