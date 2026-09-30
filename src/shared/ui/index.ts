@@ -208,6 +208,8 @@ export type {
   TimelineProps,
 } from './data-display'
 export { Dropdown, FloatButton, Popconfirm, Popover, Tooltip } from './overlay'
+export { BackTop } from './back-top'
+export type { BackTopProps } from './back-top'
 export type {
   DropdownItem,
   DropdownProps,

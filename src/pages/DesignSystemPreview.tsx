@@ -5,6 +5,7 @@ import {
   Anchor,
   Avatar,
   AutoComplete,
+  BackTop,
   Badge,
   BorderBeam,
   Breadcrumb,
@@ -2160,13 +2161,14 @@ export function DesignSystemPreview() {
           </Card>
         </Grid>
       </ThemeScope>
+      <BackTop showProgress />
       <FloatButton
-        label="回到顶部"
-        onClick={() => {
-          window.scrollTo({ top: 0, behavior: 'smooth' })
-        }}
+        label="浮动反馈"
+        position="bottom-left"
+        variant="outline"
+        onClick={() => toast({ title: '已收到反馈' })}
       >
-        ↑
+        <Icon name="info" />
       </FloatButton>
       <ThemeScope
         mode={mode === 'light' ? 'dark' : 'light'}

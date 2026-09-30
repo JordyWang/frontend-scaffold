@@ -64,6 +64,8 @@
 | Statistic / Timeline            | `Statistic(title, value, precision, prefix, suffix, locale, formatter, loading)`；`Timeline(items)`                                              | 数值按 ConfigProvider.locale 分组格式化，加载时提供可访问骨架；时间线使用有序列表和文字状态                                 |
 | Carousel / Tree                 | `Carousel(items, index, autoplay, onChange)`；`Tree(treeData, expandedKeys, defaultExpandedKeys, onExpand, selectedKey, onSelect)`               | 轮播提供上一项/下一项和 live 状态；树只有一个 Tab 入口，方向键移动及展开/收起，Enter/空格选择；触控可点展开区               |
 
+`BackTop` 在 `FloatButton` 之上提供回顶行为：`target?: () => Window | HTMLElement | null` 指定滚动目标，`visibilityHeight` 默认为 400px，`showProgress` 可显示进度环，`behavior` 默认为平滑滚动。系统要求减少动态效果时改用即时滚动；位置、安全区和至少 44px 的触控尺寸沿用 `FloatButton`。
+
 `Table` 默认沿文字方向的起始侧对齐表头与单元格；列的显式 `align="left"`、`"center"`、`"right"` 使用指定的物理方向。传入 `renderMobileRow` 后，窄屏展示列表视图，桌面展示表格视图。
 
 `TableColumn.sorter(left, right)` 启用本地稳定排序；交互依次切换升序、降序和原始顺序。`sort` / `defaultSort` 使用 `{ columnKey, direction }`，`onSortChange` 接收新状态或 `null`；受控模式由调用方更新 `sort`。复杂表头可传入 `sortLabel` 作为排序按钮名称。桌面表头使用 `aria-sort`，配置 `renderMobileRow` 后手机卡片上方提供同一排序操作。

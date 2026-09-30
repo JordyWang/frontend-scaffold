@@ -3369,7 +3369,7 @@ test('overlay components keep focus, touch and safe-area behavior', async ({
     await page.getByRole('button', { name: '取消' }).click()
   }
   await expect(page.getByRole('dialog', { name: '确认删除？' })).toHaveCount(0)
-  const floatButton = preview.getByRole('button', { name: '回到顶部' })
+  const floatButton = preview.getByRole('button', { name: '浮动反馈' })
   await expect(floatButton).toBeVisible()
   const floatBox = await floatButton.boundingBox()
   expect(floatBox).not.toBeNull()
@@ -3379,6 +3379,41 @@ test('overlay components keep focus, touch and safe-area behavior', async ({
       parseFloat(getComputedStyle(element).borderTopLeftRadius),
     ),
   ).toBeGreaterThanOrEqual(floatBox!.width / 2)
+})
+
+test('BackTop appears after scrolling and supports keyboard or touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  await expect(
+    page.getByRole('region', { name: '设计系统补充组件' }),
+  ).toBeVisible()
+  const backTop = page.getByRole('button', { name: '回到顶部' })
+  await expect(backTop).toHaveCount(0)
+
+  await page.evaluate(() => window.scrollTo(0, 800))
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY))
+    .toBeGreaterThan(400)
+  await expect(backTop).toBeVisible()
+  const progress = await backTop
+    .locator('[data-scroll-progress]')
+    .getAttribute('data-scroll-progress')
+  expect(Number(progress)).toBeGreaterThan(0)
+  expect(Number(progress)).toBeLessThan(100)
+  const box = await backTop.boundingBox()
+  expect(box).not.toBeNull()
+  expect(box!.width).toBeGreaterThanOrEqual(44)
+  expect(box!.height).toBeGreaterThanOrEqual(44)
+
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await backTop.tap()
+  } else {
+    await backTop.focus()
+    await page.keyboard.press('Enter')
+  }
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(10)
+  await expect(backTop).toHaveCount(0)
 })
 
 test('overlay triggers preserve keyboard activation and tab order', async ({
