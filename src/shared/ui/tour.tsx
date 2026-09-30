@@ -96,6 +96,22 @@ function safeNumber(value: number | undefined, fallback: number) {
   return Number.isFinite(value) ? value! : fallback
 }
 
+const focusableSelector =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+function focusableElements(container: HTMLElement | null): HTMLElement[] {
+  if (!container) return []
+  return [
+    ...(container.matches(focusableSelector) ? [container] : []),
+    ...container.querySelectorAll<HTMLElement>(focusableSelector),
+  ].filter(
+    (element) =>
+      !element.closest('[aria-hidden="true"], [hidden], [inert]') &&
+      element.getClientRects().length > 0 &&
+      getComputedStyle(element).visibility !== 'hidden',
+  )
+}
+
 function placementPosition(
   placement: TourPlacement,
   target: Rect,
@@ -196,6 +212,7 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
   const [internalOpen, setInternalOpen] = useState(defaultOpen)
   const [internalCurrent, setInternalCurrent] = useState(defaultCurrent)
   const [targetRect, setTargetRect] = useState<Rect>(defaultRect)
+  const [cardHeight, setCardHeight] = useState(180)
   const cardRef = useRef<HTMLDivElement | null>(null)
   const restoreFocusRef = useRef<HTMLElement | null>(null)
   const openSessionRef = useRef(false)
@@ -254,15 +271,22 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
             }
           : defaultRect,
       )
+      const nextCardHeight = cardRef.current?.getBoundingClientRect().height
+      if (nextCardHeight) setCardHeight(nextCardHeight)
     }
     measure()
     const frame = window.requestAnimationFrame(measure)
     window.addEventListener('resize', measure)
     window.addEventListener('scroll', measure, true)
+    const observer =
+      typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
+    if (element) observer?.observe(element)
+    if (cardRef.current) observer?.observe(cardRef.current)
     return () => {
       window.cancelAnimationFrame(frame)
       window.removeEventListener('resize', measure)
       window.removeEventListener('scroll', measure, true)
+      observer?.disconnect()
     }
   }, [isOpen, step, scrollIntoViewOptions])
 
@@ -288,14 +312,40 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
         focusTarget.setAttribute('data-tour-focus-target', '')
     })
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (hasMask && event.key === 'Tab') {
+        const focusable = [
+          ...focusableElements(cardRef.current),
+          ...focusableElements(focusTarget),
+        ]
+        event.preventDefault()
+        if (focusable.length === 0) {
+          cardRef.current?.focus()
+          return
+        }
+        const index = focusable.indexOf(document.activeElement as HTMLElement)
+        const nextIndex =
+          index < 0
+            ? event.shiftKey
+              ? focusable.length - 1
+              : 0
+            : (index + (event.shiftKey ? -1 : 1) + focusable.length) %
+              focusable.length
+        focusable[nextIndex].focus()
+        return
+      }
+      const active = document.activeElement
+      const editing =
+        active instanceof HTMLElement &&
+        (active.isContentEditable ||
+          ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName))
       if (keyboard && event.key === 'Escape') {
         event.preventDefault()
         close()
-      } else if (keyboard && event.key === 'ArrowRight') {
+      } else if (keyboard && !editing && event.key === 'ArrowRight') {
         event.preventDefault()
         if (stepIndex === steps.length - 1) close(true)
         else setStep(stepIndex + 1)
-      } else if (keyboard && event.key === 'ArrowLeft') {
+      } else if (keyboard && !editing && event.key === 'ArrowLeft') {
         event.preventDefault()
         if (stepIndex > 0) setStep(stepIndex - 1)
       }
@@ -311,7 +361,6 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
   if (!isOpen || !step) return null
   const viewport = { width: window.innerWidth, height: window.innerHeight }
   const cardWidth = Math.min(360, Math.max(260, viewport.width - 24))
-  const cardHeight = cardRef.current?.getBoundingClientRect().height ?? 180
   const placement = step.placement ?? defaultPlacement
   const position = placementPosition(
     placement,
@@ -340,7 +389,7 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
         {...props}
         ref={forwardedRef}
         data-tour-root=""
-        className={cn('fixed inset-0 z-[70]', className)}
+        className={cn('pointer-events-none fixed inset-0 z-[70]', className)}
         aria-label="页面引导"
       >
         {hasMask && targetStyle && (
@@ -424,11 +473,12 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
         <div
           ref={cardRef}
           role="dialog"
-          aria-modal={hasMask}
+          tabIndex={-1}
+          aria-modal={hasMask && !targetRect.width ? true : undefined}
           aria-label={typeof step.title === 'string' ? step.title : '页面引导'}
           data-tour-card=""
           className={cn(
-            'fixed z-[71] max-w-[calc(100vw-24px)] rounded-xl border p-4 text-sm shadow-xl outline-none sm:p-5',
+            'pointer-events-auto fixed z-[71] max-w-[calc(100vw-24px)] rounded-xl border p-4 text-sm shadow-xl outline-none sm:p-5',
             step.type === 'primary'
               ? 'border-primary bg-primary text-primary-foreground'
               : 'border-border bg-card text-card-foreground',

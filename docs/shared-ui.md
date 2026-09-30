@@ -133,7 +133,7 @@ Checkbox、Switch 和 RadioGroup 自带可访问标签。需要显示校验错�
 
 `QRCode` 默认使用 Canvas，也支持 SVG；`value` 采用字节模式编码，`errorLevel` 为 `L` / `M` / `Q` / `H`。`status="loading"` 和 `status="expired"` 会保留二维码容器并覆盖状态层，`onRefresh` 用于失效后的重新获取。
 
-`Tour.steps` 使用 `{ key, target?, title, description?, cover?, placement?, mask?, type? }`。`target` 可传元素或返回元素的函数；目标为空时卡片居中。开启遮罩时目标周围保留高亮区域，遮罩区域可点击关闭；`keyboard` 开启后支持 Escape、左右方向键，步骤切换会调用 `onChange`。`current` / `open` 为受控状态，`onFinish` 和 `onClose` 结束后恢复打开前焦点。
+`Tour.steps` 使用 `{ key, target?, title, description?, cover?, placement?, mask?, type? }`。`target` 可传元素或返回元素的函数；目标为空时卡片居中。开启遮罩时目标周围保留可直接操作的高亮区域，Tab 在卡片和高亮目标之间循环，遮罩区域可点击关闭；卡片或目标尺寸变化时会重新定位。`keyboard` 开启后支持 Escape、左右方向键，步骤切换会调用 `onChange`。`current` / `open` 为受控状态，`onFinish` 和 `onClose` 结束后恢复打开前焦点。
 
 ## 使用示例
 

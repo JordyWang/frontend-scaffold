@@ -95,4 +95,27 @@ describe('Tour', () => {
     expect(screen.getByRole('dialog', { name: '目标引导' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '目标' })).toBe(target)
   })
+
+  it('keeps arrow keys available while editing a field in the tour card', () => {
+    const onChange = vi.fn()
+    render(
+      <Tour
+        open
+        steps={[
+          {
+            key: 'input',
+            title: '输入引导',
+            description: <input aria-label="说明输入" />,
+          },
+          { key: 'next', title: '下一步引导' },
+        ]}
+        onChange={onChange}
+      />,
+    )
+    const input = screen.getByRole('textbox', { name: '说明输入' })
+    input.focus()
+    fireEvent.keyDown(input, { key: 'ArrowRight' })
+    expect(onChange).not.toHaveBeenCalled()
+    fireEvent.keyDown(document, { key: 'Escape' })
+  })
 })

@@ -1002,7 +1002,12 @@ test('tour highlights targets and supports keyboard, close and touch navigation'
   await expect(tour).toBeVisible()
   await expect(page.locator('[data-tour-mask]')).toHaveCount(4)
   await expect(page.locator('[data-tour-card]')).toHaveCSS('position', 'fixed')
-  await expect(preview.locator('#tour-upload')).toBeVisible()
+  const target = preview.locator('#tour-upload')
+  await expect(target).toBeVisible()
+  if (testInfo.project.name.startsWith('mobile-')) await target.tap()
+  else await target.click()
+  await expect(preview.getByText(/上传按钮已点击 1 次/)).toBeVisible()
+  await expect(tour).toBeVisible()
 
   await page.keyboard.press('ArrowRight')
   await expect(page.getByRole('dialog', { name: '保存草稿' })).toBeVisible()
@@ -1025,6 +1030,58 @@ test('tour highlights targets and supports keyboard, close and touch navigation'
   if (testInfo.project.name.startsWith('mobile-')) await finish.tap()
   else await finish.click()
   await expect(page.getByRole('dialog', { name: '发布内容' })).toHaveCount(0)
+})
+
+test('tour repositions when its card content grows', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium')
+  await page.setViewportSize({ width: 390, height: 500 })
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  await preview.getByRole('button', { name: '开始引导' }).click()
+  const target = preview.locator('#tour-upload')
+  await target.evaluate((element) => element.scrollIntoView({ block: 'end' }))
+  const card = page.getByRole('dialog', { name: '上传素材' })
+  const before = await card.boundingBox()
+  expect(before).not.toBeNull()
+
+  await card.getByRole('button', { name: '展开说明' }).click()
+  await expect(card.getByText(/引导卡片会在说明展开后重新定位/)).toBeVisible()
+  await expect
+    .poll(async () => (await card.boundingBox())?.y ?? 0)
+    .toBeLessThan(before!.y)
+  const after = await card.boundingBox()
+  expect(after!.y + after!.height).toBeLessThanOrEqual(488)
+})
+
+test('masked tour keeps Tab on the card and highlighted target', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium')
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const begin = preview.getByRole('button', { name: '开始引导' })
+  await begin.click()
+  const card = page.getByRole('dialog', { name: '上传素材' })
+  const close = card.getByRole('button', { name: '关闭引导' })
+  const expand = card.getByRole('button', { name: '展开说明' })
+  const next = card.getByRole('button', { name: '下一步' })
+  const target = preview.locator('#tour-upload')
+
+  await expect(close).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(expand).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(next).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(target).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(close).toBeFocused()
+  await page.keyboard.press('Shift+Tab')
+  await expect(target).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(begin).toBeFocused()
 })
 
 test('qrcode renders in the design system and supports expired refresh on touch', async ({

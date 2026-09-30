@@ -104,6 +104,29 @@ const virtualListItems = Array.from({ length: 100 }, (_, index) => ({
 }))
 
 const masonryHeights = ['h-24', 'h-36', 'h-28', 'h-44', 'h-32', 'h-40']
+
+function ExpandableTourDescription() {
+  const [expanded, setExpanded] = useState(false)
+  return (
+    <div className="grid gap-2">
+      <span>先选择要处理的图片、视频或音频文件。</span>
+      <Button
+        variant="ghost"
+        size="small"
+        className="justify-self-start"
+        onClick={() => setExpanded((current) => !current)}
+      >
+        {expanded ? '收起说明' : '展开说明'}
+      </Button>
+      {expanded && (
+        <span>
+          可以先核对文件类型与大小，再选择要上传的内容。引导卡片会在说明展开后重新定位，保持操作区域可见。
+        </span>
+      )}
+    </div>
+  )
+}
+
 const demoWatermarkImage = `data:image/svg+xml,${encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="64" viewBox="0 0 120 64"><circle cx="60" cy="32" r="27" fill="none" stroke="#334155" stroke-width="4"/><text x="60" y="38" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#334155">DEMO</text></svg>',
 )}`
@@ -147,6 +170,7 @@ export function DesignSystemPreview() {
   )
   const [tourOpen, setTourOpen] = useState(false)
   const [tourStep, setTourStep] = useState(0)
+  const [tourTargetClicks, setTourTargetClicks] = useState(0)
   const [rtlPopupContainer, setRtlPopupContainer] =
     useState<HTMLDivElement | null>(null)
   const tourTriggerRef = useRef<HTMLButtonElement>(null)
@@ -1416,7 +1440,11 @@ export function DesignSystemPreview() {
                   </Button>
                 </Stack>
                 <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/30 p-4">
-                  <Button id="tour-upload" variant="outline">
+                  <Button
+                    id="tour-upload"
+                    variant="outline"
+                    onClick={() => setTourTargetClicks((count) => count + 1)}
+                  >
                     上传素材
                   </Button>
                   <Button id="tour-save" variant="outline">
@@ -1427,7 +1455,9 @@ export function DesignSystemPreview() {
                   </Button>
                 </div>
                 <Typography variant="caption" tone="muted">
-                  引导支持 Escape、左右方向键、遮罩关闭和手机触控。
+                  引导支持
+                  Escape、左右方向键、遮罩关闭和手机触控；高亮目标可直接操作，上传按钮已点击{' '}
+                  {tourTargetClicks} 次。
                 </Typography>
                 <Tour
                   open={tourOpen}
@@ -1441,7 +1471,7 @@ export function DesignSystemPreview() {
                       key: 'upload',
                       target: () => document.getElementById('tour-upload'),
                       title: '上传素材',
-                      description: '先选择要处理的图片、视频或音频文件。',
+                      description: <ExpandableTourDescription />,
                       placement: 'bottom',
                     },
                     {
