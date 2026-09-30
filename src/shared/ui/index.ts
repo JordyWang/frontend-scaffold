@@ -23,6 +23,7 @@ export {
   CardContent,
   CardFooter,
 } from './card'
+export type { CardProps } from './card'
 export { Empty } from './empty'
 export type { EmptyProps } from './empty'
 export { LoadingState, ErrorState } from './feedback-state'

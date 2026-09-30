@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import {
   Button,
+  Card,
   Checkbox,
   ErrorBoundary,
   FormField,
@@ -21,6 +22,33 @@ import {
 } from '@/shared/ui'
 
 describe('shared/ui contracts', () => {
+  it('supports declarative card slots while keeping loading content accessible', () => {
+    const onAction = vi.fn()
+    const { rerender } = render(
+      <Card
+        title="任务结果"
+        extra={<button type="button">更多</button>}
+        cover={<img src="/poster.svg" alt="任务封面" />}
+        actions={[
+          <button type="button" onClick={onAction}>
+            打开
+          </button>,
+        ]}
+        hoverable
+      >
+        <p>已完成</p>
+      </Card>,
+    )
+    expect(screen.getByText('任务结果')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: '任务封面' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '打开' }))
+    expect(onAction).toHaveBeenCalledOnce()
+
+    rerender(<Card title="加载中" loading />)
+    expect(screen.getByRole('status', { name: '正在加载' })).toBeInTheDocument()
+    expect(screen.queryByText('已完成')).toBeNull()
+  })
+
   it('prevents a second action while a button is loading', () => {
     const onClick = vi.fn()
     render(

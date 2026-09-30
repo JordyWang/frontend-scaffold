@@ -229,6 +229,18 @@ export function DesignSystemPreview() {
       >
         <div ref={setRtlPopupContainer} data-ui-rtl-popup-root="" />
         <Grid minItemWidth="17rem" gap="lg">
+          <Card
+            title="声明式卡片"
+            extra={
+              <Button size="small" variant="ghost">
+                更多
+              </Button>
+            }
+            hoverable
+            actions={[<Button variant="ghost">打开详情</Button>]}
+          >
+            <CardContent>标题、额外操作和底部 actions 可直接组合。</CardContent>
+          </Card>
           <Card>
             <CardContent>
               <Stack gap="md">
