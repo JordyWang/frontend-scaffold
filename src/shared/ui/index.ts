@@ -177,6 +177,8 @@ export type {
 } from './data-input'
 export { Cascader } from './cascader'
 export type { CascaderOption, CascaderProps } from './cascader'
+export { DateRangePicker } from './date-range-picker'
+export type { DateRange, DateRangePickerProps } from './date-range-picker'
 export { TreeSelect } from './tree-select'
 export type {
   TreeSelectOption,

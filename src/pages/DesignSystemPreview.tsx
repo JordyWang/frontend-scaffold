@@ -19,6 +19,7 @@ import {
   ColorPicker,
   ConfigProvider,
   DatePicker,
+  DateRangePicker,
   Descriptions,
   Dialog,
   Divider,
@@ -75,6 +76,7 @@ import {
   Watermark,
   notification,
   toast,
+  type DateRange,
 } from '@/shared/ui'
 
 const teamTreeData = [
@@ -143,6 +145,7 @@ export function DesignSystemPreview() {
   const [quantity, setQuantity] = useState<number | undefined>(3)
   const [volume, setVolume] = useState(42)
   const [colorValue, setColorValue] = useState('#1677ff')
+  const [dateRange, setDateRange] = useState<DateRange>(['', ''])
   const [formStatus, setFormStatus] = useState('尚未提交')
   const [searchStatus, setSearchStatus] = useState('尚未搜索')
   const [city, setCity] = useState('')
@@ -756,6 +759,31 @@ export function DesignSystemPreview() {
                 <FormField
                   label="开始日期"
                   control={<DatePicker aria-label="开始日期" />}
+                />
+                <FormField
+                  label="日期范围"
+                  control={
+                    <DateRangePicker
+                      value={dateRange}
+                      onChange={setDateRange}
+                      min="2026-01-01"
+                      max="2027-12-31"
+                    />
+                  }
+                />
+                <Typography variant="caption" tone="muted">
+                  已选范围：{dateRange[0] || '未选开始'} →{' '}
+                  {dateRange[1] || '未选结束'}
+                </Typography>
+                <DateRangePicker
+                  label="不可用日期范围"
+                  defaultValue={['2026-10-01', '2026-10-05']}
+                  disabled
+                />
+                <FormField
+                  label="错误日期范围"
+                  error="请选择完整日期范围"
+                  control={<DateRangePicker />}
                 />
                 <FormField
                   label="开始时间"

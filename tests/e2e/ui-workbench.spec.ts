@@ -552,6 +552,51 @@ test('native data controls keep their touch targets and keyboard behavior', asyn
   ).toBe(true)
 })
 
+test('date range keeps an ordered pair on keyboard and H5 input', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const group = preview.getByRole('group', { name: '日期范围', exact: true })
+  const start = group.locator('input[type="date"]').first()
+  const end = group.locator('input[type="date"]').last()
+  await expect(start).toHaveAttribute('min', '2026-01-01')
+  await expect(end).toHaveAttribute('max', '2027-12-31')
+  await start.fill('2026-10-05')
+  await end.fill('2026-10-10')
+  await expect(
+    preview.getByText('已选范围：2026-10-05 → 2026-10-10'),
+  ).toBeVisible()
+  await start.fill('2026-10-15')
+  await expect(end).toHaveValue('')
+  await expect(
+    preview.getByText('已选范围：2026-10-15 → 未选结束'),
+  ).toBeVisible()
+
+  await page.setViewportSize({ width: 360, height: 780 })
+  const startBox = await start.boundingBox()
+  const endBox = await end.boundingBox()
+  expect(startBox!.height).toBeGreaterThanOrEqual(44)
+  expect(endBox!.height).toBeGreaterThanOrEqual(44)
+  expect(endBox!.y).toBeGreaterThan(startBox!.y)
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
+
+  const disabled = preview.getByRole('group', { name: '不可用日期范围' })
+  await expect(disabled.locator('input[type="date"]').first()).toBeDisabled()
+  await expect(
+    preview.getByRole('group', { name: '错误日期范围' }),
+  ).toHaveAttribute('aria-invalid', 'true')
+  if (testInfo.project.name.startsWith('mobile-')) await end.tap()
+  else await end.focus()
+  await expect(end).toBeFocused()
+})
+
 test('cascader popup completes a path and inline options stay current', async ({
   page,
 }, testInfo) => {
