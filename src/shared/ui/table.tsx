@@ -11,6 +11,14 @@ export type TableColumn<T> = {
   /** Render this data cell as a row header for assistive technology. */
   rowScope?: 'row' | 'rowgroup'
 }
+
+function alignmentClassName(align?: TableColumn<unknown>['align']) {
+  if (align === 'center') return 'text-center'
+  if (align === 'left') return 'text-left'
+  if (align === 'right') return 'text-right'
+  return 'text-start'
+}
+
 export type TableProps<T> = {
   columns: TableColumn<T>[]
   rows: T[]
@@ -76,7 +84,7 @@ export function Table<T>({
       <div
         className={cn('overflow-x-auto', renderMobileRow && 'hidden sm:block')}
       >
-        <table className="min-w-full border-collapse text-left">
+        <table className="min-w-full border-collapse text-start">
           <caption className="sr-only">{caption}</caption>
           <thead className="bg-muted">
             <tr className="border-b border-border">
@@ -86,8 +94,7 @@ export function Table<T>({
                   scope="col"
                   className={cn(
                     'px-4 py-3 text-sm font-semibold',
-                    column.align === 'center' && 'text-center',
-                    column.align === 'right' && 'text-right',
+                    alignmentClassName(column.align),
                   )}
                 >
                   {column.header}
@@ -105,8 +112,7 @@ export function Table<T>({
                       scope={column.rowScope}
                       className={cn(
                         'px-4 py-3 align-middle font-medium',
-                        column.align === 'center' && 'text-center',
-                        column.align === 'right' && 'text-right',
+                        alignmentClassName(column.align),
                       )}
                     >
                       {column.render(row)}
@@ -116,8 +122,7 @@ export function Table<T>({
                       key={column.key}
                       className={cn(
                         'px-4 py-3 align-middle',
-                        column.align === 'center' && 'text-center',
-                        column.align === 'right' && 'text-right',
+                        alignmentClassName(column.align),
                       )}
                     >
                       {column.render(row)}

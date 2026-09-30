@@ -61,6 +61,8 @@
 | Statistic / Timeline            | `Statistic(title, value, precision, prefix, suffix)`；`Timeline(items)`                                                                          | 统计值保留文本语义；时间线使用有序列表并提供状态颜色和文字                                                                  |
 | Carousel / Tree                 | `Carousel(items, index, autoplay, onChange)`；`Tree(treeData, expandedKeys, defaultExpandedKeys, onExpand, selectedKey, onSelect)`               | 轮播提供上一项/下一项和 live 状态；树只有一个 Tab 入口，方向键移动及展开/收起，Enter/空格选择；触控可点展开区               |
 
+`Table` 默认沿文字方向的起始侧对齐表头与单元格；列的显式 `align="left"`、`"center"`、`"right"` 使用指定的物理方向。传入 `renderMobileRow` 后，窄屏展示列表视图，桌面展示表格视图。
+
 `Transfer.items` 的 `key` 必须唯一。`onChange(nextTargetKeys, direction, movedKeys)` 在移动后调用；`direction` 为 `to-target` 或 `to-source`。搜索只影响当前可见项和“全选可见项”，已勾选但被搜索隐藏的项目仍可移动。自定义 `filterItem` 收到去除首尾空格并转为小写的查询词。
 
 `Anchor` 默认跟踪同页 `#id` 目标的滚动位置，并以 `aria-current="location"` 标记当前章节；`offsetTop` 用于固定页头的判定偏移。传入 `activeHref` 后由业务控制高亮；点击链接仍保留浏览器原生锚点跳转，`onChange` 在点击或自动切换当前章节时收到链接地址。

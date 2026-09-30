@@ -60,6 +60,7 @@ import {
   Slider,
   Statistic,
   Switch,
+  Table,
   Tag,
   ThemeScope,
   Timeline,
@@ -1467,7 +1468,7 @@ export function DesignSystemPreview() {
             <CardContent>
               <Stack gap="md">
                 <Typography as="h3" variant="title">
-                  RTL 弹层
+                  RTL 控件
                 </Typography>
                 <ConfigProvider
                   direction="rtl"
@@ -1475,7 +1476,7 @@ export function DesignSystemPreview() {
                 >
                   <div
                     role="group"
-                    aria-label="RTL 弹层预览"
+                    aria-label="RTL 控件预览"
                     className="grid max-w-sm gap-3"
                   >
                     <Select
@@ -1519,6 +1520,24 @@ export function DesignSystemPreview() {
                         <Button variant="outline">打开 RTL 气泡</Button>
                       </Popover>
                     </div>
+                    <Table
+                      caption="RTL 数据表"
+                      rows={[{ id: 'rtl-row', name: '任务', status: '进行中' }]}
+                      getRowKey={(row) => row.id}
+                      columns={[
+                        {
+                          key: 'name',
+                          header: '任务',
+                          rowScope: 'row',
+                          render: (row) => row.name,
+                        },
+                        {
+                          key: 'status',
+                          header: '状态',
+                          render: (row) => row.status,
+                        },
+                      ]}
+                    />
                   </div>
                 </ConfigProvider>
               </Stack>

@@ -1273,6 +1273,50 @@ test('list keeps its labelled container through loading, empty and retry states'
   ).toBeVisible()
 })
 
+test('table exposes one responsive data view and follows RTL text direction', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const workbench = page.getByRole('region', { name: '导航与数据' })
+  const tableRegion = workbench.getByRole('region', {
+    name: '示例任务表',
+    exact: true,
+  })
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await expect(
+      tableRegion.getByRole('list', { name: '示例任务表' }),
+    ).toBeVisible()
+    await expect(
+      tableRegion.getByRole('table', { name: '示例任务表' }),
+    ).toHaveCount(0)
+  } else {
+    await expect(
+      tableRegion.getByRole('table', { name: '示例任务表' }),
+    ).toBeVisible()
+    await expect(
+      tableRegion.getByRole('list', { name: '示例任务表' }),
+    ).toHaveCount(0)
+  }
+
+  const rtlTable = page.getByRole('table', { name: 'RTL 数据表' })
+  await expect(rtlTable).toHaveCSS('direction', 'rtl')
+  await expect(rtlTable.getByRole('columnheader', { name: '任务' })).toHaveCSS(
+    'text-align',
+    'start',
+  )
+  await expect(rtlTable.getByRole('rowheader', { name: '任务' })).toHaveCSS(
+    'text-align',
+    'start',
+  )
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
+})
+
 test('file selection, cancellation and retry work in the preview', async ({
   page,
 }) => {
@@ -1689,8 +1733,8 @@ test('descriptions reflow and avatar sizes remain stable across viewports', asyn
 }, testInfo) => {
   await page.goto('/__ui')
   const preview = page.getByRole('region', { name: '设计系统补充组件' })
-  const owner = preview.getByText('负责人', { exact: true })
-  const status = preview.getByText('状态', { exact: true })
+  const owner = preview.getByRole('term').filter({ hasText: '负责人' })
+  const status = preview.getByRole('term').filter({ hasText: '状态' })
   const avatar = preview.getByRole('img', { name: '团队成员' })
   const smallAvatar = preview.getByRole('img', { name: '方形头像' })
 
@@ -2158,7 +2202,7 @@ test('RTL portal controls keep direction and logical option placement', async ({
 }, testInfo) => {
   await page.goto('/__ui')
   const preview = page.getByRole('region', { name: '设计系统补充组件' })
-  const demo = preview.getByRole('group', { name: 'RTL 弹层预览' })
+  const demo = preview.getByRole('group', { name: 'RTL 控件预览' })
   const popupRoot = preview.locator('[data-ui-rtl-popup-root]')
   const select = demo.getByRole('combobox', { name: 'RTL 选择' })
   await expect(select).toHaveAttribute('dir', 'rtl')
