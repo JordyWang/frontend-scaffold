@@ -513,6 +513,25 @@ test('native data controls keep their touch targets and keyboard behavior', asyn
   ).toBe(true)
 })
 
+test('controlled number input accepts drafts, clamps on blur and can be cleared', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const number = preview.getByRole('spinbutton', { name: '数量' })
+  await number.fill('120')
+  await expect(number).toHaveValue('120')
+  await number.press('Tab')
+  await expect(number).toHaveValue('99')
+
+  const clear = preview.getByRole('button', { name: '清空数量' })
+  if (testInfo.project.name.startsWith('mobile-')) await clear.tap()
+  else await clear.click()
+  await expect(number).toHaveValue('')
+  await number.fill('12')
+  await expect(number).toHaveValue('12')
+})
+
 test('accordion preview keeps one panel open with keyboard and touch', async ({
   page,
 }, testInfo) => {

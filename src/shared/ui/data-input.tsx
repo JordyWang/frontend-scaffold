@@ -41,8 +41,9 @@ export type InputNumberProps = Omit<
 
 /** A numeric field that clamps committed values while keeping native key controls. */
 export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
-  function InputNumber(
-    {
+  function InputNumber(allProps, ref) {
+    const controlled = Object.prototype.hasOwnProperty.call(allProps, 'value')
+    const {
       value,
       defaultValue,
       min,
@@ -56,17 +57,23 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
       className,
       disabled,
       onBlur,
+      onFocus,
       onChange,
       ...props
-    },
-    ref,
-  ) {
+    } = allProps
     const { componentSize } = useConfig()
     const resolvedSize = resolveComponentSize(componentSize, size)
     const [draft, setDraft] = useState(
       defaultValue === undefined ? '' : String(defaultValue),
     )
-    const displayed = value === undefined ? draft : String(value)
+    const [editing, setEditing] = useState(false)
+    const displayed = editing
+      ? draft
+      : controlled
+        ? value === undefined
+          ? ''
+          : String(value)
+        : draft
 
     function clamp(next: number) {
       return Math.min(
@@ -80,19 +87,24 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
       setDraft(raw)
       const parsed = raw === '' ? undefined : Number(raw)
       if (parsed !== undefined && !Number.isFinite(parsed)) return
-      const next = parsed === undefined ? undefined : clamp(parsed)
-      onChange?.(next)
+      onChange?.(parsed)
+    }
+
+    function handleFocus(event: React.FocusEvent<HTMLInputElement>) {
+      setDraft(event.currentTarget.value)
+      setEditing(true)
+      onFocus?.(event)
     }
 
     function handleBlur(event: React.FocusEvent<HTMLInputElement>) {
-      const parsed = displayed === '' ? undefined : Number(displayed)
+      const raw = event.currentTarget.value
+      const parsed = raw === '' ? undefined : Number(raw)
       const next =
         parsed === undefined || !Number.isFinite(parsed)
           ? undefined
           : clamp(parsed)
-      if (value === undefined) {
-        setDraft(next === undefined ? '' : String(next))
-      }
+      setEditing(false)
+      if (!controlled) setDraft(next === undefined ? '' : String(next))
       if (next !== parsed) onChange?.(next)
       onBlur?.(event)
     }
@@ -122,6 +134,7 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
           disabled={disabled}
           aria-invalid={invalid || ariaInvalid || undefined}
           onChange={handleChange}
+          onFocus={handleFocus}
           onBlur={handleBlur}
         />
         {suffix && (

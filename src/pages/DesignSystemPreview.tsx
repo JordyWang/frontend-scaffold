@@ -140,6 +140,7 @@ export function DesignSystemPreview() {
   const [density, setDensity] = useState<'default' | 'compact'>('default')
   const [step, setStep] = useState(1)
   const [uncontrolledStepEvent, setUncontrolledStepEvent] = useState(0)
+  const [quantity, setQuantity] = useState<number | undefined>(3)
   const [volume, setVolume] = useState(42)
   const [colorValue, setColorValue] = useState('#1677ff')
   const [formStatus, setFormStatus] = useState('尚未提交')
@@ -1008,11 +1009,19 @@ export function DesignSystemPreview() {
                         aria-label="数量"
                         min={0}
                         max={99}
-                        defaultValue={3}
+                        value={quantity}
+                        onChange={setQuantity}
                         suffix="项"
                       />
                     }
                   />
+                  <Button
+                    variant="outline"
+                    size="small"
+                    onClick={() => setQuantity(undefined)}
+                  >
+                    清空数量
+                  </Button>
                   <FormField
                     label="音量"
                     control={

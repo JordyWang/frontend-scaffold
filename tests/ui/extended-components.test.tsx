@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import {
   Affix,
@@ -571,6 +572,50 @@ describe('Ant Design-inspired shared components', () => {
     const slider = screen.getByRole('slider', { name: '音量' })
     fireEvent.change(slider, { target: { value: '7' } })
     expect(onSliderChange).toHaveBeenCalledWith(7)
+  })
+
+  it('keeps controlled numeric drafts editable and accepts an explicit empty value', () => {
+    const onChange = vi.fn()
+    function ControlledNumber() {
+      const [value, setValue] = useState<number | undefined>(2)
+      return (
+        <>
+          <InputNumber
+            aria-label="受控数量"
+            value={value}
+            min={10}
+            max={50}
+            onChange={(next) => {
+              onChange(next)
+              setValue(next)
+            }}
+          />
+          <button type="button" onClick={() => setValue(undefined)}>
+            清空
+          </button>
+        </>
+      )
+    }
+    render(<ControlledNumber />)
+    const number = screen.getByRole('spinbutton', { name: '受控数量' })
+    fireEvent.focus(number)
+    fireEvent.change(number, { target: { value: '1' } })
+    expect(number).toHaveValue(1)
+    expect(onChange).toHaveBeenLastCalledWith(1)
+    fireEvent.change(number, { target: { value: '12' } })
+    expect(number).toHaveValue(12)
+    expect(onChange).toHaveBeenLastCalledWith(12)
+    fireEvent.blur(number)
+    expect(number).toHaveValue(12)
+
+    fireEvent.click(screen.getByRole('button', { name: '清空' }))
+    expect(number).toHaveValue(null)
+    fireEvent.focus(number)
+    fireEvent.change(number, { target: { value: '60' } })
+    expect(number).toHaveValue(60)
+    fireEvent.blur(number)
+    expect(number).toHaveValue(50)
+    expect(onChange).toHaveBeenLastCalledWith(50)
   })
 
   it('supports controlled and uncontrolled segmented choices', () => {
