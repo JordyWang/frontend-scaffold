@@ -99,7 +99,7 @@ test('table sorting stays available in desktop headers and mobile cards', async 
           .allTextContents()
       : table
           .getByRole('table')
-          .locator('tbody tr td:first-child')
+          .locator('tbody tr td:nth-child(2)')
           .allTextContents()
   await expect.poll(names).toHaveLength(3)
   const original = await names()
@@ -117,7 +117,7 @@ test('table sorting stays available in desktop headers and mobile cards', async 
   )
   if (mobile) await expect(sort).toHaveAttribute('aria-pressed', 'true')
   else
-    await expect(table.getByRole('columnheader').first()).toHaveAttribute(
+    await expect(table.locator('th[aria-sort]').first()).toHaveAttribute(
       'aria-sort',
       'ascending',
     )
@@ -127,6 +127,91 @@ test('table sorting stays available in desktop headers and mobile cards', async 
   if (mobile) await sort.tap()
   else await sort.press('Enter')
   await expect.poll(names).toEqual(original)
+})
+
+test('table selection supports partial, all and disabled rows on desktop and H5', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const table = page
+    .getByRole('region', { name: '导航与数据' })
+    .getByRole('region', { name: '示例任务表' })
+  const all = table.getByRole('checkbox', {
+    name: '全选示例任务表当前可选行',
+  })
+  const first = table.getByRole('checkbox', { name: '选择设计变量' })
+  const second = table.getByRole('checkbox', { name: '选择组件预览' })
+  const disabled = table.getByRole('checkbox', { name: '选择触控检查' })
+  await expect(all).toBeVisible()
+  await expect(all).toHaveJSProperty('indeterminate', true)
+  const mark = all.locator('..').locator('span').first()
+  const check = mark.locator('span').first()
+  const dash = mark.locator('span').last()
+  await expect(dash).toHaveCSS('opacity', '1')
+  await expect(second).toBeChecked()
+  await expect(disabled).toBeDisabled()
+  const touchTarget = await all.locator('..').boundingBox()
+  expect(touchTarget!.width).toBeGreaterThanOrEqual(44)
+  expect(touchTarget!.height).toBeGreaterThanOrEqual(44)
+  const mobile = testInfo.project.name.startsWith('mobile-')
+  if (mobile) await all.locator('..').tap()
+  else {
+    await all.focus()
+    await all.press('Space')
+  }
+  await expect(all).toHaveJSProperty('indeterminate', false)
+  await expect(dash).toHaveCSS('opacity', '0')
+  await expect(check).toHaveCSS('opacity', '1')
+  await expect(first).toBeChecked()
+  await expect(second).toBeChecked()
+  await expect(table.getByText('已选 2 项')).toBeVisible()
+  if (mobile) await second.locator('..').tap()
+  else await second.press('Space')
+  await expect(all).toHaveJSProperty('indeterminate', true)
+  await expect(table.getByText('已选 1 项')).toBeVisible()
+  if (mobile) await all.locator('..').tap()
+  else await all.press('Space')
+  await expect(table.getByText('已选 2 项')).toBeVisible()
+  if (mobile) await all.locator('..').tap()
+  else await all.press('Space')
+  await expect(table.getByText('已选 0 项')).toBeVisible()
+  await expect(disabled).not.toBeChecked()
+  if (mobile) {
+    await page.setViewportSize({ width: 360, height: 780 })
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(true)
+  }
+})
+
+test('checkbox and radio marks remain visible after selection', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const checkbox = preview.getByRole('checkbox', { name: '同意更新通知' })
+  const choice = preview.getByRole('group', { name: '展示方式' })
+  const list = choice.getByRole('radio', { name: '列表' })
+  const grid = choice.getByRole('radio', { name: '网格' })
+  const mark = (input: typeof checkbox) =>
+    input.locator('..').locator('span').first().locator('span').first()
+  await expect(list).toBeChecked()
+  await expect(mark(list)).toHaveCSS('opacity', '1')
+  await expect(mark(grid)).toHaveCSS('opacity', '0')
+  const mobile = testInfo.project.name.startsWith('mobile-')
+  if (mobile) await grid.locator('..').tap()
+  else await grid.locator('..').click()
+  await expect(grid).toBeChecked()
+  await expect(mark(grid)).toHaveCSS('opacity', '1')
+  await expect(mark(list)).toHaveCSS('opacity', '0')
+  if (mobile) await checkbox.locator('..').tap()
+  else await checkbox.locator('..').click()
+  await expect(checkbox).toBeChecked()
+  await expect(mark(checkbox)).toHaveCSS('opacity', '1')
 })
 
 test('system dark mode keeps local light surfaces and state colors distinct', async ({

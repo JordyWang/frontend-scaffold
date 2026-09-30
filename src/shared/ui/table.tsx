@@ -1,5 +1,6 @@
 import { useMemo, useState, type Key, type ReactNode } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { Checkbox } from './choice'
 import { Empty } from './empty'
 import { ErrorState, LoadingState } from './feedback-state'
 
@@ -17,6 +18,14 @@ export type TableColumn<T> = {
 export type TableSort = {
   columnKey: string
   direction: 'asc' | 'desc'
+}
+
+export type TableSelection<T> = {
+  selectedKeys?: Key[]
+  defaultSelectedKeys?: Key[]
+  onChange?: (selectedKeys: Key[], selectedRows: T[]) => void
+  disabled?: (row: T) => boolean
+  getLabel?: (row: T) => string
 }
 
 function alignmentClassName(align?: TableColumn<unknown>['align']) {
@@ -39,6 +48,7 @@ export type TableProps<T> = {
   sort?: TableSort | null
   defaultSort?: TableSort | null
   onSortChange?: (sort: TableSort | null) => void
+  selection?: TableSelection<T>
   className?: string
 }
 
@@ -57,6 +67,7 @@ export function Table<T>(allProps: TableProps<T>) {
     sort,
     defaultSort = null,
     onSortChange,
+    selection,
     className,
   } = allProps
   const [internalSort, setInternalSort] = useState<TableSort | null>(
@@ -82,6 +93,84 @@ export function Table<T>(allProps: TableProps<T>) {
       })
       .map(({ row }) => row)
   }, [activeSort, rows, sorter])
+  const [internalSelectedKeys, setInternalSelectedKeys] = useState<Key[]>(
+    selection?.defaultSelectedKeys ?? [],
+  )
+  const selectionControlled = selection
+    ? Object.prototype.hasOwnProperty.call(selection, 'selectedKeys')
+    : false
+  const selectedKeys = [
+    ...new Set(
+      selectionControlled
+        ? (selection?.selectedKeys ?? [])
+        : internalSelectedKeys,
+    ),
+  ]
+  const selectedSet = new Set(selectedKeys)
+  const enabledKeys = selection
+    ? displayedRows
+        .filter((row) => !selection.disabled?.(row))
+        .map((row) => getRowKey(row))
+    : []
+  const enabledKeySet = new Set(enabledKeys)
+  const allSelected =
+    enabledKeys.length > 0 && enabledKeys.every((key) => selectedSet.has(key))
+  const someSelected = enabledKeys.some((key) => selectedSet.has(key))
+
+  function changeSelection(next: Key[]) {
+    const unique = [...new Set(next)]
+    if (!selectionControlled) setInternalSelectedKeys(unique)
+    const nextSet = new Set(unique)
+    selection?.onChange?.(
+      unique,
+      rows.filter((row) => nextSet.has(getRowKey(row))),
+    )
+  }
+
+  function toggleRow(key: Key) {
+    changeSelection(
+      selectedSet.has(key)
+        ? selectedKeys.filter((selectedKey) => selectedKey !== key)
+        : [...selectedKeys, key],
+    )
+  }
+
+  function toggleAll() {
+    changeSelection(
+      allSelected
+        ? selectedKeys.filter((key) => !enabledKeySet.has(key))
+        : [...selectedKeys, ...enabledKeys],
+    )
+  }
+
+  function rowCheckbox(row: T) {
+    const key = getRowKey(row)
+    return (
+      <Checkbox
+        label={`选择${selection?.getLabel?.(row) ?? String(key)}`}
+        hideLabel
+        checked={selectedSet.has(key)}
+        disabled={selection?.disabled?.(row)}
+        className="min-w-11 justify-center"
+        onChange={() => toggleRow(key)}
+      />
+    )
+  }
+
+  function selectAllCheckbox(mobile = false) {
+    return (
+      <Checkbox
+        label={mobile ? '全选' : `全选${caption}当前可选行`}
+        aria-label={`全选${caption}当前可选行`}
+        hideLabel={!mobile}
+        checked={allSelected}
+        indeterminate={!allSelected && someSelected}
+        disabled={enabledKeys.length === 0}
+        className="min-w-11 justify-center"
+        onChange={toggleAll}
+      />
+    )
+  }
 
   function changeSort(columnKey: string) {
     const next: TableSort | null =
@@ -160,6 +249,14 @@ export function Table<T>(allProps: TableProps<T>) {
 
   return (
     <section aria-label={caption} className={regionClassName}>
+      {selection && (
+        <div
+          aria-live="polite"
+          className="border-b border-border px-4 py-2 text-sm text-muted-foreground"
+        >
+          已选 {selectedKeys.length} 项
+        </div>
+      )}
       <div
         className={cn('overflow-x-auto', renderMobileRow && 'hidden sm:block')}
       >
@@ -167,6 +264,11 @@ export function Table<T>(allProps: TableProps<T>) {
           <caption className="sr-only">{caption}</caption>
           <thead className="bg-muted">
             <tr className="border-b border-border">
+              {selection && (
+                <th scope="col" className="w-14 px-2 text-start">
+                  {selectAllCheckbox()}
+                </th>
+              )}
               {columns.map((column) => (
                 <th
                   key={column.key}
@@ -195,6 +297,7 @@ export function Table<T>(allProps: TableProps<T>) {
           <tbody className="divide-y divide-border">
             {displayedRows.map((row) => (
               <tr key={getRowKey(row)}>
+                {selection && <td className="w-14 px-2">{rowCheckbox(row)}</td>}
                 {columns.map((column) =>
                   column.rowScope ? (
                     <th
@@ -226,17 +329,22 @@ export function Table<T>(allProps: TableProps<T>) {
       </div>
       {renderMobileRow && (
         <div className="sm:hidden">
-          {columns.some((column) => column.sorter) && (
-            <div
-              role="group"
-              aria-label={`${caption}排序`}
-              className="flex gap-2 overflow-x-auto border-b border-border p-2"
-            >
-              {columns
-                .filter((column) => column.sorter)
-                .map((column) => (
-                  <span key={column.key}>{sortButton(column, true)}</span>
-                ))}
+          {(selection || columns.some((column) => column.sorter)) && (
+            <div className="flex flex-wrap items-center gap-2 border-b border-border p-2">
+              {selection && selectAllCheckbox(true)}
+              {columns.some((column) => column.sorter) && (
+                <div
+                  role="group"
+                  aria-label={`${caption}排序`}
+                  className="flex min-w-0 gap-2 overflow-x-auto"
+                >
+                  {columns
+                    .filter((column) => column.sorter)
+                    .map((column) => (
+                      <span key={column.key}>{sortButton(column, true)}</span>
+                    ))}
+                </div>
+              )}
             </div>
           )}
           <ul
@@ -244,8 +352,15 @@ export function Table<T>(allProps: TableProps<T>) {
             className="m-0 list-none divide-y divide-border p-0"
           >
             {displayedRows.map((row) => (
-              <li key={getRowKey(row)} className="p-[var(--space-md)]">
-                {renderMobileRow(row)}
+              <li
+                key={getRowKey(row)}
+                className={cn(
+                  'p-[var(--space-md)]',
+                  selection && 'flex items-start gap-3',
+                )}
+              >
+                {selection && rowCheckbox(row)}
+                <div className="min-w-0 flex-1">{renderMobileRow(row)}</div>
               </li>
             ))}
           </ul>

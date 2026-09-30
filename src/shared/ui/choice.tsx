@@ -21,12 +21,24 @@ const choiceLabelStyles =
 const choiceInputStyles = 'peer absolute size-px opacity-0'
 
 const choiceMarkStyles =
-  'grid size-5 shrink-0 place-items-center rounded border-2 border-input bg-card transition-colors peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring peer-aria-[invalid=true]:border-destructive'
+  'grid size-5 shrink-0 place-items-center rounded border-2 border-input bg-card transition-colors peer-checked:border-primary peer-checked:bg-primary peer-checked:[&>span:first-child]:opacity-100 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring peer-aria-[invalid=true]:border-destructive'
 
-export type CheckboxProps = ChoiceProps
+export type CheckboxProps = ChoiceProps & {
+  indeterminate?: boolean
+  hideLabel?: boolean
+}
 export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
   function Checkbox(
-    { label, size = 'default', invalid, required, className, ...props },
+    {
+      label,
+      size = 'default',
+      invalid,
+      required,
+      hideLabel = false,
+      indeterminate = false,
+      className,
+      ...props
+    },
     ref,
   ) {
     return (
@@ -34,17 +46,29 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
         className={cn(choiceLabelStyles, choiceSizeStyles[size], className)}
       >
         <input
-          ref={ref}
+          ref={(element) => {
+            if (element) element.indeterminate = indeterminate
+            if (typeof ref === 'function') ref(element)
+            else if (ref) ref.current = element
+          }}
           type="checkbox"
           className={choiceInputStyles}
           aria-invalid={invalid || undefined}
           required={required}
           {...props}
+          aria-checked={indeterminate ? 'mixed' : props['aria-checked']}
         />
-        <span className={choiceMarkStyles} aria-hidden="true">
-          <span className="size-2.5 -translate-y-px rotate-45 border-b-2 border-r-2 border-primary-foreground opacity-0 transition-opacity peer-checked:opacity-100" />
+        <span
+          className={cn(
+            choiceMarkStyles,
+            'peer-indeterminate:border-primary peer-indeterminate:bg-primary peer-indeterminate:[&>span:first-child]:opacity-0 peer-indeterminate:[&>span:last-child]:opacity-100',
+          )}
+          aria-hidden="true"
+        >
+          <span className="size-2.5 -translate-y-px rotate-45 border-b-2 border-r-2 border-primary-foreground opacity-0 transition-opacity" />
+          <span className="absolute h-0.5 w-2.5 rounded bg-primary-foreground opacity-0 transition-opacity" />
         </span>
-        <span>
+        <span className={hideLabel ? 'sr-only' : undefined}>
           {label}
           {required && (
             <span className="text-destructive" aria-hidden="true">
@@ -73,7 +97,7 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(function Radio(
         {...props}
       />
       <span className={cn(choiceMarkStyles, 'rounded-full')} aria-hidden="true">
-        <span className="size-2 rounded-full bg-primary-foreground opacity-0 transition-opacity peer-checked:opacity-100" />
+        <span className="size-2 rounded-full bg-primary-foreground opacity-0 transition-opacity" />
       </span>
       <span>{label}</span>
     </label>

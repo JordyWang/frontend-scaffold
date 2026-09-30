@@ -620,6 +620,11 @@ export function DevWorkbenchPage() {
                     render: (row) => row.owner,
                   },
                 ]}
+                selection={{
+                  defaultSelectedKeys: ['2'],
+                  disabled: (row) => row.id === '3',
+                  getLabel: (row) => row.name,
+                }}
                 renderMobileRow={(row) => (
                   <div className="space-y-1">
                     <strong>{row.name}</strong>
