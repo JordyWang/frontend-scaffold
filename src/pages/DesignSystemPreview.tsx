@@ -1586,6 +1586,7 @@ export function DesignSystemPreview() {
                         },
                       ]}
                     />
+                    <InputOTP label="RTL 验证码" length={4} defaultValue="12" />
                     <div className="flex flex-wrap gap-2">
                       <Dialog
                         title="RTL 对话框"

@@ -7,10 +7,11 @@ import {
   type KeyboardEvent,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { useConfig } from './config-context'
 
 export type InputOTPProps = Omit<
   HTMLAttributes<HTMLDivElement>,
-  'children' | 'defaultValue' | 'onChange'
+  'children' | 'defaultValue' | 'onChange' | 'dir'
 > & {
   length?: number
   value?: string
@@ -18,6 +19,7 @@ export type InputOTPProps = Omit<
   onChange?: (value: string) => void
   onComplete?: (value: string) => void
   label?: string
+  dir?: 'ltr' | 'rtl'
   name?: string
   inputMode?: 'numeric' | 'text'
   mask?: boolean
@@ -62,6 +64,7 @@ export const InputOTP = forwardRef<HTMLDivElement, InputOTPProps>(
       autoFocus = false,
       className,
       id,
+      dir,
       'aria-label': ariaLabel,
       'aria-labelledby': ariaLabelledBy,
       'aria-describedby': ariaDescribedBy,
@@ -70,6 +73,8 @@ export const InputOTP = forwardRef<HTMLDivElement, InputOTPProps>(
     },
     ref,
   ) {
+    const { direction } = useConfig()
+    const resolvedDirection = dir ?? direction
     const slotCount = Math.max(1, Math.min(12, Math.trunc(length) || 6))
     const [internalValue, setInternalValue] = useState(() =>
       normalize(defaultValue, slotCount, inputMode),
@@ -112,9 +117,11 @@ export const InputOTP = forwardRef<HTMLDivElement, InputOTPProps>(
       const key = event.key
       if (key === 'ArrowLeft' || key === 'ArrowRight') {
         event.preventDefault()
-        const direction = key === 'ArrowLeft' ? -1 : 1
+        const step =
+          (key === 'ArrowLeft' ? -1 : 1) *
+          (resolvedDirection === 'rtl' ? -1 : 1)
         slotsRef.current[
-          Math.min(slotCount - 1, Math.max(0, index + direction))
+          Math.min(slotCount - 1, Math.max(0, index + step))
         ]?.focus()
       } else if (key === 'Home' || key === 'End') {
         event.preventDefault()
@@ -139,6 +146,7 @@ export const InputOTP = forwardRef<HTMLDivElement, InputOTPProps>(
         {...props}
         ref={ref}
         id={id}
+        dir={resolvedDirection}
         role="group"
         aria-label={
           ariaLabelledBy || labelId ? undefined : (ariaLabel ?? groupName)

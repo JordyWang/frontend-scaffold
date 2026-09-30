@@ -2525,6 +2525,29 @@ test('floating overlays stay usable inside clipped containers', async ({
   await expect(page.getByRole('tooltip')).toHaveCount(0)
 })
 
+test('RTL OTP arrows follow the visible slot order', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const group = preview.getByRole('group', { name: 'RTL 验证码' })
+  const slots = group.getByRole('textbox', { name: /RTL 验证码第/ })
+  await expect(group).toHaveAttribute('dir', 'rtl')
+  await expect(slots).toHaveCount(4)
+  const firstBox = await slots.first().boundingBox()
+  const secondBox = await slots.nth(1).boundingBox()
+  expect(firstBox!.x).toBeGreaterThan(secondBox!.x)
+  expect(firstBox!.width).toBeGreaterThanOrEqual(44)
+  await slots.first().focus()
+  await slots.first().press('ArrowLeft')
+  await expect(slots.nth(1)).toBeFocused()
+  await slots.nth(1).press('ArrowRight')
+  await expect(slots.first()).toBeFocused()
+  if (testInfo.project.name.startsWith('mobile-')) await slots.nth(2).tap()
+  else await slots.nth(2).click()
+  await expect(slots.nth(2)).toBeFocused()
+})
+
 test('RTL tree select follows visual expansion keys in its portal', async ({
   page,
 }, testInfo) => {

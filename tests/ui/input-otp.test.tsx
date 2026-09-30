@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { Form, FormItem, InputOTP } from '@/shared/ui'
+import { ConfigProvider, Form, FormItem, InputOTP } from '@/shared/ui'
 
 describe('InputOTP', () => {
   it('moves focus during entry and reports completion once', () => {
@@ -60,6 +60,22 @@ describe('InputOTP', () => {
         .getAllByRole('textbox', { name: /验证码第/ })
         .map((slot) => (slot as HTMLInputElement).value),
     ).toEqual(['1', '2', '3', '4'])
+  })
+
+  it('moves toward the visual next slot with RTL arrow keys', () => {
+    render(
+      <ConfigProvider direction="rtl">
+        <InputOTP label="RTL 验证码" length={4} defaultValue="12" />
+      </ConfigProvider>,
+    )
+    const group = screen.getByRole('group', { name: 'RTL 验证码' })
+    const slots = screen.getAllByRole('textbox', { name: /RTL 验证码第/ })
+    expect(group).toHaveAttribute('dir', 'rtl')
+    slots[0].focus()
+    fireEvent.keyDown(slots[0], { key: 'ArrowLeft' })
+    expect(slots[1]).toHaveFocus()
+    fireEvent.keyDown(slots[1], { key: 'ArrowRight' })
+    expect(slots[0]).toHaveFocus()
   })
 
   it('respects a controlled value and exposes disabled, masked and invalid states', () => {
