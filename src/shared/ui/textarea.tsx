@@ -7,7 +7,13 @@ import {
 } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { useConfig } from './config-context'
-import { inputSizeStyles, inputStyles } from './tailwind-styles'
+import {
+  inputSizeStyles,
+  inputStatusStyles,
+  inputStyles,
+  inputVariantStyles,
+} from './tailwind-styles'
+import type { InputStatus, InputVariant } from './input'
 
 export type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   invalid?: boolean
@@ -15,6 +21,8 @@ export type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   allowClear?: boolean
   clearLabel?: string
   onValueChange?: (value: string) => void
+  variant?: InputVariant
+  status?: InputStatus
 }
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
@@ -27,6 +35,8 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       allowClear = false,
       clearLabel = '清空输入',
       onValueChange,
+      variant = 'outlined',
+      status = 'default',
       onChange,
       value,
       defaultValue,
@@ -79,9 +89,14 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           }}
           disabled={disabled}
           aria-label={ariaLabel}
-          aria-invalid={invalid || props['aria-invalid'] || undefined}
+          aria-invalid={
+            invalid || status === 'error' || props['aria-invalid'] || undefined
+          }
+          data-status={status === 'default' ? undefined : status}
           className={cn(
             inputStyles,
+            inputVariantStyles[variant],
+            inputStatusStyles[status],
             inputSizeStyles[resolvedSize],
             'min-h-28 resize-y',
             allowClear && currentValue && 'pe-12',

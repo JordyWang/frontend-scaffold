@@ -7,7 +7,15 @@ import {
 } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { useConfig } from './config-context'
-import { inputSizeStyles, inputStyles } from './tailwind-styles'
+import {
+  inputSizeStyles,
+  inputStatusStyles,
+  inputStyles,
+  inputVariantStyles,
+} from './tailwind-styles'
+
+export type InputVariant = keyof typeof inputVariantStyles
+export type InputStatus = keyof typeof inputStatusStyles
 
 export type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
   invalid?: boolean
@@ -15,6 +23,8 @@ export type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
   allowClear?: boolean
   clearLabel?: string
   onValueChange?: (value: string) => void
+  variant?: InputVariant
+  status?: InputStatus
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
@@ -28,6 +38,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       allowClear = false,
       clearLabel = '清空输入',
       onValueChange,
+      variant = 'outlined',
+      status = 'default',
       onChange,
       value,
       defaultValue,
@@ -81,9 +93,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           type={type}
           disabled={disabled}
           aria-label={ariaLabel}
-          aria-invalid={invalid || props['aria-invalid'] || undefined}
+          aria-invalid={
+            invalid || status === 'error' || props['aria-invalid'] || undefined
+          }
+          data-status={status === 'default' ? undefined : status}
           className={cn(
             inputStyles,
+            inputVariantStyles[variant],
+            inputStatusStyles[status],
             inputSizeStyles[resolvedSize],
             allowClear && currentValue && 'pe-12',
             className,

@@ -74,4 +74,41 @@ describe('clearable text controls', () => {
     )
     expect(screen.getByRole('button', { name: '清空输入' })).toBeVisible()
   })
+
+  it('supports Ant Design-style field variants and statuses', () => {
+    render(
+      <>
+        <Input aria-label="填充输入" variant="filled" defaultValue="内容" />
+        <Input
+          aria-label="无边框输入"
+          variant="borderless"
+          defaultValue="内容"
+        />
+        <Textarea
+          aria-label="下划线文本域"
+          variant="underlined"
+          status="warning"
+          defaultValue="内容"
+        />
+        <Input aria-label="错误输入" status="error" />
+      </>,
+    )
+
+    expect(screen.getByRole('textbox', { name: '填充输入' })).toHaveClass(
+      'bg-muted',
+    )
+    expect(screen.getByRole('textbox', { name: '无边框输入' })).toHaveClass(
+      'bg-transparent',
+    )
+    expect(screen.getByRole('textbox', { name: '下划线文本域' })).toHaveClass(
+      'border-b',
+    )
+    expect(
+      screen.getByRole('textbox', { name: '下划线文本域' }),
+    ).toHaveAttribute('data-status', 'warning')
+    expect(screen.getByRole('textbox', { name: '错误输入' })).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    )
+  })
 })

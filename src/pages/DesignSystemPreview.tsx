@@ -417,6 +417,33 @@ export function DesignSystemPreview() {
                     <Textarea allowClear defaultValue="多行内容也支持清空" />
                   }
                 />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <FormField
+                    label="填充输入"
+                    control={<Input variant="filled" defaultValue="filled" />}
+                  />
+                  <FormField
+                    label="无边框输入"
+                    control={
+                      <Input variant="borderless" defaultValue="borderless" />
+                    }
+                  />
+                  <FormField
+                    label="下划线警告"
+                    control={
+                      <Textarea
+                        variant="underlined"
+                        status="warning"
+                        defaultValue="underlined"
+                      />
+                    }
+                  />
+                  <FormField
+                    label="错误输入"
+                    error="请输入有效内容"
+                    control={<Input status="error" />}
+                  />
+                </div>
                 <FormField
                   required
                   error={choice === 'a' ? '请选择网格展示以继续' : undefined}

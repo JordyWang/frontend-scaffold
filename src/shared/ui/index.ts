@@ -1,7 +1,7 @@
 export { Button } from './button'
 export type { ButtonProps } from './button'
 export { Input } from './input'
-export type { InputProps } from './input'
+export type { InputProps, InputStatus, InputVariant } from './input'
 export { SearchInput, PasswordInput } from './input-variants'
 export type { SearchInputProps, PasswordInputProps } from './input-variants'
 export { InputOTP } from './input-otp'

@@ -11,6 +11,22 @@ export const textLinkStyles =
 export const inputStyles =
   'w-full min-h-[max(44px,var(--ui-control-height))] rounded-[var(--ui-field-radius)] border border-input bg-card px-3 py-2.5 text-base leading-6 text-card-foreground placeholder:text-muted-foreground aria-invalid:border-destructive disabled:cursor-not-allowed disabled:opacity-[0.55]'
 
+/** Ant Design-style field surfaces kept as project-owned variants. */
+export const inputVariantStyles = {
+  outlined: '',
+  filled: 'border-transparent bg-muted',
+  borderless: 'border-transparent bg-transparent',
+  underlined:
+    'rounded-none border-0 border-b border-input bg-transparent focus-visible:border-ring',
+} as const
+
+export const inputStatusStyles = {
+  default: '',
+  error: 'border-destructive focus-visible:border-destructive',
+  warning:
+    'border-[var(--ui-color-warning)] focus-visible:border-[var(--ui-color-warning)]',
+} as const
+
 export const inputSizeStyles = {
   default: '',
   small: 'py-2',
