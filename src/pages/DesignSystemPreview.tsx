@@ -230,6 +230,24 @@ export function DesignSystemPreview() {
         <div ref={setRtlPopupContainer} data-ui-rtl-popup-root="" />
         <Grid minItemWidth="17rem" gap="lg">
           <Card
+            title="按钮扩展"
+            extra={<Typography variant="caption">AntD 风格</Typography>}
+          >
+            <CardContent className="grid gap-3">
+              <Button danger shape="round" block>
+                危险操作
+              </Button>
+              <Stack direction="row" gap="sm" wrap>
+                <Button shape="round" variant="outline">
+                  圆角按钮
+                </Button>
+                <Button size="icon" shape="circle" aria-label="新增">
+                  +
+                </Button>
+              </Stack>
+            </CardContent>
+          </Card>
+          <Card
             title="声明式卡片"
             extra={
               <Button size="small" variant="ghost">

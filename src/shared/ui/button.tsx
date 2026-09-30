@@ -1,4 +1,4 @@
-import { forwardRef, type ButtonHTMLAttributes } from 'react'
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { useConfig } from './config-context'
 import { spinnerStyles } from './tailwind-styles'
@@ -22,10 +22,21 @@ const sizeStyles = {
   icon: 'w-11 p-0 text-2xl font-normal',
 } as const
 
+const shapeStyles = {
+  default: '',
+  round: 'rounded-full',
+  circle: 'rounded-full p-0',
+} as const
+
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive'
   size?: 'default' | 'small' | 'large' | 'icon'
   loading?: boolean
+  danger?: boolean
+  block?: boolean
+  shape?: keyof typeof shapeStyles
+  icon?: ReactNode
+  iconPosition?: 'start' | 'end'
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -35,6 +46,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       variant = 'primary',
       size,
       loading = false,
+      danger = false,
+      block = false,
+      shape = 'default',
+      icon,
+      iconPosition = 'start',
       disabled,
       children,
       type = 'button',
@@ -61,14 +77,18 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         data-ui-variant={variant}
         className={cn(
           buttonStyles,
-          variantStyles[variant],
+          variantStyles[danger ? 'destructive' : variant],
           sizeStyles[resolvedSize],
+          shapeStyles[shape],
+          block && 'w-full',
           className,
         )}
         {...props}
       >
+        {iconPosition === 'start' && icon}
         {loading && <span className={spinnerStyles} aria-hidden="true" />}
         {children}
+        {iconPosition === 'end' && icon}
       </button>
     )
   },

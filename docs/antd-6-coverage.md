@@ -42,6 +42,8 @@ Select 与 MultiSelect 复用同一组外观与状态字段，错误状态会同
 
 Card 保留组合式子组件，并补充 AntD 常用的 `title`、`extra`、`cover`、`actions`、`hoverable`、`loading` 和 `bordered` 插槽；`/__ui` 展示声明式卡片。
 
+Button 补充危险、块级、圆角和图标位置 API；这些状态仍使用项目的 Tailwind 语义 Token，并在 `/__ui` 展示触控尺寸。
+
 Tabs 非受控状态下移除或禁用当前标签时会显示可用面板，并在原标签持有焦点时恢复到可用标签；`/__ui` 提供动态分组预览和桌面、H5 回归。
 
 Tour 高亮区域允许直接点击目标，遮罩模式下 Tab 只在卡片与目标间移动；卡片内容或目标尺寸变化时重新定位。`/__ui` 展示可展开说明，并覆盖桌面键盘及 H5 触控。

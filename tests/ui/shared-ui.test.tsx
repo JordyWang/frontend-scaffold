@@ -22,6 +22,36 @@ import {
 } from '@/shared/ui'
 
 describe('shared/ui contracts', () => {
+  it('supports Ant Design-style button shape, block and danger contracts', () => {
+    render(
+      <>
+        <Button
+          danger
+          shape="round"
+          block
+          icon={<span aria-hidden="true">!</span>}
+        >
+          删除
+        </Button>
+        <Button
+          size="icon"
+          shape="circle"
+          icon={<span aria-hidden="true">+</span>}
+          aria-label="新增"
+        />
+      </>,
+    )
+    expect(screen.getByRole('button', { name: '删除' })).toHaveClass(
+      'bg-destructive',
+      'rounded-full',
+      'w-full',
+    )
+    expect(screen.getByRole('button', { name: '新增' })).toHaveClass(
+      'rounded-full',
+      'p-0',
+    )
+  })
+
   it('supports declarative card slots while keeping loading content accessible', () => {
     const onAction = vi.fn()
     const { rerender } = render(
