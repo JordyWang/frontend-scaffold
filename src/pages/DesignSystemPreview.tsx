@@ -152,6 +152,7 @@ export function DesignSystemPreview() {
   const [dateRange, setDateRange] = useState<DateRange>(['', ''])
   const [timeRange, setTimeRange] = useState<TimeRange>(['', ''])
   const [formStatus, setFormStatus] = useState('尚未提交')
+  const [consentStatus, setConsentStatus] = useState('尚未提交')
   const [searchStatus, setSearchStatus] = useState('尚未搜索')
   const [city, setCity] = useState('')
   const [selectedCity, setSelectedCity] = useState('尚未选择城市')
@@ -731,6 +732,30 @@ export function DesignSystemPreview() {
                     </Button>
                     <Typography variant="caption" tone="muted">
                       {formStatus}
+                    </Typography>
+                  </Stack>
+                </Form>
+                <Form
+                  aria-label="条款确认示例"
+                  onFinish={() => setConsentStatus('已确认条款')}
+                  onFinishFailed={() => setConsentStatus('请先同意条款')}
+                  onReset={() => setConsentStatus('尚未提交')}
+                >
+                  <FormItem
+                    name="consent"
+                    valuePropName="checked"
+                    rules={[{ required: true, message: '请同意条款' }]}
+                    control={<Checkbox label="同意条款" />}
+                  />
+                  <Stack direction="row" align="center" wrap gap="sm">
+                    <Button type="submit" size="small">
+                      提交条款确认
+                    </Button>
+                    <Button type="reset" variant="outline" size="small">
+                      重置条款确认
+                    </Button>
+                    <Typography variant="caption" tone="muted">
+                      {consentStatus}
                     </Typography>
                   </Stack>
                 </Form>

@@ -81,6 +81,7 @@ function isEmptyValue(value: unknown) {
     value === undefined ||
     value === null ||
     value === '' ||
+    value === false ||
     (Array.isArray(value) && value.length === 0)
   )
 }

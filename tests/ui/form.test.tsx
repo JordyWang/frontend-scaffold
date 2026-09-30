@@ -1,6 +1,13 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { Form, FormItem, RadioGroup, TreeSelect, useForm } from '@/shared/ui'
+import {
+  Checkbox,
+  Form,
+  FormItem,
+  RadioGroup,
+  TreeSelect,
+  useForm,
+} from '@/shared/ui'
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -11,6 +18,43 @@ function deferred<T>() {
 }
 
 describe('Form coordinator', () => {
+  it('requires a checked boolean field before submit and after reset', async () => {
+    const onFinish = vi.fn()
+    render(
+      <Form onFinish={onFinish}>
+        <FormItem
+          name="consent"
+          valuePropName="checked"
+          rules={[{ required: true, message: '请同意条款' }]}
+          control={<Checkbox label="同意条款" />}
+        />
+        <button type="submit">提交</button>
+        <button type="reset">重置</button>
+      </Form>,
+    )
+    const checkbox = screen.getByRole('checkbox', { name: '同意条款' })
+    fireEvent.click(screen.getByRole('button', { name: '提交' }))
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('请同意条款'),
+    )
+    expect(checkbox).toHaveAttribute('aria-invalid', 'true')
+    expect(onFinish).not.toHaveBeenCalled()
+
+    fireEvent.click(checkbox)
+    fireEvent.click(screen.getByRole('button', { name: '提交' }))
+    await waitFor(() =>
+      expect(onFinish).toHaveBeenCalledWith({ consent: true }),
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '重置' }))
+    expect(checkbox).not.toBeChecked()
+    fireEvent.click(screen.getByRole('button', { name: '提交' }))
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('请同意条款'),
+    )
+    expect(onFinish).toHaveBeenCalledTimes(1)
+  })
+
   it('passes horizontal and inline layout to FormField without changing labels', () => {
     const { rerender } = render(
       <Form layout="horizontal">

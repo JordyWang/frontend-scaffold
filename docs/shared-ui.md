@@ -92,6 +92,8 @@
 
 `FormItem.emptyValue` 指定未设置值或重置后的控件空值，默认 `''`；布尔字段继续使用 `false`。数组值控件（如多选 `TreeSelect` 和 `Cascader`）应传入 `emptyValue={[]}`，避免初始空字符串被解释为选中项。表单存储在用户选择前仍保持未设置状态。
 
+`FormRule.required` 将布尔 `false` 视为未完成；同意条款等复选框用 `valuePropName="checked"` 接入 `FormItem` 后，未勾选和重置后的状态均不会通过必填校验。`/__ui` 提供键盘与 H5 触控示例。
+
 `AutoComplete` 根据选项 `value` 过滤候选；`onChange` 接收输入或选中的字符串，`onSelect(value, option)` 只在选中建议时调用。候选项可设置 `disabled`。输入框保留焦点，通过上下方向键浏览、Enter 选择、Escape 关闭；候选面板在主题作用域内浮动，H5 可直接触控选择。
 
 `MultiSelect` 使用与单选 `Select` 相同的 `{ value, label, disabled? }` 选项，`onValueChange` 返回去重后的字符串数组。选中后弹层保持打开，可继续选择或再次点选移除；`showSearch` 过滤选项，禁用项不可操作。`allowClear` 提供独立 44px 清空按钮。传入 `name` 时以 JSON 数组字符串提交；连接 `FormItem` 时使用 `trigger="onValueChange"`、`emptyValue={[]}` 和 `rules` 校验。

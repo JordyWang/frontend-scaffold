@@ -756,6 +756,37 @@ test('form preview validates and submits through the project contract', async ({
   )
 })
 
+test('required checkbox form rejects false on keyboard and H5 touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const form = page.getByRole('form', { name: '条款确认示例' })
+  const checkbox = form.getByRole('checkbox', { name: '同意条款' })
+  const submit = form.getByRole('button', { name: '提交条款确认' })
+  const reset = form.getByRole('button', { name: '重置条款确认' })
+
+  if (testInfo.project.name.startsWith('mobile-')) await submit.tap()
+  else await submit.click()
+  await expect(form.getByRole('alert')).toHaveText('请同意条款')
+  await expect(checkbox).toHaveAttribute('aria-invalid', 'true')
+
+  if (testInfo.project.name.startsWith('mobile-'))
+    await form.locator('label').filter({ hasText: '同意条款' }).tap()
+  else {
+    await checkbox.focus()
+    await page.keyboard.press('Space')
+  }
+  await expect(checkbox).toBeChecked()
+  if (testInfo.project.name.startsWith('mobile-')) await submit.tap()
+  else await submit.click()
+  await expect(form.getByText('已确认条款')).toBeVisible()
+
+  if (testInfo.project.name.startsWith('mobile-')) await reset.tap()
+  else await reset.click()
+  await expect(checkbox).not.toBeChecked()
+  await expect(form.getByText('尚未提交')).toBeVisible()
+})
+
 test('native data controls keep their touch targets and keyboard behavior', async ({
   page,
 }, testInfo) => {
