@@ -159,6 +159,7 @@ export function DesignSystemPreview() {
   const [searchStatus, setSearchStatus] = useState('尚未搜索')
   const [smallCardStatus, setSmallCardStatus] = useState('尚未操作')
   const [emptyStatus, setEmptyStatus] = useState('尚未重置')
+  const [badgeStatus, setBadgeStatus] = useState('尚未查看 RTL 通知')
   const [alertKey, setAlertKey] = useState(0)
   const [alertStatus, setAlertStatus] = useState('提示可关闭')
   const [city, setCity] = useState('')
@@ -348,6 +349,8 @@ export function DesignSystemPreview() {
                       <Icon name="warning" />
                     </Button>
                   </Badge>
+                  <Badge count={24} label="24 条独立通知" />
+                  <Badge label="已同步" tone="success" />
                 </Stack>
                 <Divider />
                 <Typography variant="caption" tone="muted">
@@ -2039,6 +2042,18 @@ export function DesignSystemPreview() {
                     />
                     <InputOTP label="RTL 验证码" length={4} defaultValue="12" />
                     <Switch label="RTL 开关" />
+                    <div className="flex flex-wrap items-center gap-4">
+                      <Badge count={8} label="8 条 RTL 通知">
+                        <Button
+                          variant="outline"
+                          onClick={() => setBadgeStatus('已打开 RTL 通知')}
+                        >
+                          RTL 通知
+                        </Button>
+                      </Badge>
+                      <Badge count={24} label="24 条独立 RTL 通知" />
+                      <span role="status">{badgeStatus}</span>
+                    </div>
                     <div className="flex flex-wrap gap-2">
                       <Dialog
                         title="RTL 对话框"

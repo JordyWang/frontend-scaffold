@@ -173,6 +173,43 @@ test('Statistic reveals a grouped value after loading on keyboard and touch', as
   await expect(statistic).toHaveAttribute('aria-busy', 'true')
 })
 
+test('Badge reserves space alone and follows the logical end in RTL', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const ltrButton = preview.getByRole('button', { name: '通知', exact: true })
+  const ltrBadge = ltrButton.locator('..').locator('[data-ui-badge-tone]')
+  const ltrButtonBox = (await ltrButton.boundingBox())!
+  const ltrBadgeBox = (await ltrBadge.boundingBox())!
+  expect(ltrBadgeBox.x + ltrBadgeBox.width).toBeGreaterThan(
+    ltrButtonBox.x + ltrButtonBox.width,
+  )
+
+  const rtl = preview.getByRole('group', { name: 'RTL 控件预览' })
+  const rtlButton = rtl.getByRole('button', { name: 'RTL 通知' })
+  const rtlBadge = rtlButton.locator('..').locator('[data-ui-badge-tone]')
+  const rtlButtonBox = (await rtlButton.boundingBox())!
+  const rtlBadgeBox = (await rtlBadge.boundingBox())!
+  expect(rtlBadgeBox.x).toBeLessThan(rtlButtonBox.x)
+
+  const standalone = rtl.locator('[data-ui-badge]').filter({ hasText: '24' })
+  const pill = standalone.locator('[data-ui-badge-tone]')
+  await expect(pill).toHaveText('24')
+  const standaloneBox = (await standalone.boundingBox())!
+  const pillBox = (await pill.boundingBox())!
+  expect(standaloneBox.width).toBeGreaterThanOrEqual(pillBox.width)
+
+  const buttonBox = (await rtlButton.boundingBox())!
+  expect(buttonBox.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await rtlButton.tap()
+  else {
+    await rtlButton.focus()
+    await rtlButton.press('Enter')
+  }
+  await expect(rtl.getByRole('status')).toHaveText('已打开 RTL 通知')
+})
+
 test('pagination changes page size and jumps to a valid page on desktop and H5', async ({
   page,
 }, testInfo) => {

@@ -73,6 +73,20 @@ describe('display and feedback semantics', () => {
     expect(screen.getByText('99+')).toHaveAttribute('aria-label', '120 条通知')
   })
 
+  it('keeps standalone badge counts and labels in the document flow', () => {
+    render(
+      <>
+        <Badge count={24} label="24 条独立通知" />
+        <Badge label="已同步" tone="success" />
+      </>,
+    )
+    const count = screen.getByText('24')
+    expect(count).toHaveAttribute('aria-label', '24 条独立通知')
+    expect(count).not.toHaveClass('absolute')
+    expect(count.parentElement).toHaveAttribute('data-ui-badge')
+    expect(screen.getByText('已同步')).toHaveAttribute('aria-label', '已同步')
+  })
+
   it('names loading placeholders and progress feedback', () => {
     render(
       <>

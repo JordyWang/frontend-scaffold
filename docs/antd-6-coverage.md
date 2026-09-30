@@ -93,3 +93,5 @@ Empty 增加 default / small 尺寸契约和可替换插图，未指定尺寸时
 Pagination 增加独立禁用状态，并为加载态暴露 `aria-busy`；页码、条数选择、快速跳页与加载更多同步禁用，`/__ui` 可切换验证。
 
 Statistic 的数值格式遵循 ConfigProvider.locale，并支持精度、局部语言覆写和加载骨架；`/__ui` 展示加载完成后的分组数值。
+
+Badge 无子元素时正常占位并显示数量或标签；附着于控件时徽标跟随 LTR/RTL 逻辑末端，`/__ui` 提供桌面与 H5 预览。

@@ -58,21 +58,30 @@ export function Badge({
   label,
   className,
 }: BadgeProps) {
+  const hasAnchor =
+    children !== undefined && children !== null && children !== false
   const text = dot
     ? ''
     : count === undefined
-      ? ''
+      ? hasAnchor
+        ? ''
+        : (label ?? '')
       : count > max
         ? `${max}+`
         : String(count)
   return (
-    <span className={cn('relative inline-flex w-fit', className)}>
+    <span
+      data-ui-badge=""
+      className={cn('relative inline-flex w-fit', className)}
+    >
       {children}
       {(dot || count !== undefined || label) && (
         <span
           data-ui-badge-tone={tone}
           className={cn(
-            'absolute end-0 top-0 grid min-w-5 h-5 translate-x-[40%] -translate-y-[40%] place-items-center rounded-full px-[0.2rem] text-xs font-bold leading-none',
+            'grid h-5 min-w-5 place-items-center rounded-full px-[0.2rem] text-xs font-bold leading-none',
+            hasAnchor &&
+              'absolute end-0 top-0 translate-x-[40%] -translate-y-[40%] rtl:-translate-x-[40%]',
             badgeToneStyles[tone],
             dot && 'size-2.5 min-w-0 p-0',
           )}
