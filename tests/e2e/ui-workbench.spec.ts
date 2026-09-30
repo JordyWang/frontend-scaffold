@@ -29,6 +29,44 @@ test('page shell keeps safe padding and the skip link is keyboard reachable', as
   }
 })
 
+test('small Card applies its size to slots and keeps actions touchable', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const compact = preview.locator('[data-ui-card]').filter({
+    hasText: '小号卡片',
+  })
+  const regular = preview.locator('[data-ui-card]').filter({
+    hasText: '声明式卡片',
+  })
+  await expect(compact).toHaveAttribute('data-ui-size', 'small')
+  await expect(compact.locator(':scope > div').first()).toHaveCSS(
+    'padding-top',
+    '16px',
+  )
+  await expect(compact.locator(':scope > div').first()).toHaveCSS(
+    'padding-bottom',
+    '0px',
+  )
+  await expect(regular.locator(':scope > div').first()).toHaveCSS(
+    'padding-top',
+    '24px',
+  )
+  await expect(
+    compact.getByText('紧凑卡片使用相同的项目 API。').locator('..'),
+  ).toHaveCSS('padding-top', '16px')
+  const action = compact.getByRole('button', { name: '执行小号卡片操作' })
+  const box = await action.boundingBox()
+  expect(box!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await action.tap()
+  else {
+    await action.focus()
+    await action.press('Enter')
+  }
+  await expect(compact.getByRole('status')).toHaveText('已执行操作')
+})
+
 test('pagination changes page size and jumps to a valid page on desktop and H5', async ({
   page,
 }, testInfo) => {

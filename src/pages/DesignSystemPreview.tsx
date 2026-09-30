@@ -11,6 +11,7 @@ import {
   Button,
   Card,
   CardContent,
+  CardFooter,
   Calendar,
   Checkbox,
   Carousel,
@@ -154,6 +155,7 @@ export function DesignSystemPreview() {
   const [formStatus, setFormStatus] = useState('尚未提交')
   const [consentStatus, setConsentStatus] = useState('尚未提交')
   const [searchStatus, setSearchStatus] = useState('尚未搜索')
+  const [smallCardStatus, setSmallCardStatus] = useState('尚未操作')
   const [city, setCity] = useState('')
   const [selectedCity, setSelectedCity] = useState('尚未选择城市')
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
@@ -259,6 +261,23 @@ export function DesignSystemPreview() {
             actions={[<Button variant="ghost">打开详情</Button>]}
           >
             <CardContent>标题、额外操作和底部 actions 可直接组合。</CardContent>
+          </Card>
+          <Card title="小号卡片" size="small">
+            <CardContent>
+              <p className="m-0">紧凑卡片使用相同的项目 API。</p>
+              <p role="status" className="mb-0 text-sm text-muted-foreground">
+                {smallCardStatus}
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button
+                size="small"
+                variant="outline"
+                onClick={() => setSmallCardStatus('已执行操作')}
+              >
+                执行小号卡片操作
+              </Button>
+            </CardFooter>
           </Card>
           <Card>
             <CardContent>

@@ -22,7 +22,7 @@
 | TreeSelect                      | `treeData`、`value` / `defaultValue`、`onChange`、`multiple`、`showSearch`、`allowClear`、`defaultExpandedValues`                                | 项目树形选择契约；单选或多选，搜索会显示匹配项及其祖先，键盘使用方向键与 Enter，H5 提供 44px 触控区域                       |
 | Transfer                        | `items`、`targetKeys` / `defaultTargetKeys`、`selectedKeys` / `defaultSelectedKeys`、`onChange`、`showSearch`、`filterItem`                      | 双栏穿梭框；可见项批量选择、禁用项保护、方向操作、键盘和 H5 单列布局                                                        |
 | Upload                          | `accept`、`multiple`、`beforeUpload`、`onFiles`、`disabled`                                                                                      | 仅负责文件入口和筛选；预览、校验、上传进度继续使用 `capabilities/files`                                                     |
-| Card                            | `Card`、`CardHeader`、`CardTitle`、`CardDescription`、`CardContent`、`CardFooter`                                                                | 仅负责内容容器                                                                                                              |
+| Card                            | `Card`、`CardHeader`、`CardTitle`、`CardDescription`、`CardContent`、`CardFooter`；`size` 为 default / small                                     | 组合式插槽共享尺寸；小号可继承 ConfigProvider.componentSize                                                                 |
 | Empty                           | `title`、`description`、`action`                                                                                                                 | 适用于无数据状态                                                                                                            |
 | Select                          | `options`、`value` / `defaultValue`、`onValueChange`、`placeholder`、`disabled`、`name`、`required`、`size`、常用 `aria-*` 和焦点事件            | 选项 `{ value, label, disabled? }`；Radix 处理方向键、搜索和焦点                                                            |
 | MultiSelect                     | `options`、`value` / `defaultValue`、`onValueChange`、`showSearch`、`allowClear`、`disabled`、`name`、`required`、`size`                         | 项目多选值为 `string[]`；弹层列表支持过滤、方向键、Enter/空格、Escape 和 H5 触控                                            |
@@ -80,7 +80,7 @@
 
 `Select` 和 `MultiSelect` 使用相同的 `variant` 和 `status` 字段契约；`status="error"` 同时暴露 `aria-invalid="true"`，便于表单校验和辅助技术识别。
 
-`Card` 保留 `CardHeader` / `CardContent` 等组合 API，同时支持 `title`、`extra`、`cover`、`actions`、`hoverable`、`loading` 和 `bordered`；加载状态提供 `role="status"`。
+`Card` 保留 `CardHeader` / `CardContent` 等组合 API，同时支持 `title`、`extra`、`cover`、`actions`、`hoverable`、`loading`、`bordered` 和 `size`。小号尺寸会同步收紧标题、Header、Content、Footer 与加载骨架屏；未指定时继承全局小号配置，加载状态提供 `role="status"`。
 
 `Button` 在原有 `variant`、`size`、`loading` 基础上支持 `danger`、`block`、`shape`（default、round、circle）以及 `icon` / `iconPosition` 插槽；`danger` 会优先使用错误主题色。
 

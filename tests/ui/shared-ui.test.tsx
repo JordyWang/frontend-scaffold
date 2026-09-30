@@ -3,7 +3,10 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   Button,
   Card,
+  CardContent,
+  CardFooter,
   Checkbox,
+  ConfigProvider,
   ErrorBoundary,
   ErrorState,
   FormField,
@@ -80,6 +83,39 @@ describe('shared/ui contracts', () => {
     rerender(<Card title="加载中" loading />)
     expect(screen.getByRole('status', { name: '正在加载' })).toBeInTheDocument()
     expect(screen.queryByText('已完成')).toBeNull()
+  })
+
+  it('shares Card size across declarative and compound slots', () => {
+    render(
+      <ConfigProvider componentSize="small">
+        <Card title="继承小号">
+          <CardContent>小号内容</CardContent>
+          <CardFooter>
+            <button type="button">小号操作</button>
+          </CardFooter>
+        </Card>
+        <Card title="显式默认" size="default">
+          <CardContent>默认内容</CardContent>
+        </Card>
+      </ConfigProvider>,
+    )
+    const compact = screen.getByRole('heading', { name: '继承小号' })
+    const regular = screen.getByRole('heading', { name: '显式默认' })
+    expect(compact.closest('[data-ui-card]')).toHaveAttribute(
+      'data-ui-size',
+      'small',
+    )
+    expect(compact).toHaveClass('text-base')
+    expect(screen.getByText('小号内容')).toHaveClass('p-[var(--space-md)]')
+    expect(
+      screen.getByRole('button', { name: '小号操作' }).parentElement,
+    ).toHaveClass('p-[var(--space-md)]')
+    expect(regular.closest('[data-ui-card]')).toHaveAttribute(
+      'data-ui-size',
+      'default',
+    )
+    expect(regular).toHaveClass('text-lg')
+    expect(screen.getByText('默认内容')).toHaveClass('p-[var(--space-lg)]')
   })
 
   it('prevents a second action while a button is loading', () => {
