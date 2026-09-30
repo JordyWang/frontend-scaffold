@@ -360,7 +360,9 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
         !showSearch &&
         document.activeElement === triggerRef.current
       )
-        nodeRefs.current[activeValue ?? firstEnabled ?? '']?.focus()
+        nodeRefs.current[activeValue ?? firstEnabled ?? '']?.focus({
+          preventScroll: true,
+        })
     }, [activeValue, firstEnabled, isOpen, showSearch])
 
     useLayoutEffect(() => {

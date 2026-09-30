@@ -461,6 +461,35 @@ test('form preview validates and submits through the project contract', async ({
   if (testInfo.project.name.startsWith('mobile-')) await submit.tap()
   else await submit.click()
   await expect(form.getByText('已提交：person@example.com')).toBeVisible()
+
+  const teams = form.getByRole('combobox', { name: '表单团队' })
+  await expect(form.getByRole('button', { name: '清除表单团队' })).toHaveCount(
+    0,
+  )
+  if (testInfo.project.name.startsWith('mobile-')) await teams.tap()
+  else await teams.click()
+  const product = page
+    .getByRole('tree', { name: '表单团队' })
+    .getByRole('treeitem', { name: '产品团队' })
+  const expand = product.locator('[data-tree-select-toggle]')
+  const expandBox = await expand.boundingBox()
+  expect(expandBox!.y).toBeGreaterThanOrEqual(0)
+  expect(expandBox!.y + expandBox!.height).toBeLessThanOrEqual(
+    page.viewportSize()!.height,
+  )
+  if (testInfo.project.name.startsWith('mobile-')) await expand.tap()
+  else await expand.click()
+  const option = page.getByRole('treeitem', { name: '设计组' })
+  if (testInfo.project.name.startsWith('mobile-')) await option.tap()
+  else await option.click()
+  await expect(teams).toContainText('设计组')
+  const reset = form.getByRole('button', { name: '重置表单' })
+  if (testInfo.project.name.startsWith('mobile-')) await reset.tap()
+  else await reset.click()
+  await expect(teams).toContainText('请选择')
+  await expect(form.getByRole('button', { name: '清除表单团队' })).toHaveCount(
+    0,
+  )
 })
 
 test('native data controls keep their touch targets and keyboard behavior', async ({

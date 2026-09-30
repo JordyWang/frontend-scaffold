@@ -372,6 +372,7 @@ export type FormItemProps<TValues extends FormValues = FormValues> = Omit<
   control: ReactElement
   rules?: FormRule<TValues>[]
   valuePropName?: string
+  emptyValue?: unknown
   trigger?: string
   getValueFromEvent?: (...args: unknown[]) => unknown
 }
@@ -394,6 +395,7 @@ export function FormItem<TValues extends FormValues = FormValues>({
   control,
   rules = [],
   valuePropName = 'value',
+  emptyValue = '',
   trigger = 'onChange',
   getValueFromEvent,
   ...fieldProps
@@ -416,6 +418,7 @@ export function FormItem<TValues extends FormValues = FormValues>({
       control={control}
       rules={rules}
       valuePropName={valuePropName}
+      emptyValue={emptyValue}
       trigger={trigger}
       getValueFromEvent={getValueFromEvent}
       fieldProps={fieldProps}
@@ -429,6 +432,7 @@ type ConnectedFormItemProps<TValues extends FormValues> = {
   control: ReactElement
   rules: FormRule<TValues>[]
   valuePropName: string
+  emptyValue: unknown
   trigger: string
   getValueFromEvent?: (...args: unknown[]) => unknown
   fieldProps: Omit<FormFieldProps, 'control' | 'error' | 'required'>
@@ -440,6 +444,7 @@ function ConnectedFormItem<TValues extends FormValues>({
   control,
   rules,
   valuePropName,
+  emptyValue,
   trigger,
   getValueFromEvent,
   fieldProps,
@@ -476,7 +481,7 @@ function ConnectedFormItem<TValues extends FormValues>({
     }
   if (hasValue || valuePropName === 'value' || valuePropName === 'checked')
     injectedProps[valuePropName] =
-      currentValue ?? (valuePropName === 'checked' ? false : '')
+      currentValue ?? (valuePropName === 'checked' ? false : emptyValue)
 
   const connectedControl = cloneElement(control, injectedProps)
   const required = rules.some((rule) => rule.required)

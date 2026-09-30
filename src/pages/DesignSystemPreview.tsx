@@ -613,9 +613,25 @@ export function DesignSystemPreview() {
                       />
                     }
                   />
+                  <FormItem
+                    name="teams"
+                    label="表单团队"
+                    emptyValue={[]}
+                    control={
+                      <TreeSelect
+                        label="表单团队"
+                        multiple
+                        allowClear
+                        treeData={teamTreeData}
+                      />
+                    }
+                  />
                   <Stack direction="row" align="center" wrap gap="sm">
                     <Button type="submit" size="small">
                       提交表单
+                    </Button>
+                    <Button type="reset" variant="outline" size="small">
+                      重置表单
                     </Button>
                     <Typography variant="caption" tone="muted">
                       {formStatus}

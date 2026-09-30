@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { Form, FormItem, RadioGroup, useForm } from '@/shared/ui'
+import { Form, FormItem, RadioGroup, TreeSelect, useForm } from '@/shared/ui'
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -196,6 +196,51 @@ describe('Form coordinator', () => {
       '初始值',
     )
     expect(screen.getByRole('textbox', { name: '新增字段' })).toHaveValue('')
+  })
+
+  it('uses an explicit empty array for a multi-select field and reset', async () => {
+    const onFinish = vi.fn()
+    function Example() {
+      const form = useForm()
+      return (
+        <Form form={form} onFinish={onFinish}>
+          <FormItem
+            name="teams"
+            label="团队"
+            emptyValue={[]}
+            rules={[{ required: true, message: '请选择团队' }]}
+            control={
+              <TreeSelect
+                multiple
+                allowClear
+                treeData={[{ value: 'design', label: '设计组' }]}
+              />
+            }
+          />
+          <button type="submit">提交</button>
+          <button type="button" onClick={() => form.resetFields()}>
+            重置
+          </button>
+        </Form>
+      )
+    }
+    render(<Example />)
+    const trigger = screen.getByRole('combobox', { name: '团队' })
+    expect(screen.queryByRole('button', { name: '清除树形选择' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '提交' }))
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('请选择团队'),
+    )
+    fireEvent.click(trigger)
+    fireEvent.click(screen.getByRole('treeitem', { name: '设计组' }))
+    expect(trigger).toHaveTextContent('设计组')
+    fireEvent.click(screen.getByRole('button', { name: '提交' }))
+    await waitFor(() =>
+      expect(onFinish).toHaveBeenCalledWith({ teams: ['design'] }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: '重置' }))
+    expect(trigger).toHaveTextContent('请选择')
+    expect(screen.queryByRole('button', { name: '清除树形选择' })).toBeNull()
   })
 
   it('cancels pending validation and submit when reset is requested', async () => {
