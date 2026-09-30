@@ -197,6 +197,52 @@ test('pagination changes page size and jumps to a valid page on desktop and H5',
   ).toBe(true)
 })
 
+test('pagination disabled state covers every control and can be restored', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const section = page.getByRole('region', { name: '导航与数据' })
+  const pagination = section.getByRole('navigation', { name: '分页' })
+  const disable = section.getByRole('button', { name: '禁用分页' })
+  const box = await disable.boundingBox()
+  expect(box!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await disable.tap()
+  else {
+    await disable.focus()
+    await disable.press('Enter')
+  }
+  await expect(pagination).toHaveAttribute('aria-disabled', 'true')
+  await expect(
+    pagination.getByRole('button', { name: '下一页' }),
+  ).toBeDisabled()
+  await expect(
+    pagination.getByRole('button', { name: '前往第 2 页' }),
+  ).toBeDisabled()
+  await expect(
+    pagination.getByRole('combobox', { name: '每页条数' }),
+  ).toBeDisabled()
+  await expect(
+    pagination.getByRole('textbox', { name: '目标页码' }),
+  ).toBeDisabled()
+  await expect(
+    pagination.getByRole('button', { name: '前往', exact: true }),
+  ).toBeDisabled()
+
+  const enable = section.getByRole('button', { name: '启用分页' })
+  if (testInfo.project.name.startsWith('mobile-')) await enable.tap()
+  else await enable.press('Enter')
+  await expect(pagination).not.toHaveAttribute('aria-disabled', 'true')
+  const next = pagination.getByRole('button', { name: '下一页' })
+  if (testInfo.project.name.startsWith('mobile-')) await next.tap()
+  else {
+    await next.focus()
+    await next.press('Enter')
+  }
+  await expect(
+    pagination.getByRole('button', { name: '前往第 2 页' }),
+  ).toHaveAttribute('aria-current', 'page')
+})
+
 test('table sorting stays available in desktop headers and mobile cards', async ({
   page,
 }, testInfo) => {

@@ -32,6 +32,7 @@ export type PaginationProps = {
   showTotal?: boolean
   mode?: 'pages' | 'load-more'
   loading?: boolean
+  disabled?: boolean
   className?: string
 }
 
@@ -46,11 +47,13 @@ export function Pagination({
   showTotal = false,
   mode = 'pages',
   loading,
+  disabled = false,
   className,
 }: PaginationProps) {
   const jumpId = useId()
   const [jumpValue, setJumpValue] = useState('')
   const [jumpError, setJumpError] = useState(false)
+  const inactive = disabled || Boolean(loading)
   const safePageSize = Number.isFinite(pageSize)
     ? Math.max(1, Math.floor(pageSize))
     : 1
@@ -72,12 +75,14 @@ export function Pagination({
     requestedPage <= pages
 
   function changePage(next: number) {
+    if (inactive) return
     setJumpValue('')
     setJumpError(false)
     if (next !== current) onPageChange(next)
   }
 
   function jumpToPage() {
+    if (inactive) return
     if (!validJump) {
       setJumpError(true)
       return
@@ -93,11 +98,15 @@ export function Pagination({
 
   if (mode === 'load-more') {
     return (
-      <div className={className}>
+      <div
+        aria-busy={loading || undefined}
+        aria-disabled={inactive || undefined}
+        className={className}
+      >
         <Button
           variant="outline"
           loading={loading}
-          disabled={current >= pages}
+          disabled={current >= pages || inactive}
           onClick={() => changePage(current + 1)}
         >
           加载更多
@@ -109,6 +118,8 @@ export function Pagination({
   return (
     <nav
       aria-label="分页"
+      aria-busy={loading || undefined}
+      aria-disabled={inactive || undefined}
       className={cn('flex min-w-0 flex-wrap items-center gap-2', className)}
     >
       <div className="flex w-full min-w-0 items-center gap-2 sm:flex-1">
@@ -116,7 +127,7 @@ export function Pagination({
           variant="outline"
           size="small"
           className="shrink-0"
-          disabled={current <= 1 || loading}
+          disabled={current <= 1 || inactive}
           onClick={() => changePage(current - 1)}
         >
           上一页
@@ -139,7 +150,7 @@ export function Pagination({
                 className="shrink-0 px-2"
                 aria-label={`前往第 ${item} 页`}
                 aria-current={item === current ? 'page' : undefined}
-                disabled={loading}
+                disabled={inactive}
                 onClick={() => changePage(item)}
               >
                 {item}
@@ -151,7 +162,7 @@ export function Pagination({
           variant="outline"
           size="small"
           className="shrink-0"
-          disabled={current >= pages || loading}
+          disabled={current >= pages || inactive}
           onClick={() => changePage(current + 1)}
         >
           下一页
@@ -174,12 +185,13 @@ export function Pagination({
               <Select
                 aria-label="每页条数"
                 value={String(safePageSize)}
-                disabled={loading}
+                disabled={inactive}
                 options={sizeOptions.map((size) => ({
                   value: String(size),
                   label: `${size} 条/页`,
                 }))}
                 onValueChange={(next) => {
+                  if (inactive) return
                   const nextSize = Number(next)
                   const firstItem = (current - 1) * safePageSize
                   const nextPage = Math.floor(firstItem / nextSize) + 1
@@ -209,7 +221,7 @@ export function Pagination({
                 pattern="[0-9]*"
                 className="w-20 text-center"
                 value={jumpValue}
-                disabled={loading}
+                disabled={inactive}
                 onChange={(event) => {
                   setJumpValue(event.currentTarget.value)
                   setJumpError(false)
@@ -224,7 +236,7 @@ export function Pagination({
               <Button
                 variant="outline"
                 size="small"
-                disabled={loading}
+                disabled={inactive}
                 onClick={jumpToPage}
               >
                 前往

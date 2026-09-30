@@ -156,6 +156,7 @@ export function DevWorkbenchPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [paginationPageSize, setPaginationPageSize] = useState(10)
+  const [paginationDisabled, setPaginationDisabled] = useState(false)
   const [loadMorePage, setLoadMorePage] = useState(1)
   const [showDynamicTab, setShowDynamicTab] = useState(true)
   const [dataState, setDataState] = useState<
@@ -675,11 +676,21 @@ export function DevWorkbenchPage() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <p className="font-semibold">页码模式</p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-semibold">页码模式</p>
+                <Button
+                  variant="outline"
+                  size="small"
+                  onClick={() => setPaginationDisabled((value) => !value)}
+                >
+                  {paginationDisabled ? '启用分页' : '禁用分页'}
+                </Button>
+              </div>
               <Pagination
                 page={page}
                 pageSize={paginationPageSize}
                 total={135}
+                disabled={paginationDisabled}
                 onPageChange={setPage}
                 onPageSizeChange={(size, nextPage) => {
                   setPaginationPageSize(size)

@@ -79,5 +79,47 @@ describe('Pagination advanced controls', () => {
     expect(screen.getByRole('textbox', { name: '目标页码' })).toBeDisabled()
     expect(screen.getByRole('button', { name: '前往' })).toBeDisabled()
     expect(screen.getByRole('button', { name: '下一页' })).toBeDisabled()
+    expect(screen.getByRole('navigation', { name: '分页' })).toHaveAttribute(
+      'aria-busy',
+      'true',
+    )
+  })
+
+  it('disables page, size, jump and load-more controls together', () => {
+    const onPageChange = vi.fn()
+    const onPageSizeChange = vi.fn()
+    const { rerender } = render(
+      <Pagination
+        page={2}
+        pageSize={10}
+        total={35}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+        showQuickJumper
+        disabled
+      />,
+    )
+    const navigation = screen.getByRole('navigation', { name: '分页' })
+    expect(navigation).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByRole('combobox', { name: '每页条数' })).toBeDisabled()
+    expect(screen.getByRole('textbox', { name: '目标页码' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '前往' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '下一页' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '前往第 3 页' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: '下一页' }))
+    expect(onPageChange).not.toHaveBeenCalled()
+    expect(onPageSizeChange).not.toHaveBeenCalled()
+
+    rerender(
+      <Pagination
+        page={2}
+        pageSize={10}
+        total={35}
+        onPageChange={onPageChange}
+        mode="load-more"
+        disabled
+      />,
+    )
+    expect(screen.getByRole('button', { name: '加载更多' })).toBeDisabled()
   })
 })
