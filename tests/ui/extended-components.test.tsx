@@ -925,6 +925,7 @@ describe('Ant Design-inspired shared components', () => {
         />
         <Cascader
           label="地区"
+          mode="inline"
           onChange={onPathChange}
           options={[
             {
@@ -971,6 +972,7 @@ describe('Ant Design-inspired shared components', () => {
       <form>
         <Cascader
           label="地区"
+          mode="inline"
           name="region"
           required
           onChange={onChange}
@@ -1002,6 +1004,38 @@ describe('Ant Design-inspired shared components', () => {
     expect(new FormData(form).get('region')).toBe('[]')
   })
 
+  it('opens a single cascader popup and closes after a leaf selection', () => {
+    const onChange = vi.fn()
+    render(
+      <Cascader
+        label="地区"
+        onChange={onChange}
+        options={[
+          {
+            value: 'cn',
+            label: '中国',
+            children: [{ value: 'sh', label: '上海' }],
+          },
+        ]}
+      />,
+    )
+    const trigger = screen.getByRole('combobox', { name: '地区' })
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(trigger)
+    const popup = screen.getByRole('dialog', { name: '地区选项' })
+    fireEvent.change(popup.querySelector('select')!, {
+      target: { value: 'cn' },
+    })
+    expect(onChange).toHaveBeenLastCalledWith(['cn'])
+    expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.change(screen.getByRole('combobox', { name: '地区第2级' }), {
+      target: { value: 'sh' },
+    })
+    expect(onChange).toHaveBeenLastCalledWith(['cn', 'sh'])
+    expect(trigger).toHaveTextContent('中国 / 上海')
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+  })
+
   it('keeps cascader selections valid when options change', () => {
     const options = [
       {
@@ -1016,6 +1050,7 @@ describe('Ant Design-inspired shared components', () => {
     const { rerender } = render(
       <Cascader
         label="动态地区"
+        mode="inline"
         options={options}
         defaultValue={['cn', 'sh']}
       />,
@@ -1025,6 +1060,7 @@ describe('Ant Design-inspired shared components', () => {
     rerender(
       <Cascader
         label="动态地区"
+        mode="inline"
         options={[{ ...options[0], children: [options[0].children[1]] }]}
         defaultValue={['cn', 'sh']}
       />,
@@ -1033,6 +1069,7 @@ describe('Ant Design-inspired shared components', () => {
     rerender(
       <Cascader
         label="动态地区"
+        mode="inline"
         options={options}
         defaultValue={['cn', 'sh']}
       />,
@@ -1046,7 +1083,7 @@ describe('Ant Design-inspired shared components', () => {
         <FormField
           label="空地区"
           required
-          control={<Cascader options={[]} />}
+          control={<Cascader mode="inline" options={[]} />}
         />
       </form>,
     )

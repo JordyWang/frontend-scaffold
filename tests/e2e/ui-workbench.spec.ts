@@ -473,10 +473,12 @@ test('native data controls keep their touch targets and keyboard behavior', asyn
   const date = preview.getByLabel('开始日期')
   const time = preview.getByLabel('开始时间')
   const autocomplete = preview.getByRole('combobox', { name: '城市' })
-  const region = preview.getByRole('combobox', {
-    name: '地区',
-    exact: true,
-  })
+  const region = preview
+    .getByRole('combobox', {
+      name: '地区',
+      exact: true,
+    })
+    .first()
   const upload = preview.getByRole('button', { name: '上传图片' })
 
   for (const [name, control] of [
@@ -502,9 +504,14 @@ test('native data controls keep their touch targets and keyboard behavior', asyn
   await slider.press('ArrowRight')
   await expect(slider).toHaveValue('43')
 
-  await region.selectOption('cn')
+  if (testInfo.project.name.startsWith('mobile-')) await region.tap()
+  else await region.click()
+  const regionPopup = page.getByRole('dialog', { name: '地区选项' })
+  await regionPopup
+    .getByRole('combobox', { name: '地区', exact: true })
+    .selectOption('cn')
   await expect(
-    preview.getByRole('combobox', { name: '地区第2级', exact: true }),
+    regionPopup.getByRole('combobox', { name: '地区第2级', exact: true }),
   ).toBeVisible()
   await page.setViewportSize({ width: 360, height: 780 })
   expect(
@@ -516,28 +523,38 @@ test('native data controls keep their touch targets and keyboard behavior', asyn
   ).toBe(true)
 })
 
-test('cascader validates its final level and responds to changing options', async ({
+test('cascader popup completes a path and inline options stay current', async ({
   page,
 }, testInfo) => {
   await page.goto('/__ui')
   const preview = page.getByRole('region', { name: '设计系统补充组件' })
-  const country = preview.getByRole('combobox', {
+  const trigger = preview
+    .getByRole('combobox', {
+      name: '地区',
+      exact: true,
+    })
+    .first()
+  await expect(trigger).toHaveAttribute('aria-required', 'true')
+  if (testInfo.project.name.startsWith('mobile-')) await trigger.tap()
+  else await trigger.click()
+  const popup = page.getByRole('dialog', { name: '地区选项' })
+  const country = popup.getByRole('combobox', {
     name: '地区',
     exact: true,
   })
-  await expect(country).toHaveAttribute('required', '')
   await country.selectOption('cn')
-  const city = preview.getByRole('combobox', {
+  const city = popup.getByRole('combobox', {
     name: '地区第2级',
     exact: true,
   })
-  await expect(city).toHaveAttribute('required', '')
   await city.selectOption('sh')
-  await expect(city).toHaveValue('sh')
-  await city.selectOption('')
-  await expect(city).toHaveValue('')
+  await expect(popup).toHaveCount(0)
+  await expect(trigger).toContainText('中国 / 上海')
+
+  if (testInfo.project.name.startsWith('mobile-')) await trigger.tap()
+  else await trigger.click()
   await country.selectOption('')
-  await expect(city).toHaveCount(0)
+  await expect(trigger).toContainText('请选择')
 
   const dynamic = preview.getByRole('combobox', {
     name: '动态地区第2级',
@@ -552,6 +569,42 @@ test('cascader validates its final level and responds to changing options', asyn
   if (testInfo.project.name.startsWith('mobile-')) await restore.tap()
   else await restore.click()
   await expect(dynamic).toHaveValue('sh')
+})
+
+test('cascader popup restores focus and preserves keyboard tab order', async ({
+  page,
+}) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const trigger = preview
+    .getByRole('combobox', { name: '地区', exact: true })
+    .first()
+  const popup = page.getByRole('dialog', { name: '地区选项' })
+  const country = popup.getByRole('combobox', { name: '地区', exact: true })
+
+  await trigger.focus()
+  await trigger.press('ArrowDown')
+  await expect(country).toBeFocused()
+  await country.press('Escape')
+  await expect(popup).toHaveCount(0)
+  await expect(trigger).toBeFocused()
+
+  await trigger.press('ArrowDown')
+  await expect(country).toBeFocused()
+  await country.press('Shift+Tab')
+  await expect(popup).toHaveCount(0)
+  await expect(trigger).toBeFocused()
+
+  await trigger.press('ArrowDown')
+  await country.selectOption('cn')
+  const city = popup.getByRole('combobox', {
+    name: '地区第2级',
+    exact: true,
+  })
+  await expect(city).toBeFocused()
+  await city.press('Tab')
+  await expect(popup).toHaveCount(0)
+  await expect(trigger).not.toBeFocused()
 })
 
 test('controlled number input accepts drafts, clamps on blur and can be cleared', async ({

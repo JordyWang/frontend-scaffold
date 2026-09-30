@@ -791,6 +791,7 @@ export function DesignSystemPreview() {
                   control={
                     <Cascader
                       label="动态地区"
+                      mode="inline"
                       defaultValue={['cn', 'sh']}
                       options={[
                         {

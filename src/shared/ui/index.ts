@@ -160,7 +160,6 @@ export type {
 } from './display-extended'
 export {
   AutoComplete,
-  Cascader,
   DatePicker,
   InputNumber,
   Slider,
@@ -170,14 +169,14 @@ export {
 export type {
   AutoCompleteOption,
   AutoCompleteProps,
-  CascaderOption,
-  CascaderProps,
   DatePickerProps,
   InputNumberProps,
   SliderProps,
   TimePickerProps,
   UploadProps,
 } from './data-input'
+export { Cascader } from './cascader'
+export type { CascaderOption, CascaderProps } from './cascader'
 export { TreeSelect } from './tree-select'
 export type {
   TreeSelectOption,
