@@ -25,6 +25,7 @@ import {
   Textarea,
   ThemeScope,
   Drawer,
+  Empty,
 } from '@/shared/ui'
 
 describe('shared/ui contracts', () => {
@@ -116,6 +117,28 @@ describe('shared/ui contracts', () => {
     )
     expect(regular).toHaveClass('text-lg')
     expect(screen.getByText('默认内容')).toHaveClass('p-[var(--space-lg)]')
+  })
+
+  it('sizes Empty through ConfigProvider and allows custom or hidden images', () => {
+    render(
+      <ConfigProvider componentSize="small">
+        <Empty title="继承小号" description="当前没有记录" />
+        <Empty title="显式默认" size="default" image={null} />
+        <Empty
+          title="自定义插图"
+          image={<img src="/empty-search.svg" alt="搜索插图" />}
+        />
+      </ConfigProvider>,
+    )
+    const compact = screen.getByText('继承小号').closest('[data-ui-empty]')
+    const regular = screen.getByText('显式默认').closest('[data-ui-empty]')
+    expect(compact).toHaveAttribute('data-ui-size', 'small')
+    expect(compact).toHaveClass('min-h-32')
+    expect(compact?.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+    expect(regular).toHaveAttribute('data-ui-size', 'default')
+    expect(regular).toHaveClass('min-h-48')
+    expect(regular?.querySelector('svg')).toBeNull()
+    expect(screen.getByRole('img', { name: '搜索插图' })).toBeInTheDocument()
   })
 
   it('prevents a second action while a button is loading', () => {

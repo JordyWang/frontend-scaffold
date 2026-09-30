@@ -25,6 +25,7 @@ import {
   Dialog,
   Divider,
   Dropdown,
+  Empty,
   FloatButton,
   Form,
   FormField,
@@ -156,6 +157,7 @@ export function DesignSystemPreview() {
   const [consentStatus, setConsentStatus] = useState('尚未提交')
   const [searchStatus, setSearchStatus] = useState('尚未搜索')
   const [smallCardStatus, setSmallCardStatus] = useState('尚未操作')
+  const [emptyStatus, setEmptyStatus] = useState('尚未重置')
   const [alertKey, setAlertKey] = useState(0)
   const [alertStatus, setAlertStatus] = useState('提示可关闭')
   const [city, setCity] = useState('')
@@ -281,6 +283,30 @@ export function DesignSystemPreview() {
                 执行小号卡片操作
               </Button>
             </CardFooter>
+          </Card>
+          <Card title="空状态">
+            <CardContent className="grid gap-3">
+              <Empty
+                title="暂无匹配结果"
+                description="调整筛选条件后重试。"
+                action={
+                  <Button
+                    variant="outline"
+                    onClick={() => setEmptyStatus('已重置空状态')}
+                  >
+                    重置空状态
+                  </Button>
+                }
+              />
+              <Empty
+                size="small"
+                image={<Icon name="search" size={32} />}
+                title="暂无可选成员"
+              />
+              <p role="status" className="m-0 text-sm text-muted-foreground">
+                {emptyStatus}
+              </p>
+            </CardContent>
           </Card>
           <Card>
             <CardContent>

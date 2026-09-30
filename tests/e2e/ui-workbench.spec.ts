@@ -108,6 +108,42 @@ test('closable Alert supports keyboard and touch dismissal with focus recovery',
   await expect(page.getByTestId('alert-state')).toHaveText('提示已恢复')
 })
 
+test('Empty previews remain legible and their action works on keyboard and touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  await page.setViewportSize({ width: 360, height: 844 })
+  const card = page
+    .locator('[data-ui-card]')
+    .filter({ hasText: '暂无匹配结果' })
+  const regular = card.locator('[data-ui-empty]').filter({
+    hasText: '暂无匹配结果',
+  })
+  const compact = card.locator('[data-ui-empty]').filter({
+    hasText: '暂无可选成员',
+  })
+  await expect(regular).toHaveAttribute('data-ui-size', 'default')
+  await expect(regular).toHaveCSS('min-height', '192px')
+  await expect(compact).toHaveAttribute('data-ui-size', 'small')
+  await expect(compact).toHaveCSS('min-height', '128px')
+  expect(
+    await card.evaluate(
+      (element) => element.scrollWidth <= element.clientWidth,
+    ),
+  ).toBe(true)
+
+  const action = regular.getByRole('button', { name: '重置空状态' })
+  const box = await action.boundingBox()
+  expect(box!.width).toBeGreaterThanOrEqual(44)
+  expect(box!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await action.tap()
+  else {
+    await action.focus()
+    await action.press('Enter')
+  }
+  await expect(card.getByRole('status')).toHaveText('已重置空状态')
+})
+
 test('pagination changes page size and jumps to a valid page on desktop and H5', async ({
   page,
 }, testInfo) => {
