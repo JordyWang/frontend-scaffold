@@ -9,7 +9,7 @@ export type ListProps<T> = {
   renderItem: (item: T) => ReactNode
   loading?: boolean
   error?: string
-  onRetry?: () => void
+  onRetry?: () => void | Promise<void>
   emptyTitle?: string
   className?: string
   label?: string

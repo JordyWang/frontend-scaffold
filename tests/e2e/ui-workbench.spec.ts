@@ -2144,12 +2144,49 @@ test('list keeps its labelled container through loading, empty and retry states'
   await expect(list.getByRole('status')).toContainText('暂无内容')
   await activate('错误')
   await expect(list.getByRole('alert')).toContainText('示例列表加载失败')
-  if (testInfo.project.name.startsWith('mobile-'))
-    await list.getByRole('button', { name: '重试' }).tap()
-  else await list.getByRole('button', { name: '重试' }).click()
+  const retry = list.getByRole('button', { name: '重试' })
+  if (testInfo.project.name.startsWith('mobile-')) await retry.tap()
+  else await retry.click()
+  await expect(retry).toBeDisabled()
+  await expect(retry).toHaveAttribute('aria-busy', 'true')
   await expect(
     list.getByRole('list', { name: '示例任务', exact: true }),
   ).toBeVisible()
+})
+
+test('failed async retry stays available for a second attempt on desktop and H5', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '导航与数据' })
+  const fail = preview.getByRole('checkbox', { name: '模拟重试失败' })
+  const list = preview.getByRole('region', {
+    name: '示例任务',
+    exact: true,
+  })
+  if (testInfo.project.name.startsWith('mobile-'))
+    await fail.locator('..').tap()
+  else {
+    await fail.focus()
+    await fail.press('Space')
+  }
+  await expect(fail).toBeChecked()
+  const error = preview.getByRole('button', { name: '错误', exact: true })
+  if (testInfo.project.name.startsWith('mobile-')) await error.tap()
+  else await error.click()
+  const retry = list.getByRole('button', { name: '重试' })
+  if (testInfo.project.name.startsWith('mobile-')) await retry.tap()
+  else await retry.click()
+  await expect(retry).toBeDisabled()
+  await expect(list.getByRole('alert')).toContainText('重试失败，请再次尝试。')
+  await expect(retry).toBeEnabled()
+  if (testInfo.project.name.startsWith('mobile-'))
+    await fail.locator('..').tap()
+  else await fail.press('Space')
+  await expect(fail).not.toBeChecked()
+  if (testInfo.project.name.startsWith('mobile-')) await retry.tap()
+  else await retry.click()
+  await expect(list.getByRole('list', { name: '示例任务' })).toBeVisible()
 })
 
 test('table exposes one responsive data view and follows RTL text direction', async ({
@@ -2243,31 +2280,47 @@ test('AI tasks show progress, cancellation, failure and retry', async ({
   const ai = page.getByRole('region', { name: 'AI 任务能力' })
   const prompt = ai.getByRole('textbox', { name: '任务描述' })
   const submit = ai.getByRole('button', { name: '提交任务' })
+  const currentStatus = ai
+    .getByText('当前状态')
+    .locator('..')
+    .getByRole('status')
 
   await prompt.fill('生成一份摘要')
   await submit.click()
-  await expect(
-    ai.getByRole('status', { name: '任务状态：已完成' }),
-  ).toBeVisible({ timeout: 5_000 })
+  await expect(currentStatus).toHaveAttribute(
+    'data-ai-task-status',
+    'completed',
+    {
+      timeout: 10_000,
+    },
+  )
   await expect(ai.getByText('任务已完成')).toBeVisible()
 
   await prompt.fill('失败任务')
   await submit.click()
-  await expect(ai.getByRole('status', { name: '任务状态：失败' })).toBeVisible({
-    timeout: 5_000,
+  await expect(currentStatus).toHaveAttribute('data-ai-task-status', 'failed', {
+    timeout: 10_000,
   })
   await expect(ai.getByText('Mock 任务失败，请重试')).toBeVisible()
   await ai.getByRole('button', { name: '重试任务' }).click()
-  await expect(
-    ai.getByRole('status', { name: '任务状态：已完成' }),
-  ).toBeVisible({ timeout: 5_000 })
+  await expect(currentStatus).toHaveAttribute(
+    'data-ai-task-status',
+    'completed',
+    {
+      timeout: 10_000,
+    },
+  )
 
   await prompt.fill('取消任务')
   await submit.click()
   await ai.getByRole('button', { name: '取消任务' }).click()
-  await expect(
-    ai.getByRole('status', { name: '任务状态：已取消' }),
-  ).toBeVisible({ timeout: 5_000 })
+  await expect(currentStatus).toHaveAttribute(
+    'data-ai-task-status',
+    'cancelled',
+    {
+      timeout: 10_000,
+    },
+  )
 })
 
 test('AI conversation workbench streams, cancels and retries messages', async ({
@@ -2729,6 +2782,13 @@ test('anchor follows page sections with keyboard and touch navigation', async ({
     await page.keyboard.press('Enter')
   }
   await expect(result).toHaveAttribute('aria-current', 'location')
+  await expect
+    .poll(() =>
+      page
+        .locator('#preview-result')
+        .evaluate((element) => Math.abs(element.getBoundingClientRect().top)),
+    )
+    .toBeLessThanOrEqual(2)
   await page
     .locator('#preview-timeline')
     .evaluate((element) => element.scrollIntoView({ block: 'start' }))

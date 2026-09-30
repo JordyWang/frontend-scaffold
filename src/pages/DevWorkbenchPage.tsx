@@ -38,6 +38,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  Checkbox,
   Dialog,
   Empty,
   FormField,
@@ -160,6 +161,7 @@ export function DevWorkbenchPage() {
   const [dataState, setDataState] = useState<
     'filled' | 'empty' | 'loading' | 'error'
   >('filled')
+  const [retryShouldFail, setRetryShouldFail] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [fileIssues, setFileIssues] = useState<string[]>([])
   const [showVideoError, setShowVideoError] = useState(false)
@@ -172,6 +174,12 @@ export function DevWorkbenchPage() {
     storageKey: 'dev-workbench-ai-task',
   })
   const visibleRows = dataState === 'filled' ? rows : []
+
+  async function retryData() {
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 1400))
+    if (retryShouldFail) throw new Error('模拟重试失败')
+    setDataState('filled')
+  }
 
   function onFiles(files: File[]) {
     upload.reset()
@@ -573,6 +581,13 @@ export function DevWorkbenchPage() {
             >
               错误
             </Button>
+            <Checkbox
+              label="模拟重试失败"
+              checked={retryShouldFail}
+              onChange={(event) =>
+                setRetryShouldFail(event.currentTarget.checked)
+              }
+            />
           </div>
           <div className="grid gap-6 lg:grid-cols-2">
             <div className="space-y-3">
@@ -588,7 +603,7 @@ export function DevWorkbenchPage() {
                 )}
                 loading={dataState === 'loading'}
                 error={dataState === 'error' ? '示例列表加载失败' : undefined}
-                onRetry={() => setDataState('filled')}
+                onRetry={retryData}
                 label="示例任务"
               />
             </div>
@@ -600,7 +615,7 @@ export function DevWorkbenchPage() {
                 getRowKey={(row) => row.id}
                 loading={dataState === 'loading'}
                 error={dataState === 'error' ? '示例表格加载失败' : undefined}
-                onRetry={() => setDataState('filled')}
+                onRetry={retryData}
                 columns={[
                   {
                     key: 'name',

@@ -22,7 +22,7 @@ export type ListyProps<T> = {
   onEndReached?: () => void
   loading?: boolean
   error?: string
-  onRetry?: () => void
+  onRetry?: () => void | Promise<void>
   emptyTitle?: string
   className?: string
   label?: string

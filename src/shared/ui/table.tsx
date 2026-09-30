@@ -49,7 +49,7 @@ export type TableProps<T> = {
   caption: string
   loading?: boolean
   error?: string
-  onRetry?: () => void
+  onRetry?: () => void | Promise<void>
   emptyTitle?: string
   renderMobileRow?: (row: T) => ReactNode
   sort?: TableSort | null

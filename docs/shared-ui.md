@@ -106,6 +106,8 @@
 
 `Pagination` 可选 `onPageSizeChange(size, page)`、`pageSizeOptions`、`showQuickJumper` 和 `showTotal`。切换每页条数时，`page` 指向原先第一条记录所在的新页，由调用方同步更新 `pageSize` 和 `page`；快速跳页只接受当前范围内的整数，错误会在输入框旁显示。加载时这些控件不可操作，`load-more` 模式维持单按钮入口。
 
+`ErrorState.onRetry` 接受同步或异步回调；等待期间重试按钮进入忙碌并禁用状态，失败后保留错误提示和再次重试入口。List、Listy、Table 共用这一约定。
+
 `Cascader` 默认使用单个触发器显示路径，在主题作用域弹层中逐级选择；选到叶节点后关闭并恢复焦点。弹层支持 Escape、正反向 Tab、外部点击和 H5 触控。`allowClear` 在有有效路径时提供独立的键盘和触控清空按钮；`mode="inline"` 保留多级原生选择框，适合需要浏览器原生 `required` 校验的表单；弹层模式以 `aria-required` 表达必填，应使用 `FormItem.rules` 校验。`onChange` 返回从第一级开始的有效路径；选择“请选择”会截断该级及其后续路径，根级清空返回 `[]`。选项移除或禁用时暂时显示最后有效的前缀，原选项恢复后可恢复未被用户改动的选择。传入 `name` 时，表单以 JSON 数组字符串提交完整有效路径。
 
 `TreeSelect` 的左右方向键随 `ConfigProvider.direction` 调整展开和折叠方向，弹层在独立 Portal 容器中也保留 RTL。多选 `allowClear` 清空后关闭弹层并把焦点还给触发器。

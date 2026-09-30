@@ -5,6 +5,7 @@ import {
   Card,
   Checkbox,
   ErrorBoundary,
+  ErrorState,
   FormField,
   Image,
   Input,
@@ -93,6 +94,35 @@ describe('shared/ui contracts', () => {
     expect(button).toHaveAttribute('aria-busy', 'true')
     fireEvent.click(button)
     expect(onClick).not.toHaveBeenCalled()
+  })
+
+  it('holds async retry actions until they settle and allows a failed retry again', async () => {
+    let rejectRetry!: (reason: Error) => void
+    const pending = new Promise<void>((_, reject) => {
+      rejectRetry = reject
+    })
+    const onRetry = vi
+      .fn<() => Promise<void>>()
+      .mockReturnValueOnce(pending)
+      .mockResolvedValueOnce(undefined)
+    render(<ErrorState description="网络不可用" onRetry={onRetry} />)
+    const retry = screen.getByRole('button', { name: '重试' })
+    fireEvent.click(retry)
+    expect(retry).toBeDisabled()
+    expect(retry).toHaveAttribute('aria-busy', 'true')
+    fireEvent.click(retry)
+    expect(onRetry).toHaveBeenCalledOnce()
+
+    await act(async () => rejectRetry(new Error('仍不可用')))
+    expect(retry).toBeEnabled()
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      '重试失败，请再次尝试。',
+    )
+    await act(async () => fireEvent.click(retry))
+    expect(onRetry).toHaveBeenCalledTimes(2)
+    expect(screen.getByRole('alert')).not.toHaveTextContent(
+      '重试失败，请再次尝试。',
+    )
   })
 
   it('connects form errors and descriptions to the input', () => {
