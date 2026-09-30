@@ -1,5 +1,8 @@
+import { useId, useState } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { Button } from './button'
+import { Input } from './input'
+import { Select } from './select'
 
 function pageItems(current: number, pages: number): Array<number | 'gap'> {
   const visible = [1, current - 1, current, current + 1, pages]
@@ -23,6 +26,10 @@ export type PaginationProps = {
   pageSize: number
   total: number
   onPageChange: (page: number) => void
+  onPageSizeChange?: (pageSize: number, page: number) => void
+  pageSizeOptions?: number[]
+  showQuickJumper?: boolean
+  showTotal?: boolean
   mode?: 'pages' | 'load-more'
   loading?: boolean
   className?: string
@@ -33,10 +40,17 @@ export function Pagination({
   pageSize,
   total,
   onPageChange,
+  onPageSizeChange,
+  pageSizeOptions = [10, 20, 50, 100],
+  showQuickJumper = false,
+  showTotal = false,
   mode = 'pages',
   loading,
   className,
 }: PaginationProps) {
+  const jumpId = useId()
+  const [jumpValue, setJumpValue] = useState('')
+  const [jumpError, setJumpError] = useState(false)
   const safePageSize = Number.isFinite(pageSize)
     ? Math.max(1, Math.floor(pageSize))
     : 1
@@ -45,7 +59,37 @@ export function Pagination({
   const current = Number.isFinite(page)
     ? Math.min(Math.max(Math.floor(page), 1), pages)
     : 1
-  if (safeTotal <= safePageSize) return null
+  const sizeOptions = [safePageSize, ...pageSizeOptions]
+    .filter((size) => Number.isFinite(size) && size >= 1)
+    .map((size) => Math.floor(size))
+    .filter((size, index, all) => all.indexOf(size) === index)
+    .sort((left, right) => left - right)
+  const requestedPage = Number(jumpValue)
+  const validJump =
+    /^\d+$/.test(jumpValue.trim()) &&
+    Number.isSafeInteger(requestedPage) &&
+    requestedPage >= 1 &&
+    requestedPage <= pages
+
+  function changePage(next: number) {
+    setJumpValue('')
+    setJumpError(false)
+    if (next !== current) onPageChange(next)
+  }
+
+  function jumpToPage() {
+    if (!validJump) {
+      setJumpError(true)
+      return
+    }
+    changePage(requestedPage)
+  }
+
+  if (
+    safeTotal <= safePageSize &&
+    (mode === 'load-more' || (!onPageSizeChange && !showTotal))
+  )
+    return null
 
   if (mode === 'load-more') {
     return (
@@ -54,7 +98,7 @@ export function Pagination({
           variant="outline"
           loading={loading}
           disabled={current >= pages}
-          onClick={() => onPageChange(current + 1)}
+          onClick={() => changePage(current + 1)}
         >
           加载更多
         </Button>
@@ -65,57 +109,139 @@ export function Pagination({
   return (
     <nav
       aria-label="分页"
-      className={cn('flex min-w-0 items-center gap-2', className)}
+      className={cn('flex min-w-0 flex-wrap items-center gap-2', className)}
     >
-      <Button
-        variant="outline"
-        size="small"
-        className="shrink-0"
-        disabled={current <= 1 || loading}
-        onClick={() => onPageChange(current - 1)}
-      >
-        上一页
-      </Button>
-      <div className="flex min-w-0 flex-1 touch-pan-x items-center justify-center gap-1 overflow-x-auto py-1">
-        {pageItems(current, pages).map((item, index) =>
-          item === 'gap' ? (
-            <span
-              key={`gap-${index}`}
-              aria-hidden="true"
-              className="inline-flex min-w-7 shrink-0 justify-center text-muted-foreground"
-            >
-              …
-            </span>
-          ) : (
-            <Button
-              key={item}
-              variant={item === current ? 'primary' : 'outline'}
-              size="small"
-              className="shrink-0 px-2"
-              aria-label={`前往第 ${item} 页`}
-              aria-current={item === current ? 'page' : undefined}
-              disabled={loading}
-              onClick={() => {
-                if (item !== current) onPageChange(item)
-              }}
-            >
-              {item}
-            </Button>
-          ),
-        )}
+      <div className="flex w-full min-w-0 items-center gap-2 sm:flex-1">
+        <Button
+          variant="outline"
+          size="small"
+          className="shrink-0"
+          disabled={current <= 1 || loading}
+          onClick={() => changePage(current - 1)}
+        >
+          上一页
+        </Button>
+        <div className="flex min-w-0 flex-1 touch-pan-x items-center justify-center gap-2 overflow-x-auto py-1">
+          {pageItems(current, pages).map((item, index) =>
+            item === 'gap' ? (
+              <span
+                key={`gap-${index}`}
+                aria-hidden="true"
+                className="inline-flex min-w-7 shrink-0 justify-center text-muted-foreground"
+              >
+                …
+              </span>
+            ) : (
+              <Button
+                key={item}
+                variant={item === current ? 'primary' : 'outline'}
+                size="small"
+                className="shrink-0 px-2"
+                aria-label={`前往第 ${item} 页`}
+                aria-current={item === current ? 'page' : undefined}
+                disabled={loading}
+                onClick={() => changePage(item)}
+              >
+                {item}
+              </Button>
+            ),
+          )}
+        </div>
+        <Button
+          variant="outline"
+          size="small"
+          className="shrink-0"
+          disabled={current >= pages || loading}
+          onClick={() => changePage(current + 1)}
+        >
+          下一页
+        </Button>
       </div>
       <span aria-live="polite" className="sr-only">
         第 {current} / {pages} 页
       </span>
-      <Button
-        variant="outline"
-        size="small"
-        className="shrink-0"
-        disabled={current >= pages || loading}
-        onClick={() => onPageChange(current + 1)}
-      >
-        下一页
-      </Button>
+      {(showTotal || onPageSizeChange || (showQuickJumper && pages > 1)) && (
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          {showTotal && (
+            <span className="text-sm text-muted-foreground">
+              {safeTotal === 0
+                ? '共 0 条'
+                : `第 ${(current - 1) * safePageSize + 1}–${Math.min(current * safePageSize, safeTotal)} 条，共 ${safeTotal} 条`}
+            </span>
+          )}
+          {onPageSizeChange && (
+            <div className="w-32">
+              <Select
+                aria-label="每页条数"
+                value={String(safePageSize)}
+                disabled={loading}
+                options={sizeOptions.map((size) => ({
+                  value: String(size),
+                  label: `${size} 条/页`,
+                }))}
+                onValueChange={(next) => {
+                  const nextSize = Number(next)
+                  const firstItem = (current - 1) * safePageSize
+                  const nextPage = Math.floor(firstItem / nextSize) + 1
+                  setJumpValue('')
+                  setJumpError(false)
+                  onPageSizeChange(nextSize, nextPage)
+                }}
+              />
+            </div>
+          )}
+          {showQuickJumper && pages > 1 && (
+            <div
+              role="group"
+              aria-label="快速跳转"
+              className="flex items-center gap-2"
+            >
+              <label htmlFor={jumpId} className="text-sm text-muted-foreground">
+                跳至
+              </label>
+              <Input
+                id={jumpId}
+                aria-label="目标页码"
+                aria-invalid={jumpError || undefined}
+                aria-describedby={jumpError ? `${jumpId}-error` : undefined}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                className="w-20 text-center"
+                value={jumpValue}
+                disabled={loading}
+                onChange={(event) => {
+                  setJumpValue(event.currentTarget.value)
+                  setJumpError(false)
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    jumpToPage()
+                  }
+                }}
+              />
+              <Button
+                variant="outline"
+                size="small"
+                disabled={loading}
+                onClick={jumpToPage}
+              >
+                前往
+              </Button>
+              {jumpError && (
+                <span
+                  id={`${jumpId}-error`}
+                  role="alert"
+                  className="text-sm text-destructive"
+                >
+                  请输入 1–{pages} 页
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </nav>
   )
 }

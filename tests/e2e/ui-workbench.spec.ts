@@ -29,6 +29,59 @@ test('page shell keeps safe padding and the skip link is keyboard reachable', as
   }
 })
 
+test('pagination changes page size and jumps to a valid page on desktop and H5', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const section = page.getByRole('region', { name: '导航与数据' })
+  const pagination = section.getByRole('navigation', { name: '分页' })
+  const size = pagination.getByRole('combobox', { name: '每页条数' })
+  const input = pagination.getByRole('textbox', { name: '目标页码' })
+  const jump = pagination.getByRole('button', { name: '前往', exact: true })
+  await expect(pagination.getByText('第 1–10 条，共 135 条')).toBeVisible()
+  for (const control of [size, input, jump]) {
+    const box = await control.boundingBox()
+    expect(box!.height).toBeGreaterThanOrEqual(44)
+  }
+
+  await input.fill('99')
+  if (testInfo.project.name.startsWith('mobile-')) await jump.tap()
+  else await jump.click()
+  await expect(pagination.getByRole('alert')).toContainText('请输入 1–14 页')
+  await input.fill('3')
+  await input.press('Enter')
+  await expect(
+    pagination.getByRole('button', { name: '前往第 3 页' }),
+  ).toHaveAttribute('aria-current', 'page')
+  await expect(pagination.getByText('第 21–30 条，共 135 条')).toBeVisible()
+
+  const twenty = page.getByRole('option', { name: '20 条/页' })
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await size.tap()
+    await twenty.tap()
+  } else {
+    await size.focus()
+    await size.press('ArrowDown')
+    await expect(twenty).toBeVisible()
+    await twenty.focus()
+    await twenty.press('Enter')
+  }
+  await expect(size).toContainText('20 条/页')
+  await expect(
+    pagination.getByRole('button', { name: '前往第 2 页' }),
+  ).toHaveAttribute('aria-current', 'page')
+  await expect(pagination.getByText('第 21–40 条，共 135 条')).toBeVisible()
+  await expect(section.getByRole('button', { name: '加载更多' })).toBeEnabled()
+  await page.setViewportSize({ width: 360, height: 780 })
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
+})
+
 test('system dark mode keeps local light surfaces and state colors distinct', async ({
   page,
 }, testInfo) => {

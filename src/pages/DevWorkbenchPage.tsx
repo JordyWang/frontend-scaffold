@@ -154,6 +154,8 @@ export function DevWorkbenchPage() {
   const [category, setCategory] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [page, setPage] = useState(1)
+  const [paginationPageSize, setPaginationPageSize] = useState(10)
+  const [loadMorePage, setLoadMorePage] = useState(1)
   const [showDynamicTab, setShowDynamicTab] = useState(true)
   const [dataState, setDataState] = useState<
     'filled' | 'empty' | 'loading' | 'error'
@@ -628,18 +630,24 @@ export function DevWorkbenchPage() {
               <p className="font-semibold">页码模式</p>
               <Pagination
                 page={page}
-                pageSize={3}
-                total={12}
+                pageSize={paginationPageSize}
+                total={135}
                 onPageChange={setPage}
+                onPageSizeChange={(size, nextPage) => {
+                  setPaginationPageSize(size)
+                  setPage(nextPage)
+                }}
+                showQuickJumper
+                showTotal
               />
             </div>
             <div className="space-y-2">
               <p className="font-semibold">加载更多模式</p>
               <Pagination
-                page={page}
+                page={loadMorePage}
                 pageSize={3}
                 total={12}
-                onPageChange={setPage}
+                onPageChange={setLoadMorePage}
                 mode="load-more"
               />
             </div>
