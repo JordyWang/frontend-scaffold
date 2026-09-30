@@ -150,6 +150,9 @@ export function DesignSystemPreview() {
   const [uncontrolledStepEvent, setUncontrolledStepEvent] = useState(0)
   const [quantity, setQuantity] = useState<number | undefined>(3)
   const [volume, setVolume] = useState(42)
+  const [controlledRating, setControlledRating] = useState<number | undefined>(
+    3,
+  )
   const [statisticLoading, setStatisticLoading] = useState(true)
   const [colorValue, setColorValue] = useState('#1677ff')
   const [dateRange, setDateRange] = useState<DateRange>(['', ''])
@@ -584,6 +587,28 @@ export function DesignSystemPreview() {
                     />
                   }
                 />
+                <FormField
+                  label="受控评分"
+                  control={
+                    <Rate
+                      value={controlledRating}
+                      onChange={setControlledRating}
+                    />
+                  }
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="small"
+                    onClick={() => setControlledRating(undefined)}
+                  >
+                    清空受控评分
+                  </Button>
+                  <span role="status">
+                    当前评分：
+                    {controlledRating === undefined ? '无' : controlledRating}
+                  </span>
+                </div>
                 <FormField
                   label="主题色"
                   description="原生颜色选择器；值统一为六位小写 hex。"

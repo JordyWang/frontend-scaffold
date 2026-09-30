@@ -210,6 +210,44 @@ test('Badge reserves space alone and follows the logical end in RTL', async ({
   await expect(rtl.getByRole('status')).toHaveText('已打开 RTL 通知')
 })
 
+test('controlled Rate clears and reselects with keyboard and touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const rating = preview.getByRole('radiogroup', { name: '受控评分' })
+  const three = rating.getByRole('radio', { name: '3 星' })
+  const four = rating.getByRole('radio', { name: '4 星' })
+  const clear = preview.getByRole('button', { name: '清空受控评分' })
+  await expect(three).toBeChecked()
+  if (testInfo.project.name.startsWith('mobile-'))
+    await rating.locator('label').nth(2).tap()
+  else {
+    await three.focus()
+    await three.press('Space')
+  }
+  await expect(rating.locator('input:checked')).toHaveCount(0)
+  await expect(preview.getByText('当前评分：无')).toBeVisible()
+
+  if (testInfo.project.name.startsWith('mobile-'))
+    await rating.locator('label').nth(3).tap()
+  else {
+    await three.focus()
+    await three.press('ArrowRight')
+  }
+  await expect(four).toBeChecked()
+  await expect(preview.getByText('当前评分：4')).toBeVisible()
+
+  const box = await clear.boundingBox()
+  expect(box!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await clear.tap()
+  else {
+    await clear.focus()
+    await clear.press('Enter')
+  }
+  await expect(rating.locator('input:checked')).toHaveCount(0)
+})
+
 test('pagination changes page size and jumps to a valid page on desktop and H5', async ({
   page,
 }, testInfo) => {

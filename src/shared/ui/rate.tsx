@@ -30,35 +30,40 @@ function normalizeValue(value: number | undefined, count: number) {
 }
 
 /** A keyboard-friendly star rating with native radio semantics. */
-export function Rate({
-  count = 5,
-  value,
-  defaultValue = 0,
-  onChange,
-  allowClear = true,
-  disabled = false,
-  character = '★',
-  tooltips,
-  name,
-  required,
-  'aria-describedby': ariaDescribedBy,
-  'aria-invalid': ariaInvalid,
-  'aria-label': ariaLabel = '评分',
-  'aria-labelledby': ariaLabelledBy,
-  id,
-  className,
-  ...props
-}: RateProps) {
-  const safeCount = Math.min(20, Math.max(1, Math.floor(count)))
+export function Rate(allProps: RateProps) {
+  const controlled = Object.prototype.hasOwnProperty.call(allProps, 'value')
+  const {
+    count = 5,
+    value,
+    defaultValue = 0,
+    onChange,
+    allowClear = true,
+    disabled = false,
+    character = '★',
+    tooltips,
+    name,
+    required,
+    'aria-describedby': ariaDescribedBy,
+    'aria-invalid': ariaInvalid,
+    'aria-label': ariaLabel = '评分',
+    'aria-labelledby': ariaLabelledBy,
+    id,
+    className,
+    ...props
+  } = allProps
+  const safeCount = Number.isFinite(count)
+    ? Math.min(20, Math.max(1, Math.floor(count)))
+    : 5
   const generatedName = useId()
   const [internalValue, setInternalValue] = useState(
     normalizeValue(defaultValue, safeCount) ?? 0,
   )
-  const selected = normalizeValue(value, safeCount) ?? internalValue
+  const selected =
+    normalizeValue(controlled ? value : internalValue, safeCount) ?? 0
 
   function update(next: number | undefined) {
     const normalized = normalizeValue(next, safeCount)
-    if (value === undefined) setInternalValue(normalized ?? 0)
+    if (!controlled) setInternalValue(normalized ?? 0)
     onChange?.(normalized)
   }
 
@@ -110,8 +115,17 @@ export function Rate({
               aria-describedby={score === 1 ? ariaDescribedBy : undefined}
               aria-invalid={score === 1 ? ariaInvalid || undefined : undefined}
               title={optionLabel}
-              onClick={(event) => {
+              onClick={() => {
                 if (allowClear && selected === score) {
+                  update(undefined)
+                }
+              }}
+              onKeyDown={(event) => {
+                if (
+                  allowClear &&
+                  selected === score &&
+                  (event.key === ' ' || event.key === 'Enter')
+                ) {
                   event.preventDefault()
                   update(undefined)
                 }

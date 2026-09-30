@@ -732,6 +732,33 @@ describe('Ant Design-inspired shared components', () => {
     )
   })
 
+  it('keeps an explicit empty Rate value controlled', () => {
+    const onChange = vi.fn()
+    const { rerender } = render(
+      <Rate aria-label="受控评分" value={3} onChange={onChange} />,
+    )
+    expect(screen.getByRole('radio', { name: '3 星' })).toBeChecked()
+    rerender(
+      <Rate aria-label="受控评分" value={undefined} onChange={onChange} />,
+    )
+    for (const radio of screen.getAllByRole('radio'))
+      expect(radio).not.toBeChecked()
+    fireEvent.click(screen.getByRole('radio', { name: '4 星' }))
+    expect(onChange).toHaveBeenCalledWith(4)
+    expect(screen.getByRole('radio', { name: '4 星' })).not.toBeChecked()
+  })
+
+  it('clamps an uncontrolled rating when its option count shrinks', () => {
+    const { rerender } = render(
+      <Rate aria-label="动态评分" count={5} defaultValue={5} />,
+    )
+    expect(screen.getByRole('radio', { name: '5 星' })).toBeChecked()
+    rerender(<Rate aria-label="动态评分" count={3} defaultValue={5} />)
+    expect(screen.getByRole('radio', { name: '3 星' })).toBeChecked()
+    rerender(<Rate aria-label="动态评分" count={5} defaultValue={5} />)
+    expect(screen.getByRole('radio', { name: '5 星' })).toBeChecked()
+  })
+
   it('connects rating group labels and errors through FormField', () => {
     render(<FormField label="满意度" error="请选择评分" control={<Rate />} />)
     const group = screen.getByRole('radiogroup', { name: '满意度' })
