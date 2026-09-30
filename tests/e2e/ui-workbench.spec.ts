@@ -472,7 +472,10 @@ test('design system controls support keyboard, touch and local themes', async ({
   const preview = page.getByRole('region', { name: '设计系统补充组件' })
   const checkbox = preview.getByRole('checkbox', { name: '同意更新通知' })
   const switchControl = preview.getByRole('switch', { name: '启用提醒' })
-  const cascader = preview.getByRole('combobox', { name: '地区' })
+  const cascader = preview.getByRole('combobox', {
+    name: '地区',
+    exact: true,
+  })
   const theme = preview.getByRole('button', { name: '切换预览主题' })
   await expect(cascader).toHaveAttribute('id')
 
@@ -760,8 +763,8 @@ test('native data controls keep their touch targets and keyboard behavior', asyn
   const preview = page.getByRole('region', { name: '设计系统补充组件' })
   const number = preview.getByRole('spinbutton', { name: '数量' })
   const slider = preview.getByRole('slider', { name: '音量' })
-  const date = preview.getByLabel('开始日期')
-  const time = preview.getByLabel('开始时间')
+  const date = preview.locator('input[type="date"][aria-label="开始日期"]')
+  const time = preview.locator('input[type="time"][aria-label="开始时间"]')
   const autocomplete = preview.getByRole('combobox', { name: '城市' })
   const region = preview
     .getByRole('combobox', {
@@ -1972,7 +1975,7 @@ test('keyboard controls retain focus and expose data states', async ({
   test.skip(testInfo.project.name !== 'desktop-chromium')
   await page.goto('/__ui')
 
-  const select = page.getByRole('combobox', { name: '分类' })
+  const select = page.getByRole('combobox', { name: '分类', exact: true })
   await select.click()
   await expect(page.getByRole('listbox')).toBeVisible()
   await page.keyboard.press('Home')

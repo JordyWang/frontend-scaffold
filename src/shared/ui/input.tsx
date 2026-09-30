@@ -6,6 +6,7 @@ import {
   type InputHTMLAttributes,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { clearNativeInput } from './clear-native-input'
 import { useConfig } from './config-context'
 import {
   inputSizeStyles,
@@ -70,15 +71,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       onChange?.(event)
     }
     function clear() {
-      if (!controlled) setInternalValue('')
-      onValueChange?.('')
-      if (onChange && inputRef.current) {
-        const event = {
-          target: inputRef.current,
-          currentTarget: inputRef.current,
-        } as ChangeEvent<HTMLInputElement>
-        onChange(event)
-      }
+      if (inputRef.current) clearNativeInput(inputRef.current)
       requestAnimationFrame(() => inputRef.current?.focus())
     }
     return (

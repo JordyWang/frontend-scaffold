@@ -6,6 +6,7 @@ import {
   type TextareaHTMLAttributes,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { clearNativeInput } from './clear-native-input'
 import { useConfig } from './config-context'
 import {
   inputSizeStyles,
@@ -67,15 +68,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       onChange?.(event)
     }
     function clear() {
-      if (!controlled) setInternalValue('')
-      onValueChange?.('')
-      if (onChange && textareaRef.current) {
-        const event = {
-          target: textareaRef.current,
-          currentTarget: textareaRef.current,
-        } as ChangeEvent<HTMLTextAreaElement>
-        onChange(event)
-      }
+      if (textareaRef.current) clearNativeInput(textareaRef.current)
       requestAnimationFrame(() => textareaRef.current?.focus())
     }
     return (
