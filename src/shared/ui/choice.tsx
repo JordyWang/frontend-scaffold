@@ -192,7 +192,7 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(function Switch(
         {...props}
       />
       <span
-        className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-input bg-secondary p-0.5 transition-colors peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring peer-aria-[invalid=true]:border-destructive [&>span]:size-4 [&>span]:rounded-full [&>span]:bg-card-foreground [&>span]:transition-transform peer-checked:[&>span]:translate-x-[1.2rem] peer-checked:[&>span]:bg-primary-foreground"
+        className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-input bg-secondary p-0.5 transition-colors peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring peer-aria-[invalid=true]:border-destructive [&>span]:size-4 [&>span]:rounded-full [&>span]:bg-card-foreground [&>span]:transition-transform peer-checked:[&>span]:translate-x-[1.2rem] rtl:peer-checked:[&>span]:-translate-x-[1.2rem] peer-checked:[&>span]:bg-primary-foreground"
         aria-hidden="true"
       >
         <span />

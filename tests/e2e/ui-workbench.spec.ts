@@ -3069,6 +3069,43 @@ test('RTL OTP arrows follow the visible slot order', async ({
   await expect(slots.nth(2)).toBeFocused()
 })
 
+test('RTL switch moves its thumb toward the logical end on keyboard and touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const demo = preview.getByRole('group', { name: 'RTL 控件预览' })
+  const control = demo.getByRole('switch', { name: 'RTL 开关' })
+  const thumb = control.locator('..').locator('span').first().locator('span')
+  const thumbOffset = () =>
+    thumb.evaluate((element) => {
+      const thumbRect = element.getBoundingClientRect()
+      const trackRect = element.parentElement!.getBoundingClientRect()
+      return (
+        (thumbRect.left + thumbRect.right - trackRect.left - trackRect.right) /
+        2
+      )
+    })
+
+  await expect(demo).toHaveCSS('direction', 'rtl')
+  await expect(control).not.toBeChecked()
+  expect(await thumbOffset()).toBeGreaterThan(0)
+  if (testInfo.project.name.startsWith('mobile-'))
+    await control.locator('..').tap()
+  else {
+    await control.focus()
+    await page.keyboard.press('Space')
+  }
+  await expect(control).toBeChecked()
+  await expect.poll(thumbOffset).toBeLessThan(0)
+
+  if (testInfo.project.name.startsWith('mobile-'))
+    await control.locator('..').tap()
+  else await page.keyboard.press('Space')
+  await expect(control).not.toBeChecked()
+  await expect.poll(thumbOffset).toBeGreaterThan(0)
+})
+
 test('RTL tree select follows visual expansion keys in its portal', async ({
   page,
 }, testInfo) => {
