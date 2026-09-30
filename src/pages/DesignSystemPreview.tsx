@@ -41,6 +41,7 @@ import {
   SearchInput,
   Menu,
   Mentions,
+  MultiSelect,
   Popconfirm,
   Popover,
   Progress,
@@ -153,6 +154,7 @@ export function DesignSystemPreview() {
   const [searchStatus, setSearchStatus] = useState('尚未搜索')
   const [city, setCity] = useState('')
   const [selectedCity, setSelectedCity] = useState('尚未选择城市')
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [showShanghaiOption, setShowShanghaiOption] = useState(true)
   const [mentionsValue, setMentionsValue] = useState('')
   const [mentionsStatus, setMentionsStatus] = useState('尚未选择成员')
@@ -632,6 +634,24 @@ export function DesignSystemPreview() {
                       />
                     }
                   />
+                  <FormItem
+                    name="modules"
+                    label="表单模块"
+                    trigger="onValueChange"
+                    emptyValue={[]}
+                    control={
+                      <MultiSelect
+                        label="表单模块"
+                        options={[
+                          { value: 'files', label: '文件' },
+                          { value: 'ai', label: 'AI 任务' },
+                          { value: 'video', label: '视频' },
+                        ]}
+                        showSearch
+                        allowClear
+                      />
+                    }
+                  />
                   <Stack direction="row" align="center" wrap gap="sm">
                     <Button type="submit" size="small">
                       提交表单
@@ -756,6 +776,45 @@ export function DesignSystemPreview() {
                         { value: 'one', label: '选项一' },
                         { value: 'two', label: '选项二' },
                       ]}
+                    />
+                  }
+                />
+                <FormField
+                  label="多选分类"
+                  control={
+                    <MultiSelect
+                      label="多选分类"
+                      options={[
+                        { value: 'design', label: '设计' },
+                        { value: 'video', label: '视频' },
+                        { value: 'archived', label: '归档', disabled: true },
+                      ]}
+                      value={selectedCategories}
+                      onValueChange={setSelectedCategories}
+                      showSearch
+                      allowClear
+                    />
+                  }
+                />
+                <Typography variant="caption" tone="muted">
+                  已选分类：
+                  {selectedCategories.length
+                    ? selectedCategories.join('、')
+                    : '无'}
+                </Typography>
+                <MultiSelect
+                  label="不可用多选"
+                  options={[{ value: 'one', label: '选项一' }]}
+                  defaultValue={['one']}
+                  disabled
+                />
+                <FormField
+                  label="错误多选"
+                  error="请至少选择一个分类"
+                  control={
+                    <MultiSelect
+                      label="错误多选"
+                      options={[{ value: 'one', label: '选项一' }]}
                     />
                   }
                 />
@@ -1648,6 +1707,15 @@ export function DesignSystemPreview() {
                         { value: 'first', label: 'RTL 第一项' },
                         { value: 'second', label: 'RTL 第二项' },
                       ]}
+                    />
+                    <MultiSelect
+                      label="RTL 多选"
+                      options={[
+                        { value: 'alpha', label: 'RTL 甲' },
+                        { value: 'beta', label: 'RTL 乙' },
+                      ]}
+                      defaultValue={['alpha']}
+                      showSearch
                     />
                     <TreeSelect
                       label="RTL 树选择"

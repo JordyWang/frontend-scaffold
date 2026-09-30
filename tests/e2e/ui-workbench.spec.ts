@@ -597,6 +597,83 @@ test('date range keeps an ordered pair on keyboard and H5 input', async ({
   await expect(end).toBeFocused()
 })
 
+test('multi-select searches, keeps selections open and clears with keyboard or touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const trigger = preview.getByRole('combobox', { name: '多选分类' })
+  const triggerBox = await trigger.boundingBox()
+  expect(triggerBox!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await trigger.tap()
+  else await trigger.click()
+  const list = page.getByRole('listbox', { name: '多选分类选项' })
+  const search = page.getByRole('searchbox', { name: '搜索多选分类' })
+  await expect(search).toBeFocused()
+  await search.fill('设计')
+  const design = list.getByRole('option', { name: '设计' })
+  if (testInfo.project.name.startsWith('mobile-')) await design.tap()
+  else await design.click()
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true')
+  await expect(design).toHaveAttribute('aria-selected', 'true')
+  if (testInfo.project.name.startsWith('mobile-')) await design.tap()
+  else await design.click()
+  await expect(design).toHaveAttribute('aria-selected', 'false')
+  if (testInfo.project.name.startsWith('mobile-')) await design.tap()
+  else await design.click()
+  await expect(design).toHaveAttribute('aria-selected', 'true')
+  await search.fill('视频')
+  await search.press('Enter')
+  await expect(preview.getByText('已选分类：design、video')).toBeVisible()
+  await search.press('Escape')
+  await expect(trigger).toBeFocused()
+  await expect(list).toHaveCount(0)
+
+  const clear = preview.getByRole('button', { name: '清空多选分类' })
+  await trigger.press('ArrowDown')
+  await expect(search).toBeFocused()
+  await search.press('Tab')
+  await expect(list).toHaveCount(0)
+  await expect(clear).toBeFocused()
+  const clearBox = await clear.boundingBox()
+  expect(clearBox!.width).toBeGreaterThanOrEqual(44)
+  expect(clearBox!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await clear.tap()
+  else {
+    await clear.focus()
+    await clear.press('Enter')
+  }
+  await expect(clear).toHaveCount(0)
+  await expect(preview.getByText('已选分类：无')).toBeVisible()
+  await expect(trigger).toBeFocused()
+  await expect(
+    preview.getByRole('combobox', { name: '不可用多选' }),
+  ).toBeDisabled()
+  await expect(
+    preview.getByRole('combobox', { name: '错误多选' }),
+  ).toHaveAttribute('aria-invalid', 'true')
+  const keyboard = preview.getByRole('combobox', { name: '错误多选' })
+  await keyboard.focus()
+  await keyboard.press('ArrowDown')
+  const keyboardOption = page
+    .getByRole('listbox', { name: '错误多选选项' })
+    .getByRole('option', { name: '选项一' })
+  await keyboard.press('Space')
+  await expect(keyboardOption).toHaveAttribute('aria-selected', 'true')
+  await keyboard.press('Space')
+  await expect(keyboardOption).toHaveAttribute('aria-selected', 'false')
+  await keyboard.press('Escape')
+  await expect(keyboard).toBeFocused()
+  await page.setViewportSize({ width: 360, height: 780 })
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
+})
+
 test('time range keeps a same-day interval on desktop and H5', async ({
   page,
 }, testInfo) => {
@@ -2729,6 +2806,20 @@ test('RTL portal controls keep direction and logical option placement', async ({
     await page.keyboard.press('Enter')
   }
   await expect(select).toContainText('RTL 第二项')
+
+  const multi = demo.getByRole('combobox', { name: 'RTL 多选' })
+  await expect(multi).toHaveCSS('direction', 'rtl')
+  if (testInfo.project.name.startsWith('mobile-')) await multi.tap()
+  else await multi.click()
+  const multiList = popupRoot.getByRole('listbox', { name: 'RTL 多选选项' })
+  await expect(multiList.locator('..')).toHaveAttribute('dir', 'rtl')
+  const multiSearch = popupRoot.getByRole('searchbox', { name: '搜索RTL 多选' })
+  await multiSearch.fill('RTL 乙')
+  const beta = multiList.getByRole('option', { name: 'RTL 乙' })
+  if (testInfo.project.name.startsWith('mobile-')) await beta.tap()
+  else await beta.click()
+  await expect(multi).toContainText('RTL 乙')
+  await multiSearch.press('Escape')
 
   const openDialog = demo.getByRole('button', { name: '打开 RTL 对话框' })
   if (testInfo.project.name.startsWith('mobile-')) await openDialog.tap()
