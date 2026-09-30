@@ -1,5 +1,6 @@
 import {
   cloneElement,
+  forwardRef,
   useCallback,
   useEffect,
   useId,
@@ -17,6 +18,7 @@ import { cn } from '@/shared/lib/utils'
 import { Button, type ButtonProps } from './button'
 import { useConfig } from './config-context'
 import { Dialog } from './dialog'
+import { Badge, type BadgeProps } from './display'
 import {
   floatButtonControlStyles,
   floatButtonPositionStyles,
@@ -676,27 +678,56 @@ export type FloatButtonProps = Omit<ButtonProps, 'size' | 'shape'> & {
   label: string
   shape?: 'circle' | 'square'
   position?: FloatButtonPosition
+  tooltip?: ReactNode
+  badge?: Omit<BadgeProps, 'children' | 'className'>
+  containerClassName?: string
 }
 
-export function FloatButton({
-  label,
-  shape = 'circle',
-  position = 'bottom-right',
-  className,
-  ...props
-}: FloatButtonProps) {
-  return (
-    <Button
-      {...props}
-      size="icon"
-      aria-label={props['aria-label'] ?? label}
-      className={cn(
-        'fixed z-[60]',
-        floatButtonPositionStyles[position],
-        floatButtonControlStyles,
-        floatButtonShapeStyles[shape],
-        className,
-      )}
-    />
-  )
-}
+export const FloatButton = forwardRef<HTMLButtonElement, FloatButtonProps>(
+  function FloatButton(
+    {
+      label,
+      shape = 'circle',
+      position = 'bottom-right',
+      tooltip,
+      badge,
+      containerClassName,
+      className,
+      ...props
+    },
+    ref,
+  ) {
+    const control = (
+      <Button
+        {...props}
+        ref={ref}
+        size="icon"
+        aria-label={props['aria-label'] ?? label}
+        className={cn(
+          'relative',
+          floatButtonControlStyles,
+          floatButtonShapeStyles[shape],
+          className,
+        )}
+      />
+    )
+    const withTooltip = tooltip ? (
+      <Tooltip title={tooltip}>{control}</Tooltip>
+    ) : (
+      control
+    )
+
+    return (
+      <span
+        data-ui-float-button-container=""
+        className={cn(
+          'fixed z-[60]',
+          floatButtonPositionStyles[position],
+          containerClassName,
+        )}
+      >
+        {badge ? <Badge {...badge}>{withTooltip}</Badge> : withTooltip}
+      </span>
+    )
+  },
+)

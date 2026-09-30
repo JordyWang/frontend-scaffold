@@ -2206,6 +2206,8 @@ export function DesignSystemPreview() {
         label="浮动反馈"
         position="bottom-left"
         variant="outline"
+        tooltip="发送反馈"
+        badge={{ count: 3, label: '3 条待处理反馈', tone: 'warning' }}
         onClick={() => toast({ title: '已收到反馈' })}
       >
         <Icon name="info" />

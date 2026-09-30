@@ -3379,6 +3379,25 @@ test('overlay components keep focus, touch and safe-area behavior', async ({
       parseFloat(getComputedStyle(element).borderTopLeftRadius),
     ),
   ).toBeGreaterThanOrEqual(floatBox!.width / 2)
+  const badge = preview.locator(
+    '[data-ui-float-button-container] [data-ui-badge-tone]',
+  )
+  await expect(badge).toHaveAttribute('aria-label', '3 条待处理反馈')
+  const badgeBox = await badge.boundingBox()
+  expect(badgeBox).not.toBeNull()
+  expect(badgeBox!.x).toBeGreaterThan(floatBox!.x)
+  expect(badgeBox!.y).toBeLessThan(floatBox!.y + floatBox!.height / 2)
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await floatButton.tap()
+  } else {
+    await floatButton.focus()
+  }
+  const floatTooltip = page.getByRole('tooltip', { name: '发送反馈' })
+  await expect(floatTooltip).toBeVisible()
+  const tooltipBox = await floatTooltip.boundingBox()
+  expect(tooltipBox).not.toBeNull()
+  expect(tooltipBox!.x).toBeGreaterThanOrEqual(0)
+  expect(tooltipBox!.y).toBeGreaterThanOrEqual(0)
 })
 
 test('BackTop appears after scrolling and supports keyboard or touch', async ({

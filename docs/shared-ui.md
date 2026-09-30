@@ -68,6 +68,8 @@
 
 `FloatButtonGroup` 用 `items: { key, label, icon, disabled? }[]` 组织浮动操作，`onSelect(key)` 接收操作键。`trigger` 为 `always`（默认）、`click` 或 `hover`；菜单模式支持 `open` / `defaultOpen` / `onOpenChange`、`placement` 和 `shape`。`position` 可选页面四角并遵守安全区；菜单朝向遇到相邻视口边缘时自动改到相反方向。展开后使用正常 Tab 顺序，Escape 关闭并返回触发器；触屏可点击触发器。
 
+`FloatButton` 的 `tooltip` 和 `badge` 复用项目提示与徽标组件；按钮始终保留 `label` 作为可访问名称，`badge.label` 可单独说明数量。`containerClassName` 用于调整固定容器的位置，`className` 只调整按钮外观；`/__ui` 展示两者组合及 H5 安全区。
+
 `Table` 默认沿文字方向的起始侧对齐表头与单元格；列的显式 `align="left"`、`"center"`、`"right"` 使用指定的物理方向。传入 `renderMobileRow` 后，窄屏展示列表视图，桌面展示表格视图。
 
 `TableColumn.sorter(left, right)` 启用本地稳定排序；交互依次切换升序、降序和原始顺序。`sort` / `defaultSort` 使用 `{ columnKey, direction }`，`onSortChange` 接收新状态或 `null`；受控模式由调用方更新 `sort`。复杂表头可传入 `sortLabel` 作为排序按钮名称。桌面表头使用 `aria-sort`，配置 `renderMobileRow` 后手机卡片上方提供同一排序操作。
