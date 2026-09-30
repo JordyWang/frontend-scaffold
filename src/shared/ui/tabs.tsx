@@ -1,5 +1,5 @@
 import * as TabsPrimitive from '@radix-ui/react-tabs'
-import { type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { useConfig } from './config-context'
 
@@ -31,13 +31,41 @@ export function Tabs({
   label = '内容分组',
 }: TabsProps) {
   const { direction } = useConfig()
+  const listRef = useRef<HTMLDivElement>(null)
+  const focusedTabRef = useRef<HTMLElement | null>(null)
   const firstEnabledValue = items.find((item) => !item.disabled)?.value
+  const [internalValue, setInternalValue] = useState(() =>
+    items.some((item) => item.value === defaultValue && !item.disabled)
+      ? defaultValue
+      : firstEnabledValue,
+  )
+  const internalValueIsEnabled = items.some(
+    (item) => item.value === internalValue && !item.disabled,
+  )
+  const activeValue =
+    value ?? (internalValueIsEnabled ? internalValue : firstEnabledValue) ?? ''
+
+  useLayoutEffect(() => {
+    const previous = focusedTabRef.current
+    if (!previous) return
+    const unavailable =
+      !previous.isConnected || previous.hasAttribute('disabled')
+    const focusLost =
+      document.activeElement === document.body ||
+      document.activeElement === previous
+    if (!unavailable || !focusLost) return
+    listRef.current
+      ?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')
+      ?.focus()
+  }, [activeValue, items])
 
   return (
     <TabsPrimitive.Root
-      value={value}
-      defaultValue={defaultValue ?? firstEnabledValue}
-      onValueChange={onValueChange}
+      value={activeValue}
+      onValueChange={(next) => {
+        if (value === undefined) setInternalValue(next)
+        onValueChange?.(next)
+      }}
       orientation={orientation}
       activationMode={activationMode}
       dir={direction}
@@ -48,6 +76,11 @@ export function Tabs({
       )}
     >
       <TabsPrimitive.List
+        ref={listRef}
+        onFocusCapture={(event) => {
+          if ((event.target as HTMLElement).getAttribute('role') === 'tab')
+            focusedTabRef.current = event.target as HTMLElement
+        }}
         className={cn(
           'flex min-w-0 gap-2 overflow-x-auto border-b border-border [scrollbar-width:thin]',
           orientation === 'vertical' &&

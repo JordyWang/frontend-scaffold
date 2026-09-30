@@ -154,6 +154,7 @@ export function DevWorkbenchPage() {
   const [category, setCategory] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [page, setPage] = useState(1)
+  const [showDynamicTab, setShowDynamicTab] = useState(true)
   const [dataState, setDataState] = useState<
     'filled' | 'empty' | 'loading' | 'error'
   >('filled')
@@ -488,6 +489,36 @@ export function DevWorkbenchPage() {
               },
             ]}
           />
+          <div className="grid gap-3">
+            <Button
+              variant="outline"
+              className="justify-self-start"
+              aria-pressed={!showDynamicTab}
+              onClick={() => setShowDynamicTab((current) => !current)}
+            >
+              {showDynamicTab ? '隐藏详细分组' : '显示详细分组'}
+            </Button>
+            <Tabs
+              label="动态预览分组"
+              defaultValue="details"
+              items={[
+                {
+                  value: 'overview',
+                  label: '动态总览',
+                  content: <p>动态分组的基础内容。</p>,
+                },
+                ...(showDynamicTab
+                  ? [
+                      {
+                        value: 'details',
+                        label: '动态详情',
+                        content: <p>动态分组的详细内容。</p>,
+                      },
+                    ]
+                  : []),
+              ]}
+            />
+          </div>
           <Tabs
             label="垂直预览分组"
             orientation="vertical"

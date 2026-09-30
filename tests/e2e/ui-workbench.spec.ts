@@ -1217,12 +1217,15 @@ test('keyboard controls retain focus and expose data states', async ({
   await page.getByRole('button', { name: '警告提示' }).click()
   await expect(page.getByText('需要注意')).toBeVisible()
 
-  await page.getByRole('tab', { name: '总览' }).focus()
+  const previewTabs = page.getByRole('tablist', {
+    name: '预览分组',
+    exact: true,
+  })
+  await previewTabs.getByRole('tab', { name: '总览', exact: true }).focus()
   await page.keyboard.press('ArrowRight')
-  await expect(page.getByRole('tab', { name: '详细内容' })).toHaveAttribute(
-    'aria-selected',
-    'true',
-  )
+  await expect(
+    previewTabs.getByRole('tab', { name: '详细内容' }),
+  ).toHaveAttribute('aria-selected', 'true')
 
   await page
     .getByRole('region', { name: '导航与数据' })
@@ -1796,6 +1799,43 @@ test('vertical tabs place content beside triggers and support keyboard and touch
         document.documentElement.clientWidth,
     ),
   ).toBe(true)
+})
+
+test('uncontrolled tabs keep content when the active item is removed', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '导航与数据' })
+  const tabs = preview.getByRole('tablist', { name: '动态预览分组' })
+  await expect(tabs.getByRole('tab', { name: '动态详情' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+
+  const hide = preview.getByRole('button', { name: '隐藏详细分组' })
+  if (testInfo.project.name.startsWith('mobile-')) await hide.tap()
+  else await hide.click()
+  await expect(tabs.getByRole('tab', { name: '动态详情' })).toHaveCount(0)
+  await expect(tabs.getByRole('tab', { name: '动态总览' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await expect(
+    preview.getByRole('tabpanel', { name: '动态总览' }),
+  ).toContainText('动态分组的基础内容。')
+
+  const show = preview.getByRole('button', { name: '显示详细分组' })
+  if (testInfo.project.name.startsWith('mobile-')) await show.tap()
+  else await show.click()
+  await expect(tabs.getByRole('tab', { name: '动态详情' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await tabs.getByRole('tab', { name: '动态详情' }).focus()
+  await preview
+    .getByRole('button', { name: '隐藏详细分组' })
+    .evaluate((element) => (element as HTMLButtonElement).click())
+  await expect(tabs.getByRole('tab', { name: '动态总览' })).toBeFocused()
 })
 
 test('anchor follows page sections with keyboard and touch navigation', async ({

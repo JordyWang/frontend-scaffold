@@ -313,6 +313,46 @@ describe('shared/ui contracts', () => {
     expect(screen.getByRole('tabpanel')).toHaveTextContent('第二项内容')
   })
 
+  it('keeps an uncontrolled tab panel visible when the active item disappears', () => {
+    const items = [
+      { value: 'first', label: '第一项', content: '第一项内容' },
+      { value: 'second', label: '第二项', content: '第二项内容' },
+    ]
+    const { rerender } = render(
+      <Tabs items={items} defaultValue="second" label="动态分组" />,
+    )
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('第二项内容')
+    screen.getByRole('tab', { name: '第二项' }).focus()
+
+    rerender(
+      <Tabs items={items.slice(0, 1)} defaultValue="second" label="动态分组" />,
+    )
+    expect(screen.getByRole('tab', { name: '第一项' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('第一项内容')
+    expect(screen.getByRole('tab', { name: '第一项' })).toHaveFocus()
+
+    rerender(<Tabs items={items} defaultValue="second" label="动态分组" />)
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('第二项内容')
+    screen.getByRole('tab', { name: '第二项' }).focus()
+
+    rerender(
+      <Tabs
+        items={[items[0], { ...items[1], disabled: true }]}
+        defaultValue="second"
+        label="动态分组"
+      />,
+    )
+    expect(screen.getByRole('tab', { name: '第一项' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('第一项内容')
+    expect(screen.getByRole('tab', { name: '第一项' })).toHaveFocus()
+  })
+
   it('renders portals outside the local parent', () => {
     const { container } = render(
       <div>
