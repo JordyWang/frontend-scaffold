@@ -1384,6 +1384,13 @@ test('tree select searches collapsed branches with keyboard and touch', async ({
   await expect(trigger).toHaveAttribute('aria-expanded', 'false')
   await expect(trigger).toContainText('用户研究组')
   await expect(trigger).toHaveCSS('min-height', '44px')
+
+  const multiple = preview.getByRole('combobox', { name: '多选团队' })
+  const clear = preview.getByRole('button', { name: '清除多选团队' })
+  await clear.focus()
+  await clear.press('Enter')
+  await expect(clear).toHaveCount(0)
+  await expect(multiple).toBeFocused()
 })
 
 test('transfer moves filtered choices with keyboard and touch', async ({
@@ -2516,6 +2523,37 @@ test('floating overlays stay usable inside clipped containers', async ({
   await expect(tooltipContainer.getByRole('tooltip')).toHaveCount(0)
   await page.keyboard.press('Escape')
   await expect(page.getByRole('tooltip')).toHaveCount(0)
+})
+
+test('RTL tree select follows visual expansion keys in its portal', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const demo = preview.getByRole('group', { name: 'RTL 控件预览' })
+  const popupRoot = preview.locator('[data-ui-rtl-popup-root]')
+  const trigger = demo.getByRole('combobox', { name: 'RTL 树选择' })
+  await trigger.focus()
+  await trigger.press('ArrowDown')
+  const tree = popupRoot.getByRole('tree', { name: 'RTL 树选择' })
+  await expect(tree.locator('..')).toHaveAttribute('dir', 'rtl')
+  const team = tree.getByRole('treeitem', { name: '团队' })
+  await expect(team).toBeFocused()
+  await team.press('ArrowLeft')
+  await expect(team).toHaveAttribute('aria-expanded', 'true')
+  await team.press('ArrowLeft')
+  const design = tree.getByRole('treeitem', { name: '设计组' })
+  await expect(design).toBeFocused()
+  await design.press('ArrowRight')
+  await expect(team).toBeFocused()
+  await team.press('Escape')
+  await expect(trigger).toBeFocused()
+
+  if (testInfo.project.name.startsWith('mobile-')) await trigger.tap()
+  else await trigger.click()
+  if (testInfo.project.name.startsWith('mobile-')) await design.tap()
+  else await design.click()
+  await expect(trigger).toContainText('设计组')
 })
 
 test('RTL portal controls keep direction and logical option placement', async ({

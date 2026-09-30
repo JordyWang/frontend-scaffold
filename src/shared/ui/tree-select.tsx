@@ -146,7 +146,7 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
     },
     forwardedRef,
   ) {
-    const { componentSize } = useConfig()
+    const { componentSize, direction } = useConfig()
     const resolvedSize = resolveComponentSize(componentSize, size)
     const generatedId = useId()
     const triggerId = id ?? `tree-select-${generatedId}`
@@ -269,6 +269,8 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
       flatNode: FlatNode,
     ) {
       if (event.target !== event.currentTarget) return
+      const expandKey = direction === 'rtl' ? 'ArrowLeft' : 'ArrowRight'
+      const collapseKey = direction === 'rtl' ? 'ArrowRight' : 'ArrowLeft'
       const index = visibleNodes.findIndex(
         ({ node }) => node.value === flatNode.node.value,
       )
@@ -286,7 +288,7 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
         focusNode(
           visibleNodes.filter(({ node }) => !node.disabled).at(-1)?.node.value,
         )
-      } else if (event.key === 'ArrowRight' && flatNode.node.children?.length) {
+      } else if (event.key === expandKey && flatNode.node.children?.length) {
         event.preventDefault()
         if (effectiveExpanded.includes(flatNode.node.value)) {
           focusNode(
@@ -296,7 +298,7 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
             )?.node.value,
           )
         } else toggleExpanded(flatNode.node.value)
-      } else if (event.key === 'ArrowLeft') {
+      } else if (event.key === collapseKey) {
         event.preventDefault()
         if (
           !search.trim() &&
@@ -552,7 +554,10 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
             type="button"
             className="absolute end-7 top-1/2 z-[1] inline-grid size-11 -translate-y-1/2 place-items-center rounded-full border-0 bg-transparent text-xl text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             aria-label={`清除${label}`}
-            onClick={() => updateSelection([])}
+            onClick={() => {
+              updateSelection([])
+              if (multiple) setOpenState(false)
+            }}
           >
             ×
           </button>
@@ -571,6 +576,7 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
             <div
               ref={contentRef}
               id={popupId}
+              dir={direction}
               className="z-[90] max-h-[min(22rem,calc(100dvh-1rem))] overflow-auto rounded-[var(--ui-menu-radius)] border border-border bg-card p-1 text-foreground shadow-[0_12px_30px_rgb(0_0_0_/_0.16)]"
               style={popupStyle}
             >

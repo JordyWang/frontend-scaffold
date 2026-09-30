@@ -1576,6 +1576,16 @@ export function DesignSystemPreview() {
                         { value: 'second', label: 'RTL 第二项' },
                       ]}
                     />
+                    <TreeSelect
+                      label="RTL 树选择"
+                      treeData={[
+                        {
+                          value: 'team',
+                          label: '团队',
+                          children: [{ value: 'design', label: '设计组' }],
+                        },
+                      ]}
+                    />
                     <div className="flex flex-wrap gap-2">
                       <Dialog
                         title="RTL 对话框"

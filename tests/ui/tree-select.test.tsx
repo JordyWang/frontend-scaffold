@@ -48,6 +48,28 @@ describe('TreeSelect', () => {
     expect(trigger).toHaveTextContent('设计组')
   })
 
+  it('uses RTL tree keys and keeps the portalled popup direction', () => {
+    render(
+      <ConfigProvider direction="rtl" getPopupContainer={() => document.body}>
+        <TreeSelect treeData={treeData} defaultExpandedValues={[]} />
+      </ConfigProvider>,
+    )
+    const trigger = screen.getByRole('combobox', { name: '树形选择' })
+    fireEvent.click(trigger)
+    const tree = screen.getByRole('tree', { name: '树形选择' })
+    expect(tree.parentElement).toHaveAttribute('dir', 'rtl')
+    const team = screen.getByRole('treeitem', { name: '团队' })
+    fireEvent.keyDown(team, { key: 'ArrowLeft' })
+    expect(team).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.keyDown(team, { key: 'ArrowLeft' })
+    const design = screen.getByRole('treeitem', { name: '设计组' })
+    expect(design).toHaveFocus()
+    fireEvent.keyDown(design, { key: 'ArrowRight' })
+    expect(team).toHaveFocus()
+    fireEvent.keyDown(team, { key: 'ArrowRight' })
+    expect(team).toHaveAttribute('aria-expanded', 'false')
+  })
+
   it('reveals search matches below collapsed branches and skips disabled nodes', () => {
     const onChange = vi.fn()
     render(<TreeSelect treeData={treeData} showSearch onChange={onChange} />)
@@ -93,6 +115,8 @@ describe('TreeSelect', () => {
     expect(trigger).toHaveAttribute('aria-expanded', 'true')
     fireEvent.click(screen.getByRole('button', { name: '清除树形选择' }))
     expect(onChange).toHaveBeenLastCalledWith([])
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    expect(trigger).toHaveFocus()
     rerender(
       <TreeSelect
         treeData={treeData}
