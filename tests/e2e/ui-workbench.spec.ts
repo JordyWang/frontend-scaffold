@@ -144,6 +144,35 @@ test('Empty previews remain legible and their action works on keyboard and touch
   await expect(card.getByRole('status')).toHaveText('已重置空状态')
 })
 
+test('Statistic reveals a grouped value after loading on keyboard and touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const statistic = preview.locator('[data-ui-statistic]').filter({
+    hasText: '处理任务数',
+  })
+  const complete = preview.getByRole('button', { name: '完成统计加载' })
+  await expect(statistic).toHaveAttribute('aria-busy', 'true')
+  await expect(
+    statistic.getByRole('status', { name: '处理任务数正在加载' }),
+  ).toBeVisible()
+  const box = await complete.boundingBox()
+  expect(box!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await complete.tap()
+  else {
+    await complete.focus()
+    await complete.press('Enter')
+  }
+  await expect(statistic).not.toHaveAttribute('aria-busy', 'true')
+  await expect(statistic).toContainText('12,345.7')
+
+  const reset = preview.getByRole('button', { name: '重置统计加载' })
+  if (testInfo.project.name.startsWith('mobile-')) await reset.tap()
+  else await reset.press('Enter')
+  await expect(statistic).toHaveAttribute('aria-busy', 'true')
+})
+
 test('pagination changes page size and jumps to a valid page on desktop and H5', async ({
   page,
 }, testInfo) => {

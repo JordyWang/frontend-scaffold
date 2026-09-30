@@ -1155,6 +1155,44 @@ describe('Ant Design-inspired shared components', () => {
     expect(screen.getByRole('heading', { name: '提交' })).toBeInTheDocument()
   })
 
+  it('formats numeric statistics with the configured locale and shows loading feedback', () => {
+    const formatter = vi.fn(() => '自定义值')
+    const { rerender } = render(
+      <ConfigProvider locale="de-DE">
+        <Statistic title="德语数值" value={12345.678} precision={2} />
+        <Statistic
+          title="英语数值"
+          value={12345.678}
+          precision={1}
+          locale="en-US"
+        />
+        <Statistic title="无效数值" value={Number.NaN} />
+        <Statistic
+          title="加载数值"
+          value={12345}
+          formatter={formatter}
+          loading
+        />
+      </ConfigProvider>,
+    )
+    expect(screen.getByText('12.345,68')).toBeInTheDocument()
+    expect(screen.getByText('12,345.7')).toBeInTheDocument()
+    expect(screen.getByText('—')).toBeInTheDocument()
+    const loading = screen.getByText('加载数值').closest('[data-ui-statistic]')
+    expect(loading).toHaveAttribute('aria-busy', 'true')
+    expect(
+      screen.getByRole('status', { name: '加载数值正在加载' }),
+    ).toBeInTheDocument()
+    expect(formatter).not.toHaveBeenCalled()
+
+    rerender(<Statistic title="加载数值" value={12345} formatter={formatter} />)
+    expect(screen.getByText('自定义值')).toBeInTheDocument()
+    expect(formatter).toHaveBeenCalledWith(12345)
+    expect(
+      screen.queryByRole('status', { name: '加载数值正在加载' }),
+    ).toBeNull()
+  })
+
   it('keeps overlay interactions keyboard accessible', async () => {
     const onSelect = vi.fn()
     const onConfirm = vi.fn()

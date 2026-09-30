@@ -150,6 +150,7 @@ export function DesignSystemPreview() {
   const [uncontrolledStepEvent, setUncontrolledStepEvent] = useState(0)
   const [quantity, setQuantity] = useState<number | undefined>(3)
   const [volume, setVolume] = useState(42)
+  const [statisticLoading, setStatisticLoading] = useState(true)
   const [colorValue, setColorValue] = useState('#1677ff')
   const [dateRange, setDateRange] = useState<DateRange>(['', ''])
   const [timeRange, setTimeRange] = useState<TimeRange>(['', ''])
@@ -1508,7 +1509,22 @@ export function DesignSystemPreview() {
                       />
                     }
                   />
-                  <Statistic title="完成率" value={volume} suffix="%" />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Statistic title="完成率" value={volume} suffix="%" />
+                    <Statistic
+                      title="处理任务数"
+                      value={12345.678}
+                      precision={1}
+                      loading={statisticLoading}
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="small"
+                    onClick={() => setStatisticLoading((value) => !value)}
+                  >
+                    {statisticLoading ? '完成统计加载' : '重置统计加载'}
+                  </Button>
                 </Stack>
                 <div id="preview-timeline">
                   <Timeline
