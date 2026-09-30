@@ -147,6 +147,7 @@ export function DesignSystemPreview() {
   const [searchStatus, setSearchStatus] = useState('尚未搜索')
   const [city, setCity] = useState('')
   const [selectedCity, setSelectedCity] = useState('尚未选择城市')
+  const [showShanghaiOption, setShowShanghaiOption] = useState(true)
   const [mentionsValue, setMentionsValue] = useState('')
   const [mentionsStatus, setMentionsStatus] = useState('尚未选择成员')
   const [splitSizes, setSplitSizes] = useState([60, 40])
@@ -771,6 +772,7 @@ export function DesignSystemPreview() {
                 </Typography>
                 <FormField
                   label="地区"
+                  required
                   control={
                     <Cascader
                       label="地区"
@@ -784,6 +786,34 @@ export function DesignSystemPreview() {
                     />
                   }
                 />
+                <FormField
+                  label="动态地区"
+                  control={
+                    <Cascader
+                      label="动态地区"
+                      defaultValue={['cn', 'sh']}
+                      options={[
+                        {
+                          value: 'cn',
+                          label: '中国',
+                          children: [
+                            ...(showShanghaiOption
+                              ? [{ value: 'sh', label: '上海' }]
+                              : []),
+                            { value: 'bj', label: '北京' },
+                          ],
+                        },
+                      ]}
+                    />
+                  }
+                />
+                <Button
+                  variant="outline"
+                  size="small"
+                  onClick={() => setShowShanghaiOption((current) => !current)}
+                >
+                  {showShanghaiOption ? '移除上海选项' : '恢复上海选项'}
+                </Button>
                 <FormField
                   label="团队选择"
                   description="可搜索折叠分支；方向键浏览，Enter 选择。"

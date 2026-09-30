@@ -965,6 +965,97 @@ describe('Ant Design-inspired shared components', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('请选择地区')
   })
 
+  it('validates the final cascader level and submits a normalized path', () => {
+    const onChange = vi.fn()
+    const { container } = render(
+      <form>
+        <Cascader
+          label="地区"
+          name="region"
+          required
+          onChange={onChange}
+          options={[
+            {
+              value: 'cn',
+              label: '中国',
+              children: [{ value: 'sh', label: '上海' }],
+            },
+          ]}
+        />
+      </form>,
+    )
+    const form = container.querySelector('form')!
+    const country = screen.getByRole('combobox', { name: '地区' })
+    expect(country).toBeRequired()
+    fireEvent.change(country, { target: { value: 'cn' } })
+    const city = screen.getByRole('combobox', { name: '地区第2级' })
+    expect(country).not.toBeRequired()
+    expect(city).toBeRequired()
+    expect(form.checkValidity()).toBe(false)
+    fireEvent.change(city, { target: { value: 'sh' } })
+    expect(form.checkValidity()).toBe(true)
+    expect(new FormData(form).get('region')).toBe('["cn","sh"]')
+    fireEvent.change(city, { target: { value: '' } })
+    expect(onChange).toHaveBeenLastCalledWith(['cn'])
+    fireEvent.change(country, { target: { value: '' } })
+    expect(onChange).toHaveBeenLastCalledWith([])
+    expect(new FormData(form).get('region')).toBe('[]')
+  })
+
+  it('keeps cascader selections valid when options change', () => {
+    const options = [
+      {
+        value: 'cn',
+        label: '中国',
+        children: [
+          { value: 'sh', label: '上海' },
+          { value: 'bj', label: '北京' },
+        ],
+      },
+    ]
+    const { rerender } = render(
+      <Cascader
+        label="动态地区"
+        options={options}
+        defaultValue={['cn', 'sh']}
+      />,
+    )
+    const city = screen.getByRole('combobox', { name: '动态地区第2级' })
+    expect(city).toHaveValue('sh')
+    rerender(
+      <Cascader
+        label="动态地区"
+        options={[{ ...options[0], children: [options[0].children[1]] }]}
+        defaultValue={['cn', 'sh']}
+      />,
+    )
+    expect(city).toHaveValue('')
+    rerender(
+      <Cascader
+        label="动态地区"
+        options={options}
+        defaultValue={['cn', 'sh']}
+      />,
+    )
+    expect(city).toHaveValue('sh')
+  })
+
+  it('keeps an empty required cascader invalid and labelled', () => {
+    const { container } = render(
+      <form>
+        <FormField
+          label="空地区"
+          required
+          control={<Cascader options={[]} />}
+        />
+      </form>,
+    )
+    const field = screen.getByRole('combobox', { name: '空地区' })
+    expect(field).toBeRequired()
+    expect(field).toBeEnabled()
+    expect(container.querySelector('form')!.checkValidity()).toBe(false)
+  })
+
   it('renders readable statistics and an ordered timeline', () => {
     render(
       <>

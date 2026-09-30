@@ -67,6 +67,8 @@
 
 `AutoComplete` 根据选项 `value` 过滤候选；`onChange` 接收输入或选中的字符串，`onSelect(value, option)` 只在选中建议时调用。候选项可设置 `disabled`。输入框保留焦点，通过上下方向键浏览、Enter 选择、Escape 关闭；候选面板在主题作用域内浮动，H5 可直接触控选择。
 
+`Cascader` 的 `onChange` 返回从第一级开始的有效路径；选择“请选择”会截断该级及其后续路径，根级清空返回 `[]`。选项移除或禁用时暂时显示最后有效的前缀，原选项恢复后可恢复未被用户改动的选择。`required` 始终作用在当前最后一级选择框；传入 `name` 时，表单以 JSON 数组字符串提交完整有效路径。
+
 `Tabs` 在非受控模式下会在当前项被移除或禁用时显示第一个可用面板；原项重新可用后会恢复之前的选择。若键盘焦点停在被移除或禁用的标签上，焦点会转到当前可用标签。受控模式仍以传入的 `value` 为准。
 
 `Transfer.items` 的 `key` 必须唯一。`onChange(nextTargetKeys, direction, movedKeys)` 在移动后调用；`direction` 为 `to-target` 或 `to-source`。搜索只影响当前可见项和“全选可见项”，已勾选但被搜索隐藏的项目仍可移动。自定义 `filterItem` 收到去除首尾空格并转为小写的查询词。

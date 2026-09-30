@@ -553,13 +553,20 @@ export type CascaderProps = {
   className?: string
 }
 
-function optionsAt(options: CascaderOption[], path: string[], depth: number) {
-  let current = options
-  for (let index = 0; index < depth; index += 1) {
-    const selected = current.find((option) => option.value === path[index])
-    current = selected?.children ?? []
+function cascaderLevels(options: CascaderOption[], path: string[]) {
+  const levels: { choices: CascaderOption[]; selected: string }[] = []
+  let choices = options
+  let depth = 0
+  while (true) {
+    const selected = choices.find(
+      (option) => option.value === path[depth] && !option.disabled,
+    )
+    levels.push({ choices, selected: selected?.value ?? '' })
+    if (!selected?.children?.length) break
+    choices = selected.children
+    depth += 1
   }
-  return current
+  return levels
 }
 
 export function Cascader({
@@ -582,58 +589,61 @@ export function Cascader({
   const resolvedSize = resolveComponentSize(componentSize, size)
   const [internal, setInternal] = useState(defaultValue)
   const path = value ?? internal
-  const selects: ReactNode[] = []
-  let depthIndex = 0
-  while (
-    depthIndex === 0 ||
-    optionsAt(options, path, depthIndex - 1).some((item) => item.children)
-  ) {
-    const depth = depthIndex
-    const choices = optionsAt(options, path, depth)
-    if (!choices.length) break
-    const selected = path[depth] ?? ''
-    selects.push(
-      <select
-        key={depth}
-        className={cn(
-          inputStyles,
-          inputSizeStyles[resolvedSize],
-          'min-w-[min(100%,10rem)] flex-[1_1_10rem] cursor-pointer touch-manipulation focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20',
-          resolvedSize === 'large'
-            ? 'h-[max(48px,var(--ui-control-height))]'
-            : 'h-[max(44px,var(--ui-control-height))]',
-        )}
-        id={depth === 0 ? id : undefined}
-        name={depth === 0 ? name : undefined}
-        required={depth === 0 ? required : undefined}
-        aria-describedby={depth === 0 ? ariaDescribedBy : undefined}
-        aria-invalid={depth === 0 ? ariaInvalid : undefined}
-        aria-labelledby={depth === 0 ? ariaLabelledBy : undefined}
-        aria-label={`${label}${depth ? `第${depth + 1}级` : ''}`}
-        value={selected}
-        disabled={disabled}
-        onChange={(event) => {
-          const next = [...path.slice(0, depth), event.currentTarget.value]
-          if (value === undefined) setInternal(next)
-          onChange?.(next)
-        }}
-      >
-        <option value="">请选择</option>
-        {choices.map((option) => (
-          <option
-            key={option.value}
-            value={option.value}
-            disabled={option.disabled}
-          >
-            {option.label}
-          </option>
-        ))}
-      </select>,
-    )
-    if (!selected) break
-    depthIndex += 1
-  }
-  return <div className={cn('flex flex-wrap gap-2', className)}>{selects}</div>
+  const levels = cascaderLevels(options, path)
+  const validPath = levels.map((level) => level.selected).filter(Boolean)
+  const selects = levels.map(({ choices, selected }, depth) => (
+    <select
+      key={depth}
+      className={cn(
+        inputStyles,
+        inputSizeStyles[resolvedSize],
+        'min-w-[min(100%,10rem)] flex-[1_1_10rem] cursor-pointer touch-manipulation focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20',
+        resolvedSize === 'large'
+          ? 'h-[max(48px,var(--ui-control-height))]'
+          : 'h-[max(44px,var(--ui-control-height))]',
+      )}
+      id={depth === 0 ? id : undefined}
+      required={required && depth === levels.length - 1}
+      aria-describedby={ariaDescribedBy}
+      aria-invalid={ariaInvalid}
+      aria-labelledby={depth === 0 ? ariaLabelledBy : undefined}
+      aria-label={`${label}${depth ? `第${depth + 1}级` : ''}`}
+      value={selected}
+      disabled={disabled}
+      onChange={(event) => {
+        const chosen = event.currentTarget.value
+        const next = chosen
+          ? [...validPath.slice(0, depth), chosen]
+          : validPath.slice(0, depth)
+        if (value === undefined) setInternal(next)
+        onChange?.(next)
+      }}
+    >
+      <option value="">请选择</option>
+      {choices.map((option) => (
+        <option
+          key={option.value}
+          value={option.value}
+          disabled={option.disabled}
+        >
+          {option.label}
+        </option>
+      ))}
+    </select>
+  ))
+  return (
+    <div className={cn('flex flex-wrap gap-2', className)}>
+      {name && (
+        <input
+          type="hidden"
+          name={name}
+          value={JSON.stringify(validPath)}
+          disabled={disabled}
+        />
+      )}
+      {selects}
+    </div>
+  )
 }
 
 export type UploadProps = {

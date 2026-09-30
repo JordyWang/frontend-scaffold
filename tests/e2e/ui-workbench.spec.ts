@@ -473,7 +473,10 @@ test('native data controls keep their touch targets and keyboard behavior', asyn
   const date = preview.getByLabel('开始日期')
   const time = preview.getByLabel('开始时间')
   const autocomplete = preview.getByRole('combobox', { name: '城市' })
-  const region = preview.getByRole('combobox', { name: '地区' })
+  const region = preview.getByRole('combobox', {
+    name: '地区',
+    exact: true,
+  })
   const upload = preview.getByRole('button', { name: '上传图片' })
 
   for (const [name, control] of [
@@ -501,7 +504,7 @@ test('native data controls keep their touch targets and keyboard behavior', asyn
 
   await region.selectOption('cn')
   await expect(
-    preview.getByRole('combobox', { name: '地区第2级' }),
+    preview.getByRole('combobox', { name: '地区第2级', exact: true }),
   ).toBeVisible()
   await page.setViewportSize({ width: 360, height: 780 })
   expect(
@@ -511,6 +514,44 @@ test('native data controls keep their touch targets and keyboard behavior', asyn
         document.documentElement.clientWidth,
     ),
   ).toBe(true)
+})
+
+test('cascader validates its final level and responds to changing options', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const country = preview.getByRole('combobox', {
+    name: '地区',
+    exact: true,
+  })
+  await expect(country).toHaveAttribute('required', '')
+  await country.selectOption('cn')
+  const city = preview.getByRole('combobox', {
+    name: '地区第2级',
+    exact: true,
+  })
+  await expect(city).toHaveAttribute('required', '')
+  await city.selectOption('sh')
+  await expect(city).toHaveValue('sh')
+  await city.selectOption('')
+  await expect(city).toHaveValue('')
+  await country.selectOption('')
+  await expect(city).toHaveCount(0)
+
+  const dynamic = preview.getByRole('combobox', {
+    name: '动态地区第2级',
+    exact: true,
+  })
+  await expect(dynamic).toHaveValue('sh')
+  const remove = preview.getByRole('button', { name: '移除上海选项' })
+  if (testInfo.project.name.startsWith('mobile-')) await remove.tap()
+  else await remove.click()
+  await expect(dynamic).toHaveValue('')
+  const restore = preview.getByRole('button', { name: '恢复上海选项' })
+  if (testInfo.project.name.startsWith('mobile-')) await restore.tap()
+  else await restore.click()
+  await expect(dynamic).toHaveValue('sh')
 })
 
 test('controlled number input accepts drafts, clamps on blur and can be cleared', async ({
