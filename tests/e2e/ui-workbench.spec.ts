@@ -1199,11 +1199,9 @@ test('native data controls keep their touch targets and keyboard behavior', asyn
   if (testInfo.project.name.startsWith('mobile-')) await region.tap()
   else await region.click()
   const regionPopup = page.getByRole('dialog', { name: '地区选项' })
-  await regionPopup
-    .getByRole('combobox', { name: '地区', exact: true })
-    .selectOption('cn')
+  await regionPopup.getByRole('treeitem', { name: '中国', exact: true }).click()
   await expect(
-    regionPopup.getByRole('combobox', { name: '地区第2级', exact: true }),
+    regionPopup.getByRole('treeitem', { name: '上海', exact: true }),
   ).toBeVisible()
   await page.setViewportSize({ width: 360, height: 780 })
   expect(
@@ -1427,20 +1425,20 @@ test('cascader popup completes a path and inline options stay current', async ({
   if (testInfo.project.name.startsWith('mobile-')) await trigger.tap()
   else await trigger.click()
   const popup = page.getByRole('dialog', { name: '地区选项' })
-  const country = popup.getByRole('combobox', {
-    name: '地区',
+  const country = popup.getByRole('treeitem', {
+    name: '中国',
     exact: true,
   })
-  await country.selectOption('cn')
-  const city = popup.getByRole('combobox', {
-    name: '地区第2级',
+  await country.click()
+  const city = popup.getByRole('treeitem', {
+    name: '上海',
     exact: true,
   })
-  await city.selectOption('sh')
+  await city.click()
   await expect(popup).toHaveCount(0)
   await expect(trigger).toContainText('中国 / 上海')
 
-  const clear = preview.getByRole('button', { name: '清空地区' })
+  const clear = preview.getByRole('button', { name: '清空地区', exact: true })
   const clearBox = await clear.boundingBox()
   expect(clearBox?.width).toBeGreaterThanOrEqual(44)
   expect(clearBox?.height).toBeGreaterThanOrEqual(44)
@@ -1451,11 +1449,11 @@ test('cascader popup completes a path and inline options stay current', async ({
 
   if (testInfo.project.name.startsWith('mobile-')) await trigger.tap()
   else await trigger.click()
-  await country.selectOption('cn')
-  await city.selectOption('sh')
+  await country.click()
+  await city.click()
   if (testInfo.project.name.startsWith('mobile-')) await trigger.tap()
   else await trigger.click()
-  await country.selectOption('')
+  await clear.click()
   await expect(trigger).toContainText('请选择')
 
   const dynamic = preview.getByRole('combobox', {
@@ -1482,7 +1480,7 @@ test('cascader popup restores focus and preserves keyboard tab order', async ({
     .getByRole('combobox', { name: '地区', exact: true })
     .first()
   const popup = page.getByRole('dialog', { name: '地区选项' })
-  const country = popup.getByRole('combobox', { name: '地区', exact: true })
+  const country = popup.getByRole('treeitem', { name: '中国', exact: true })
 
   await trigger.focus()
   await trigger.press('ArrowDown')
@@ -1498,9 +1496,9 @@ test('cascader popup restores focus and preserves keyboard tab order', async ({
   await expect(trigger).toBeFocused()
 
   await trigger.press('ArrowDown')
-  await country.selectOption('cn')
-  const city = popup.getByRole('combobox', {
-    name: '地区第2级',
+  await country.press('Enter')
+  const city = popup.getByRole('treeitem', {
+    name: '上海',
     exact: true,
   })
   await expect(city).toBeFocused()
@@ -1508,7 +1506,7 @@ test('cascader popup restores focus and preserves keyboard tab order', async ({
   await expect(popup).toHaveCount(0)
   await expect(trigger).not.toBeFocused()
 
-  const clear = preview.getByRole('button', { name: '清空地区' })
+  const clear = preview.getByRole('button', { name: '清空地区', exact: true })
   await clear.focus()
   await clear.press('Enter')
   await expect(clear).toHaveCount(0)

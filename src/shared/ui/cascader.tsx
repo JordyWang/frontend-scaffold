@@ -1,10 +1,14 @@
 import {
   useEffect,
   useId,
+  useImperativeHandle,
   useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
+  type FocusEventHandler,
   type ReactNode,
+  type Ref,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
 import {
@@ -13,23 +17,73 @@ import {
   type ControlSize,
 } from './config-context'
 import { Portal } from './portal'
-import { inputSizeStyles, inputStyles } from './tailwind-styles'
+import { Icon } from './icon'
+import type { InputStatus, InputVariant } from './input'
+import {
+  inputSizeStyles,
+  inputStatusStyles,
+  inputStyles,
+  inputVariantStyles,
+} from './tailwind-styles'
+import { CascaderNative } from './cascader-native'
+import { CascaderPanel, type CascaderPanelHandle } from './cascader-panel'
+import { cascaderLevels, validCascaderPath } from './cascader-state'
 
 export type CascaderOption = {
   value: string
   label: ReactNode
+  searchText?: string
   children?: CascaderOption[]
   disabled?: boolean
 }
-
+export type CascaderPlacement =
+  'bottomStart' | 'bottomEnd' | 'topStart' | 'topEnd'
+export type CascaderPart =
+  | 'root'
+  | 'trigger'
+  | 'value'
+  | 'prefix'
+  | 'suffix'
+  | 'clear'
+  | 'popup'
+  | 'search'
+  | 'panel'
+  | 'column'
+  | 'item'
+  | 'itemLabel'
+  | 'expandIcon'
+  | 'result'
+export type CascaderHandle = { focus: () => void; blur: () => void }
 export type CascaderProps = {
   options: CascaderOption[]
   value?: string[]
   defaultValue?: string[]
   onChange?: (value: string[]) => void
-  mode?: 'popup' | 'inline'
+  mode?: 'popup' | 'inline' | 'panel'
+  changeOnSelect?: boolean
+  expandTrigger?: 'click' | 'hover'
+  open?: boolean
+  defaultOpen?: boolean
+  onOpenChange?: (open: boolean) => void
+  showSearch?: boolean
+  searchValue?: string
+  defaultSearchValue?: string
+  onSearch?: (value: string) => void
+  filterOption?: (query: string, path: CascaderOption[]) => boolean
+  searchLimit?: number
   allowClear?: boolean
+  onClear?: () => void
   placeholder?: string
+  emptyText?: string
+  listHeight?: number
+  columnWidth?: number
+  popupWidth?: number
+  placement?: CascaderPlacement
+  prefix?: ReactNode
+  suffixIcon?: ReactNode
+  expandIcon?: ReactNode
+  displayRender?: (path: CascaderOption[]) => ReactNode
+  optionRender?: (option: CascaderOption, path: CascaderOption[]) => ReactNode
   label?: string
   id?: string
   name?: string
@@ -37,364 +91,496 @@ export type CascaderProps = {
   'aria-describedby'?: string
   'aria-invalid'?: boolean
   'aria-labelledby'?: string
+  'aria-label'?: string
   disabled?: boolean
   size?: ControlSize
+  variant?: InputVariant
+  status?: InputStatus
   className?: string
+  classNames?: Partial<Record<CascaderPart, string>>
+  onBlur?: FocusEventHandler<HTMLSpanElement>
+  ref?: Ref<CascaderHandle>
 }
 
-type Level = { choices: CascaderOption[]; selected?: CascaderOption }
-
-function cascaderLevels(options: CascaderOption[], path: string[]): Level[] {
-  const levels: Level[] = []
-  let choices = options
-  let depth = 0
-  while (true) {
-    const selected = choices.find(
-      (option) => option.value === path[depth] && !option.disabled,
+function focusAfter(trigger: HTMLElement, popup: HTMLElement | null) {
+  const elements = [
+    ...document.querySelectorAll<HTMLElement>(
+      'button, a[href], input:not([type="hidden"]), select, textarea, [tabindex]',
+    ),
+  ].filter((element) => !popup?.contains(element))
+  const next = elements
+    .slice(elements.indexOf(trigger) + 1)
+    .find(
+      (element) =>
+        element.tabIndex >= 0 &&
+        !element.matches(':disabled, [inert] *') &&
+        element.getClientRects().length,
     )
-    levels.push({ choices, selected })
-    if (!selected?.children?.length) break
-    choices = selected.children
-    depth += 1
-  }
-  return levels
+  ;(next ?? trigger).focus({ preventScroll: true })
 }
 
-function validPathFor(options: CascaderOption[], path: string[]) {
-  return cascaderLevels(options, path)
-    .map(({ selected }) => selected?.value)
-    .filter((item): item is string => item !== undefined)
-}
-
-function InlineLevels({
-  options,
-  path,
-  onChange,
-  label,
-  id,
-  required,
-  ariaDescribedBy,
-  ariaInvalid,
-  ariaLabelledBy,
-  disabled,
-  size,
-}: {
-  options: CascaderOption[]
-  path: string[]
-  onChange: (value: string[]) => void
-  label: string
-  id?: string
-  required?: boolean
-  ariaDescribedBy?: string
-  ariaInvalid?: boolean
-  ariaLabelledBy?: string
-  disabled?: boolean
-  size: ControlSize
-}) {
-  const levels = cascaderLevels(options, path)
-  const validPath = validPathFor(options, path)
-  return (
-    <div className="flex min-w-0 flex-wrap gap-2">
-      {levels.map(({ choices, selected }, depth) => (
-        <select
-          key={depth}
-          className={cn(
-            inputStyles,
-            inputSizeStyles[size],
-            'min-w-[min(100%,10rem)] flex-[1_1_10rem] cursor-pointer touch-manipulation focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20',
-            size === 'large'
-              ? 'h-[max(48px,var(--ui-control-height))]'
-              : 'h-[max(44px,var(--ui-control-height))]',
-          )}
-          id={depth === 0 ? id : undefined}
-          required={required && depth === levels.length - 1}
-          aria-describedby={ariaDescribedBy}
-          aria-invalid={ariaInvalid}
-          aria-labelledby={depth === 0 ? ariaLabelledBy : undefined}
-          aria-label={`${label}${depth ? `第${depth + 1}级` : ''}`}
-          value={selected?.value ?? ''}
-          disabled={disabled}
-          onChange={(event) => {
-            const chosen = event.currentTarget.value
-            onChange(
-              chosen
-                ? [...validPath.slice(0, depth), chosen]
-                : validPath.slice(0, depth),
-            )
-          }}
-        >
-          <option value="">请选择</option>
-          {choices.map((option) => (
-            <option
-              key={option.value}
-              value={option.value}
-              disabled={option.disabled}
-            >
-              {option.label}
-            </option>
-          ))}
-        </select>
-      ))}
-    </div>
-  )
-}
-
-const focusableSelector =
-  'a[href], button:not([disabled]), input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-
-function focusAfter(trigger: HTMLElement, panel: HTMLElement) {
-  const focusable = [
-    ...trigger.ownerDocument.querySelectorAll<HTMLElement>(focusableSelector),
-  ].filter((element) =>
-    Boolean(element.getClientRects().length && !panel.contains(element)),
-  )
-  const index = focusable.indexOf(trigger)
-  ;(focusable[index + 1] ?? trigger).focus()
-}
-
-/** A path selector with a single popup trigger and an optional native inline mode. */
-export function Cascader({
-  options,
-  value,
-  defaultValue = [],
-  onChange,
-  mode = 'popup',
-  allowClear = false,
-  placeholder = '请选择',
-  label = '级联选择',
-  id,
-  name,
-  required,
-  'aria-describedby': ariaDescribedBy,
-  'aria-invalid': ariaInvalid,
-  'aria-labelledby': ariaLabelledBy,
-  disabled,
-  size,
-  className,
-}: CascaderProps) {
+/** Project path values with a column browser; native inline fields remain available for forms. */
+export function Cascader(allProps: CascaderProps) {
+  const {
+    options,
+    value,
+    defaultValue = [],
+    onChange,
+    mode = 'popup',
+    changeOnSelect = false,
+    expandTrigger = 'click',
+    open,
+    defaultOpen = false,
+    onOpenChange,
+    showSearch = false,
+    searchValue,
+    defaultSearchValue = '',
+    onSearch,
+    filterOption,
+    searchLimit = 50,
+    allowClear = false,
+    onClear,
+    placeholder = '请选择',
+    emptyText = '暂无匹配选项',
+    listHeight = 256,
+    columnWidth = 176,
+    popupWidth,
+    placement = 'bottomStart',
+    prefix,
+    suffixIcon,
+    expandIcon,
+    displayRender,
+    optionRender,
+    label = '级联选择',
+    id,
+    name,
+    required,
+    disabled = false,
+    size,
+    variant = 'outlined',
+    status = 'default',
+    className,
+    classNames,
+    onBlur,
+    ref,
+    'aria-describedby': ariaDescribedBy,
+    'aria-invalid': ariaInvalid,
+    'aria-labelledby': ariaLabelledBy,
+    'aria-label': ariaLabel,
+  } = allProps
   const { componentSize, direction } = useConfig()
   const resolvedSize = resolveComponentSize(componentSize, size)
   const generatedId = useId()
   const triggerId = id ?? `cascader-${generatedId}`
-  const valueId = `${triggerId}-value`
-  const popupId = `${triggerId}-popup`
+  const valueId = triggerId + '-value'
+  const popupId = triggerId + '-popup'
+  const panelId = triggerId + '-panel'
   const triggerRef = useRef<HTMLButtonElement>(null)
-  const panelRef = useRef<HTMLDivElement>(null)
+  const rootRef = useRef<HTMLSpanElement>(null)
+  const popupRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<CascaderPanelHandle>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
+  const previousOpen = useRef(false)
+  const lastFocus = useRef<HTMLElement | null>(null)
+  const closing = useRef(false)
   const [internal, setInternal] = useState(defaultValue)
-  const [open, setOpen] = useState(false)
-  const path = value ?? internal
-  const levels = cascaderLevels(options, path)
-  const validPath = validPathFor(options, path)
-  const selectedLabels = levels
-    .map(({ selected }) => selected?.label)
-    .filter((item): item is ReactNode => item !== undefined)
-  const isOpen = open && !disabled
+  const [internalOpen, setInternalOpen] = useState(defaultOpen)
+  const [internalSearch, setInternalSearch] = useState(defaultSearchValue)
+  const controlled = Object.prototype.hasOwnProperty.call(allProps, 'value')
+  const searchControlled = Object.prototype.hasOwnProperty.call(
+    allProps,
+    'searchValue',
+  )
+  const path = controlled ? (value ?? []) : internal
+  const validPath = validCascaderPath(options, path)
+  const selectedOptions = cascaderLevels(options, path).flatMap(
+    ({ selected }) => (selected ? [selected] : []),
+  )
+  const [navigation, setNavigation] = useState(validPath)
+  const [popupStyle, setPopupStyle] = useState<CSSProperties>()
+  const [actualPlacement, setActualPlacement] = useState(placement)
+  const search = searchControlled ? (searchValue ?? '') : internalSearch
+  const isOpen = mode === 'popup' && (open ?? internalOpen) && !disabled
+  const height =
+    Number.isFinite(listHeight) && listHeight > 0
+      ? Math.max(44, listHeight)
+      : 256
+  const width =
+    Number.isFinite(columnWidth) && columnWidth > 0
+      ? Math.max(88, columnWidth)
+      : 176
+  const limit = Number.isFinite(searchLimit)
+    ? Math.max(0, Math.floor(searchLimit))
+    : 50
+  const panelHeight = isOpen
+    ? Math.max(
+        44,
+        Math.min(
+          height,
+          Number(popupStyle?.maxHeight ?? height + 64) - (showSearch ? 56 : 8),
+        ),
+      )
+    : height
+  const columns = cascaderLevels(options, navigation).length
+  if (disabled && open === undefined && internalOpen) setInternalOpen(false)
 
-  function close(restoreFocus = true) {
-    setOpen(false)
-    if (restoreFocus) requestAnimationFrame(() => triggerRef.current?.focus())
+  function setSearch(next: string) {
+    if (!searchControlled) setInternalSearch(next)
+    if (next !== search) onSearch?.(next)
   }
-
-  function changePath(next: string[]) {
-    if (value === undefined) setInternal(next)
-    onChange?.(next)
-    if (mode !== 'popup') return
-    const nextLevels = cascaderLevels(options, next)
-    const last = nextLevels.at(-1)?.selected
-    if (!next.length || (last && !last.children?.length)) {
-      close()
-      return
+  function setOpen(next: boolean, restoreFocus = false) {
+    if (disabled && next) return
+    closing.current = !next
+    if (!next)
+      queueMicrotask(() => {
+        closing.current = false
+      })
+    if (open === undefined) setInternalOpen(next)
+    onOpenChange?.(next)
+    if (next) setNavigation(validPath)
+    else {
+      setSearch('')
+      if (restoreFocus) triggerRef.current?.focus({ preventScroll: true })
     }
-    requestAnimationFrame(() => {
-      const selects = panelRef.current?.querySelectorAll('select')
-      selects?.[Math.min(next.length, selects.length - 1)]?.focus()
-    })
   }
+  function changePath(next: string[], close = false) {
+    if (disabled) return
+    if (!controlled) setInternal(next)
+    onChange?.(next)
+    if (close && mode === 'popup') setOpen(false, true)
+  }
+  function inside(node: Node) {
+    // Child layout effects can focus before a parent popup ref attaches.
+    return (
+      rootRef.current?.contains(node) ||
+      popupRef.current?.contains(node) ||
+      document.getElementById(popupId)?.contains(node)
+    )
+  }
+  useImperativeHandle(ref, () => ({
+    focus() {
+      if (disabled) return
+      if (mode === 'popup') triggerRef.current?.focus({ preventScroll: true })
+      else if (mode === 'panel') panelRef.current?.focus()
+      else
+        rootRef.current?.querySelector('select')?.focus({ preventScroll: true })
+    },
+    blur() {
+      lastFocus.current = null
+      const element = document.activeElement
+      if (element instanceof HTMLElement && inside(element)) element.blur()
+    },
+  }))
 
   useLayoutEffect(() => {
     if (!isOpen) return
-    const trigger = triggerRef.current
-    const panel = panelRef.current
-    if (!trigger || !panel) return
-
     const position = () => {
-      const anchor = trigger.getBoundingClientRect()
+      const anchor = triggerRef.current?.getBoundingClientRect()
+      if (!anchor) return
       const viewport = window.visualViewport
-      const leftEdge = viewport?.offsetLeft ?? 0
-      const topEdge = viewport?.offsetTop ?? 0
-      const rightEdge = leftEdge + (viewport?.width ?? window.innerWidth)
-      const bottomEdge = topEdge + (viewport?.height ?? window.innerHeight)
-      if (
-        anchor.bottom < topEdge ||
-        anchor.top > bottomEdge ||
-        anchor.right < leftEdge ||
-        anchor.left > rightEdge
-      ) {
-        panel.style.visibility = 'hidden'
-        return
-      }
-      const width = Math.min(
-        Math.max(anchor.width, 360),
-        rightEdge - leftEdge - 16,
+      const leftEdge = viewport?.offsetLeft ?? 0,
+        topEdge = viewport?.offsetTop ?? 0
+      const rightEdge = leftEdge + (viewport?.width ?? window.innerWidth),
+        bottomEdge = topEdge + (viewport?.height ?? window.innerHeight)
+      const resolvedWidth = Math.max(
+        0,
+        Math.min(
+          popupWidth !== undefined &&
+            Number.isFinite(popupWidth) &&
+            popupWidth > 0
+            ? popupWidth
+            : Math.max(anchor.width, width * Math.min(columns, 3) + 8),
+          rightEdge - leftEdge - 16,
+        ),
       )
-      panel.style.width = `${width}px`
-      const popup = panel.getBoundingClientRect()
+      const below = bottomEdge - anchor.bottom - 8,
+        above = anchor.top - topEdge - 8
+      const preferredAbove = placement.startsWith('top')
+      const preferredSpace = preferredAbove ? above : below,
+        oppositeSpace = preferredAbove ? below : above
+      const openAbove =
+        preferredSpace < Math.min(height + (showSearch ? 56 : 8), 220) &&
+        oppositeSpace > preferredSpace
+          ? !preferredAbove
+          : preferredAbove
+      const endAligned = placement.endsWith('End')
       const preferredLeft =
-        direction === 'rtl' ? anchor.right - popup.width : anchor.left
-      const left = Math.max(
-        leftEdge + 8,
-        Math.min(preferredLeft, rightEdge - popup.width - 8),
+        (direction === 'rtl') !== endAligned
+          ? anchor.right - resolvedWidth
+          : anchor.left
+      setActualPlacement(
+        ((openAbove ? 'top' : 'bottom') +
+          (endAligned ? 'End' : 'Start')) as CascaderPlacement,
       )
-      const below = bottomEdge - anchor.bottom - 8
-      const above = anchor.top - topEdge - 8
-      const top =
-        below >= popup.height || below >= above
-          ? anchor.bottom + 4
-          : anchor.top - popup.height - 4
-      panel.style.left = `${left}px`
-      panel.style.top = `${Math.max(topEdge + 8, Math.min(top, bottomEdge - popup.height - 8))}px`
-      panel.style.visibility = 'visible'
+      setPopupStyle({
+        position: 'fixed',
+        width: resolvedWidth,
+        maxHeight: Math.max(44, openAbove ? above : below),
+        left: Math.max(
+          leftEdge + 8,
+          Math.min(preferredLeft, rightEdge - resolvedWidth - 8),
+        ),
+        ...(openAbove
+          ? { bottom: window.innerHeight - anchor.top + 4 }
+          : { top: anchor.bottom + 4 }),
+        visibility:
+          anchor.bottom < topEdge ||
+          anchor.top > bottomEdge ||
+          anchor.right < leftEdge ||
+          anchor.left > rightEdge
+            ? 'hidden'
+            : 'visible',
+      })
     }
-
     position()
-    window.addEventListener('resize', position)
-    window.addEventListener('scroll', position, true)
-    window.visualViewport?.addEventListener('resize', position)
-    window.visualViewport?.addEventListener('scroll', position)
     const observer =
       typeof ResizeObserver === 'undefined'
         ? null
         : new ResizeObserver(position)
-    observer?.observe(trigger)
-    observer?.observe(panel)
+    if (triggerRef.current) observer?.observe(triggerRef.current)
+    window.addEventListener('resize', position)
+    window.addEventListener('scroll', position, true)
+    window.visualViewport?.addEventListener('resize', position)
+    window.visualViewport?.addEventListener('scroll', position)
     return () => {
+      observer?.disconnect()
       window.removeEventListener('resize', position)
       window.removeEventListener('scroll', position, true)
       window.visualViewport?.removeEventListener('resize', position)
       window.visualViewport?.removeEventListener('scroll', position)
-      observer?.disconnect()
     }
-  }, [direction, isOpen])
-
+  }, [
+    isOpen,
+    direction,
+    columns,
+    width,
+    height,
+    popupWidth,
+    placement,
+    showSearch,
+  ])
   useLayoutEffect(() => {
-    if (isOpen)
-      panelRef.current
-        ?.querySelector<HTMLSelectElement>('select:not(:disabled)')
-        ?.focus()
-  }, [isOpen])
-
+    const before = previousOpen.current
+    previousOpen.current = isOpen
+    if (isOpen && !before) {
+      if (showSearch) searchRef.current?.focus({ preventScroll: true })
+      else panelRef.current?.focus()
+    } else if (
+      !isOpen &&
+      before &&
+      lastFocus.current &&
+      !lastFocus.current.isConnected &&
+      document.activeElement === document.body &&
+      !disabled
+    )
+      triggerRef.current?.focus({ preventScroll: true })
+  })
   useEffect(() => {
     if (!isOpen) return
-    function handlePointerDown(event: PointerEvent) {
-      if (
-        event.target instanceof Node &&
-        !triggerRef.current?.contains(event.target) &&
-        !panelRef.current?.contains(event.target)
-      )
-        close(false)
+    const outside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !inside(event.target)) {
+        lastFocus.current = null
+        setOpen(false)
+      }
     }
-    document.addEventListener('pointerdown', handlePointerDown, true)
-    return () =>
-      document.removeEventListener('pointerdown', handlePointerDown, true)
-  }, [isOpen])
+    document.addEventListener('pointerdown', outside, true)
+    return () => document.removeEventListener('pointerdown', outside, true)
+  })
 
-  const field = (
-    <InlineLevels
+  const panel = (
+    <CascaderPanel
+      ref={panelRef}
       options={options}
-      path={path}
-      onChange={changePath}
-      label={label}
-      id={mode === 'inline' ? triggerId : undefined}
-      required={mode === 'inline' ? required : undefined}
-      ariaDescribedBy={ariaDescribedBy}
-      ariaInvalid={ariaInvalid}
-      ariaLabelledBy={mode === 'inline' ? ariaLabelledBy : undefined}
+      navigation={navigation}
+      onNavigate={setNavigation}
+      selectedPath={validPath}
+      onChoose={(entry, close) => changePath(entry.path, close)}
+      label={ariaLabel ?? label}
+      id={mode === 'panel' ? triggerId : panelId}
+      direction={direction}
       disabled={disabled}
-      size={resolvedSize}
+      changeOnSelect={changeOnSelect}
+      expandTrigger={expandTrigger}
+      query={showSearch ? search : ''}
+      filterOption={filterOption}
+      searchLimit={limit}
+      height={panelHeight}
+      columnWidth={width}
+      emptyText={emptyText}
+      optionRender={optionRender}
+      expandIcon={expandIcon}
+      classNames={classNames}
+      autoFocus={isOpen && !showSearch}
+      ariaDescribedBy={ariaDescribedBy}
+      ariaLabelledBy={mode === 'panel' ? ariaLabelledBy : undefined}
+      ariaInvalid={status === 'error' || ariaInvalid || undefined}
+      required={required}
+    />
+  )
+  const searchBox = showSearch && (
+    <input
+      ref={searchRef}
+      type="search"
+      aria-label={'搜索' + label}
+      aria-controls={mode === 'panel' ? triggerId : panelId}
+      disabled={disabled}
+      value={search}
+      onChange={(event) => setSearch(event.currentTarget.value)}
+      className={cn(
+        inputStyles,
+        'mb-1 shrink-0 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20',
+        classNames?.search,
+      )}
+      onKeyDown={(event) => {
+        if (event.key === 'ArrowDown') {
+          event.preventDefault()
+          panelRef.current?.focus()
+        }
+      }}
     />
   )
 
-  if (mode === 'inline')
-    return (
-      <div className={cn('min-w-0', className)}>
-        {name && (
-          <input
-            type="hidden"
-            name={name}
-            value={JSON.stringify(validPath)}
-            disabled={disabled}
-          />
-        )}
-        {field}
-      </div>
-    )
-
   return (
-    <span className={cn('relative inline-flex w-full min-w-0', className)}>
-      <button
-        ref={triggerRef}
-        id={triggerId}
-        type="button"
-        role="combobox"
-        aria-label={ariaLabelledBy ? undefined : label}
-        aria-labelledby={ariaLabelledBy}
-        aria-describedby={[ariaDescribedBy, valueId].filter(Boolean).join(' ')}
-        aria-invalid={ariaInvalid || undefined}
-        aria-required={required || undefined}
-        aria-expanded={isOpen}
-        aria-controls={isOpen ? popupId : undefined}
-        aria-haspopup="dialog"
-        disabled={disabled}
-        className={cn(
-          inputStyles,
-          inputSizeStyles[resolvedSize],
-          'flex cursor-pointer touch-manipulation items-center justify-between gap-2 text-start focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20',
-          allowClear && validPath.length > 0 && 'pe-12',
-          selectedLabels.length === 0 && 'text-muted-foreground',
-        )}
-        onClick={() => {
-          if (isOpen) close()
-          else {
-            triggerRef.current?.scrollIntoView?.({ block: 'nearest' })
-            setOpen(true)
-          }
-        }}
-        onKeyDown={(event) => {
-          if (event.key === 'ArrowDown' && !isOpen) {
-            event.preventDefault()
-            setOpen(true)
-          } else if (event.key === 'Escape' && isOpen) {
-            event.preventDefault()
-            close()
-          }
-        }}
-      >
-        <span id={valueId} className="min-w-0 truncate">
-          {selectedLabels.length
-            ? selectedLabels.map((item, index) => (
-                <span key={index}>
-                  {index > 0 && <span aria-hidden="true"> / </span>}
-                  {item}
-                </span>
-              ))
-            : placeholder}
-        </span>
-        {(!allowClear || validPath.length === 0) && (
-          <span aria-hidden="true" className="shrink-0 text-muted-foreground">
-            ▾
-          </span>
-        )}
-      </button>
-      {allowClear && validPath.length > 0 && (
-        <button
-          type="button"
-          aria-label={`清空${label}`}
+    <span
+      ref={rootRef}
+      dir={direction}
+      className={cn(
+        'relative inline-flex w-full min-w-0 self-start',
+        mode !== 'popup' && 'flex-col',
+        classNames?.root,
+        className,
+      )}
+      onFocusCapture={(event) => {
+        lastFocus.current = event.target
+      }}
+      onBlur={(event) => {
+        if (event.relatedTarget instanceof Node && inside(event.relatedTarget))
+          return
+        if (event.relatedTarget) lastFocus.current = null
+        if (isOpen && !closing.current) setOpen(false)
+        onBlur?.(event)
+      }}
+    >
+      {mode === 'inline' ? (
+        <CascaderNative
+          options={options}
+          path={path}
+          onChange={(next) => changePath(next)}
+          label={ariaLabel ?? label}
+          id={triggerId}
+          required={required}
+          ariaDescribedBy={ariaDescribedBy}
+          ariaInvalid={ariaInvalid}
+          ariaLabelledBy={ariaLabelledBy}
           disabled={disabled}
-          className="absolute inset-y-0 end-0 z-10 flex min-h-11 w-11 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-[0.55]"
-          onClick={() => changePath([])}
-        >
-          <span aria-hidden="true">×</span>
-        </button>
+          size={resolvedSize}
+          variant={variant}
+          status={status}
+          classNames={classNames}
+        />
+      ) : mode === 'panel' ? (
+        <>
+          {searchBox}
+          {panel}
+        </>
+      ) : (
+        <>
+          <button
+            ref={triggerRef}
+            id={triggerId}
+            type="button"
+            role="combobox"
+            aria-label={ariaLabel ?? (ariaLabelledBy ? undefined : label)}
+            aria-labelledby={ariaLabelledBy}
+            aria-describedby={[ariaDescribedBy, valueId]
+              .filter(Boolean)
+              .join(' ')}
+            aria-invalid={status === 'error' || ariaInvalid || undefined}
+            data-status={status === 'default' ? undefined : status}
+            aria-required={required || undefined}
+            aria-expanded={isOpen}
+            aria-controls={isOpen ? popupId : undefined}
+            aria-haspopup="dialog"
+            disabled={disabled}
+            className={cn(
+              inputStyles,
+              inputSizeStyles[resolvedSize],
+              inputVariantStyles[variant],
+              inputStatusStyles[status],
+              'flex cursor-pointer touch-manipulation items-center justify-between gap-2 text-start outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20',
+              allowClear && validPath.length > 0 && 'pe-16',
+              selectedOptions.length === 0 && 'text-muted-foreground',
+              classNames?.trigger,
+            )}
+            onClick={() => setOpen(!isOpen)}
+            onKeyDown={(event) => {
+              if (
+                !isOpen &&
+                ['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)
+              ) {
+                event.preventDefault()
+                setOpen(true)
+              } else if (event.key === 'Escape' && isOpen) {
+                event.preventDefault()
+                setOpen(false, true)
+              } else if (event.key === 'ArrowDown' && isOpen) {
+                event.preventDefault()
+                panelRef.current?.focus()
+              }
+            }}
+          >
+            {prefix && (
+              <span
+                aria-hidden="true"
+                className={cn('shrink-0', classNames?.prefix)}
+              >
+                {prefix}
+              </span>
+            )}
+            <span
+              id={valueId}
+              className={cn('min-w-0 flex-1 truncate', classNames?.value)}
+            >
+              {selectedOptions.length
+                ? (displayRender?.(selectedOptions) ??
+                  selectedOptions.map((option, index) => (
+                    <span key={index}>
+                      {index > 0 && <span aria-hidden="true"> / </span>}
+                      {option.label}
+                    </span>
+                  )))
+                : placeholder}
+            </span>
+            <span
+              aria-hidden="true"
+              className={cn(
+                'shrink-0 text-muted-foreground',
+                classNames?.suffix,
+              )}
+            >
+              {suffixIcon ?? (
+                <Icon name="arrowRight" size={16} className="rotate-90" />
+              )}
+            </span>
+          </button>
+          {allowClear && validPath.length > 0 && !disabled && (
+            <button
+              type="button"
+              aria-label={'清空' + label}
+              className={cn(
+                'absolute end-7 top-1/2 z-[1] inline-grid size-11 -translate-y-1/2 touch-manipulation place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring',
+                classNames?.clear,
+              )}
+              onClick={() => {
+                changePath([], true)
+                onClear?.()
+                triggerRef.current?.focus({ preventScroll: true })
+              }}
+            >
+              <Icon name="close" size={16} />
+            </button>
+          )}
+        </>
       )}
       {name && (
         <input
@@ -402,44 +588,52 @@ export function Cascader({
           name={name}
           value={JSON.stringify(validPath)}
           disabled={disabled}
+          readOnly
         />
       )}
       {isOpen && (
         <Portal>
           <div
-            ref={panelRef}
+            ref={popupRef}
             id={popupId}
             role="dialog"
-            aria-label={`${label}选项`}
+            aria-label={label + '选项'}
             dir={direction}
-            className="invisible fixed z-[70] max-h-[min(24rem,calc(100dvh-1rem))] overflow-auto rounded-[var(--ui-menu-radius)] border border-border bg-card p-3 text-card-foreground shadow-xl"
+            data-placement={actualPlacement}
+            style={popupStyle}
+            className={cn(
+              'z-[90] flex min-w-0 flex-col overflow-auto rounded-[var(--ui-menu-radius)] border border-border bg-card p-1 text-card-foreground shadow-xl',
+              classNames?.popup,
+            )}
             onKeyDownCapture={(event) => {
               if (event.key === 'Escape') {
                 event.preventDefault()
-                close()
+                event.stopPropagation()
+                setOpen(false, true)
               } else if (event.key === 'Tab') {
-                const selects = [
-                  ...panelRef.current!.querySelectorAll(
-                    'select:not(:disabled)',
-                  ),
-                ]
-                if (event.shiftKey && event.target === selects[0]) {
+                const inSearch = event.target === searchRef.current
+                if (inSearch && !event.shiftKey) {
                   event.preventDefault()
-                  close()
-                } else if (
-                  !event.shiftKey &&
-                  event.target === selects[selects.length - 1]
-                ) {
-                  event.preventDefault()
-                  const trigger = triggerRef.current
-                  const panel = panelRef.current
-                  close(false)
-                  if (trigger && panel) focusAfter(trigger, panel)
+                  panelRef.current?.focus()
+                  return
                 }
+                if (!inSearch && event.shiftKey && showSearch) {
+                  event.preventDefault()
+                  searchRef.current?.focus({ preventScroll: true })
+                  return
+                }
+                event.preventDefault()
+                const popup = popupRef.current
+                setOpen(false)
+                if (event.shiftKey)
+                  triggerRef.current?.focus({ preventScroll: true })
+                else if (triggerRef.current)
+                  focusAfter(triggerRef.current, popup)
               }
             }}
           >
-            {field}
+            {searchBox}
+            {panel}
           </div>
         </Portal>
       )}

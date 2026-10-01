@@ -18,7 +18,7 @@
 | TimeRangePicker                 | `value` / `defaultValue`、`onChange`、`min`、`max`、`step`、`required`、`disabled`、`name`、`size`                                                    | 两个原生时间输入组成同日时间区间；可精确到秒，窄屏纵向排列                                                                  |
 | Calendar                        | `value` / `defaultValue`、`month` / `defaultMonth`、`onChange`、`onMonthChange`、`minDate`、`maxDate`、`disabledDate`、`renderDate`                   | 选中日期使用 `YYYY-MM-DD`，月份使用 `YYYY-MM`；网格支持方向键、Home/End、PageUp/PageDown；日期按钮至少 44px                 |
 | ColorPicker                     | `value` / `defaultValue`、`onChange`、`showText`、`size`、`label`、常用 `aria-*`                                                                      | 使用原生颜色控件，统一输出六位小写 hex；保留键盘、系统颜色面板和 44px 触控区域                                              |
-| AutoComplete / Cascader         | `options`、`value` / `defaultValue`、`onChange`、`label`；AutoComplete 有 `onSelect`，Cascader 有 `mode`、`allowClear`                                | 自动完成使用 `combobox` + `listbox`；级联选择默认单入口弹层，`mode="inline"` 保留原生分级表单控件                           |
+| AutoComplete / Cascader         | `options`、`value` / `defaultValue`、`onChange`、`label`；Cascader 支持列式浏览、路径搜索、`changeOnSelect`、`mode`、四向弹层、外观和语义插槽         | 自动完成使用 `combobox` + `listbox`；级联选择默认列式弹层，支持内嵌面板与原生分级表单控件                                   |
 | TreeSelect                      | `treeData`、`value` / `defaultValue`、`onChange`、`multiple`、`checkable`、`checkStrictly`、`checkedStrategy`、`maxCount`、`showSearch`、`allowClear` | 项目树形选择契约；复用公共 Tree 的勾选、键盘和虚拟窗口，搜索保留完整树的选择结果，H5 提供 44px 触控区域                     |
 | Transfer                        | `items`、`targetKeys` / `defaultTargetKeys`、`selectedKeys` / `defaultSelectedKeys`、`onChange`、`showSearch`、`filterItem`                           | 双栏穿梭框；可见项批量选择、禁用项保护、方向操作、键盘和 H5 单列布局                                                        |
 | Upload                          | `accept`、`multiple`、`beforeUpload`、`onFiles`、`disabled`                                                                                           | 仅负责文件入口和筛选；预览、校验、上传进度继续使用 `capabilities/files`                                                     |
@@ -139,7 +139,13 @@
 
 `ErrorState.onRetry` 接受同步或异步回调；等待期间重试按钮进入忙碌并禁用状态，失败后保留错误提示和再次重试入口。List、Listy、Table 共用这一约定。
 
-`Cascader` 默认使用单个触发器显示路径，在主题作用域弹层中逐级选择；选到叶节点后关闭并恢复焦点。弹层支持 Escape、正反向 Tab、外部点击和 H5 触控。`allowClear` 在有有效路径时提供独立的键盘和触控清空按钮；`mode="inline"` 保留多级原生选择框，适合需要浏览器原生 `required` 校验的表单；弹层模式以 `aria-required` 表达必填，应使用 `FormItem.rules` 校验。`onChange` 返回从第一级开始的有效路径；选择“请选择”会截断该级及其后续路径，根级清空返回 `[]`。选项移除或禁用时暂时显示最后有效的前缀，原选项恢复后可恢复未被用户改动的选择。传入 `name` 时，表单以 JSON 数组字符串提交完整有效路径。
+`Cascader` 保留项目 `CascaderOption { value, label, children?, disabled?, searchText? }` 与单路径 `string[]` 契约，默认 `mode="popup"` 使用列式浏览：点击或确认父节点只展开，不触发 `onChange`；确认叶节点一次返回完整路径，关闭并恢复触发器焦点。`changeOnSelect` 允许点击或确认父路径，方向键展开始终只浏览。`expandTrigger="hover"` 只响应鼠标悬停，H5 继续点击展开；`mode="panel"` 在页面内使用相同列式面板。上下键、Home / End 和字符查找在同列移动，左右展开与返回父级跟随 RTL。面板只有一个 Tab 入口，跨列与列内滚动不推动页面；行高至少 44px，窄屏横向滚动限制在面板。
+
+`showSearch` 查询任意祖先文本，结果展示完整路径，禁用祖先下的结果不可选择。复杂标签可提供 `searchText`；`filterOption(query, pathOptions)` 自定义过滤，`searchLimit` 默认 50。`searchValue` / `onSearch` 和 `open` / `onOpenChange` 支持受控使用，显式 `value={undefined}` 或 `searchValue={undefined}` 表示受控空值。弹层支持 Escape、正反向 Tab、外部关闭和 H5 触控：搜索 Tab 进入面板，面板 Shift+Tab 返回搜索，继续 Tab 回到触发器之后的表单操作。`ref` 提供 `focus()` / `blur()`。
+
+四种 `variant`、三种 `status`、统一 `size`、`prefix` / `suffixIcon` / `expandIcon`、`displayRender(pathOptions)`、`optionRender(option, pathOptions)` 和语义 `classNames` 统一使用 Tailwind Token。标签和渲染插槽应为非交互内容。`placement` 使用逻辑 `topStart` / `topEnd` / `bottomStart` / `bottomEnd`；`popupWidth`、`columnWidth`、`listHeight` 控制面板尺寸，空间不足自动翻转，保留视口边距并响应软键盘视口变化。
+
+`allowClear` 在有有效路径时提供独立的 44px 清空按钮，返回 `[]` 并调用 `onClear`。`mode="inline"` 保留原生分级选择框、逐级 `onChange` 和最后一级的浏览器 `required` 校验；原生“请选择”会截断该级及后续路径。弹层和面板以 `aria-required` 表达必填，应使用 `FormItem.rules` 校验。选项移除或禁用时暂时显示最后有效前缀，原选项恢复后可恢复未被用户改动的选择。传入 `name` 时以 JSON 数组字符串提交有效路径。`/__ui` 展示搜索、三列、长标签、悬停、内嵌面板、四向位置、外观、空状态及 RTL 深色；多选和异步加载仍待补齐。
 
 `TreeSelect` 的左右方向键随 `ConfigProvider.direction` 调整展开和折叠方向，弹层在独立 Portal 容器中也保留 RTL。多选 `allowClear` 清空后关闭弹层并把焦点还给触发器。
 

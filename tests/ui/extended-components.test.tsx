@@ -1,4 +1,11 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import {
@@ -1252,14 +1259,10 @@ describe('Ant Design-inspired shared components', () => {
     expect(trigger).toHaveAttribute('aria-expanded', 'false')
     fireEvent.click(trigger)
     const popup = screen.getByRole('dialog', { name: '地区选项' })
-    fireEvent.change(popup.querySelector('select')!, {
-      target: { value: 'cn' },
-    })
-    expect(onChange).toHaveBeenLastCalledWith(['cn'])
+    fireEvent.click(within(popup).getByRole('treeitem', { name: '中国' }))
+    expect(onChange).not.toHaveBeenCalled()
     expect(trigger).toHaveAttribute('aria-expanded', 'true')
-    fireEvent.change(screen.getByRole('combobox', { name: '地区第2级' }), {
-      target: { value: 'sh' },
-    })
+    fireEvent.click(within(popup).getByRole('treeitem', { name: '上海' }))
     expect(onChange).toHaveBeenLastCalledWith(['cn', 'sh'])
     expect(trigger).toHaveTextContent('中国 / 上海')
     expect(trigger).toHaveAttribute('aria-expanded', 'false')

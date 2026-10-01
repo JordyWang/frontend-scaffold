@@ -8,6 +8,7 @@ import { TreeVirtualPreview } from './TreeVirtualPreview'
 import { TreeDragPreview } from './TreeDragPreview'
 import { TreeSelectPreview } from './TreeSelectPreview'
 import { TreeSelectAsyncPreview } from './TreeSelectAsyncPreview'
+import { CascaderPreview } from './CascaderPreview'
 import {
   Alert,
   Affix,
@@ -1367,6 +1368,7 @@ export function DesignSystemPreview() {
                   control={
                     <Cascader
                       label="地区"
+                      changeOnSelect
                       allowClear
                       options={[
                         {
@@ -2041,6 +2043,7 @@ export function DesignSystemPreview() {
           <TreeDragPreview />
           <TreeSelectPreview />
           <TreeSelectAsyncPreview />
+          <CascaderPreview />
           <Card className="col-span-full">
             <CardContent>
               <Stack gap="md">

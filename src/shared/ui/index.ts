@@ -215,7 +215,13 @@ export type {
   UploadProps,
 } from './data-input'
 export { Cascader } from './cascader'
-export type { CascaderOption, CascaderProps } from './cascader'
+export type {
+  CascaderOption,
+  CascaderProps,
+  CascaderPart,
+  CascaderPlacement,
+  CascaderHandle,
+} from './cascader'
 export { DateRangePicker, TimeRangePicker } from './date-range-picker'
 export type {
   DateRange,
