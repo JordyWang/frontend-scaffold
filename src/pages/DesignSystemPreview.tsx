@@ -1209,6 +1209,20 @@ export function DesignSystemPreview() {
                     />
                   }
                 />
+                <FormField
+                  label="可搜索选择"
+                  control={
+                    <Select
+                      label="可搜索选择"
+                      showSearch
+                      options={[
+                        { value: 'beijing', label: '北京' },
+                        { value: 'shanghai', label: '上海' },
+                        { value: 'shenzhen', label: '深圳' },
+                      ]}
+                    />
+                  }
+                />
                 <div className="grid gap-3 sm:grid-cols-2">
                   <FormField
                     label="填充选择"

@@ -338,6 +338,8 @@ ref 指向输入；`className` 修饰输入，`classNames` 除日期插槽外提
 
 单选 `Select.allowClear` 在有值且可用时显示独立 44px 清空按钮；清空后 `onValueChange('')`，非受控值显示占位文字、原生表单不再提交该字段，并把焦点还给触发器。传入 `label` 可为清空按钮生成具体的可访问名称；受控值仍由外部 `value` 决定。
 
+单选 `Select.showSearch` 在项目弹层顶部提供可见搜索输入，按 `label` / `value` 过滤选项；`filterOption(inputValue, option)` 可替换过滤规则。搜索输入支持上下方向键进入可用选项、Enter 选择、Escape 关闭，触控直接选择结果，搜索不会改变触发器当前值，选择后仍遵循原有表单和焦点契约。
+
 `Pagination` 可选 `onPageSizeChange(size, page)`、`pageSizeOptions`、`showQuickJumper` 和 `showTotal`。切换每页条数时，`page` 指向原先第一条记录所在的新页，由调用方同步更新 `pageSize` 和 `page`；快速跳页只接受当前范围内的整数，错误会在输入框旁显示。加载时这些控件不可操作，`load-more` 模式维持单按钮入口。
 
 `ErrorState.onRetry` 接受同步或异步回调；等待期间重试按钮进入忙碌并禁用状态，失败后保留错误提示和再次重试入口。List、Listy、Table 共用这一约定。

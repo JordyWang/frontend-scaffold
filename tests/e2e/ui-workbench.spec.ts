@@ -1318,6 +1318,35 @@ test('single select clears with keyboard or touch and restores its placeholder',
   await expect(clear).toBeVisible()
 })
 
+test('single select search filters options and selects on keyboard or touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const trigger = preview.getByRole('combobox', { name: '可搜索选择' })
+  if (testInfo.project.name.startsWith('mobile-')) await trigger.tap()
+  else await trigger.click()
+  const search = page.getByRole('searchbox', { name: '搜索可搜索选择' })
+  await expect(search).toBeFocused()
+  await search.fill('深')
+  await expect(page.getByRole('option', { name: '深圳' })).toBeVisible()
+  await expect(page.getByRole('option', { name: '上海' })).toHaveCount(0)
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await page.getByRole('option', { name: '深圳' }).tap()
+  } else {
+    await search.press('ArrowDown')
+    await search.press('Enter')
+  }
+  await expect(trigger).toContainText('深圳')
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
+})
+
 test('multi-select searches, keeps selections open and clears with keyboard or touch', async ({
   page,
 }, testInfo) => {

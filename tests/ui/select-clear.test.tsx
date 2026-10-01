@@ -8,6 +8,50 @@ const options = [
 ]
 
 describe('Select clear action', () => {
+  it('filters searchable options and supports keyboard selection', async () => {
+    const onValueChange = vi.fn()
+    render(
+      <Select
+        label="城市"
+        options={[
+          { value: 'beijing', label: '北京' },
+          { value: 'shanghai', label: '上海' },
+          { value: 'shenzhen', label: '深圳' },
+        ]}
+        showSearch
+        onValueChange={onValueChange}
+      />,
+    )
+    fireEvent.click(screen.getByRole('combobox'))
+    const search = screen.getByRole('searchbox', { name: '搜索城市' })
+    await waitFor(() => expect(search).toHaveFocus())
+    fireEvent.change(search, { target: { value: '深' } })
+    expect(screen.queryByRole('option', { name: '上海' })).toBeNull()
+    expect(screen.getByRole('option', { name: '深圳' })).toBeVisible()
+    fireEvent.keyDown(search, { key: 'ArrowDown' })
+    fireEvent.keyDown(search, { key: 'Enter' })
+    expect(onValueChange).toHaveBeenCalledWith('shenzhen')
+    expect(screen.getByRole('combobox')).toHaveTextContent('深圳')
+    expect(screen.queryByRole('searchbox', { name: '搜索城市' })).toBeNull()
+  })
+
+  it('closes the searchable popup with Escape and restores trigger focus', async () => {
+    render(
+      <Select
+        label="城市"
+        options={[{ value: 'beijing', label: '北京' }]}
+        showSearch
+      />,
+    )
+    const trigger = screen.getByRole('combobox')
+    fireEvent.click(trigger)
+    const search = screen.getByRole('searchbox', { name: '搜索城市' })
+    await waitFor(() => expect(search).toHaveFocus())
+    fireEvent.keyDown(search, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('searchbox')).toBeNull())
+    expect(trigger).toHaveFocus()
+  })
+
   it('clears an uncontrolled value and restores focus to the trigger', async () => {
     const onValueChange = vi.fn()
     const { container } = render(
