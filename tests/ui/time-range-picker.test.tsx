@@ -8,6 +8,7 @@ describe('TimeRangePicker', () => {
     const { container } = render(
       <form>
         <TimeRangePicker
+          mode="native"
           label="工作时间"
           name="hours"
           defaultValue={['09:00', '17:00']}
@@ -29,9 +30,12 @@ describe('TimeRangePicker', () => {
     fireEvent.change(end, { target: { value: '19:30' } })
     expect(onChange).toHaveBeenLastCalledWith(['18:00', '19:30'])
     fireEvent.change(end, { target: { value: '07:30' } })
-    expect(onChange).toHaveBeenLastCalledWith(['', '07:30'])
+    expect(onChange).toHaveBeenCalledTimes(2)
+    expect(end).toHaveValue('19:30')
+    fireEvent.change(end, { target: { value: '08:30' } })
+    expect(onChange).toHaveBeenLastCalledWith(['', '08:30'])
     expect(new FormData(container.querySelector('form')!).get('hours')).toBe(
-      '["","07:30"]',
+      '["","08:30"]',
     )
   })
 
@@ -39,6 +43,7 @@ describe('TimeRangePicker', () => {
     const onChange = vi.fn()
     render(
       <TimeRangePicker
+        mode="native"
         defaultValue={['09:30', '09:30:00']}
         step={1}
         onChange={onChange}
@@ -55,6 +60,7 @@ describe('TimeRangePicker', () => {
     const { rerender } = render(
       <ConfigProvider direction="rtl">
         <TimeRangePicker
+          mode="native"
           label="会议时间"
           value={['10:00', '11:00']}
           onChange={onChange}
@@ -70,6 +76,7 @@ describe('TimeRangePicker', () => {
     rerender(
       <ConfigProvider direction="rtl">
         <TimeRangePicker
+          mode="native"
           value={['10:30', '11:00']}
           onChange={onChange}
           disabled
@@ -100,7 +107,7 @@ describe('TimeRangePicker', () => {
                   : '请选择完整时间',
             },
           ]}
-          control={<TimeRangePicker />}
+          control={<TimeRangePicker mode="native" />}
         />
         <button type="submit">保存</button>
       </Form>,

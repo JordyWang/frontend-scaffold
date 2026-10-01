@@ -15,6 +15,7 @@ import { MultiDatePreview } from './MultiDatePreview'
 import { DateUnitPreview } from './DateUnitPreview'
 import { DateUnitRangePreview } from './DateUnitRangePreview'
 import { TimePickerPreview } from './TimePickerPreview'
+import { TimeRangePreview } from './TimeRangePreview'
 import {
   Alert,
   Affix,
@@ -1294,6 +1295,7 @@ export function DesignSystemPreview() {
                   label="下划线时间范围"
                   control={
                     <TimeRangePicker
+                      mode="native"
                       variant="underlined"
                       status="warning"
                       defaultValue={['09:00', '10:00']}
@@ -1323,6 +1325,7 @@ export function DesignSystemPreview() {
                   label="时间范围"
                   control={
                     <TimeRangePicker
+                      mode="native"
                       value={timeRange}
                       onChange={setTimeRange}
                       min="08:00"
@@ -1336,6 +1339,7 @@ export function DesignSystemPreview() {
                   {timeRange[1] || '未选结束'}
                 </Typography>
                 <TimeRangePicker
+                  mode="native"
                   label="不可用时间范围"
                   defaultValue={['09:00', '17:00']}
                   disabled
@@ -1343,7 +1347,7 @@ export function DesignSystemPreview() {
                 <FormField
                   label="错误时间范围"
                   error="请选择完整时间范围"
-                  control={<TimeRangePicker />}
+                  control={<TimeRangePicker mode="native" />}
                 />
                 <FormField
                   label="城市"
@@ -2058,6 +2062,7 @@ export function DesignSystemPreview() {
           <DateUnitPreview />
           <DateUnitRangePreview />
           <TimePickerPreview />
+          <TimeRangePreview />
           <Card className="col-span-full">
             <CardContent>
               <Stack gap="md">

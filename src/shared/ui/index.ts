@@ -239,6 +239,12 @@ export type {
 export { DateRangePicker, TimeRangePicker } from './date-range-picker'
 export { MultiDatePicker } from './multi-date-picker'
 export type {
+  TimeRangeEndpoint,
+  TimeRangeInfo,
+  TimeRangePreset,
+  TimeRangePickerPart,
+} from './time-range-picker'
+export type {
   DateMultiple,
   MultiDatePickerProps,
   MultiDatePickerPreset,
