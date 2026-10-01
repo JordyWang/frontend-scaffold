@@ -2584,6 +2584,15 @@ export function DesignSystemPreview() {
                           render: (row) => row.status,
                         },
                       ]}
+                      expandable={{
+                        defaultExpandedRowKeys: ['rtl-row'],
+                        getLabel: (row) => row.name,
+                        expandedRowRender: (row) => (
+                          <p className="m-0 text-sm text-muted-foreground">
+                            {row.name} 的详细状态：{row.status}
+                          </p>
+                        ),
+                      }}
                     />
                     <Transfer
                       label="RTL 模块分配"

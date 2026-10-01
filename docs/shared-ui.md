@@ -103,6 +103,8 @@
 
 `TableColumn.sorter(left, right)` 启用本地稳定排序；交互依次切换升序、降序和原始顺序。`sort` / `defaultSort` 使用 `{ columnKey, direction }`，`onSortChange` 接收新状态或 `null`；受控模式由调用方更新 `sort`。复杂表头可传入 `sortLabel` 作为排序按钮名称。桌面表头使用 `aria-sort`，配置 `renderMobileRow` 后手机卡片上方提供同一排序操作。
 
+`Table.expandable` 提供项目自己的行详情契约：`expandedRowKeys` / `defaultExpandedRowKeys`、`onExpandedRowsChange`、`expandedRowRender(row, index)`、`rowExpandable` 和 `getLabel`。展开按钮是独立的 44px 键盘/触控入口，使用 `aria-expanded` 和 `aria-controls` 关联详情行；桌面表格和 H5 卡片复用同一展开状态，受控模式等待外部更新，排序、筛选和禁用行不会改变详情内容的值语义。
+
 `Table.selection` 支持 `selectedKeys` / `defaultSelectedKeys`、`onChange(keys, currentRows)`、`disabled(row)` 和 `getLabel(row)`。全选只影响当前传入的可用行，保留其他页及禁用行的选中键；回调中的 `currentRows` 只包含当前 `rows` 内选中的记录。桌面选择列与手机卡片共用状态，部分选中时全选框呈混合状态。`Checkbox` 的 `indeterminate` 和 `hideLabel` 用于这类紧凑选择入口。
 
 `TableColumn.filterOptions` 提供 `{ value, label, matches(row) }`，表头和手机工具栏共用筛选弹层。`filters` / `defaultFilters` 使用列键到值数组的映射，`onFiltersChange` 接收新映射；应用或重置后弹层触发器恢复焦点，筛选与排序、行选择按当前显示行协作。

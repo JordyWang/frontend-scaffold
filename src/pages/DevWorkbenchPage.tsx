@@ -663,6 +663,14 @@ export function DevWorkbenchPage() {
                   disabled: (row) => row.id === '3',
                   getLabel: (row) => row.name,
                 }}
+                expandable={{
+                  getLabel: (row) => row.name,
+                  expandedRowRender: (row) => (
+                    <p className="m-0 text-sm text-muted-foreground">
+                      {row.name}：负责人为{row.owner}，当前状态为{row.status}。
+                    </p>
+                  ),
+                }}
                 renderMobileRow={(row) => (
                   <div className="space-y-1">
                     <strong>{row.name}</strong>

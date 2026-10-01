@@ -82,6 +82,7 @@ export type {
   TableColumn,
   TableSort,
   TableSelection,
+  TableExpandable,
 } from './table'
 export type { TableFilterOption, TableFilters } from './table-filter'
 export { ThemeScope } from './theme-scope'

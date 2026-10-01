@@ -1,4 +1,4 @@
-import { useMemo, useState, type Key, type ReactNode } from 'react'
+import { Fragment, useMemo, useState, type Key, type ReactNode } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { Checkbox } from './choice'
 import { Empty } from './empty'
@@ -35,6 +35,16 @@ export type TableSelection<T> = {
   getLabel?: (row: T) => string
 }
 
+/** Project-owned expandable row contract for detail content below a record. */
+export type TableExpandable<T> = {
+  expandedRowKeys?: Key[]
+  defaultExpandedRowKeys?: Key[]
+  onExpandedRowsChange?: (expandedKeys: Key[], expandedRows: T[]) => void
+  expandedRowRender: (row: T, index: number) => ReactNode
+  rowExpandable?: (row: T) => boolean
+  getLabel?: (row: T) => string
+}
+
 function alignmentClassName(align?: TableColumn<unknown>['align']) {
   if (align === 'center') return 'text-center'
   if (align === 'left') return 'text-left'
@@ -59,6 +69,7 @@ export type TableProps<T> = {
   defaultFilters?: TableFilters
   onFiltersChange?: (filters: TableFilters) => void
   selection?: TableSelection<T>
+  expandable?: TableExpandable<T>
   className?: string
 }
 
@@ -81,6 +92,7 @@ export function Table<T>(allProps: TableProps<T>) {
     defaultFilters = {},
     onFiltersChange,
     selection,
+    expandable,
     className,
   } = allProps
   const [internalSort, setInternalSort] = useState<TableSort | null>(
@@ -136,6 +148,23 @@ export function Table<T>(allProps: TableProps<T>) {
         : internalSelectedKeys,
     ),
   ]
+  const expandedControlled = expandable
+    ? Object.prototype.hasOwnProperty.call(expandable, 'expandedRowKeys')
+    : false
+  const [internalExpandedKeys, setInternalExpandedKeys] = useState<Key[]>(
+    expandable?.defaultExpandedRowKeys ?? [],
+  )
+  const expandedKeys = [
+    ...new Set(
+      expandedControlled
+        ? (expandable?.expandedRowKeys ?? [])
+        : internalExpandedKeys,
+    ),
+  ]
+  const expandedSet = new Set(expandedKeys)
+  function detailId(key: Key, viewport: 'table' | 'mobile') {
+    return `table-${encodeURIComponent(caption)}-${encodeURIComponent(String(key))}-details-${viewport}`
+  }
   const selectedSet = new Set(selectedKeys)
   const enabledKeys = selection
     ? displayedRows
@@ -178,6 +207,24 @@ export function Table<T>(allProps: TableProps<T>) {
       allSelected
         ? selectedKeys.filter((key) => !enabledKeySet.has(key))
         : [...selectedKeys, ...enabledKeys],
+    )
+  }
+
+  function isRowExpandable(row: T) {
+    return expandable ? (expandable.rowExpandable?.(row) ?? true) : false
+  }
+
+  function toggleExpanded(row: T) {
+    if (!expandable || !isRowExpandable(row)) return
+    const key = getRowKey(row)
+    const next = expandedSet.has(key)
+      ? expandedKeys.filter((expandedKey) => expandedKey !== key)
+      : [...expandedKeys, key]
+    if (!expandedControlled) setInternalExpandedKeys(next)
+    const nextSet = new Set(next)
+    expandable.onExpandedRowsChange?.(
+      next,
+      rows.filter((candidate) => nextSet.has(getRowKey(candidate))),
     )
   }
 
@@ -266,11 +313,49 @@ export function Table<T>(allProps: TableProps<T>) {
     )
   }
 
+  function expandButton(row: T, mobile = false) {
+    if (!expandable || !isRowExpandable(row)) return null
+    const key = getRowKey(row)
+    const open = expandedSet.has(key)
+    const label = expandable.getLabel?.(row) ?? String(key)
+    const contentId = detailId(key, mobile ? 'mobile' : 'table')
+    return (
+      <button
+        type="button"
+        aria-label={`${open ? '收起' : '展开'}${label}`}
+        aria-expanded={open}
+        aria-controls={open ? contentId : undefined}
+        className="inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-[var(--radius-sm)] text-lg text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
+        onClick={() => toggleExpanded(row)}
+      >
+        <span aria-hidden="true">{open ? '⌄' : '›'}</span>
+      </button>
+    )
+  }
+
+  function expandedRow(row: T, index: number, colSpan: number) {
+    if (!expandable || !expandedSet.has(getRowKey(row))) return null
+    const contentId = detailId(getRowKey(row), 'table')
+    return (
+      <tr key={`${String(getRowKey(row))}-expanded`}>
+        <td
+          id={contentId}
+          colSpan={colSpan}
+          className="border-b border-border bg-muted/40 px-4 py-3"
+        >
+          {expandable.expandedRowRender(row, index)}
+        </td>
+      </tr>
+    )
+  }
+
   const regionClassName = cn(
     'overflow-hidden rounded-[var(--radius)] border border-border bg-card text-card-foreground',
     className,
   )
   const stateClassName = 'p-[var(--space-lg)]'
+  const tableColSpan =
+    columns.length + (selection ? 1 : 0) + (expandable ? 1 : 0)
 
   if (loading)
     return (
@@ -323,6 +408,11 @@ export function Table<T>(allProps: TableProps<T>) {
                   {selectAllCheckbox()}
                 </th>
               )}
+              {expandable && (
+                <th scope="col" className="w-14 px-2 text-start">
+                  <span className="sr-only">展开详情</span>
+                </th>
+              )}
               {columns.map((column) => (
                 <th
                   key={column.key}
@@ -355,7 +445,7 @@ export function Table<T>(allProps: TableProps<T>) {
             {displayedRows.length === 0 && (
               <tr>
                 <td
-                  colSpan={Math.max(1, columns.length + (selection ? 1 : 0))}
+                  colSpan={Math.max(1, tableColSpan)}
                   className="p-[var(--space-lg)]"
                 >
                   <div role="status">
@@ -367,34 +457,42 @@ export function Table<T>(allProps: TableProps<T>) {
                 </td>
               </tr>
             )}
-            {displayedRows.map((row) => (
-              <tr key={getRowKey(row)}>
-                {selection && <td className="w-14 px-2">{rowCheckbox(row)}</td>}
-                {columns.map((column) =>
-                  column.rowScope ? (
-                    <th
-                      key={column.key}
-                      scope={column.rowScope}
-                      className={cn(
-                        'px-4 py-3 align-middle font-medium',
-                        alignmentClassName(column.align),
-                      )}
-                    >
-                      {column.render(row)}
-                    </th>
-                  ) : (
-                    <td
-                      key={column.key}
-                      className={cn(
-                        'px-4 py-3 align-middle',
-                        alignmentClassName(column.align),
-                      )}
-                    >
-                      {column.render(row)}
-                    </td>
-                  ),
-                )}
-              </tr>
+            {displayedRows.map((row, index) => (
+              <Fragment key={getRowKey(row)}>
+                <tr>
+                  {selection && (
+                    <td className="w-14 px-2">{rowCheckbox(row)}</td>
+                  )}
+                  {expandable && (
+                    <td className="w-14 px-2">{expandButton(row)}</td>
+                  )}
+                  {columns.map((column) =>
+                    column.rowScope ? (
+                      <th
+                        key={column.key}
+                        scope={column.rowScope}
+                        className={cn(
+                          'px-4 py-3 align-middle font-medium',
+                          alignmentClassName(column.align),
+                        )}
+                      >
+                        {column.render(row)}
+                      </th>
+                    ) : (
+                      <td
+                        key={column.key}
+                        className={cn(
+                          'px-4 py-3 align-middle',
+                          alignmentClassName(column.align),
+                        )}
+                      >
+                        {column.render(row)}
+                      </td>
+                    ),
+                  )}
+                </tr>
+                {expandedRow(row, index, tableColSpan)}
+              </Fragment>
             ))}
           </tbody>
         </table>
@@ -444,7 +542,7 @@ export function Table<T>(allProps: TableProps<T>) {
                 </div>
               </li>
             )}
-            {displayedRows.map((row) => (
+            {displayedRows.map((row, index) => (
               <li
                 key={getRowKey(row)}
                 className={cn(
@@ -453,7 +551,20 @@ export function Table<T>(allProps: TableProps<T>) {
                 )}
               >
                 {selection && rowCheckbox(row)}
-                <div className="min-w-0 flex-1">{renderMobileRow(row)}</div>
+                {expandable && (
+                  <div className="shrink-0">{expandButton(row, true)}</div>
+                )}
+                <div className="min-w-0 flex-1">
+                  {renderMobileRow(row)}
+                  {expandable && expandedSet.has(getRowKey(row)) && (
+                    <div
+                      id={detailId(getRowKey(row), 'mobile')}
+                      className="mt-3 rounded-[var(--radius-sm)] bg-muted/40 p-3"
+                    >
+                      {expandable.expandedRowRender(row, index)}
+                    </div>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

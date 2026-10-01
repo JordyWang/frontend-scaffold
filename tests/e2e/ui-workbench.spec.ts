@@ -397,7 +397,7 @@ test('table sorting stays available in desktop headers and mobile cards', async 
           .allTextContents()
       : table
           .getByRole('table')
-          .locator('tbody tr td:nth-child(2)')
+          .locator('tbody tr td:nth-child(3)')
           .allTextContents()
   await expect.poll(names).toHaveLength(3)
   const original = await names()
@@ -2565,6 +2565,68 @@ test('table exposes one responsive data view and follows RTL text direction', as
         document.documentElement.clientWidth,
     ),
   ).toBe(true)
+})
+
+test('table expandable rows keep detail focus and touch targets', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const table = page.getByRole('table', { name: 'RTL 数据表' })
+  const collapse = table.getByRole('button', { name: '收起任务' })
+  await expect(collapse).toHaveAttribute('aria-expanded', 'true')
+  await expect(table.getByText('任务 的详细状态：进行中')).toBeVisible()
+  const box = await collapse.boundingBox()
+  expect(box!.width).toBeGreaterThanOrEqual(44)
+  expect(box!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await collapse.tap()
+  else {
+    await collapse.focus()
+    await collapse.press('Enter')
+  }
+  await expect(table.getByRole('button', { name: '展开任务' })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  )
+  await expect(table.getByText('任务 的详细状态：进行中')).toHaveCount(0)
+  const expand = table.getByRole('button', { name: '展开任务' })
+  if (testInfo.project.name.startsWith('mobile-')) await expand.tap()
+  else await expand.press('Enter')
+  await expect(table.getByText('任务 的详细状态：进行中')).toBeVisible()
+})
+
+test('table expandable rows also work in the responsive H5 card view', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const table = page
+    .getByRole('region', { name: '导航与数据' })
+    .getByRole('region', { name: '示例任务表' })
+  const mobile = testInfo.project.name.startsWith('mobile-')
+  const view = mobile
+    ? table.getByRole('list', { name: '示例任务表' })
+    : table.getByRole('table', { name: '示例任务表' })
+  const expand = table.getByRole('button', { name: '展开设计变量' })
+  if (mobile)
+    await expect(table.getByRole('list', { name: '示例任务表' })).toBeVisible()
+  else
+    await expect(table.getByRole('table', { name: '示例任务表' })).toBeVisible()
+  const box = await expand.boundingBox()
+  expect(box!.width).toBeGreaterThanOrEqual(44)
+  expect(box!.height).toBeGreaterThanOrEqual(44)
+  if (mobile) await expand.tap()
+  else {
+    await expand.focus()
+    await expand.press('Enter')
+  }
+  await expect(
+    view.getByText('设计变量：负责人为团队 A，当前状态为已完成。'),
+  ).toBeVisible()
+  const collapse = table.getByRole('button', { name: '收起设计变量' })
+  if (mobile) await collapse.tap()
+  else await collapse.press('Enter')
+  await expect(
+    view.getByText('设计变量：负责人为团队 A，当前状态为已完成。'),
+  ).toHaveCount(0)
 })
 
 test('file selection, cancellation and retry work in the preview', async ({
