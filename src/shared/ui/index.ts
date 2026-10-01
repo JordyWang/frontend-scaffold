@@ -284,3 +284,4 @@ export type {
   TreeSelectionInfo,
   TreeSwitcherInfo,
 } from './tree'
+export type { TreeLoadChildren, TreeLoadStatus } from './tree-loader'

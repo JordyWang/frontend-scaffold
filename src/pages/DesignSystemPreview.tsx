@@ -3,6 +3,7 @@ import { CollapsePreview } from './CollapsePreview'
 import { CarouselPreview } from './CarouselPreview'
 import { TimelinePreview } from './TimelinePreview'
 import { TreePreview } from './TreePreview'
+import { TreeAsyncPreview } from './TreeAsyncPreview'
 import {
   Alert,
   Affix,
@@ -2031,6 +2032,7 @@ export function DesignSystemPreview() {
           <CarouselPreview />
           <TimelinePreview />
           <TreePreview />
+          <TreeAsyncPreview />
           <Card className="col-span-full">
             <CardContent>
               <Stack gap="md">

@@ -14,6 +14,9 @@ import { cn } from '@/shared/lib/utils'
 import { useConfig } from './config-context'
 import { Empty } from './empty'
 import { Icon } from './icon'
+import { Button } from './button'
+import { spinnerIndicatorStyles } from './tailwind-styles'
+import { useTreeLoader, type TreeLoadChildren } from './tree-loader'
 import {
   checkBoundary,
   changeCheck,
@@ -23,11 +26,20 @@ import {
 } from './tree-state'
 
 type TreePart =
-  'item' | 'row' | 'switcher' | 'checkbox' | 'icon' | 'title' | 'group'
+  | 'item'
+  | 'row'
+  | 'switcher'
+  | 'checkbox'
+  | 'icon'
+  | 'title'
+  | 'group'
+  | 'loading'
+  | 'error'
 export type TreeNode = {
   key: string
   title: ReactNode
   children?: TreeNode[]
+  isLeaf?: boolean
   disabled?: boolean
   selectable?: boolean
   checkable?: boolean
@@ -49,7 +61,7 @@ export type TreeSwitcherInfo = {
 }
 export type TreeProps = Omit<
   HTMLAttributes<HTMLDivElement>,
-  'children' | 'onSelect' | 'dir'
+  'children' | 'onSelect' | 'onLoad' | 'dir'
 > & {
   treeData: TreeNode[]
   expandedKeys?: string[]
@@ -77,6 +89,10 @@ export type TreeProps = Omit<
   showIcon?: boolean
   blockNode?: boolean
   switcherIcon?: (info: TreeSwitcherInfo) => ReactNode
+  loadChildren?: TreeLoadChildren
+  loadVersion?: string | number
+  onLoad?: (node: TreeNode, children: TreeNode[]) => void
+  onLoadError?: (error: unknown, node: TreeNode) => void
   label?: string
   emptyText?: string
   dir?: 'ltr' | 'rtl'
@@ -99,7 +115,7 @@ function expandAncestors(
 /** One roving tree entry; selection and checkbox state have independent contracts. */
 export function Tree(allProps: TreeProps) {
   const {
-    treeData,
+    treeData: sourceData,
     expandedKeys,
     defaultExpandedKeys = [],
     defaultExpandAll = false,
@@ -125,6 +141,10 @@ export function Tree(allProps: TreeProps) {
     showIcon = false,
     blockNode = true,
     switcherIcon,
+    loadChildren,
+    loadVersion = 0,
+    onLoad,
+    onLoadError,
     label = '树形导航',
     emptyText = '暂无节点',
     dir,
@@ -136,11 +156,20 @@ export function Tree(allProps: TreeProps) {
   } = allProps
   const config = useConfig()
   const direction = dir ?? config.direction
+  const loader = useTreeLoader({
+    treeData: sourceData,
+    loadChildren,
+    loadVersion,
+    disabled,
+    onLoad,
+    onLoadError,
+  })
+  const treeData = loader.treeData
   const entries = useMemo(() => indexTree(treeData), [treeData])
   const [internalExpanded, setInternalExpanded] = useState(() =>
     defaultExpandAll
       ? [...entries.values()]
-          .filter(({ node }) => node.children?.length)
+          .filter(({ node }) => loader.expandable(node))
           .map(({ node }) => node.key)
       : defaultExpandParent
         ? expandAncestors(defaultExpandedKeys, entries)
@@ -170,7 +199,10 @@ export function Tree(allProps: TreeProps) {
     autoExpandParent
       ? expandAncestors(requestedExpanded, entries)
       : requestedExpanded
-  ).filter((key) => entries.get(key)?.node.children?.length)
+  ).filter((key) => {
+    const node = entries.get(key)?.node
+    return node && loader.expandable(node)
+  })
   const checks = conductChecks(
     checkedKeys ?? internalChecked,
     entries,
@@ -186,6 +218,7 @@ export function Tree(allProps: TreeProps) {
     node: HTMLElement
   } | null>(null)
   const typeahead = useRef({ text: '', time: 0 })
+  const activeLoads = useRef(new Set<string>())
 
   // Removed keys cannot silently reappear in uncontrolled state when data is reused.
   const prune = (keys: string[]) => keys.filter((key) => entries.has(key))
@@ -210,6 +243,24 @@ export function Tree(allProps: TreeProps) {
     [focusedKey, ...selected].find((key) =>
       available.some(({ node }) => node.key === key),
     ) ?? available[0]?.node.key
+
+  useLayoutEffect(() => {
+    const activeKeys = new Set(
+      available
+        .filter(({ node }) => expanded.includes(node.key))
+        .map(({ node }) => node.key),
+    )
+    for (const [key, status] of loader.statuses)
+      if (status === 'loading' && !activeKeys.has(key)) loader.cancel(key)
+    for (const key of activeKeys)
+      if (
+        !loader.statuses.has(key) ||
+        (loader.statuses.get(key) === 'cancelled' &&
+          !activeLoads.current.has(key))
+      )
+        void loader.request(key)
+    activeLoads.current = activeKeys
+  })
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -243,7 +294,7 @@ export function Tree(allProps: TreeProps) {
     const ancestor = [...previous.ancestors]
       .reverse()
       .find((key) => available.some(({ node }) => node.key === key))
-    const fallback = ancestor ?? available[0]?.node.key
+    const fallback = current?.node.key ?? ancestor ?? available[0]?.node.key
     ;(fallback ? nodeRefs.current.get(fallback) : rootRef.current)?.focus({
       preventScroll: true,
     })
@@ -321,16 +372,22 @@ export function Tree(allProps: TreeProps) {
           ? available[0]?.node.key
           : available.at(-1)?.node.key,
       )
-    } else if (event.key === expandKey && node.children?.length) {
+    } else if (event.key === expandKey && loader.expandable(node)) {
       event.preventDefault()
       if (!expanded.includes(node.key)) toggle(node.key)
+      else if (
+        loader.statuses.get(node.key) === 'error' ||
+        loader.statuses.get(node.key) === 'cancelled'
+      )
+        void loader.request(node.key)
       else
         focusNode(
           available.find((entry) => entry.parent === node.key)?.node.key,
         )
     } else if (event.key === collapseKey) {
       event.preventDefault()
-      if (node.children?.length && expanded.includes(node.key)) toggle(node.key)
+      if (loader.expandable(node) && expanded.includes(node.key))
+        toggle(node.key)
       else {
         const ancestor = [...(entries.get(node.key)?.ancestors ?? [])]
           .reverse()
@@ -375,7 +432,12 @@ export function Tree(allProps: TreeProps) {
 
   function renderNodes(nodes: TreeNode[], level = 0): ReactNode {
     return nodes.map((node, position) => {
-      const hasChildren = Boolean(node.children?.length)
+      const hasChildren = loader.expandable(node)
+      const loadStatus = loader.statuses.get(node.key)
+      const nodeName =
+        typeof node.title === 'string' || typeof node.title === 'number'
+          ? String(node.title)
+          : '子节点'
       const isExpanded = expanded.includes(node.key)
       const isDisabled = disabled || !!node.disabled
       const isSelectable = selectable && node.selectable !== false
@@ -413,6 +475,12 @@ export function Tree(allProps: TreeProps) {
               : undefined
           }
           aria-expanded={hasChildren ? isExpanded : undefined}
+          aria-busy={loadStatus === 'loading' || undefined}
+          aria-describedby={
+            loadStatus === 'error' && isExpanded
+              ? `${panelId}-error`
+              : undefined
+          }
           aria-description={
             isCheckable && node.disableCheckbox
               ? !isDisabled && isSelectable
@@ -478,7 +546,13 @@ export function Tree(allProps: TreeProps) {
               data-tree-toggle={hasChildren ? '' : undefined}
               aria-hidden="true"
             >
-              {hasChildren &&
+              {loadStatus === 'loading' ? (
+                <span
+                  data-ui-tree-loading-indicator=""
+                  className={cn(spinnerIndicatorStyles, 'size-4 border-2')}
+                />
+              ) : (
+                hasChildren &&
                 (switcherIcon ? (
                   switcherIcon({ node, expanded: isExpanded, direction })
                 ) : (
@@ -491,7 +565,8 @@ export function Tree(allProps: TreeProps) {
                         (direction === 'rtl' ? '-rotate-90' : 'rotate-90'),
                     )}
                   />
-                ))}
+                ))
+              )}
             </span>
             {isCheckable && (
               <span
@@ -554,6 +629,65 @@ export function Tree(allProps: TreeProps) {
               {node.title}
             </span>
           </div>
+          {isExpanded &&
+            (loadStatus === 'loading' ||
+              loadStatus === 'error' ||
+              loadStatus === 'cancelled') && (
+              <div
+                className={cn(
+                  'flex min-w-0 flex-wrap items-center gap-2 ps-[min(calc(var(--ui-tree-level)*1.5rem+2.75rem),25%)] pb-2 text-sm',
+                  part(loadStatus === 'error' ? 'error' : 'loading'),
+                )}
+              >
+                {loadStatus !== 'error' ? (
+                  <>
+                    <span
+                      role="status"
+                      aria-label={`${nodeName}加载状态`}
+                      className="text-muted-foreground"
+                    >
+                      {loadStatus === 'loading'
+                        ? '正在加载子节点…'
+                        : '加载已取消。'}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="small"
+                      disabled={isDisabled}
+                      onClick={() => {
+                        if (loadStatus === 'loading') {
+                          loader.cancel(node.key, true)
+                          toggle(node.key)
+                        } else void loader.request(node.key)
+                      }}
+                    >
+                      {loadStatus === 'loading' ? '取消加载' : '继续加载'}
+                      {nodeName}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <span
+                      id={`${panelId}-error`}
+                      role="alert"
+                      className="text-destructive"
+                    >
+                      子节点加载失败，请重试。
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="small"
+                      disabled={isDisabled}
+                      onClick={() => {
+                        void loader.request(node.key)
+                      }}
+                    >
+                      重试加载{nodeName}
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
           {hasChildren && isExpanded && (
             <ul
               id={panelId}
@@ -561,6 +695,7 @@ export function Tree(allProps: TreeProps) {
               className={cn(
                 'm-0 list-none p-0',
                 showLine &&
+                  Boolean(node.children?.length) &&
                   'relative before:pointer-events-none before:absolute before:-top-[22px] before:start-[calc(min(calc(var(--ui-tree-level)*1.5rem),25%)+22px)] before:h-[22px] before:border-s before:border-border',
                 part('group'),
               )}

@@ -67,7 +67,7 @@
 | Statistic                       | `title`、`value`、`precision`、`prefix`、`suffix`、`locale`、`formatter`、`loading`                                                              | 数值按 ConfigProvider.locale 分组格式化，加载时提供可访问骨架                                                               |
 | Timeline                        | `items`、`mode`、`orientation`、`reverse`、`variant`、`labelWidth`、`label`、`emptyText`、`classNames`                                           | 原生有序列表；两侧与交替布局、水平滚动、容器响应式、加载与文字状态、动态焦点恢复                                            |
 | Carousel                        | `items`、`index` / `defaultIndex`、`autoplay`、`dots`、`dotPlacement`、`effect`、`infinite`、`adaptiveHeight`、`ref`                             | 受控轮播、四向指示点、两种动效、键盘/手势切换、播放进度及隐藏内容焦点恢复                                                   |
-| Tree                            | `treeData`、`expandedKeys`、`selectedKey` / `selectedKeys`、`checkedKeys`、`checkStrictly`、`multiple`、`classNames`                             | 选择和勾选独立；父子传导与半选、禁用边界、严格勾选、唯一 Tab 入口、RTL 键盘与空状态                                         |
+| Tree                            | `treeData`、`expandedKeys`、`selectedKey` / `selectedKeys`、`checkedKeys`、`multiple`、`loadChildren`、`classNames`                              | 选择和勾选独立；父子传导与半选、禁用边界、异步加载与取消/重试、唯一 Tab 入口、RTL 键盘与空状态                              |
 
 `Progress` 的 `type` 可选 `line`、`circle`、`dashboard`。`steps` 可传数字或 `{ count, gap? }`；`gap` 单位为 px，线性默认间距为 4px，圆环及仪表盘默认间距为 2px，最多渲染 100 段。圆环与仪表盘的 `strokeWidth` 沿用项目的像素单位。仪表盘 `gapDegree` 默认 75°、限制在 0–295°，`gapPlacement` 默认 `bottom`，`start` / `end` 跟随 ConfigProvider 的 LTR/RTL 方向。所有形态只暴露一个 `progressbar`，百分比文本由 `format` 控制。
 
@@ -163,7 +163,13 @@
 
 树保留原生 `tree` / `treeitem` / `group` 层级和一个 roving Tab 入口，层级、兄弟位置、选择及勾选状态通过 ARIA 暴露；复选标记是该树项的触控入口，不额外增加 Tab 停靠点。空格切换勾选，Enter 选择；未显示复选框的节点空格仍可选择。上下键浏览、Home / End 到首尾、左右键展开/返回父级并随 RTL 反向；字符输入在当前可见可用节点间查找，可连续输入或重复首字母循环。节点的交互内容保留原生操作。被删除、关闭或禁用的焦点节点恢复到最近可用祖先，其次首个可用节点，全部不可用或空数据时回到根容器；外部焦点不被抢走。
 
-`showLine` 显示按逻辑方向连接的分支线，`showIcon` 显示节点的装饰性 `icon`（缺省使用公共文件夹/文件图标），`switcherIcon({ node, expanded, direction })` 自定义展开图标。`blockNode` 默认开启以兼容原有整行标题，可关闭为内容宽度。长标题换行，深层缩进限制在容器的 25% 以内，触控入口至少 44px；展开图标的旋转尊重减少动画。`label` 命名树，`emptyText` 默认为“暂无节点”。`classNames` 支持 root、item、row、switcher、checkbox、icon、title、group，单项支持局部类名。`/__ui` 展示关联/严格勾选、多选/单选、禁用边界、长标题、窄容器、动态删除、RTL 深色、默认展开祖先和空数据。
+`showLine` 显示按逻辑方向连接的分支线，`showIcon` 显示节点的装饰性 `icon`（缺省使用公共文件夹/文件图标），`switcherIcon({ node, expanded, direction })` 自定义展开图标。`blockNode` 默认开启以兼容原有整行标题，可关闭为内容宽度。长标题换行，深层缩进限制在容器的 25% 以内，触控入口至少 44px；展开图标的旋转尊重减少动画。`label` 命名树，`emptyText` 默认为“暂无节点”。`classNames` 支持 root、item、row、switcher、checkbox、icon、title、group、loading、error，单项支持局部类名。`/__ui` 展示关联/严格勾选、多选/单选、禁用边界、长标题、窄容器、动态删除、RTL 深色、默认展开祖先和空数据。
+
+异步树使用项目返回值契约 `loadChildren(node, { signal }): Promise<TreeNode[]>`，组件管理子节点缓存并保持原始 `treeData` 不变。没有 `children` 的节点在提供加载器后可展开；`isLeaf: true` 是已知叶子，显式 `children: []` 默认也为叶子，`isLeaf: false` 可把空数组声明为待加载目录。已有非空子节点直接展示，空加载结果成为已知叶子。同一节点请求去重，成功后再次展开使用缓存；加载所得子节点继续参与勾选传导，也可嵌套异步目录。所有节点 key 必须在整棵树中唯一，返回重复键或非法子节点时显示加载错误。
+
+`onLoad(node, children)` 和 `onLoadError(error, node)` 分别报告成功与加载失败。`loadVersion`（默认 0）改变时整体缓存失效并取消旧请求；切换数据源时更新版本，加载器函数引用改变本身不清缓存。外部明确提供 `children` 或 `isLeaf: true` 时以外部数据为准。收起节点或其祖先、禁用、删除、版本变化和卸载会通过 `AbortSignal` 取消进行中的请求；即使加载器不遵守 signal，旧响应也不能覆盖新数据。
+
+加载期间节点使用 `aria-busy`、可访问加载文字和取消按钮，失败时显示错误及重试按钮，不自动重复失败请求。展开方向键也可重试；即使受控父级拒绝收起，取消按钮仍立即中断请求并提供继续加载入口。加载或重试按钮消失后，焦点恢复到同一可用树项；外部操作保持外部焦点。取消和重试入口保留 44px 触控尺寸，指示器尊重减少动态效果。`/__ui` 的独立异步树预览包含嵌套加载、空结果、失败恢复、外部开合、缓存刷新、禁用、删除与 RTL 深色主题。
 
 Carousel 的 `items` 保持项目 ReactNode 数组 API；有状态的内容传稳定 React `key`，每项只挂载一次，切换后保留表单值。非活动幻灯片使用 `inert` 和 `aria-hidden`，动效期间也不进入焦点与辅助技术阅读顺序。`index` / `defaultIndex` 使用从零开始的索引，越界值限制到当前范围，非有限值回到首项；非受控状态会清理数据缩减后的索引，受控状态不回写父值。
 
