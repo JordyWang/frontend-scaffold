@@ -36,6 +36,7 @@ import {
 } from './tailwind-styles'
 import { DateTimePickerPanel } from './date-time-picker-panel'
 import { focusDateTimePanel } from './date-time-panel-focus'
+import { usePickerPreview } from './picker-preview'
 import { parseMonth, toISO, toMonth } from './date-picker-state'
 import {
   parseDateTime,
@@ -129,6 +130,8 @@ export type DateTimeRangePickerProps = Omit<
   readOnly?: boolean
   inputReadOnly?: boolean
   hideDisabledOptions?: boolean
+  changeOnScroll?: boolean
+  previewValue?: false | 'hover'
   allowEmpty?: [start: boolean, end: boolean]
   allowClear?: boolean
   onClear?: () => void
@@ -228,6 +231,8 @@ const DateTimeRangePickerControl = forwardRef<
     readOnly = false,
     inputReadOnly = false,
     hideDisabledOptions = false,
+    changeOnScroll = false,
+    previewValue = 'hover',
     allowEmpty = [false, false],
     allowClear = true,
     onClear,
@@ -501,6 +506,7 @@ const DateTimeRangePickerControl = forwardRef<
     })
   }
   function cancel(restore = false) {
+    onPreview()
     setCandidate(current)
     setDraft(display(current))
     setDirty(false)
@@ -588,6 +594,7 @@ const DateTimeRangePickerControl = forwardRef<
       publish(next)
   }
   function confirm() {
+    onPreview()
     const parsed = dirty ? parsedInput() : candidate
     const next = parsed
       ? normalized(parsed, lastEdited.current, true)
@@ -677,12 +684,19 @@ const DateTimeRangePickerControl = forwardRef<
     }
   })
   const shown = dirty ? parsedInput() : showing ? candidate : current
+  const { preview, onPreview } = usePickerPreview(
+    JSON.stringify([currentKey, candidate, showing, mode, dirty, endpoint]),
+    previewValue === 'hover' && showing && !dirty && !isDisabled(index),
+    (value) => dateTimeSelectable(value, constraintsFor(index, candidate)),
+  )
+  const previewRange = preview ? asRange(candidate) : undefined
+  if (previewRange) previewRange[index] = preview!
   const displayed =
     mode === 'native'
       ? current
       : dirty
         ? draft
-        : display(showing ? candidate : current)
+        : display(previewRange ?? (showing ? candidate : current))
   const invalid =
     status === 'error' ||
     ariaInvalid ||
@@ -795,6 +809,8 @@ const DateTimeRangePickerControl = forwardRef<
         disabled={isDisabled(index)}
         use12Hours={use12Hours}
         hideDisabledOptions={hideDisabledOptions}
+        changeOnScroll={changeOnScroll}
+        onPreview={previewValue === 'hover' ? onPreview : undefined}
         weekStartsOn={weekStartsOn}
         locale={locale}
         renderDate={renderDate ? (date) => renderDate(date, info) : undefined}
@@ -987,6 +1003,9 @@ const DateTimeRangePickerControl = forwardRef<
                       (use12Hours ? ' AM/PM' : '')
                   }
                   value={displayed[part]}
+                  data-picker-preview={
+                    preview && part === index ? 'hover' : undefined
+                  }
                   className={cn(
                     inputStyles,
                     inputVariantStyles[variant],
@@ -1044,6 +1063,7 @@ const DateTimeRangePickerControl = forwardRef<
                     }
                   }}
                   onKeyDown={(event) => {
+                    onPreview()
                     if (isDisabled(part as 0 | 1) || mode === 'native') return
                     if (event.key === 'ArrowDown' && mode === 'popup') {
                       event.preventDefault()

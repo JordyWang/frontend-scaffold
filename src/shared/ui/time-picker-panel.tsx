@@ -1,5 +1,7 @@
 import {
   forwardRef,
+  useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -27,6 +29,8 @@ type TimePanelProps = {
   disabled?: boolean
   use12Hours?: boolean
   hideDisabledOptions?: boolean
+  changeOnScroll?: boolean
+  onPreview?: (value?: string) => void
   renderCell?: (value: number, unit: TimeUnit) => ReactNode
   getCellDescription?: (value: number, unit: TimeUnit) => string | undefined
   onFocusUnavailable?: () => void
@@ -40,6 +44,13 @@ const names: Record<TimeUnit, string> = {
 }
 type Choice = { number: number; next?: string; text: string }
 
+function align(button: HTMLElement, scroll: HTMLElement) {
+  const box = scroll.getBoundingClientRect(),
+    bounds = button.getBoundingClientRect()
+  const padding = Number.parseFloat(getComputedStyle(scroll).paddingTop) || 0
+  scroll.scrollTop += bounds.top - box.top - scroll.clientTop - padding
+}
+
 export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
   function TimePickerPanel(
     {
@@ -51,6 +62,8 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
       disabled,
       use12Hours,
       hideDisabledOptions,
+      changeOnScroll = false,
+      onPreview,
       renderCell,
       getCellDescription,
       onFocusUnavailable,
@@ -61,6 +74,19 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
     const { direction } = useConfig()
     const rootRef = useRef<HTMLDivElement>(null)
     const refs = useRef(new Map<string, HTMLButtonElement>())
+    const scrollers = useRef(new Map<TimeUnit, HTMLDivElement>())
+    const gestures = useRef(
+      new Map<
+        TimeUnit,
+        {
+          armed: boolean
+          pointer: boolean
+          moved: boolean
+          timer?: ReturnType<typeof setTimeout>
+        }
+      >(),
+    )
+    const previousLayout = useRef('')
     const owned = useRef(false),
       pending = useRef<string | undefined>(undefined)
     const [cursor, setCursor] = useState<Partial<Record<TimeUnit, number>>>({})
@@ -148,6 +174,113 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
         (choice) => choice.next && choice.number === selectedNumber(unit),
       )?.number ??
       choices.find((choice) => choice.next)?.number
+    const layoutKey = JSON.stringify([
+      value,
+      defaultOpenValue,
+      disabled,
+      changeOnScroll,
+      columns.map(({ unit, choices }) => [
+        unit,
+        choices.map(({ number, next }) => [number, next]),
+      ]),
+    ])
+    const latest = useRef({
+      columns,
+      onChange,
+      disabled,
+      changeOnScroll,
+      value,
+    })
+    useLayoutEffect(() => {
+      latest.current = {
+        columns,
+        onChange,
+        disabled,
+        changeOnScroll,
+        value,
+      }
+    })
+    function cancelScrolls() {
+      for (const gesture of gestures.current.values()) {
+        clearTimeout(gesture.timer)
+        gesture.timer = undefined
+        gesture.armed = false
+        gesture.pointer = false
+        gesture.moved = false
+      }
+    }
+    function arm(unit: TimeUnit, pointer = false) {
+      if (!changeOnScroll || disabled) return
+      const gesture = gestures.current.get(unit) ?? {
+        armed: false,
+        pointer: false,
+        moved: false,
+      }
+      if (!gesture.armed) gesture.moved = false
+      gesture.armed = true
+      gesture.pointer = pointer
+      gestures.current.set(unit, gesture)
+    }
+    function updateTail(scroll: HTMLElement) {
+      const last = scroll.querySelector<HTMLElement>(
+        '[data-time-unit]:last-of-type',
+      )
+      const style = getComputedStyle(scroll)
+      scroll.style.setProperty(
+        '--ui-time-scroll-tail',
+        Math.max(
+          0,
+          scroll.clientHeight -
+            (Number.parseFloat(style.paddingTop) || 0) -
+            (Number.parseFloat(style.paddingBottom) || 0) -
+            (last?.getBoundingClientRect().height ?? 44),
+        ) + 'px',
+      )
+    }
+    const settle = useCallback((unit: TimeUnit) => {
+      const gesture = gestures.current.get(unit),
+        current = latest.current
+      if (
+        !gesture?.armed ||
+        !gesture.moved ||
+        gesture.pointer ||
+        current.disabled ||
+        !current.changeOnScroll
+      )
+        return
+      clearTimeout(gesture.timer)
+      gesture.armed = false
+      const scroll = scrollers.current.get(unit)
+      if (!scroll?.isConnected || !scroll.getClientRects().length) return
+      const anchor =
+        scroll.getBoundingClientRect().top +
+        scroll.clientTop +
+        (Number.parseFloat(getComputedStyle(scroll).paddingTop) || 0)
+      let nearest: { choice: Choice; button: HTMLButtonElement } | undefined,
+        distance = Infinity
+      for (const choice of current.columns.find(
+        (column) => column.unit === unit,
+      )?.choices ?? []) {
+        const button = refs.current.get(unit + ':' + choice.number)
+        if (!choice.next || !button || button.disabled) continue
+        const delta = Math.abs(button.getBoundingClientRect().top - anchor)
+        if (delta < distance) {
+          nearest = { choice, button }
+          distance = delta
+        }
+      }
+      if (!nearest) return
+      align(nearest.button, scroll)
+      if (nearest.choice.next !== current.value)
+        current.onChange(nearest.choice.next!)
+    }, [])
+    function scroll(unit: TimeUnit) {
+      const gesture = gestures.current.get(unit)
+      if (!gesture?.armed) return
+      gesture.moved = true
+      clearTimeout(gesture.timer)
+      gesture.timer = setTimeout(() => settle(unit), 150)
+    }
     function focus(unit: TimeUnit, number: number) {
       const key = unit + ':' + number
       setCursor((previous) => ({ ...previous, [unit]: number }))
@@ -198,6 +331,9 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
       }
     }
     useLayoutEffect(() => {
+      if (previousLayout.current === layoutKey) return
+      previousLayout.current = layoutKey
+      cancelScrolls()
       const parts = parseTime(value)
       for (const { unit } of columns) {
         const number = !parts
@@ -217,6 +353,11 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
             : refs.current.get(unit + ':' + number)
         const scroll = button?.parentElement
         if (button && scroll) {
+          if (changeOnScroll) {
+            updateTail(scroll)
+            align(button, scroll)
+            continue
+          }
           const bounds = button.getBoundingClientRect(),
             box = scroll.getBoundingClientRect()
           if (bounds.top < box.top) scroll.scrollTop -= box.top - bounds.top
@@ -224,7 +365,51 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
             scroll.scrollTop += bounds.bottom - box.bottom
         }
       }
-    }, [value, columns])
+    })
+    useLayoutEffect(() => {
+      const update = () => {
+        for (const element of scrollers.current.values()) updateTail(element)
+      }
+      update()
+      if (typeof ResizeObserver === 'undefined') return
+      const observer = new ResizeObserver(update)
+      for (const element of scrollers.current.values())
+        observer.observe(element)
+      return () => observer.disconnect()
+    }, [changeOnScroll, columns])
+    useEffect(() => {
+      const release = () => {
+        for (const [unit, gesture] of gestures.current) {
+          if (!gesture.pointer) continue
+          // Native touch scrolling cancels pointer events before inertia.
+          gesture.pointer = false
+          if (gesture.armed && gesture.moved) {
+            clearTimeout(gesture.timer)
+            gesture.timer = setTimeout(() => settle(unit), 150)
+          }
+        }
+      }
+      const outside = (event: Event) => {
+        if (
+          event.target instanceof Node &&
+          !rootRef.current?.contains(event.target)
+        ) {
+          cancelScrolls()
+          onPreview?.()
+        }
+      }
+      document.addEventListener('pointerdown', outside, true)
+      document.addEventListener('focusin', outside, true)
+      document.addEventListener('pointerup', release, true)
+      document.addEventListener('pointercancel', release, true)
+      return () => {
+        document.removeEventListener('pointerdown', outside, true)
+        document.removeEventListener('focusin', outside, true)
+        document.removeEventListener('pointerup', release, true)
+        document.removeEventListener('pointercancel', release, true)
+        cancelScrolls()
+      }
+    }, [onPreview, settle])
     useLayoutEffect(() => {
       const focused = document.activeElement
       const target = pending.current
@@ -276,6 +461,11 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
         onFocusCapture={() => {
           owned.current = true
         }}
+        onPointerLeave={() => onPreview?.()}
+        onKeyDownCapture={() => {
+          cancelScrolls()
+          onPreview?.()
+        }}
         onBlurCapture={(event) => {
           if (
             event.relatedTarget &&
@@ -294,9 +484,24 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
               {names[unit]}
             </span>
             <div
+              ref={(element) => {
+                if (element) scrollers.current.set(unit, element)
+                else scrollers.current.delete(unit)
+              }}
               role="listbox"
               aria-label={label + names[unit]}
               data-picker-scroll
+              data-time-scroll-unit={unit}
+              onWheel={() => {
+                onPreview?.()
+                arm(unit)
+              }}
+              onPointerDown={() => {
+                onPreview?.()
+                arm(unit, true)
+              }}
+              onScroll={() => scroll(unit)}
+              onScrollEnd={() => settle(unit)}
               className={cn(
                 'h-56 min-w-11 overflow-y-auto overscroll-contain rounded-[var(--ui-field-radius)] border border-border p-1',
                 classNames?.column,
@@ -339,7 +544,14 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
                     }))
                   }
                   onKeyDown={(event) => handleKey(event, unit, choice.number)}
+                  onPointerEnter={(event) => {
+                    if (event.pointerType === 'mouse' && choice.next)
+                      onPreview?.(choice.next)
+                  }}
+                  onPointerLeave={() => onPreview?.()}
                   onClick={() => {
+                    cancelScrolls()
+                    onPreview?.()
                     if (choice.next) onChange(choice.next)
                   }}
                 >
@@ -347,6 +559,12 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
                   {renderCell?.(choice.number, unit)}
                 </button>
               ))}
+              {changeOnScroll && (
+                <div
+                  aria-hidden="true"
+                  className="h-[var(--ui-time-scroll-tail,0px)]"
+                />
+              )}
               {!choices.some((choice) => choice.next) && (
                 <p
                   role="status"

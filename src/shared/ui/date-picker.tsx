@@ -130,6 +130,8 @@ export type DatePickerTimeOptions = Pick<
   | 'secondStep'
   | 'defaultOpenTime'
   | 'hideDisabledOptions'
+  | 'changeOnScroll'
+  | 'previewValue'
   | 'disabledHours'
   | 'disabledMinutes'
   | 'disabledSeconds'

@@ -35,6 +35,7 @@ import {
 } from './tailwind-styles'
 import { DateTimePickerPanel } from './date-time-picker-panel'
 import { focusDateTimePanel } from './date-time-panel-focus'
+import { usePickerPreview } from './picker-preview'
 import { parseMonth, toISO, toMonth } from './date-picker-state'
 import {
   dateTimeDisplay,
@@ -114,6 +115,8 @@ export type DateTimePickerProps = Omit<
     placement?: PickerPlacement
     use12Hours?: boolean
     hideDisabledOptions?: boolean
+    changeOnScroll?: boolean
+    previewValue?: false | 'hover'
     showNow?: boolean
     presets?: DateTimePickerPreset[]
     renderCell?: (value: number, unit: TimeUnit) => ReactNode
@@ -160,6 +163,8 @@ const DateTimePickerControl = forwardRef<
     placement = 'bottomStart',
     use12Hours = false,
     hideDisabledOptions = false,
+    changeOnScroll = false,
+    previewValue = 'hover',
     showNow = true,
     presets = [],
     renderCell,
@@ -301,6 +306,7 @@ const DateTimePickerControl = forwardRef<
     } else if (focus) focusPanel()
   }
   function cancel(restore = false) {
+    onPreview()
     setCandidate(current)
     setDraft(dateTimeDisplay(current, precision, use12Hours))
     setEditing(false)
@@ -368,6 +374,7 @@ const DateTimePickerControl = forwardRef<
     if (next.slice(0, 7) !== month) changeMonth(next.slice(0, 7))
   }
   function confirm() {
+    onPreview()
     const next = editing
       ? dateTimeInput(draft, precision, use12Hours)
       : candidate
@@ -451,9 +458,14 @@ const DateTimePickerControl = forwardRef<
     : needConfirm && showing
       ? candidate
       : current
+  const { preview, onPreview } = usePickerPreview(
+    JSON.stringify([current, candidate, showing, mode, editing]),
+    previewValue === 'hover' && showing && !editing && !inactive,
+    selectable,
+  )
   const displayed = editing
     ? draft
-    : dateTimeDisplay(shown ?? '', precision, use12Hours)
+    : dateTimeDisplay(preview ?? shown ?? '', precision, use12Hours)
   const invalid =
     status === 'error' ||
     ariaInvalid ||
@@ -517,6 +529,8 @@ const DateTimePickerControl = forwardRef<
         defaultOpenTime={defaultOpenTime}
         use12Hours={use12Hours}
         hideDisabledOptions={hideDisabledOptions}
+        changeOnScroll={changeOnScroll}
+        onPreview={previewValue === 'hover' ? onPreview : undefined}
         weekStartsOn={weekStartsOn}
         locale={locale}
         renderDate={renderDate}
@@ -664,6 +678,7 @@ const DateTimePickerControl = forwardRef<
               (use12Hours ? ' AM/PM' : '')
           }
           value={mode === 'native' ? current : displayed}
+          data-picker-preview={preview ? 'hover' : undefined}
           className={cn(
             inputStyles,
             inputVariantStyles[variant],
@@ -716,6 +731,7 @@ const DateTimePickerControl = forwardRef<
             }
           }}
           onKeyDown={(event) => {
+            onPreview()
             onKeyDown?.(event)
             if (event.defaultPrevented || inactive || mode === 'native') return
             if (event.key === 'ArrowDown' && mode === 'popup') {

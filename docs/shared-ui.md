@@ -169,7 +169,7 @@
 
 `open` / `defaultOpen` / `onOpenChange`、四向逻辑 `placement`、输入 ref、size/variant/status 沿用字段契约，`className` 修饰输入；语义 Tailwind 插槽包含 root/input/toggle/clear/popup/panel/presets/columns/column/option/footer/error。`onBlur` 来自根 span，只在离开输入、按钮和 Portal 弹层组成的整个控件时触发。隐藏 `name` 字段仅提交已确认值；待确认或无效时间由原生 validity 阻止提交，非受控原生 form reset 和项目 Form 的校验/重置都有回归。`inputReadOnly` 使用 HTML readOnly，因此必填等原生约束不参与浏览器校验，项目 Form 规则仍有效。
 
-`/__ui` 的“时间选择面板预览”包括分钟/秒、12 小时、条件禁用、跨午夜、手工输入、立即提交、外部开合、240px 常驻、动态禁用、只读、错误和预约表单。PC Chromium、H5 Chromium/WebKit 覆盖键盘、触控选择、确认/取消、Tab、列滚动、定位、RTL 与表单协作。日期时间范围组合见下文；滚动即选择、悬停值预览、毫秒精度和任意 format 尚未实现。
+`/__ui` 的“时间选择面板预览”包括分钟/秒、12 小时、条件禁用、跨午夜、手工输入、立即提交、外部开合、240px 常驻、动态禁用、只读、错误和预约表单。PC Chromium、H5 Chromium/WebKit 覆盖键盘、触控选择、确认/取消、Tab、列滚动、定位、RTL 与表单协作。日期时间范围组合见下文；滚动选择与悬停值预览见公共时间交互约定，毫秒精度和任意 format 尚未实现。
 
 ### 日期时间单选组合
 
@@ -187,7 +187,7 @@
 
 `className` 修饰输入，Tailwind classNames 插槽为 root/input/toggle/clear/popup/panel/presets/switcher/calendar/time/columns/column/option/footer/error。`onBlur` 来自根 span，只在整个输入、按钮和 Portal 面板组合离焦时调用。`name` 隐藏字段只提交已确认值；未确认手工输入即使尚未打开面板也通过原生 validity 阻止提交。`inputReadOnly` 使用 HTML readOnly，原生约束不参与浏览器校验，项目 Form 规则仍有效。支持外部 form、非受控原生 reset 和 FormItem 的字符串规则与重置。
 
-`/__ui` 的“日期时间组合预览”展示闰月、跨日秒精度、12 小时、边界、默认打开时间、输入错误、预设、立即提交、受控开合、240px 常驻与响应式常驻、动态禁用、大小/外观、只读、RTL 深色和原生适配。PC Chromium、H5 Chromium/WebKit 验证联动、确认/取消、键盘、触控、局部滚动、窄屏定位与表单；宽屏到窄屏的焦点恢复在桌面 Chromium 验证。日期时间范围使用下述独立入口；滚动即选择、悬停值预览、毫秒和任意 format 仍待实现。
+`/__ui` 的“日期时间组合预览”展示闰月、跨日秒精度、12 小时、边界、默认打开时间、输入错误、预设、立即提交、受控开合、240px 常驻与响应式常驻、动态禁用、大小/外观、只读、RTL 深色和原生适配。PC Chromium、H5 Chromium/WebKit 验证联动、确认/取消、键盘、触控、局部滚动、窄屏定位与表单；宽屏到窄屏的焦点恢复在桌面 Chromium 验证。日期时间范围使用下述独立入口；时间滚动选择与悬停预览见公共时间交互约定，毫秒和任意 format 仍待实现。
 
 ### 日期时间范围组合
 
@@ -203,7 +203,19 @@
 
 `onBlur` 来自根 fieldset，只在整个字段、按钮和 Portal 面板组合离焦时调用。WebKit 内部触控、隐藏面板切换及边界导航按钮禁用造成的临时失焦保留会话，恢复可用焦点且不抢走外部焦点。正反向 Tab 与 Escape 沿用公共弹层契约。name 隐藏字段只提交已确认的 JSON 元组；待确认输入通过原生 validity 阻止提交。inputReadOnly 使用 HTML readOnly，原生约束不参与浏览器校验，项目 Form 规则仍有效。项目 Form 支持完整范围规则、组合失焦与重置；显式 native 模式使用两个 datetime-local 输入和一个隐藏 JSON 字段，支持外部 form reset、零秒补齐及拒绝非零毫秒。
 
-`/__ui` 的“日期时间范围组合预览”展示跨日分钟/秒、日期/端点相关禁用、12 小时、交叉清空/排序、锁定端点、开放区间、默认时间、手工输入、立即提交、预设、受控开合、240px 与响应式常驻、动态可用性、大小/外观、只读、错误、RTL 深色、Form 和原生重置。PC Chromium 与 H5 Chromium/WebKit 验证两端联动、一次确认、JSON 提交值、键盘/触控、44px 目标、Tab、局部滚动和四向定位；桌面 Chromium 验证宽屏到窄屏焦点交接。滚动即选择、悬停值预览、毫秒精度和任意 format 仍待实现。
+`/__ui` 的“日期时间范围组合预览”展示跨日分钟/秒、日期/端点相关禁用、12 小时、交叉清空/排序、锁定端点、开放区间、默认时间、手工输入、立即提交、预设、受控开合、240px 与响应式常驻、动态可用性、大小/外观、只读、错误、RTL 深色、Form 和原生重置。PC Chromium 与 H5 Chromium/WebKit 验证两端联动、一次确认、JSON 提交值、键盘/触控、44px 目标、Tab、局部滚动和四向定位；桌面 Chromium 验证宽屏到窄屏焦点交接。时间滚动选择与悬停预览见公共时间交互约定；毫秒精度和任意 format 仍待实现。
+
+### 公共时间交互：滚动选择与悬停预览
+
+`TimePicker`、`TimeRangePicker`、`DateTimePicker` 和 `DateTimeRangePicker` 共用时间列交互；`DatePicker showTime` 与 `DateRangePicker showTime` 的时间选项对象也可设置 `changeOnScroll` 和 `previewValue`。显式 native 模式保留浏览器自身交互，这两个选项只作用于项目时间面板。
+
+`changeOnScroll` 默认 false，列滚动只浏览。开启后，用户滚轮、触控或滚动条手势结束时选择列顶部最近的可用选项，跳过禁用项；使用原生 scrollend，未触发时由 150ms 静止窗口处理。指针仍按住时不选择，列外抬起和原生触控滚动的 pointercancel 均可释放等待；程序滚动、打开时对齐和键盘焦点滚动不触发选择。末项保留可对齐顶部的尾部空间，容器尺寸变化时重新测量。关闭、失焦、取消、禁用、可用选项变化或卸载清理待处理手势。
+
+滚动选择遵守原组件的确认契约：needConfirm=true 只改变临时值，确定才提交；false 使用原立即提交路径。范围组件只调整活动端点，交叉清空、锁定端点、开放区间和排序仍使用已有约束；日期时间保留活动端点的日期，禁用回调继续收到日期和 endpoint/from 信息。
+
+`previewValue` 默认 `'hover'`，传 false 关闭。只有鼠标悬停可用时间选项时，输入临时显示完整候选时间；触控不会触发悬停预览。预览不改变实际临时值、隐藏表单字段、ARIA 选中状态或 onChange/onCalendarChange/onOk。范围仅预览活动端点，不清空另一端或提前排序。离开选项、键盘操作、实际选择、取消、切换端点或日期/时间面板时恢复实际值；外部值或可用性变化也使旧预览失效。手工输入草稿优先，不被悬停覆盖。
+
+`/__ui` 的“时间滚动与悬停预览”覆盖默认预览/关闭预览、确认与立即滚动、末项、禁用选项、范围交叉与锁定、跨日秒限制、动态可用性和 240px RTL 深色常驻。单测验证显示预览与提交隔离、手势静止/释放、程序滚动、取消与 FormData。E2E 使用桌面 Chromium 真实滚轮和鼠标悬停、移动 Chromium 真实触控滑动、H5 Chromium/WebKit 的 tap 选择与确认；两种移动引擎还以合成手势加真实 scroller 位置验证滚动提交、局部滚动、末项和窄容器。WebKit 的自动化滚动路径未模拟原生手指滑动。日期单选的悬停输入预览、毫秒精度和任意 format 仍需补齐；日期范围原有网格预览不等同于输入 previewValue。
 
 ### 日期多选
 
@@ -247,7 +259,7 @@ ref 指向输入；`className` 修饰输入，`classNames` 除日期插槽外提
 
 首项 Shift+Tab 回到活动输入并保留待确认范围，末项 Tab 结束会话后接回结束字段操作；Escape 还焦点，动态禁用活动端点恢复到另一可用端点且不抢走外部焦点。`onBlur` 来自根 fieldset，仅在离开输入、操作和 Portal 面板组成的整个控件时触发。`name` 将已提交元组作为 JSON 隐藏字段提交，临时范围不会进入 FormData；全部禁用时省略，支持外部 form、原生 reset 和项目 Form 重置。与 `FormItem` 配合使用 `emptyValue={[]}`，完整区间另加元组规则；`inputReadOnly` 使用 HTML readOnly，项目 Form 仍按规则校验。
 
-`/__ui` 的“时间范围面板预览”覆盖条件禁用、秒说明、12 小时、交叉清空、自动排序、手工输入、锁定端点、开放区间、即时提交、外部开合、240px 常驻、只读、错误、原生模式与 Form。PC Chromium、H5 Chromium/WebKit 验证两端协作、确认/取消、键盘与触控、Tab、局部滚动、RTL 和窄屏定位。日期时间范围组合见上文；该时间范围测试不包含滚动即选择、悬停值预览或毫秒精度。
+`/__ui` 的“时间范围面板预览”覆盖条件禁用、秒说明、12 小时、交叉清空、自动排序、手工输入、锁定端点、开放区间、即时提交、外部开合、240px 常驻、只读、错误、原生模式与 Form。PC Chromium、H5 Chromium/WebKit 验证两端协作、确认/取消、键盘与触控、Tab、局部滚动、RTL 和窄屏定位。日期时间范围组合见上文；滚动选择与悬停值预览由独立时间交互测试验证，毫秒精度尚未实现。
 
 `InputOTP` 的左右方向键按格子的视觉顺序移动焦点；方向默认跟随 `ConfigProvider.direction`，也可通过原生 `dir` 属性覆盖。RTL 格子顺序和 44px 触控区域在 `/__ui` 中预览。
 

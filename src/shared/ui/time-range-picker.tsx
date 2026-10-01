@@ -36,6 +36,7 @@ import {
   inputVariantStyles,
 } from './tailwind-styles'
 import { TimePickerPanel } from './time-picker-panel'
+import { usePickerPreview } from './picker-preview'
 import {
   parseTime,
   timeDisplay,
@@ -111,6 +112,8 @@ export type TimeRangePickerProps = Omit<
   readOnly?: boolean
   inputReadOnly?: boolean
   hideDisabledOptions?: boolean
+  changeOnScroll?: boolean
+  previewValue?: false | 'hover'
   allowEmpty?: [start: boolean, end: boolean]
   allowClear?: boolean
   onClear?: () => void
@@ -194,6 +197,8 @@ const TimeRangePickerControl = forwardRef<
     readOnly = false,
     inputReadOnly = false,
     hideDisabledOptions = false,
+    changeOnScroll = false,
+    previewValue = 'hover',
     allowEmpty = [false, false],
     allowClear = true,
     onClear,
@@ -403,6 +408,7 @@ const TimeRangePickerControl = forwardRef<
     })
   }
   function cancel(restore = false) {
+    onPreview()
     setCandidate(current)
     setDraft(display(current))
     setDirty(false)
@@ -489,6 +495,7 @@ const TimeRangePickerControl = forwardRef<
       publish(next)
   }
   function confirm() {
+    onPreview()
     const parsed = dirty ? parsedInput() : candidate
     const next = parsed
       ? normalized(parsed, lastEdited.current, true)
@@ -576,12 +583,19 @@ const TimeRangePickerControl = forwardRef<
     }
   })
   const shown = dirty ? parsedInput() : showing ? candidate : current
+  const { preview, onPreview } = usePickerPreview(
+    JSON.stringify([currentKey, candidate, showing, mode, dirty, endpoint]),
+    previewValue === 'hover' && showing && !dirty && !isDisabled(index),
+    (value) => timeSelectable(value, constraintsFor(index, candidate)),
+  )
+  const previewRange = preview ? asRange(candidate) : undefined
+  if (previewRange) previewRange[index] = preview!
   const displayed =
     mode === 'native'
       ? current
       : dirty
         ? draft
-        : display(showing ? candidate : current)
+        : display(previewRange ?? (showing ? candidate : current))
   const invalid =
     status === 'error' ||
     ariaInvalid ||
@@ -683,6 +697,8 @@ const TimeRangePickerControl = forwardRef<
         disabled={isDisabled(index)}
         use12Hours={use12Hours}
         hideDisabledOptions={hideDisabledOptions}
+        changeOnScroll={changeOnScroll}
+        onPreview={previewValue === 'hover' ? onPreview : undefined}
         renderCell={
           renderCell
             ? (number, unit) => renderCell(number, unit, info)
@@ -842,6 +858,9 @@ const TimeRangePickerControl = forwardRef<
                       (use12Hours ? ' AM/PM' : '')
                   }
                   value={displayed[part]}
+                  data-picker-preview={
+                    preview && part === index ? 'hover' : undefined
+                  }
                   className={cn(
                     inputStyles,
                     inputVariantStyles[variant],
@@ -884,6 +903,7 @@ const TimeRangePickerControl = forwardRef<
                     }
                   }}
                   onKeyDown={(event) => {
+                    onPreview()
                     if (isDisabled(part as 0 | 1) || mode === 'native') return
                     if (event.key === 'ArrowDown' && mode === 'popup') {
                       event.preventDefault()

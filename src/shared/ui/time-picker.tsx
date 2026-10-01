@@ -35,6 +35,7 @@ import {
   inputVariantStyles,
 } from './tailwind-styles'
 import { TimePickerPanel } from './time-picker-panel'
+import { usePickerPreview } from './picker-preview'
 import {
   parseTime,
   timeDisplay,
@@ -99,6 +100,8 @@ export type TimePickerProps = Omit<
     placement?: PickerPlacement
     use12Hours?: boolean
     hideDisabledOptions?: boolean
+    changeOnScroll?: boolean
+    previewValue?: false | 'hover'
     showNow?: boolean
     presets?: TimePickerPreset[]
     renderCell?: (value: number, unit: TimeUnit) => ReactNode
@@ -136,6 +139,8 @@ const TimePickerControl = forwardRef<
     placement = 'bottomStart',
     use12Hours = false,
     hideDisabledOptions = false,
+    changeOnScroll = false,
+    previewValue = 'hover',
     showNow = true,
     presets = [],
     renderCell,
@@ -260,6 +265,7 @@ const TimePickerControl = forwardRef<
     } else if (focus) focusPanel()
   }
   function cancel(restore = false) {
+    onPreview()
     setCandidate(current)
     setDraft(timeDisplay(current, precision, use12Hours))
     setEditing(false)
@@ -323,6 +329,7 @@ const TimePickerControl = forwardRef<
     } else publish(time)
   }
   function confirm() {
+    onPreview()
     const next = editing ? timeInput(draft, precision, use12Hours) : candidate
     if (!next || !selectable(next) || !publish(next)) return
     if (needConfirm) onOk?.(next)
@@ -403,9 +410,14 @@ const TimePickerControl = forwardRef<
     : needConfirm && showing
       ? candidate
       : current
+  const { preview, onPreview } = usePickerPreview(
+    JSON.stringify([current, candidate, showing, mode, editing]),
+    previewValue === 'hover' && showing && !editing && !inactive,
+    selectable,
+  )
   const displayed = editing
     ? draft
-    : timeDisplay(shown ?? '', precision, use12Hours)
+    : timeDisplay(preview ?? shown ?? '', precision, use12Hours)
   const invalid =
     status === 'error' ||
     ariaInvalid ||
@@ -460,6 +472,8 @@ const TimePickerControl = forwardRef<
         onChange={choose}
         use12Hours={use12Hours}
         hideDisabledOptions={hideDisabledOptions}
+        changeOnScroll={changeOnScroll}
+        onPreview={previewValue === 'hover' ? onPreview : undefined}
         renderCell={renderCell}
         getCellDescription={getCellDescription}
         classNames={classNames}
@@ -575,6 +589,7 @@ const TimePickerControl = forwardRef<
               (use12Hours ? ' AM/PM' : '')
           }
           value={mode === 'native' ? current : displayed}
+          data-picker-preview={preview ? 'hover' : undefined}
           className={cn(
             inputStyles,
             inputVariantStyles[variant],
@@ -609,6 +624,7 @@ const TimePickerControl = forwardRef<
             }
           }}
           onKeyDown={(event) => {
+            onPreview()
             onKeyDown?.(event)
             if (event.defaultPrevented || inactive || mode === 'native') return
             if (event.key === 'ArrowDown' && mode === 'popup') {

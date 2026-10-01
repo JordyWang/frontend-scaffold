@@ -18,6 +18,7 @@ import { TimePickerPreview } from './TimePickerPreview'
 import { TimeRangePreview } from './TimeRangePreview'
 import { DateTimePreview } from './DateTimePreview'
 import { DateTimeRangePreview } from './DateTimeRangePreview'
+import { TimeInteractionPreview } from './TimeInteractionPreview'
 import {
   Alert,
   Affix,
@@ -2067,6 +2068,7 @@ export function DesignSystemPreview() {
           <TimeRangePreview />
           <DateTimePreview />
           <DateTimeRangePreview />
+          <TimeInteractionPreview />
           <Card className="col-span-full">
             <CardContent>
               <Stack gap="md">

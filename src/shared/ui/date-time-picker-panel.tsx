@@ -35,6 +35,8 @@ type DateTimePanelProps = {
   defaultOpenTime?: string
   use12Hours?: boolean
   hideDisabledOptions?: boolean
+  changeOnScroll?: boolean
+  onPreview?: (value?: string) => void
   weekStartsOn?: 0 | 1
   locale?: string
   renderDate?: (date: string) => ReactNode
@@ -66,6 +68,8 @@ export const DateTimePickerPanel = forwardRef<
     defaultOpenTime,
     use12Hours,
     hideDisabledOptions,
+    changeOnScroll,
+    onPreview,
     weekStartsOn,
     locale,
     renderDate,
@@ -90,6 +94,11 @@ export const DateTimePickerPanel = forwardRef<
   )
   const [activePart, setActivePart] = useState<'date' | 'time'>('date')
   const parts = parseDateTime(value)
+  const previewTime = useCallback(
+    (time?: string) =>
+      onPreview?.(parts?.date && time ? parts.date + 'T' + time : undefined),
+    [onPreview, parts?.date],
+  )
   const timeConstraints = useMemo(
     () => dateTimeTimeConstraints(parts?.date ?? '', constraints),
     [parts?.date, constraints],
@@ -157,6 +166,7 @@ export const DateTimePickerPanel = forwardRef<
             aria-pressed={activePart === part}
             disabled={disabled}
             onClick={() => {
+              onPreview?.()
               setActivePart(part)
               requested.current = true
             }}
@@ -223,6 +233,8 @@ export const DateTimePickerPanel = forwardRef<
             }}
             use12Hours={use12Hours}
             hideDisabledOptions={hideDisabledOptions}
+            changeOnScroll={changeOnScroll}
+            onPreview={onPreview ? previewTime : undefined}
             renderCell={renderCell}
             getCellDescription={getCellDescription}
             classNames={classNames}

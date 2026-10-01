@@ -256,7 +256,7 @@ test('time column scrolling and keyboard page navigation stay inside the popup',
 }, testInfo) => {
   await page.goto('/__ui')
   const mobile = testInfo.project.name.startsWith('mobile-')
-  const { input, panel } = await openTime(page, '媒体时间点')
+  const { demo, input, panel } = await openTime(page, '媒体时间点')
   const hour = panel.getByRole('listbox', {
     name: '媒体时间点小时',
     exact: true,
@@ -283,7 +283,17 @@ test('time column scrolling and keyboard page navigation stay inside the popup',
   await expect
     .poll(() => hour.evaluate((element) => element.scrollTop))
     .toBeGreaterThan(0)
+  await expect(option(panel, 'hour', 9)).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await expect(
+    demo.getByRole('status', { name: '媒体时间提交值', exact: true }),
+  ).toHaveText('09:30:15')
+  // Wheel scrolling can leave the mouse over an option's visual preview.
+  await page.mouse.move(0, 0)
   await expect(input).toHaveValue('09:30:15')
+  await expect(input).not.toHaveAttribute('data-picker-preview')
   const after = (await panel.boundingBox())!
   expect(Math.abs(after.y - before.y)).toBeLessThan(2)
   expect(
