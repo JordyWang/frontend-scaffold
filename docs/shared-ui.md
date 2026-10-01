@@ -65,7 +65,8 @@
 | Descriptions                    | `items`、`column`、`bordered`、`layout`、`size`、`title`、`extra`、`colon`、`emptyText`、`classNames`                                            | `dl/dt/dd` 保持一份阅读顺序；响应式列数和跨度、整行剩余填充、统一尺寸、RTL 与空状态                                         |
 | AvatarGroup                     | `items`、`maxCount`、`size`、`shape`、`label`                                                                                                    | 重叠展示成员，溢出按钮支持键盘和触控打开公共 Popover 查看其余成员，布局跟随 RTL                                             |
 | Statistic / Timeline            | `Statistic(title, value, precision, prefix, suffix, locale, formatter, loading)`；`Timeline(items)`                                              | 数值按 ConfigProvider.locale 分组格式化，加载时提供可访问骨架；时间线使用有序列表和文字状态                                 |
-| Carousel / Tree                 | `Carousel(items, index, autoplay, onChange)`；`Tree(treeData, expandedKeys, defaultExpandedKeys, onExpand, selectedKey, onSelect)`               | 轮播提供上一项/下一项和 live 状态；树只有一个 Tab 入口，方向键移动及展开/收起，Enter/空格选择；触控可点展开区               |
+| Carousel                        | `items`、`index` / `defaultIndex`、`autoplay`、`dots`、`dotPlacement`、`effect`、`infinite`、`adaptiveHeight`、`ref`                             | 受控轮播、四向指示点、两种动效、键盘/手势切换、播放进度及隐藏内容焦点恢复                                                   |
+| Tree                            | `treeData`、`expandedKeys` / `defaultExpandedKeys`、`onExpand`、`selectedKey`、`onSelect`                                                        | 树只有一个 Tab 入口，方向键移动及展开/收起，Enter/空格选择；触控可点展开区                                                  |
 
 `Progress` 的 `type` 可选 `line`、`circle`、`dashboard`。`steps` 可传数字或 `{ count, gap? }`；`gap` 单位为 px，线性默认间距为 4px，圆环及仪表盘默认间距为 2px，最多渲染 100 段。圆环与仪表盘的 `strokeWidth` 沿用项目的像素单位。仪表盘 `gapDegree` 默认 75°、限制在 0–295°，`gapPlacement` 默认 `bottom`，`start` / `end` 跟随 ConfigProvider 的 LTR/RTL 方向。所有形态只暴露一个 `progressbar`，百分比文本由 `format` 控制。
 
@@ -155,7 +156,17 @@
 
 Tree 支持 `selectedKey` 受控选择和 `defaultSelectedKey` 非受控初始选择。受控展开或数据更新后若移除了当前聚焦节点，会把焦点移到最近仍可见的祖先节点；焦点已移出 Tree 时不会重新抢占焦点。`/__ui` 可切换受控展开状态验证这一行为。
 
-Carousel 开启 `autoplay` 后，焦点、鼠标进入或触控会暂停轮转，并提供暂停/恢复按钮；系统启用减少动态效果时默认不自动轮播，用户明确恢复后才开始。
+Carousel 的 `items` 保持项目 ReactNode 数组 API；有状态的内容传稳定 React `key`，每项只挂载一次，切换后保留表单值。非活动幻灯片使用 `inert` 和 `aria-hidden`，动效期间也不进入焦点与辅助技术阅读顺序。`index` / `defaultIndex` 使用从零开始的索引，越界值限制到当前范围，非有限值回到首项；非受控状态会清理数据缩减后的索引，受控状态不回写父值。
+
+`dots` 默认显示一个可 Tab 到达的当前页码入口，四向 `dotPlacement` 为 `top` / `bottom` / `start` / `end`，逻辑位置跟随 RTL；点击或方向键选择页码，Home / End 到首尾。幻灯片区域也支持左右键和 Home / End，内容中的输入、链接与按钮保留原生键盘行为。`arrows` 默认保留原有上一项/下一项入口；`infinite={false}` 到首尾时禁用相应按钮，自动播放在末项停止，再次开始会回到首项。
+
+`effect` 为 `scroll`（默认）或 `fade`，`speed` 默认 300ms；切换使用原生 Web Animations，系统减少动画时直接显示最终状态。`adaptiveHeight={false}` 默认保留所有幻灯片所需的最高高度，设为 true 则跟随当前内容，不对高度做过渡。`swipe` 默认开启触控横向滑动，`draggable` 默认关闭鼠标拖拽；纵向手势保留页面滚动，表单、链接和 `data-carousel-no-swipe` 区域不被手势接管。
+
+`onBeforeChange(current, next)` 和 `onChange(next)` 处理切换请求；`onAfterChange(current)` 在实际显示索引改变并完成动效后调用，被新索引替代的旧动效不回调；动效中途改变效果、方向或减少动画配置时，当前可见项直接完成并回调一次。`ref` 使用项目 `CarouselHandle`：`next()`、`prev()`、`goTo(index, { animate?: boolean })`，`animate: false` 跳过该次动效。受控模式下这些方法仍需父级更新 `index`；数据缩减后显式调用 `goTo(0)` 可以通过 `onChange(0)` 清理父级越界值，即使当前显示已被限制在首项。
+
+开启 `autoplay` 后，焦点、鼠标进入或触控会暂停轮转，并提供暂停/恢复按钮；系统启用减少动态效果时默认不自动轮播，用户明确恢复后才开始。若启用播放时焦点已经在内容内，保持暂停；文档隐藏时停止计时，恢复可见后从新的完整间隔开始。`interval` 默认 4000ms，正值至少 100ms，非有限或非正值回退到默认值。`dotProgress` 展示当前指示点的装饰性进度，暂停时停止动效；减少动画时不绘制进度动画。
+
+`label` 命名轮播区域，`emptyText` 定义空数据文案；单项数据不显示切换控制。`classNames` 提供 `root` / `viewport` / `slide` / `controls` / `arrow` / `dots` / `dot` / `status` / `rotation` 的 Tailwind 插槽。隐藏当前焦点所属内容、删除或禁用焦点所在的导航控件时，焦点恢复到轮播区域；外部焦点不被抢走。`/__ui` 展示两种动效、四向页码、有限循环、表单草稿、动态缩减、进度、RTL 深色、单项与空数据。
 
 Menu 的受控展开 API 为 `expandedKeys`、`defaultExpandedKeys` 和 `onExpand`；多级菜单使用方向键展开、收起和移动焦点，禁用项不会被方向键选中。Menu 只有一个 Tab 入口，焦点菜单项通过 roving `tabIndex` 暴露。横向菜单的子菜单通过主题作用域内的 Portal 显示，避开卡片裁切边界；Escape 返回触发项，点击外部关闭。
 

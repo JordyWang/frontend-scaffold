@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { CollapsePreview } from './CollapsePreview'
+import { CarouselPreview } from './CarouselPreview'
 import {
   Alert,
   Affix,
@@ -2025,6 +2026,7 @@ export function DesignSystemPreview() {
             </CardContent>
           </Card>
           <CollapsePreview />
+          <CarouselPreview />
           <Card className="col-span-full">
             <CardContent>
               <Stack gap="md">

@@ -256,12 +256,18 @@ export type {
   TooltipProps,
 } from './overlay'
 export type { FloatButtonPosition } from './float-button-styles'
-export { Affix, Anchor, Carousel, Menu, Tree } from './navigation-extended'
+export { Carousel } from './carousel'
+export type {
+  CarouselProps,
+  CarouselEffect,
+  CarouselDotPlacement,
+  CarouselHandle,
+} from './carousel'
+export { Affix, Anchor, Menu, Tree } from './navigation-extended'
 export type {
   AffixProps,
   AnchorLink,
   AnchorProps,
-  CarouselProps,
   MenuItem,
   MenuProps,
   TreeNode,
