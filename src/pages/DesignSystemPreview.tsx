@@ -1521,6 +1521,32 @@ export function DesignSystemPreview() {
                   steps={5}
                   status={step === 2 ? 'success' : 'active'}
                 />
+                <div className="flex flex-wrap gap-4">
+                  <Progress
+                    type="circle"
+                    label="圆环分段进度"
+                    percent={step === 2 ? 100 : 62}
+                    steps={{ count: 5, gap: 4 }}
+                    status={step === 2 ? 'success' : 'normal'}
+                  />
+                  <Progress
+                    type="dashboard"
+                    label="仪表盘进度"
+                    percent={step === 2 ? 100 : 62}
+                    gapDegree={75}
+                    gapPlacement="bottom"
+                    status={step === 2 ? 'success' : 'normal'}
+                  />
+                  <Progress
+                    type="dashboard"
+                    label="仪表盘分段进度"
+                    percent={step === 2 ? 100 : 62}
+                    steps={{ count: 6, gap: 3 }}
+                    gapDegree={90}
+                    gapPlacement="start"
+                    status={step === 2 ? 'success' : 'normal'}
+                  />
+                </div>
                 <Space wrap size="small">
                   <Button
                     size="small"

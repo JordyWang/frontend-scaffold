@@ -462,6 +462,79 @@ describe('Ant Design-inspired shared components', () => {
     ).toBeInTheDocument()
   })
 
+  it('renders circular steps with a single accessible value and partial segment', () => {
+    render(
+      <Progress
+        type="circle"
+        percent={62}
+        steps={{ count: 5, gap: 4 }}
+        label="圆环上传进度"
+      />,
+    )
+    const progress = screen.getByRole('progressbar', { name: '圆环上传进度' })
+    expect(progress).toHaveAttribute('aria-valuenow', '62')
+    expect(progress).toHaveAttribute('data-ui-progress-steps', '5')
+    expect(progress).toHaveAttribute('data-ui-progress-step-gap', '4')
+    expect(progress.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+    expect(
+      Array.from(progress.querySelectorAll('[data-ui-progress-step]')).map(
+        (step) => step.getAttribute('data-ui-progress-step-value'),
+      ),
+    ).toEqual(['100', '100', '100', '10', '0'])
+    expect(progress.querySelectorAll('[data-ui-progress-fill]')).toHaveLength(4)
+  })
+
+  it('clamps dashboard geometry and resolves logical gap placement in RTL', () => {
+    render(
+      <>
+        <ConfigProvider direction="rtl">
+          <Progress
+            type="dashboard"
+            percent={25}
+            steps={{ count: 6, gap: 999 }}
+            gapDegree={500}
+            gapPlacement="start"
+            strokeWidth={999}
+            label="RTL 仪表盘"
+          />
+        </ConfigProvider>
+        <Progress
+          type="dashboard"
+          percent={25}
+          steps={{ count: 6, gap: 999 }}
+          gapDegree={500}
+          gapPlacement="end"
+          strokeWidth={999}
+          label="LTR 仪表盘"
+        />
+        <Progress type="dashboard" gapDegree={-20} label="无缺口仪表盘" />
+      </>,
+    )
+    const rtl = screen.getByRole('progressbar', { name: 'RTL 仪表盘' })
+    const ltr = screen.getByRole('progressbar', { name: 'LTR 仪表盘' })
+    expect(rtl).toHaveAttribute('data-ui-progress-gap-degree', '295')
+    expect(rtl.querySelectorAll('[data-ui-progress-step]')).toHaveLength(6)
+    expect(Number(rtl.getAttribute('data-ui-progress-step-gap'))).toBeLessThan(
+      999,
+    )
+    expect(
+      rtl
+        .querySelector('[data-ui-progress-track]')
+        ?.getAttribute('stroke-width'),
+    ).toBe('48')
+    expect(
+      rtl.querySelector('[data-ui-progress-track]')?.getAttribute('d'),
+    ).toBe(ltr.querySelector('[data-ui-progress-track]')?.getAttribute('d'))
+    expect(
+      Array.from(rtl.querySelectorAll('[data-ui-progress-step]')).map((step) =>
+        step.getAttribute('data-ui-progress-step-value'),
+      ),
+    ).toEqual(['100', '50', '0', '0', '0', '0'])
+    expect(
+      screen.getByRole('progressbar', { name: '无缺口仪表盘' }),
+    ).toHaveAttribute('data-ui-progress-gap-degree', '0')
+  })
+
   it('normalizes invalid progress and slider values', () => {
     render(
       <>

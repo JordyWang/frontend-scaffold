@@ -2942,6 +2942,66 @@ test('extended navigation and feedback components expose responsive semantics', 
   await expect(steppedProgress.locator('[data-ui-progress-step]')).toHaveCount(
     5,
   )
+  const circle = preview.getByRole('progressbar', {
+    name: '圆环分段进度',
+  })
+  const dashboard = preview.getByRole('progressbar', {
+    name: '仪表盘进度',
+    exact: true,
+  })
+  const steppedDashboard = preview.getByRole('progressbar', {
+    name: '仪表盘分段进度',
+  })
+  await expect(circle).toHaveAttribute('aria-valuenow', '62')
+  await expect(circle.locator('[data-ui-progress-step]')).toHaveCount(5)
+  await expect(dashboard).toHaveAttribute('data-ui-progress-gap-degree', '75')
+  await expect(steppedDashboard.locator('[data-ui-progress-step]')).toHaveCount(
+    6,
+  )
+  const geometry = await circle.evaluate((element) => {
+    const segments = Array.from(
+      element.querySelectorAll<SVGGElement>('[data-ui-progress-step]'),
+    )
+    const trackLength = segments.reduce(
+      (sum, segment) =>
+        sum +
+        (segment
+          .querySelector<SVGPathElement>('[data-ui-progress-track]')
+          ?.getTotalLength() ?? 0),
+      0,
+    )
+    const partialTrack = segments[3]
+      .querySelector<SVGPathElement>('[data-ui-progress-track]')
+      ?.getTotalLength()
+    const partialFill = segments[3]
+      .querySelector<SVGPathElement>('[data-ui-progress-fill]')
+      ?.getTotalLength()
+    const rect = element.getBoundingClientRect()
+    return { trackLength, partialTrack, partialFill, width: rect.width }
+  })
+  expect(geometry.width).toBe(112)
+  expect(geometry.trackLength + 16).toBeCloseTo(2 * Math.PI * 52, 0)
+  expect(geometry.partialTrack).toBeGreaterThan(0)
+  expect(geometry.partialFill! / geometry.partialTrack!).toBeCloseTo(0.1, 1)
+  const dashboardGeometry = await dashboard.evaluate((element) => {
+    const track = element.querySelector<SVGPathElement>(
+      '[data-ui-progress-track]',
+    )
+    const fill = element.querySelector<SVGPathElement>(
+      '[data-ui-progress-fill]',
+    )
+    return {
+      trackLength: track?.getTotalLength() ?? 0,
+      fillLength: fill?.getTotalLength() ?? 0,
+    }
+  })
+  expect(dashboardGeometry.trackLength).toBeCloseTo(
+    (285 / 360) * 2 * Math.PI * 52,
+    0,
+  )
+  expect(
+    dashboardGeometry.fillLength / dashboardGeometry.trackLength,
+  ).toBeCloseTo(0.62, 1)
 
   const details = preview.getByRole('button', { name: '实现说明' })
   await expect(details).toHaveAttribute('aria-expanded', 'true')
@@ -2956,6 +3016,8 @@ test('extended navigation and feedback components expose responsive semantics', 
   await expect(
     preview.getByRole('progressbar', { name: '进度', exact: true }),
   ).toHaveAttribute('aria-valuenow', '100')
+  await expect(circle).toHaveAttribute('aria-valuenow', '100')
+  await expect(dashboard).toHaveAttribute('aria-valuenow', '100')
   await expect(
     preview.getByRole('heading', { name: '流程已完成' }),
   ).toBeVisible()

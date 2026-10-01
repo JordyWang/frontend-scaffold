@@ -158,7 +158,12 @@ export type {
   StepStatus,
 } from './navigation'
 export { Progress, Result } from './feedback'
-export type { ProgressProps, ResultProps, ResultStatus } from './feedback'
+export type {
+  ProgressProps,
+  ProgressSteps,
+  ResultProps,
+  ResultStatus,
+} from './feedback'
 export { Collapse } from './disclosure'
 export type { CollapseItem, CollapseProps } from './disclosure'
 export { Avatar, Descriptions } from './display-extended'
