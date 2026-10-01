@@ -1708,6 +1708,24 @@ export function DesignSystemPreview() {
                     title={step === 2 ? '流程已完成' : '流程进行中'}
                     subTitle="点击步骤或按钮检查受控状态。"
                   />
+                  <Result
+                    status="error"
+                    title="提交失败"
+                    subTitle="请检查以下信息后重试。"
+                    extra={
+                      <Button variant="outline" onClick={() => setStep(0)}>
+                        重新检查
+                      </Button>
+                    }
+                  >
+                    <div className="space-y-2 text-sm">
+                      <p>需要处理的问题：</p>
+                      <ul className="list-disc space-y-1 ps-5">
+                        <li>上传文件的格式不受支持。</li>
+                        <li>请重新选择文件并确认后提交。</li>
+                      </ul>
+                    </div>
+                  </Result>
                 </div>
                 <Button
                   variant="outline"

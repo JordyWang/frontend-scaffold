@@ -3002,6 +3002,22 @@ test('extended navigation and feedback components expose responsive semantics', 
   expect(
     dashboardGeometry.fillLength / dashboardGeometry.trackLength,
   ).toBeCloseTo(0.62, 1)
+  const errorResult = preview.getByRole('region', { name: '提交失败' })
+  const retry = errorResult.getByRole('button', { name: '重新检查' })
+  await expect(
+    errorResult.getByText('格式不受支持', { exact: false }),
+  ).toBeVisible()
+  const retryBox = await retry.boundingBox()
+  expect(retryBox).not.toBeNull()
+  expect(retryBox!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await retry.tap()
+  } else {
+    await retry.press('Enter')
+  }
+  await expect(
+    preview.getByRole('progressbar', { name: '进度', exact: true }),
+  ).toHaveAttribute('aria-valuenow', '0')
 
   const details = preview.getByRole('button', { name: '实现说明' })
   await expect(details).toHaveAttribute('aria-expanded', 'true')

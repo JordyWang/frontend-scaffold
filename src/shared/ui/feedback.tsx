@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { useConfig } from './config-context'
@@ -298,6 +299,7 @@ export type ResultProps = {
   title: ReactNode
   subTitle?: ReactNode
   extra?: ReactNode
+  children?: ReactNode
   icon?: ReactNode
   className?: string
 }
@@ -318,9 +320,11 @@ export function Result({
   title,
   subTitle,
   extra,
+  children,
   icon,
   className,
 }: ResultProps) {
+  const titleId = useId()
   const iconClassName =
     status === 'success'
       ? 'bg-[var(--ui-map-success-bg)] text-[var(--ui-color-success)]'
@@ -331,6 +335,7 @@ export function Result({
           : 'bg-[var(--ui-map-info-bg)] text-primary'
   return (
     <section
+      aria-labelledby={titleId}
       className={cn(
         'grid justify-items-center gap-2 px-6 py-8 text-center',
         className,
@@ -341,11 +346,13 @@ export function Result({
           'grid size-[4.5rem] place-items-center rounded-full',
           iconClassName,
         )}
-        aria-hidden={icon ? undefined : true}
+        aria-hidden="true"
       >
         {icon ?? <Icon name={resultIcon[status]} size={48} />}
       </div>
-      <h2 className="m-0 text-xl leading-tight sm:text-2xl">{title}</h2>
+      <h2 id={titleId} className="m-0 text-xl leading-tight sm:text-2xl">
+        {title}
+      </h2>
       {subTitle && (
         <p className="m-0 max-w-[40rem] leading-relaxed text-muted-foreground">
           {subTitle}
@@ -353,6 +360,11 @@ export function Result({
       )}
       {extra && (
         <div className="mt-2 flex flex-wrap justify-center gap-2">{extra}</div>
+      )}
+      {children && (
+        <div className="mt-4 w-full max-w-2xl rounded-lg bg-secondary/50 p-4 text-start sm:p-6">
+          {children}
+        </div>
       )}
     </section>
   )

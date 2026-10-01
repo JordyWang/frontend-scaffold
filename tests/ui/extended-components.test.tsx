@@ -637,6 +637,33 @@ describe('Ant Design-inspired shared components', () => {
     expect(screen.getByRole('heading', { name: '完成' })).toBeInTheDocument()
   })
 
+  it('names the result region and exposes complex error details after actions', () => {
+    const { rerender } = render(
+      <Result
+        status="error"
+        title="提交失败"
+        subTitle="请检查输入"
+        extra={<button type="button">重新检查</button>}
+      >
+        <ul>
+          <li>文件格式不受支持</li>
+        </ul>
+      </Result>,
+    )
+    const result = screen.getByRole('region', { name: '提交失败' })
+    const heading = screen.getByRole('heading', { name: '提交失败' })
+    expect(result).toHaveAttribute('aria-labelledby', heading.id)
+    expect(result).toContainElement(screen.getByText('文件格式不受支持'))
+    expect(result).toContainElement(
+      screen.getByRole('button', { name: '重新检查' }),
+    )
+    expect(result.querySelector('[aria-hidden="true"]')).toBeInTheDocument()
+
+    rerender(<Result status="success" title="提交完成" />)
+    expect(screen.getByRole('region', { name: '提交完成' })).toBeInTheDocument()
+    expect(screen.queryByText('文件格式不受支持')).not.toBeInTheDocument()
+  })
+
   it('uses native keyboard-friendly number and range controls', () => {
     const onNumberChange = vi.fn()
     const onSliderChange = vi.fn()
