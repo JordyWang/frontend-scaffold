@@ -42,8 +42,16 @@ dayjs.extend(localeData)
 
 /** Functions receive the project's canonical string, never a library date object. */
 export type PickerFormatFunction = (value: string) => string
+/** Ant Design compatible segmented input format. */
+export type PickerFormatMask = {
+  format: string
+  type?: 'mask'
+}
 export type PickerFormat =
-  string | PickerFormatFunction | readonly (string | PickerFormatFunction)[]
+  | string
+  | PickerFormatFunction
+  | PickerFormatMask
+  | readonly (string | PickerFormatFunction | PickerFormatMask)[]
 export type PickerParseInfo = {
   kind: 'date' | 'time' | 'dateTime'
   picker: DatePickerUnit
@@ -78,11 +86,23 @@ const tokens =
   /\[[^\]]*\]|GGGG|gggg|YYYY|MMMM|dddd|MMM|ddd|SSS|SS|YY|MM|DD|Do|dd|HH|hh|kk|mm|ss|WW|ww|wo|M|D|d|Q|H|h|k|m|s|S|W|w|A|a|ZZ|Z|zzz|z|X|x/g
 const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const list = (format?: PickerFormat) =>
-  Array.isArray(format)
-    ? format
-    : format === undefined
-      ? []
-      : [format as string | PickerFormatFunction]
+  Array.isArray(format) ? format : format === undefined ? [] : [format]
+
+type FormatItem = string | PickerFormatFunction | PickerFormatMask
+const patternOf = (item: FormatItem) =>
+  typeof item === 'string'
+    ? item
+    : typeof item === 'object'
+      ? item.format
+      : undefined
+const isMaskItem = (item: FormatItem | undefined): item is PickerFormatMask =>
+  Boolean(item && typeof item === 'object' && item.type === 'mask')
+const sameFormatItem = (left: FormatItem, right: FormatItem) =>
+  left === right ||
+  (typeof left === 'object' &&
+    typeof right === 'object' &&
+    left.format === right.format &&
+    left.type === right.type)
 function resolveLocale(locale?: string) {
   const requested = (locale ?? 'en').toLowerCase().replace(/_/g, '-')
   const exact = dayjs().locale(requested).locale()
@@ -362,6 +382,159 @@ function parsePattern(
   const value = info.kind === 'time' ? raw : dateValue + 'T' + raw
   return same(formatted(value, parts, info), text.trim()) ? value : undefined
 }
+
+const maskWidths: Record<string, number> = {
+  YYYY: 4,
+  GGGG: 4,
+  gggg: 4,
+  YY: 2,
+  MM: 2,
+  DD: 2,
+  HH: 2,
+  hh: 2,
+  kk: 2,
+  mm: 2,
+  ss: 2,
+  S: 1,
+  SS: 2,
+  SSS: 3,
+  WW: 2,
+  ww: 2,
+  M: 2,
+  D: 2,
+  H: 2,
+  h: 2,
+  k: 2,
+  m: 2,
+  s: 2,
+  W: 2,
+  w: 2,
+  Q: 1,
+}
+
+/**
+ * Apply the editable part of an Ant Design mask. Numeric date/time tokens are
+ * segmented; literals are inserted as soon as the preceding segment is full.
+ * Named months, weekdays and meridiem tokens are left to the normal text
+ * editor because their alphabetic values cannot be safely inferred from a
+ * digit-only edit.
+ */
+function maskText(text: string, pattern: string, locale: string) {
+  const source = pieces(pattern, locale)
+  const segments = source.map((part) =>
+    'token' in part ? maskWidths[part.token] : undefined,
+  )
+  if (segments.some((width, index) => 'token' in source[index] && !width))
+    return text
+  const raw = text.replace(/\D/g, '')
+  if (!raw) return ''
+  let cursor = 0
+  let output = ''
+  let previousComplete = false
+  source.forEach((part, index) => {
+    if ('literal' in part) {
+      if (previousComplete) output += part.literal
+      return
+    }
+    const width = segments[index]!
+    const chunk = raw.slice(cursor, cursor + width)
+    if (!chunk) {
+      previousComplete = false
+      return
+    }
+    output += chunk
+    cursor += chunk.length
+    previousComplete = chunk.length === width
+  })
+  return output
+}
+
+function moveMaskCaret(value: string, position: number, direction: -1 | 1) {
+  let next = Math.max(0, Math.min(value.length, position + direction))
+  while (
+    next > 0 &&
+    next < value.length &&
+    !/\d/.test(value[direction < 0 ? next : next - 1])
+  )
+    next += direction
+  return Math.max(0, Math.min(value.length, next))
+}
+
+type MaskSegment = { token: string; start: number; end: number }
+function maskSegments(value: string, pattern: string, locale: string) {
+  const result: MaskSegment[] = []
+  let cursor = 0
+  for (const part of pieces(pattern, locale)) {
+    if ('literal' in part) {
+      if (value.slice(cursor, cursor + part.literal.length) === part.literal)
+        cursor += part.literal.length
+      continue
+    }
+    const width = maskWidths[part.token]
+    if (!width || cursor >= value.length) break
+    const end = Math.min(value.length, cursor + width)
+    result.push({ token: part.token, start: cursor, end })
+    cursor = end
+  }
+  return result
+}
+function selectedMaskSegment(
+  value: string,
+  position: number,
+  pattern: string,
+  locale: string,
+) {
+  const segments = maskSegments(value, pattern, locale)
+  return (
+    segments.find(
+      (segment) => position >= segment.start && position < segment.end,
+    ) ??
+    segments.find((segment) => segment.start >= position) ??
+    segments.at(-1)
+  )
+}
+function adjustMaskSegment(
+  value: string,
+  position: number,
+  direction: -1 | 1,
+  pattern: string,
+  locale: string,
+) {
+  const segment = selectedMaskSegment(value, position, pattern, locale)
+  if (!segment || segment.end - segment.start < 1) return undefined
+  const current = value.slice(segment.start, segment.end)
+  if (!/^\d+$/.test(current) || current.length < maskWidths[segment.token])
+    return undefined
+  const limits: Record<string, [number, number]> = {
+    M: [1, 12],
+    MM: [1, 12],
+    D: [1, 31],
+    DD: [1, 31],
+    H: [0, 23],
+    HH: [0, 23],
+    h: [1, 12],
+    hh: [1, 12],
+    k: [1, 24],
+    kk: [1, 24],
+    m: [0, 59],
+    mm: [0, 59],
+    s: [0, 59],
+    ss: [0, 59],
+    Q: [1, 4],
+    W: [1, 53],
+    WW: [1, 53],
+    w: [1, 53],
+    ww: [1, 53],
+    S: [0, 9],
+    SS: [0, 99],
+    SSS: [0, 999],
+  }
+  const [minimum, maximum] = limits[segment.token] ?? [0, 9999]
+  const next = Math.max(minimum, Math.min(maximum, Number(current) + direction))
+  const replacement = String(next).padStart(current.length, '0')
+  return value.slice(0, segment.start) + replacement + value.slice(segment.end)
+}
+
 export function createPickerFormat(options: Options) {
   const {
     kind,
@@ -377,8 +550,12 @@ export function createPickerFormat(options: Options) {
   }
   const formats = options.native ? [] : list(options.format)
   const prepared = formats.map((format) =>
-    typeof format === 'string' ? pieces(format, info.locale) : format,
+    patternOf(format) !== undefined
+      ? pieces(patternOf(format)!, info.locale)
+      : format,
   )
+  const maskItem = isMaskItem(formats[0]) ? formats[0] : undefined
+  const maskPattern = maskItem?.format
   const valid = (value: string) =>
     kind === 'date'
       ? Boolean(parsePickerValue(value, picker))
@@ -393,8 +570,8 @@ export function createPickerFormat(options: Options) {
         : dateTimeDisplay(value, precision, use12Hours)
   return {
     hint:
-      typeof formats[0] === 'string'
-        ? formats[0]
+      patternOf(formats[0]) !== undefined
+        ? patternOf(formats[0])!
         : kind === 'date'
           ? picker === 'week'
             ? 'YYYY-Www'
@@ -411,6 +588,40 @@ export function createPickerFormat(options: Options) {
         : first
           ? formatted(value, first, info)
           : fallback(value)
+    },
+    /** True when the first format requests segmented editing. */
+    isMask: Boolean(maskPattern),
+    /**
+     * Normalize a partially edited mask while retaining its segment separators.
+     * This is intentionally independent from parsing: incomplete input remains
+     * editable and is only validated when the field is committed or blurred.
+     */
+    maskInput(text: string) {
+      return maskPattern ? maskText(text, maskPattern, info.locale) : text
+    },
+    moveCaret(value: string, position: number, direction: -1 | 1) {
+      return maskPattern ? moveMaskCaret(value, position, direction) : position
+    },
+    selectSegment(value: string, position: number) {
+      if (!maskPattern) return undefined
+      const segment = selectedMaskSegment(
+        value,
+        position,
+        maskPattern,
+        info.locale,
+      )
+      return segment ? ([segment.start, segment.end] as const) : undefined
+    },
+    adjustSegment(value: string, position: number, direction: -1 | 1) {
+      return maskPattern
+        ? adjustMaskSegment(
+            value,
+            position,
+            direction,
+            maskPattern,
+            info.locale,
+          )
+        : undefined
     },
     parse(text: string): string | undefined {
       if (!text.trim()) return ''
@@ -443,12 +654,12 @@ export function usePickerFormat(options: Options) {
   const next = list(options.format)
   if (
     next.length !== previous.length ||
-    next.some((value, index) => value !== previous[index])
+    next.some((value, index) => !sameFormatItem(value, previous[index]))
   )
     setPrevious(next)
   const stableFormat =
     next.length === previous.length &&
-    next.every((value, index) => value === previous[index])
+    next.every((value, index) => sameFormatItem(value, previous[index]))
       ? previous
       : next
   const {
@@ -490,8 +701,8 @@ export function inferFormattedTimePrecision(
   locale?: string,
 ): TimePrecision {
   const units = list(format).flatMap((item) =>
-    typeof item === 'string'
-      ? pieces(item, resolveLocale(locale)).flatMap((part) =>
+    patternOf(item) !== undefined
+      ? pieces(patternOf(item)!, resolveLocale(locale)).flatMap((part) =>
           'token' in part ? [part.token] : [],
         )
       : [],
@@ -506,8 +717,8 @@ export function inferFormattedTimePrecision(
 export function formatUses12Hours(format?: PickerFormat, locale?: string) {
   const first = list(format)[0]
   return (
-    typeof first === 'string' &&
-    pieces(first, resolveLocale(locale)).some(
+    patternOf(first) !== undefined &&
+    pieces(patternOf(first)!, resolveLocale(locale)).some(
       (part) => 'token' in part && (part.token === 'h' || part.token === 'hh'),
     )
   )

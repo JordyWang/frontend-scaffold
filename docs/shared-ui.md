@@ -134,7 +134,9 @@ DatePicker（五单位单选与 multiple）、MultiDatePicker、DateRangePicker�
 <DatePicker picker="quarter" format="YYYY年[第]Q[季度]" />
 ```
 
-项目 `PickerFormat` 为字符串、`(canonicalValue: string) => string`，或这两类的只读数组。数组首项用于展示，所有字符串项都可匹配输入；空数组沿用默认展示和规范输入。输入匹配严格的位数、有效日期/时间和格式回显，名称/时段大小写不敏感，忽略首尾空白；不自动修正 2 月 30 日、错误星期或重复字段冲突。多选标签、hover 输入、范围端点与状态文案同步格式化；自定义 `renderTag` 仍接收规范值。
+项目 `PickerFormat` 为字符串、`(canonicalValue: string) => string`、`{ format: string; type?: 'mask' }`，或这些类型的只读数组。数组首项用于展示，所有字符串项都可匹配输入；空数组沿用默认展示和规范输入。输入匹配严格的位数、有效日期/时间和格式回显，名称/时段大小写不敏感，忽略首尾空白；不自动修正 2 月 30 日、错误星期或重复字段冲突。多选标签、hover 输入、范围端点与状态文案同步格式化；自定义 `renderTag` 仍接收规范值。
+
+当首项为 `{ format: 'YYYY-MM-DD', type: 'mask' }` 时，输入进入分段编辑：数字按 token 填入，完成一段后自动插入字面分隔符，左右方向键跨过分隔符，粘贴和触控输入使用同一归一化逻辑。掩码只负责未完成草稿的编辑，不把非法日期或越界值自动提交；Enter、确认或失焦仍走相同的严格解析和 `min` / `max` / `disabled*` 约束。含月份名称、星期或时段名称的格式保留普通文本编辑。`mode="native"` 仍由浏览器处理并忽略掩码。
 
 `parseInput(text, { kind, picker, precision, locale })` 可补充函数格式的反向解析；返回规范字符串或 undefined。返回值必须通过严格规范解析和当前可选约束。函数不推测逆向转换；可传 `inputReadOnly` 通过面板选择，或在数组中提供可解析字符串格式。回调不接收 Day.js 对象，底层库不会泄漏到业务 API。
 
@@ -154,9 +156,9 @@ DatePicker（五单位单选与 multiple）、MultiDatePicker、DateRangePicker�
 
 默认 locale 保持英文格式名称；显式 locale 优先于 ConfigProvider.locale。内置 Day.js locale 为 en、en-gb、zh-cn、zh-tw、fr、de、es、ja、ko，区域名先匹配完整名称再匹配语言，未载入的语言回退英文；额外语言可通过函数格式和 parseInput 接入。中文 A / a 支持凌晨、早上、上午、中午、下午、晚上。本批处理公历 civil 字段，不做时区转换；DST 跳过的墙上时间仍保持用户输入。Z / ZZ / z / zzz / X / x 不属于项目日期值的格式契约，若需要外部时区/时间戳请在业务适配层转换后使用函数格式。
 
-格式、解析器或 locale 改变时清除未完成手工草稿与旧输入错误，保持当前已提交值及已通过可选约束的临时面板选择，不触发值回调；等价格式数组不会因父组件普通重渲染丢失草稿。规范值仍用于 min/max/step、disabled 回调、preset、onChange/onCalendarChange/onOk 和隐藏 FormData；模式为 native 时忽略 format / parseInput，浏览器负责展示，继续使用原生归一化。分段 mask 输入另行实现。
+格式、解析器或 locale 改变时清除未完成手工草稿与旧输入错误，保持当前已提交值及已通过可选约束的临时面板选择，不触发值回调；等价格式数组不会因父组件普通重渲染丢失草稿。规范值仍用于 min/max/step、disabled 回调、preset、onChange/onCalendarChange/onOk 和隐藏 FormData；模式为 native 时忽略 format / parseInput，浏览器负责展示，继续使用原生归一化。
 
-`/__ui` 的“日期与时间格式”展示多格式、函数解析、五单位、早年、跨日、12 小时、毫秒、语言切换、格式切换、原生适配与 240px RTL 深色。验证覆盖严格解析、提交隔离、Form 校验/重置和 PC/H5 交互。
+`/__ui` 的“日期与时间格式”展示多格式、函数解析、五单位、分段 mask、早年、跨日、12 小时、毫秒、语言切换、格式切换、原生适配与 240px RTL 深色。验证覆盖严格解析、提交隔离、掩码粘贴/键盘移动、Form 校验/重置和 PC/H5 交互。
 
 `DatePicker` 的值为严格的 `YYYY-MM-DD` 字符串（0001–9999 年），空值为 `''`；显式 `value={undefined}` 仍表示受控空值。默认 `mode="popup"`，`mode="panel"` 将面板常驻在输入之后，`mode="native"` 使用浏览器原生日期输入。输入 ref、原生输入属性、`size`、`variant` 与 `status` 保留；`className` 修饰输入，`classNames` 提供 root/input/toggle/clear/popup/panel/presets/footer/error 插槽。样式使用 Tailwind 与语义 Token。
 

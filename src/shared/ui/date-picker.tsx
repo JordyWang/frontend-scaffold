@@ -695,23 +695,75 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
             }}
             onClick={(event) => {
               onClick?.(event)
-              if (!event.defaultPrevented && mode === 'popup') begin()
+              if (!event.defaultPrevented && mode === 'popup') {
+                begin()
+                if (presentation.isMask) {
+                  const range = presentation.selectSegment(
+                    event.currentTarget.value,
+                    event.currentTarget.selectionStart ?? 0,
+                  )
+                  if (range)
+                    event.currentTarget.setSelectionRange(range[0], range[1])
+                }
+              }
             }}
             onChange={(event) => {
               onPreview()
-              const next = event.currentTarget.value
+              const next = presentation.maskInput(event.currentTarget.value)
               setError('')
               if (mode === 'native') publish(next)
               else {
                 setDraft(next)
                 setEditing(true)
-                if (needConfirm && (!next || selectable(next)))
-                  setCandidate(next)
+                const parsed = next ? presentation.parse(next) : ''
+                if (needConfirm && (!next || (parsed && selectable(parsed))))
+                  setCandidate(parsed ?? '')
               }
             }}
             onKeyDown={(event) => {
               onPreview()
               onKeyDown?.(event)
+              if (
+                presentation.isMask &&
+                (event.key === 'ArrowUp' || event.key === 'ArrowDown') &&
+                !event.altKey &&
+                !event.ctrlKey &&
+                !event.metaKey
+              ) {
+                const input = event.currentTarget,
+                  next = presentation.adjustSegment(
+                    input.value,
+                    input.selectionStart ?? 0,
+                    event.key === 'ArrowUp' ? 1 : -1,
+                  )
+                if (next !== undefined) {
+                  event.preventDefault()
+                  setDraft(next)
+                  setEditing(true)
+                  const parsed = presentation.parse(next)
+                  if (needConfirm && parsed && selectable(parsed))
+                    setCandidate(parsed)
+                  return
+                }
+              }
+              if (
+                presentation.isMask &&
+                (event.key === 'ArrowLeft' || event.key === 'ArrowRight') &&
+                !event.altKey &&
+                !event.ctrlKey &&
+                !event.metaKey
+              ) {
+                event.preventDefault()
+                const input = event.currentTarget,
+                  position = input.selectionStart ?? 0
+                const next = presentation.moveCaret(
+                  input.value,
+                  position,
+                  event.key === 'ArrowLeft' ? -1 : 1,
+                )
+                input.setSelectionRange(next, next)
+                return
+              }
               if (event.defaultPrevented || inactive || mode === 'native')
                 return
               if (event.key === 'ArrowDown' && mode === 'popup') {

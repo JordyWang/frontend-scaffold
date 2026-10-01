@@ -356,6 +356,7 @@ export type { TreeMove, TreeDropInfo, TreeDropPosition } from './tree-move'
 export type {
   PickerFormat,
   PickerFormatFunction,
+  PickerFormatMask,
   PickerFormatProps,
   PickerParseInput,
   PickerParseInfo,

@@ -32,6 +32,29 @@ const confirm = () =>
   fireEvent.click(screen.getByRole('button', { name: '确定', exact: true }))
 
 describe('civil date and time format adapter', () => {
+  it('supports Ant Design mask objects with partial normalization and canonical parsing', () => {
+    const date = createPickerFormat({
+      kind: 'date',
+      format: { format: 'YYYY-MM-DD', type: 'mask' },
+    })
+    expect(date.isMask).toBe(true)
+    expect(date.display('2024-02-29')).toBe('2024-02-29')
+    expect(date.maskInput('20240229')).toBe('2024-02-29')
+    expect(date.maskInput('2024')).toBe('2024-')
+    expect(date.parse('2024-02-29')).toBe('2024-02-29')
+    expect(date.parse('2024-02-30')).toBeUndefined()
+    const time = createPickerFormat({
+      kind: 'time',
+      precision: 'second',
+      format: { format: 'HH:mm:ss', type: 'mask' },
+    })
+    expect(time.maskInput('123045')).toBe('12:30:45')
+    expect(time.moveCaret('12:30:45', 3, -1)).toBe(1)
+    expect(time.moveCaret('12:30:45', 2, 1)).toBe(4)
+    expect(time.selectSegment('12:30:45', 3)).toEqual([3, 5])
+    expect(time.adjustSegment('12:30:45', 1, 1)).toBe('13:30:45')
+    expect(date.adjustSegment('2024-02-29', 5, 1)).toBe('2024-03-29')
+  })
   it.each([
     ['0001-01-01', 'DD/MM/YYYY', '01/01/0001'],
     ['0099-12-31', 'YYYY年M月D日', '0099年12月31日'],
@@ -544,6 +567,35 @@ describe('formatted picker sessions', () => {
       expect(field).toHaveValue(name === 'multiple' ? '' : '29/02/2024')
     }
     expect(change).not.toHaveBeenCalled()
+  })
+  it('edits mask fields through normalized segments and keeps FormData canonical', () => {
+    const change = vi.fn()
+    render(
+      <form aria-label="mask">
+        <DatePicker
+          label="mask date"
+          defaultValue="2024-02-29"
+          format={{ format: 'YYYY-MM-DD', type: 'mask' }}
+          name="maskDate"
+          onChange={change}
+        />
+        <TimePicker
+          label="mask time"
+          defaultValue="13:30:15"
+          precision="second"
+          format={{ format: 'HH:mm:ss', type: 'mask' }}
+          name="maskTime"
+        />
+      </form>,
+    )
+    const date = screen.getByRole('combobox', { name: 'mask date' })
+    fireEvent.change(date, { target: { value: '20240301' } })
+    expect(date).toHaveValue('2024-03-01')
+    fireEvent.keyDown(date, { key: 'Enter' })
+    expect(change).toHaveBeenCalledWith('2024-03-01')
+    const form = screen.getByRole('form', { name: 'mask' }) as HTMLFormElement
+    expect(new FormData(form).get('maskDate')).toBe('2024-03-01')
+    expect(new FormData(form).get('maskTime')).toBe('13:30:15')
   })
   it('does not discard a draft for equivalent format arrays on unrelated parent updates', () => {
     const { rerender } = render(

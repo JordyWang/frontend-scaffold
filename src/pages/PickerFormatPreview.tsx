@@ -34,6 +34,8 @@ export function PickerFormatPreview() {
     [locale, setLocale] = useState('fr-FR')
   const [range, setRange] = useState<DateRange>(['2024-02-29', '2024-03-02'])
   const [time, setTime] = useState('13:30:15.007')
+  const [maskDate, setMaskDate] = useState('2024-02-29')
+  const [maskTime, setMaskTime] = useState('13:30:15')
   const [timeRange, setTimeRange] = useState<TimeRange>(['09:30', '13:30'])
   const [dateTime, setDateTime] = useState('2024-02-29T13:30:15.007')
   const [dateTimeRange, setDateTimeRange] = useState<DateTimeRange>([
@@ -159,6 +161,33 @@ export function PickerFormatPreview() {
                   format={dateLabel}
                   parseInput={parseDateLabel}
                   onChange={setFunctionDate}
+                />
+              }
+            />
+            <FormField
+              label="分段掩码日期"
+              description="输入数字自动补齐分隔符；左右方向键跨过分隔符，提交值仍为 YYYY-MM-DD。"
+              control={
+                <DatePicker
+                  label="分段掩码日期"
+                  value={maskDate}
+                  format={{ format: 'YYYY-MM-DD', type: 'mask' }}
+                  name="maskDate"
+                  onChange={setMaskDate}
+                />
+              }
+            />
+            <FormField
+              label="分段掩码时间"
+              description="按时、分、秒分段输入，保留键盘和触控编辑。"
+              control={
+                <TimePicker
+                  label="分段掩码时间"
+                  value={maskTime}
+                  precision="second"
+                  format={{ format: 'HH:mm:ss', type: 'mask' }}
+                  name="maskTime"
+                  onChange={setMaskTime}
                 />
               }
             />

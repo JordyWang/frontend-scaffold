@@ -648,16 +648,65 @@ export const MultiDatePicker = forwardRef<
           onFocus={onFocus}
           onClick={(event) => {
             onClick?.(event)
-            if (!event.defaultPrevented) begin()
+            if (!event.defaultPrevented) {
+              begin()
+              if (presentation.isMask) {
+                const range = presentation.selectSegment(
+                  event.currentTarget.value,
+                  event.currentTarget.selectionStart ?? 0,
+                )
+                if (range)
+                  event.currentTarget.setSelectionRange(range[0], range[1])
+              }
+            }
           }}
           onChange={(event) => {
             onPreview()
             endingSession.current = false
-            setDraft(event.currentTarget.value)
+            setDraft(presentation.maskInput(event.currentTarget.value))
             setError('')
           }}
           onKeyDown={(event) => {
             onPreview()
+            if (
+              presentation.isMask &&
+              (event.key === 'ArrowUp' || event.key === 'ArrowDown') &&
+              !event.altKey &&
+              !event.ctrlKey &&
+              !event.metaKey
+            ) {
+              const input = event.currentTarget,
+                next = presentation.adjustSegment(
+                  input.value,
+                  input.selectionStart ?? 0,
+                  event.key === 'ArrowUp' ? 1 : -1,
+                )
+              if (next !== undefined) {
+                event.preventDefault()
+                setDraft(next)
+                endingSession.current = false
+                setError('')
+                return
+              }
+            }
+            if (
+              presentation.isMask &&
+              (event.key === 'ArrowLeft' || event.key === 'ArrowRight') &&
+              !event.altKey &&
+              !event.ctrlKey &&
+              !event.metaKey
+            ) {
+              event.preventDefault()
+              const input = event.currentTarget,
+                position = input.selectionStart ?? 0
+              const next = presentation.moveCaret(
+                input.value,
+                position,
+                event.key === 'ArrowLeft' ? -1 : 1,
+              )
+              input.setSelectionRange(next, next)
+              return
+            }
             onKeyDown?.(event)
             if (event.defaultPrevented || inactive) return
             if (event.key === 'ArrowDown' && mode === 'popup') {

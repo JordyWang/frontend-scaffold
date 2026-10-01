@@ -991,11 +991,26 @@ const DateRangePickerControl = forwardRef<
                       )
                     onFocus?.(event, { endpoint: part === 0 ? 'start' : 'end' })
                   }}
-                  onClick={() => begin(part as 0 | 1)}
+                  onClick={(event) => {
+                    begin(part as 0 | 1)
+                    if (presentation.isMask) {
+                      const range = presentation.selectSegment(
+                        event.currentTarget.value,
+                        event.currentTarget.selectionStart ?? 0,
+                      )
+                      if (range)
+                        event.currentTarget.setSelectionRange(
+                          range[0],
+                          range[1],
+                        )
+                    }
+                  }}
                   onChange={(event) => {
                     onPreview()
                     const next = asRange(draft)
-                    next[part] = event.currentTarget.value
+                    next[part] = presentation.maskInput(
+                      event.currentTarget.value,
+                    )
                     lastEdited.current = part as 0 | 1
                     setError('')
                     if (mode === 'native')
@@ -1007,6 +1022,47 @@ const DateRangePickerControl = forwardRef<
                   }}
                   onKeyDown={(event) => {
                     onPreview()
+                    if (
+                      presentation.isMask &&
+                      (event.key === 'ArrowUp' || event.key === 'ArrowDown') &&
+                      !event.altKey &&
+                      !event.ctrlKey &&
+                      !event.metaKey
+                    ) {
+                      const input = event.currentTarget,
+                        nextValue = presentation.adjustSegment(
+                          input.value,
+                          input.selectionStart ?? 0,
+                          event.key === 'ArrowUp' ? 1 : -1,
+                        )
+                      if (nextValue !== undefined) {
+                        event.preventDefault()
+                        const next = asRange(draft)
+                        next[part] = nextValue
+                        setDraft(next)
+                        setDirty(true)
+                        return
+                      }
+                    }
+                    if (
+                      presentation.isMask &&
+                      (event.key === 'ArrowLeft' ||
+                        event.key === 'ArrowRight') &&
+                      !event.altKey &&
+                      !event.ctrlKey &&
+                      !event.metaKey
+                    ) {
+                      event.preventDefault()
+                      const input = event.currentTarget,
+                        position = input.selectionStart ?? 0
+                      const next = presentation.moveCaret(
+                        input.value,
+                        position,
+                        event.key === 'ArrowLeft' ? -1 : 1,
+                      )
+                      input.setSelectionRange(next, next)
+                      return
+                    }
                     if (isDisabled(part as 0 | 1) || mode === 'native') return
                     if (event.key === 'ArrowDown' && mode === 'popup') {
                       event.preventDefault()

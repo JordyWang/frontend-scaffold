@@ -39,6 +39,29 @@ test('multiple input formats display the first pattern and submit canonical Form
   await expect(field).toHaveValue('01/03/2024')
 })
 
+test('mask format inserts separators, accepts keyboard segments, and submits canonical values', async ({
+  page,
+}) => {
+  const section = demo(page),
+    date = section.getByRole('combobox', { name: '分段掩码日期', exact: true }),
+    time = section.getByRole('combobox', { name: '分段掩码时间', exact: true })
+  await date.fill('20240301')
+  await expect(date).toHaveValue('2024-03-01')
+  await date.press('ArrowLeft')
+  await date.press('ArrowRight')
+  await date.press('Enter')
+  await expect(date).toHaveValue('2024-03-01')
+  await expect(section.locator('input[name="maskDate"]')).toHaveValue(
+    '2024-03-01',
+  )
+  await time.fill('123045')
+  await expect(time).toHaveValue('12:30:45')
+  await time.press('Enter')
+  await expect(section.locator('input[name="maskTime"]')).toHaveValue(
+    '12:30:45',
+  )
+})
+
 test('formatted calendar keeps keyboard browsing pending, touch confirmation and focus recovery', async ({
   page,
 }, info) => {
