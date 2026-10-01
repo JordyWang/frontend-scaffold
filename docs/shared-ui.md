@@ -145,7 +145,13 @@
 
 四种 `variant`、三种 `status`、统一 `size`、`prefix` / `suffixIcon` / `expandIcon`、`displayRender(pathOptions)`、`optionRender(option, pathOptions)` 和语义 `classNames` 统一使用 Tailwind Token。标签和渲染插槽应为非交互内容。`placement` 使用逻辑 `topStart` / `topEnd` / `bottomStart` / `bottomEnd`；`popupWidth`、`columnWidth`、`listHeight` 控制面板尺寸，空间不足自动翻转，保留视口边距并响应软键盘视口变化。
 
-`allowClear` 在有有效路径时提供独立的 44px 清空按钮，返回 `[]` 并调用 `onClear`。`mode="inline"` 保留原生分级选择框、逐级 `onChange` 和最后一级的浏览器 `required` 校验；原生“请选择”会截断该级及后续路径。弹层和面板以 `aria-required` 表达必填，应使用 `FormItem.rules` 校验。选项移除或禁用时暂时显示最后有效前缀，原选项恢复后可恢复未被用户改动的选择。传入 `name` 时以 JSON 数组字符串提交有效路径。`/__ui` 展示搜索、三列、长标签、悬停、内嵌面板、四向位置、外观、空状态及 RTL 深色；多选和异步加载仍待补齐。
+`allowClear` 在有有效路径时提供独立的 44px 清空按钮，返回 `[]` 并调用 `onClear`。`mode="inline"` 保留原生分级选择框、逐级 `onChange` 和最后一级的浏览器 `required` 校验；原生“请选择”会截断该级及后续路径。弹层和面板以 `aria-required` 表达必填，应使用 `FormItem.rules` 校验。单选的选项移除或禁用时暂时显示最后有效前缀，原选项恢复后可恢复未被用户改动的选择。传入 `name` 时以 JSON 数组字符串提交有效路径。`/__ui` 展示搜索、三列、长标签、悬停、内嵌面板、四向位置、外观、空状态及 RTL 深色。
+
+`Cascader` 的 `multiple` 使用独立类型 `CascaderMultipleProps`：`value` / `defaultValue` / `onChange` 为 `string[][]`，支持弹层和内嵌面板。点击父级标题或 Enter 浏览子列，点击 44px 勾选区或 Space 切换整条分支；叶节点点击或 Enter 切换勾选，弹层保持打开。`aria-checked` 暴露半选状态，搜索依据完整数据计算关联关系，保留未显示的勾选。同一 value 可出现在不同分支，完整路径是标识；同层 value 应唯一。
+
+`showCheckedStrategy="parent"` 默认压缩为完整选中的父路径，`"leaf"` 回填叶路径；展示与 `onChange` 使用同一策略，受控传入的父路径仍会展开为对应叶节点。`disableCheckbox` 阻断自身与祖先的勾选传导，但保留目录浏览和后代的独立勾选；`disabled` 禁止自身及后代操作。外部传入的未知、已删除或不可勾选路径保留为标签，数据恢复后解析标签；其他勾选不会静默清除它们。不可勾选路径的标签不可移除，未知路径可以移除。
+
+多选标签位于触发器之外，独立移除按钮保持 44px 触控和 Tab 顺序，移除父标签取消其参与关联的分支；触发器 Backspace / Delete 删除最后可移除路径。`maxTagCount` 为非负数字，仅折叠展示；`maxTagPlaceholder(omittedPaths)` 自定义剩余项说明，`tagRender({ path, options, label, disabled })` 自定义非交互标签内容，`removeIcon` 自定义移除图标，语义插槽包括 `checkbox`、`tags`、`tag`、`tagLabel`、`tagRemove`、`tagOverflow`。`autoClearSearchValue` 默认选择后清空搜索并返回搜索入口，false 保留查询。多选字段配合 `FormItem.emptyValue={[]}`，hidden field 提交 JSON 多路径；`/__ui` 展示策略切换、长标签、折叠、动态数据、未知/禁用值、RTL 深色、面板和表单校验/重置。异步加载仍待补齐。
 
 `TreeSelect` 的左右方向键随 `ConfigProvider.direction` 调整展开和折叠方向，弹层在独立 Portal 容器中也保留 RTL。多选 `allowClear` 清空后关闭弹层并把焦点还给触发器。
 

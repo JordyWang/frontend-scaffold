@@ -3,6 +3,7 @@ import {
   useId,
   useImperativeHandle,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -27,7 +28,15 @@ import {
 } from './tailwind-styles'
 import { CascaderNative } from './cascader-native'
 import { CascaderPanel, type CascaderPanelHandle } from './cascader-panel'
-import { cascaderLevels, validCascaderPath } from './cascader-state'
+import {
+  cascaderKey,
+  cascaderLevels,
+  cascaderText,
+  indexCascader,
+  validCascaderPath,
+} from './cascader-state'
+import { cascaderChecks, type CascaderCheckedStrategy } from './cascader-checks'
+import { CascaderTags } from './cascader-tags'
 
 export type CascaderOption = {
   value: string
@@ -35,6 +44,7 @@ export type CascaderOption = {
   searchText?: string
   children?: CascaderOption[]
   disabled?: boolean
+  disableCheckbox?: boolean
 }
 export type CascaderPlacement =
   'bottomStart' | 'bottomEnd' | 'topStart' | 'topEnd'
@@ -53,13 +63,22 @@ export type CascaderPart =
   | 'itemLabel'
   | 'expandIcon'
   | 'result'
+  | 'checkbox'
+  | 'tags'
+  | 'tag'
+  | 'tagLabel'
+  | 'tagRemove'
+  | 'tagOverflow'
 export type CascaderHandle = { focus: () => void; blur: () => void }
-export type CascaderProps = {
+export type CascaderTagRenderProps = {
+  path: string[]
   options: CascaderOption[]
-  value?: string[]
-  defaultValue?: string[]
-  onChange?: (value: string[]) => void
-  mode?: 'popup' | 'inline' | 'panel'
+  label: ReactNode
+  disabled: boolean
+}
+export type { CascaderCheckedStrategy }
+type CascaderBaseProps = {
+  options: CascaderOption[]
   changeOnSelect?: boolean
   expandTrigger?: 'click' | 'hover'
   open?: boolean
@@ -101,6 +120,33 @@ export type CascaderProps = {
   onBlur?: FocusEventHandler<HTMLSpanElement>
   ref?: Ref<CascaderHandle>
 }
+export type CascaderSingleProps = CascaderBaseProps & {
+  multiple?: false
+  mode?: 'popup' | 'inline' | 'panel'
+  value?: string[]
+  defaultValue?: string[]
+  onChange?: (value: string[]) => void
+  showCheckedStrategy?: never
+  maxTagCount?: never
+  maxTagPlaceholder?: never
+  tagRender?: never
+  removeIcon?: never
+  autoClearSearchValue?: never
+}
+export type CascaderMultipleProps = CascaderBaseProps & {
+  multiple: true
+  mode?: 'popup' | 'panel'
+  value?: string[][]
+  defaultValue?: string[][]
+  onChange?: (value: string[][]) => void
+  showCheckedStrategy?: CascaderCheckedStrategy
+  maxTagCount?: number
+  maxTagPlaceholder?: ReactNode | ((omitted: string[][]) => ReactNode)
+  tagRender?: (props: CascaderTagRenderProps) => ReactNode
+  removeIcon?: ReactNode
+  autoClearSearchValue?: boolean
+}
+export type CascaderProps = CascaderSingleProps | CascaderMultipleProps
 
 function focusAfter(trigger: HTMLElement, popup: HTMLElement | null) {
   const elements = [
@@ -125,7 +171,13 @@ export function Cascader(allProps: CascaderProps) {
     options,
     value,
     defaultValue = [],
-    onChange,
+    multiple = false,
+    showCheckedStrategy = 'parent',
+    maxTagCount,
+    maxTagPlaceholder,
+    tagRender,
+    removeIcon,
+    autoClearSearchValue = true,
     mode = 'popup',
     changeOnSelect = false,
     expandTrigger = 'click',
@@ -183,7 +235,7 @@ export function Cascader(allProps: CascaderProps) {
   const previousOpen = useRef(false)
   const lastFocus = useRef<HTMLElement | null>(null)
   const closing = useRef(false)
-  const [internal, setInternal] = useState(defaultValue)
+  const [internal, setInternal] = useState<string[] | string[][]>(defaultValue)
   const [internalOpen, setInternalOpen] = useState(defaultOpen)
   const [internalSearch, setInternalSearch] = useState(defaultSearchValue)
   const controlled = Object.prototype.hasOwnProperty.call(allProps, 'value')
@@ -191,12 +243,22 @@ export function Cascader(allProps: CascaderProps) {
     allProps,
     'searchValue',
   )
-  const path = controlled ? (value ?? []) : internal
+  const rawValue = controlled ? (value ?? []) : internal
+  const path = multiple ? [] : (rawValue as string[])
+  const paths = multiple ? (rawValue as string[][]) : []
+  const entries = useMemo(() => indexCascader(options), [options])
+  const checks = cascaderChecks(entries, paths)
+  const selectedPaths = multiple
+    ? checks.values(checks.leaves, showCheckedStrategy)
+    : []
   const validPath = validCascaderPath(options, path)
   const selectedOptions = cascaderLevels(options, path).flatMap(
     ({ selected }) => (selected ? [selected] : []),
   )
-  const [navigation, setNavigation] = useState(validPath)
+  const initialPath = multiple
+    ? validCascaderPath(options, paths[0] ?? [])
+    : validPath
+  const [navigation, setNavigation] = useState(initialPath)
   const [popupStyle, setPopupStyle] = useState<CSSProperties>()
   const [actualPlacement, setActualPlacement] = useState(placement)
   const search = searchControlled ? (searchValue ?? '') : internalSearch
@@ -237,17 +299,33 @@ export function Cascader(allProps: CascaderProps) {
       })
     if (open === undefined) setInternalOpen(next)
     onOpenChange?.(next)
-    if (next) setNavigation(validPath)
+    if (next)
+      setNavigation(
+        multiple
+          ? validCascaderPath(options, selectedPaths[0] ?? [])
+          : validPath,
+      )
     else {
       setSearch('')
       if (restoreFocus) triggerRef.current?.focus({ preventScroll: true })
     }
   }
   function changePath(next: string[], close = false) {
-    if (disabled) return
+    if (disabled || allProps.multiple) return
     if (!controlled) setInternal(next)
-    onChange?.(next)
+    allProps.onChange?.(next)
     if (close && mode === 'popup') setOpen(false, true)
+  }
+  function changePaths(next: string[][]) {
+    if (disabled || !allProps.multiple) return
+    if (!controlled) setInternal(next)
+    allProps.onChange?.(next)
+  }
+  function removePath(next: string[]) {
+    const entry = entries.get(cascaderKey(next))
+    if (disabled || entry?.disabled || entry?.option.disableCheckbox) return
+    changePaths(checks.remove(next, showCheckedStrategy))
+    triggerRef.current?.focus({ preventScroll: true })
   }
   function inside(node: Node) {
     // Child layout effects can focus before a parent popup ref attaches.
@@ -395,6 +473,16 @@ export function Cascader(allProps: CascaderProps) {
       onNavigate={setNavigation}
       selectedPath={validPath}
       onChoose={(entry, close) => changePath(entry.path, close)}
+      multiple={multiple}
+      checks={checks}
+      onCheck={(entry) => {
+        changePaths(checks.toggle(cascaderKey(entry.path), showCheckedStrategy))
+        if (autoClearSearchValue && search.trim()) {
+          setNavigation(entry.path)
+          setSearch('')
+          searchRef.current?.focus({ preventScroll: true })
+        }
+      }}
       label={ariaLabel ?? label}
       id={mode === 'panel' ? triggerId : panelId}
       direction={direction}
@@ -446,7 +534,7 @@ export function Cascader(allProps: CascaderProps) {
       dir={direction}
       className={cn(
         'relative inline-flex w-full min-w-0 self-start',
-        mode !== 'popup' && 'flex-col',
+        (mode !== 'popup' || multiple) && 'flex-col',
         classNames?.root,
         className,
       )}
@@ -485,100 +573,155 @@ export function Cascader(allProps: CascaderProps) {
         </>
       ) : (
         <>
-          <button
-            ref={triggerRef}
-            id={triggerId}
-            type="button"
-            role="combobox"
-            aria-label={ariaLabel ?? (ariaLabelledBy ? undefined : label)}
-            aria-labelledby={ariaLabelledBy}
-            aria-describedby={[ariaDescribedBy, valueId]
-              .filter(Boolean)
-              .join(' ')}
-            aria-invalid={status === 'error' || ariaInvalid || undefined}
-            data-status={status === 'default' ? undefined : status}
-            aria-required={required || undefined}
-            aria-expanded={isOpen}
-            aria-controls={isOpen ? popupId : undefined}
-            aria-haspopup="dialog"
-            disabled={disabled}
-            className={cn(
-              inputStyles,
-              inputSizeStyles[resolvedSize],
-              inputVariantStyles[variant],
-              inputStatusStyles[status],
-              'flex cursor-pointer touch-manipulation items-center justify-between gap-2 text-start outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20',
-              allowClear && validPath.length > 0 && 'pe-16',
-              selectedOptions.length === 0 && 'text-muted-foreground',
-              classNames?.trigger,
-            )}
-            onClick={() => setOpen(!isOpen)}
-            onKeyDown={(event) => {
-              if (
-                !isOpen &&
-                ['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)
-              ) {
-                event.preventDefault()
-                setOpen(true)
-              } else if (event.key === 'Escape' && isOpen) {
-                event.preventDefault()
-                setOpen(false, true)
-              } else if (event.key === 'ArrowDown' && isOpen) {
-                event.preventDefault()
-                panelRef.current?.focus()
-              }
-            }}
-          >
-            {prefix && (
-              <span
-                aria-hidden="true"
-                className={cn('shrink-0', classNames?.prefix)}
-              >
-                {prefix}
-              </span>
-            )}
-            <span
-              id={valueId}
-              className={cn('min-w-0 flex-1 truncate', classNames?.value)}
-            >
-              {selectedOptions.length
-                ? (displayRender?.(selectedOptions) ??
-                  selectedOptions.map((option, index) => (
-                    <span key={index}>
-                      {index > 0 && <span aria-hidden="true"> / </span>}
-                      {option.label}
-                    </span>
-                  )))
-                : placeholder}
-            </span>
-            <span
-              aria-hidden="true"
-              className={cn(
-                'shrink-0 text-muted-foreground',
-                classNames?.suffix,
-              )}
-            >
-              {suffixIcon ?? (
-                <Icon name="arrowRight" size={16} className="rotate-90" />
-              )}
-            </span>
-          </button>
-          {allowClear && validPath.length > 0 && !disabled && (
+          <span className="relative inline-flex w-full min-w-0">
             <button
+              ref={triggerRef}
+              id={triggerId}
               type="button"
-              aria-label={'清空' + label}
+              tabIndex={0}
+              role="combobox"
+              aria-label={ariaLabel ?? (ariaLabelledBy ? undefined : label)}
+              aria-labelledby={ariaLabelledBy}
+              aria-describedby={[ariaDescribedBy, valueId]
+                .filter(Boolean)
+                .join(' ')}
+              aria-invalid={status === 'error' || ariaInvalid || undefined}
+              data-status={status === 'default' ? undefined : status}
+              aria-required={required || undefined}
+              aria-expanded={isOpen}
+              aria-controls={isOpen ? popupId : undefined}
+              aria-haspopup="dialog"
+              disabled={disabled}
               className={cn(
-                'absolute end-7 top-1/2 z-[1] inline-grid size-11 -translate-y-1/2 touch-manipulation place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring',
-                classNames?.clear,
+                inputStyles,
+                inputSizeStyles[resolvedSize],
+                inputVariantStyles[variant],
+                inputStatusStyles[status],
+                'flex cursor-pointer touch-manipulation items-center justify-between gap-2 text-start outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20',
+                allowClear &&
+                  (multiple
+                    ? selectedPaths.length > 0
+                    : validPath.length > 0) &&
+                  'pe-16',
+                (multiple
+                  ? selectedPaths.length === 0
+                  : selectedOptions.length === 0) && 'text-muted-foreground',
+                classNames?.trigger,
               )}
-              onClick={() => {
-                changePath([], true)
-                onClear?.()
-                triggerRef.current?.focus({ preventScroll: true })
+              onClick={() => setOpen(!isOpen)}
+              onKeyDown={(event) => {
+                if (
+                  !isOpen &&
+                  ['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)
+                ) {
+                  event.preventDefault()
+                  setOpen(true)
+                } else if (event.key === 'Escape' && isOpen) {
+                  event.preventDefault()
+                  setOpen(false, true)
+                } else if (event.key === 'ArrowDown' && isOpen) {
+                  event.preventDefault()
+                  panelRef.current?.focus()
+                } else if (
+                  multiple &&
+                  ['Backspace', 'Delete'].includes(event.key)
+                ) {
+                  const removable = [...selectedPaths]
+                    .reverse()
+                    .find((selected) => {
+                      const entry = entries.get(cascaderKey(selected))
+                      return !entry?.disabled && !entry?.option.disableCheckbox
+                    })
+                  if (removable) {
+                    event.preventDefault()
+                    removePath(removable)
+                  }
+                }
               }}
             >
-              <Icon name="close" size={16} />
+              {prefix && (
+                <span
+                  aria-hidden="true"
+                  className={cn('shrink-0', classNames?.prefix)}
+                >
+                  {prefix}
+                </span>
+              )}
+              <span
+                id={valueId}
+                className={cn('min-w-0 flex-1 truncate', classNames?.value)}
+              >
+                {multiple
+                  ? selectedPaths.length
+                    ? selectedPaths
+                        .map((selected) => {
+                          const entry = entries.get(cascaderKey(selected))
+                          return (
+                            entry?.options.map(cascaderText).join(' / ') ??
+                            selected.join(' / ')
+                          )
+                        })
+                        .join('、')
+                    : placeholder
+                  : selectedOptions.length
+                    ? (displayRender?.(selectedOptions) ??
+                      selectedOptions.map((option, index) => (
+                        <span key={index}>
+                          {index > 0 && <span aria-hidden="true"> / </span>}
+                          {option.label}
+                        </span>
+                      )))
+                    : placeholder}
+              </span>
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'shrink-0 text-muted-foreground',
+                  classNames?.suffix,
+                )}
+              >
+                {suffixIcon ?? (
+                  <Icon name="arrowRight" size={16} className="rotate-90" />
+                )}
+              </span>
             </button>
+            {allowClear &&
+              (multiple ? selectedPaths.length > 0 : validPath.length > 0) &&
+              !disabled && (
+                <button
+                  type="button"
+                  tabIndex={0}
+                  aria-label={'清空' + label}
+                  className={cn(
+                    'absolute end-7 top-1/2 z-[1] inline-grid size-11 -translate-y-1/2 touch-manipulation place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring',
+                    classNames?.clear,
+                  )}
+                  onClick={() => {
+                    if (multiple) {
+                      changePaths([])
+                      setOpen(false, true)
+                    } else changePath([], true)
+                    onClear?.()
+                    triggerRef.current?.focus({ preventScroll: true })
+                  }}
+                >
+                  <Icon name="close" size={16} />
+                </button>
+              )}
+          </span>
+          {multiple && selectedPaths.length > 0 && (
+            <CascaderTags
+              paths={selectedPaths}
+              entries={entries}
+              disabled={disabled}
+              maxTagCount={maxTagCount}
+              maxTagPlaceholder={maxTagPlaceholder}
+              tagRender={tagRender}
+              removeIcon={removeIcon}
+              displayRender={displayRender}
+              classNames={classNames}
+              onRemove={removePath}
+            />
           )}
         </>
       )}
@@ -586,7 +729,7 @@ export function Cascader(allProps: CascaderProps) {
         <input
           type="hidden"
           name={name}
-          value={JSON.stringify(validPath)}
+          value={JSON.stringify(multiple ? selectedPaths : validPath)}
           disabled={disabled}
           readOnly
         />

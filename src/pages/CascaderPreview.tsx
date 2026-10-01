@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { CascaderMultiplePreview } from './CascaderMultiplePreview'
 import {
   Button,
   Card,
@@ -265,6 +266,7 @@ export function CascaderPreview() {
               ),
             )}
           </div>
+          <CascaderMultiplePreview />
         </section>
       </CardContent>
     </Card>

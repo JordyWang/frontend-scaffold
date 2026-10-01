@@ -12,6 +12,7 @@ import {
 import { cn } from '@/shared/lib/utils'
 import { Icon } from './icon'
 import type { CascaderOption, CascaderPart } from './cascader'
+import type { cascaderChecks } from './cascader-checks'
 import {
   cascaderKey,
   cascaderLevels,
@@ -28,6 +29,9 @@ export function CascaderPanel({
   onNavigate,
   selectedPath,
   onChoose,
+  multiple,
+  checks,
+  onCheck,
   label,
   id,
   direction,
@@ -55,6 +59,9 @@ export function CascaderPanel({
   onNavigate: (path: string[]) => void
   selectedPath: string[]
   onChoose: (entry: CascaderEntry, close: boolean) => void
+  multiple: boolean
+  checks: ReturnType<typeof cascaderChecks>
+  onCheck: (entry: CascaderEntry) => void
   label: string
   id: string
   direction: 'ltr' | 'rtl'
@@ -200,8 +207,21 @@ export function CascaderPanel({
         const child = entry.option.children!.find((option) => !option.disabled)
         if (child) focus(entries.get(cascaderKey([...entry.path, child.value])))
       } else focus(entry)
-      if (select && changeOnSelect) onChoose(entry, false)
-    } else if (select) onChoose(entry, true)
+      if (select && changeOnSelect && !multiple) onChoose(entry, false)
+    } else if (select) {
+      if (multiple) check(entry)
+      else onChoose(entry, true)
+    }
+  }
+  function check(entry: CascaderEntry) {
+    if (
+      disabled ||
+      entry.disabled ||
+      entry.option.disableCheckbox ||
+      !checks.targets.get(cascaderKey(entry.path))?.size
+    )
+      return
+    onCheck(entry)
   }
   function handleKey(
     event: KeyboardEvent<HTMLLIElement>,
@@ -245,6 +265,9 @@ export function CascaderPanel({
           ? entries.get(cascaderKey(entry.path.slice(0, -1)))
           : entry,
       )
+    } else if (event.key === ' ' && multiple) {
+      event.preventDefault()
+      check(entry)
     } else if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
       enter(entry, true, true)
@@ -285,6 +308,7 @@ export function CascaderPanel({
       aria-required={required || undefined}
       aria-describedby={ariaDescribedBy}
       aria-disabled={disabled || undefined}
+      aria-multiselectable={multiple || undefined}
       tabIndex={activeKey ? -1 : 0}
       style={
         {
@@ -332,6 +356,12 @@ export function CascaderPanel({
                 (value, index) => navigation[index] === value,
               )
               const selected = key === cascaderKey(selectedPath)
+              const checked = checks.state(key)
+              const checkDisabled =
+                disabled ||
+                entry.disabled ||
+                Boolean(entry.option.disableCheckbox) ||
+                !checks.targets.get(key)?.size
               const branch =
                 !searching && Boolean(entry.option.children?.length)
               return (
@@ -350,15 +380,26 @@ export function CascaderPanel({
                   aria-level={searching ? undefined : depth + 1}
                   aria-posinset={position + 1}
                   aria-setsize={column.length}
-                  aria-selected={selected}
+                  aria-selected={
+                    multiple
+                      ? searching
+                        ? checked === true
+                        : undefined
+                      : selected
+                  }
+                  aria-checked={multiple ? checked : undefined}
                   aria-expanded={branch ? expanded : undefined}
                   aria-disabled={disabled || entry.disabled || undefined}
+                  aria-description={
+                    multiple && checkDisabled ? '勾选已禁用' : undefined
+                  }
                   tabIndex={key === activeKey ? 0 : -1}
                   data-cascader-path={key}
                   className={cn(
                     'flex min-h-11 min-w-0 cursor-pointer touch-manipulation items-center gap-2 rounded-[var(--radius-sm)] px-3 py-2 text-base leading-6 outline-none hover:bg-accent focus-visible:outline-[3px] focus-visible:outline-offset-[-3px] focus-visible:outline-ring',
                     expanded && !searching && 'bg-accent font-semibold',
                     selected && 'bg-accent text-accent-foreground',
+                    multiple && 'gap-0 px-1 py-0',
                     (disabled || entry.disabled) &&
                       'cursor-not-allowed opacity-50 hover:bg-transparent',
                     classNames?.item,
@@ -385,9 +426,41 @@ export function CascaderPanel({
                   }}
                   onKeyDown={(event) => handleKey(event, entry, column)}
                 >
+                  {multiple && (
+                    <span
+                      aria-hidden="true"
+                      data-cascader-checkbox
+                      className={cn(
+                        'inline-grid size-11 shrink-0 place-items-center',
+                        checkDisabled && 'cursor-not-allowed opacity-50',
+                        classNames?.checkbox,
+                      )}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        if (disabled || entry.disabled) return
+                        eventFocus(key)
+                        check(entry)
+                      }}
+                    >
+                      <span
+                        className={cn(
+                          'inline-grid size-4 place-items-center rounded-[3px] border border-border',
+                          checked &&
+                            'border-primary bg-primary text-primary-foreground',
+                        )}
+                      >
+                        {checked === 'mixed' ? (
+                          <span className="h-0.5 w-2 bg-current" />
+                        ) : (
+                          checked && <Icon name="check" size={12} />
+                        )}
+                      </span>
+                    </span>
+                  )}
                   <span
                     className={cn(
                       'min-w-0 flex-1 [overflow-wrap:anywhere]',
+                      multiple && 'py-2',
                       classNames?.itemLabel,
                     )}
                   >

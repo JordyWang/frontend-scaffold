@@ -221,6 +221,10 @@ export type {
   CascaderPart,
   CascaderPlacement,
   CascaderHandle,
+  CascaderSingleProps,
+  CascaderMultipleProps,
+  CascaderCheckedStrategy,
+  CascaderTagRenderProps,
 } from './cascader'
 export { DateRangePicker, TimeRangePicker } from './date-range-picker'
 export type {
