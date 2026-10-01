@@ -61,7 +61,8 @@
 | Progress / Result               | `Progress(percent, status, type, showInfo, steps, gapDegree, gapPlacement)`；`Result(status, title, subTitle, extra, children)`                  | 进度值限制在 0–100 并暴露单一 progressbar；支持线性、圆环、仪表盘及分段；结果状态提供明确文本、操作和错误详情               |
 | Toast / Message / Notification  | `toast(options)`；`message.open/success/warning/error(content)`；`notification.open/success/warning/error({ message, description?, duration? })` | 共用 Provider 和安全区配置；页面不直接依赖 Sonner                                                                           |
 | Collapse                        | `Collapse(items, activeKey, defaultActiveKey, accordion, onChange)`                                                                              | 使用按钮控制 region，支持受控/非受控和单开模式                                                                              |
-| Avatar / Descriptions           | `Avatar(src, srcSet, alt, label, size, shape, icon, gap, onError)`；`Descriptions(items, column, bordered, layout)`                              | 头像保留单一可访问名称，失败后回退到图标或文字；长文字自动缩放，尺寸可响应断点；描述使用 `dl/dt/dd` 并在小屏自动单列        |
+| Avatar                          | `src`、`srcSet`、`alt`、`label`、`size`、`shape`、`icon`、`gap`、`onError`                                                                       | 头像保留单一可访问名称，失败后回退到图标或文字；长文字自动缩放，尺寸可响应断点                                              |
+| Descriptions                    | `items`、`column`、`bordered`、`layout`、`size`、`title`、`extra`、`colon`、`emptyText`、`classNames`                                            | `dl/dt/dd` 保持一份阅读顺序；响应式列数和跨度、整行剩余填充、统一尺寸、RTL 与空状态                                         |
 | AvatarGroup                     | `items`、`maxCount`、`size`、`shape`、`label`                                                                                                    | 重叠展示成员，溢出按钮支持键盘和触控打开公共 Popover 查看其余成员，布局跟随 RTL                                             |
 | Statistic / Timeline            | `Statistic(title, value, precision, prefix, suffix, locale, formatter, loading)`；`Timeline(items)`                                              | 数值按 ConfigProvider.locale 分组格式化，加载时提供可访问骨架；时间线使用有序列表和文字状态                                 |
 | Carousel / Tree                 | `Carousel(items, index, autoplay, onChange)`；`Tree(treeData, expandedKeys, defaultExpandedKeys, onExpand, selectedKey, onSelect)`               | 轮播提供上一项/下一项和 live 状态；树只有一个 Tab 入口，方向键移动及展开/收起，Enter/空格选择；触控可点展开区               |
@@ -79,6 +80,10 @@
 `Avatar` 的 `size` 保留项目的小号 32px、默认 40px、大号 56px，也支持像素数或 `{ xs, sm, md, lg, xl, xxl }`。响应式值对应 Tailwind 的基础、640、768、1024、1280、1536px 断点，缺失值沿用较小断点尺寸。字符头像按实际容器宽度缩放，`gap` 为左右留白，默认 4px。图片原生配置（`srcSet`、`sizes`、`loading`、`crossOrigin`、`referrerPolicy`、`draggable`）传给内层图片；失败后按 `icon`、`children`、默认用户图标的顺序回退。`onError(event)` 返回 `false` 可接管回退，图片源或 `srcSet` 改变后重新尝试加载。
 
 `AvatarGroup` 使用 `{ key, label, ...头像属性 }[]`，`maxCount` 为最多显示的成员头像数，溢出按钮另占一个位置；设为 0 时全部成员进入弹层。组内统一 `size` 和 `shape`，逻辑方向重叠适配 RTL，过长的组可在自身内横向滚动。溢出按钮至少 44px，点击或 Enter/空格打开公共 Popover，Escape 关闭并恢复按钮焦点；弹层明确显示每位隐藏成员的名称。空数组显示“暂无成员”。
+
+`Descriptions` 展示只读字段，用标题命名区域，以原生 `dl` 中的 `dt/dd` 配对表达标签和内容；`extra` 可放置项目操作按钮。`size` 为 default / small / large，未指定时继承 ConfigProvider.componentSize。响应式以描述列表自身容器宽度为依据，PC 窄卡片也能回退为单列。`column` 为数字时，容器宽度在 640px 以下固定单列，其余断点使用指定列数；也可传 `{ xs, sm, md, lg, xl, xxl }`，对应基础、640、768、1024、1280、1536px 容器断点，缺失值沿用较小断点（基础默认为 1）。
+
+描述项 `span` 可为列数、`filled` 或相同断点对象。数字跨度限制在当前列数内，剩余空间不足时移到下一行；`filled` 占满当前行剩余部分，每行末项自动补足空列。垂直布局用 subgrid 对齐同一行的标签与内容，边框和长文本换行使用 Tailwind 语义变量；没有额外的移动端 DOM 副本。`colon` 控制无边框标签后的可见冒号，边框布局不显示冒号。`classNames` 可覆写 root、header、title、extra、body、item、label、content 的 Tailwind 类，单项也支持 `className`、`labelClassName`、`contentClassName`。空数组显示公共 Empty，`emptyText` 默认为“暂无详情”，标题和操作仍保留。
 
 `BackTop` 在 `FloatButton` 之上提供回顶行为：`target?: () => Window | HTMLElement | null` 指定滚动目标，`visibilityHeight` 默认为 400px，`showProgress` 可显示进度环，`behavior` 默认为平滑滚动。系统要求减少动态效果时改用即时滚动；位置、安全区和至少 44px 的触控尺寸沿用 `FloatButton`。
 

@@ -170,6 +170,14 @@ export function DesignSystemPreview() {
   const [skeletonLoading, setSkeletonLoading] = useState(true)
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false)
   const [avatarRecovered, setAvatarRecovered] = useState(false)
+  const [descriptionLayout, setDescriptionLayout] = useState<
+    'horizontal' | 'vertical'
+  >('horizontal')
+  const [descriptionBordered, setDescriptionBordered] = useState(true)
+  const [descriptionSize, setDescriptionSize] = useState<
+    'default' | 'small' | 'large'
+  >('default')
+  const [descriptionEdited, setDescriptionEdited] = useState(false)
   const [colorValue, setColorValue] = useState('#1677ff')
   const [dateRange, setDateRange] = useState<DateRange>(['', ''])
   const [timeRange, setTimeRange] = useState<TimeRange>(['', ''])
@@ -1502,7 +1510,7 @@ export function DesignSystemPreview() {
               </Stack>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="col-span-full">
             <CardContent>
               <Stack gap="md">
                 <Typography as="h3" variant="title">
@@ -1717,6 +1725,126 @@ export function DesignSystemPreview() {
                     },
                   ]}
                 />
+                <section
+                  aria-label="描述列表状态预览"
+                  className="grid min-w-0 gap-4"
+                >
+                  <h3 className="m-0 text-base font-semibold">描述列表</h3>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        setDescriptionLayout((previous) =>
+                          previous === 'horizontal' ? 'vertical' : 'horizontal',
+                        )
+                      }
+                    >
+                      {descriptionLayout === 'horizontal'
+                        ? '切换为垂直详情'
+                        : '切换为水平详情'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        setDescriptionBordered((previous) => !previous)
+                      }
+                    >
+                      {descriptionBordered ? '隐藏详情边框' : '显示详情边框'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        setDescriptionSize((previous) =>
+                          previous === 'default'
+                            ? 'small'
+                            : previous === 'small'
+                              ? 'large'
+                              : 'default',
+                        )
+                      }
+                    >
+                      {descriptionSize === 'default'
+                        ? '使用小号详情'
+                        : descriptionSize === 'small'
+                          ? '使用大号详情'
+                          : '恢复默认详情尺寸'}
+                    </Button>
+                  </div>
+                  <Descriptions
+                    title="响应式任务详情"
+                    extra={
+                      <Button
+                        size="small"
+                        variant="outline"
+                        onClick={() =>
+                          setDescriptionEdited((previous) => !previous)
+                        }
+                      >
+                        更新详情
+                      </Button>
+                    }
+                    column={{ xs: 1, sm: 2, md: 3, lg: 4 }}
+                    bordered={descriptionBordered}
+                    layout={descriptionLayout}
+                    size={descriptionSize}
+                    items={[
+                      {
+                        key: 'team',
+                        label: '归属团队',
+                        children: '独立能力库',
+                      },
+                      {
+                        key: 'id',
+                        label: '记录编号（自动生成的任务标识）',
+                        children:
+                          'MOCK-2026-TAILWIND-DESCRIPTIONS-RESPONSIVE-1234567890',
+                        span: { xs: 1, md: 2 },
+                      },
+                      {
+                        key: 'phase',
+                        label: '任务阶段',
+                        children: (
+                          <span role="status" aria-label="详情更新状态">
+                            {descriptionEdited ? '已更新' : '待审核'}
+                          </span>
+                        ),
+                        span: 'filled',
+                      },
+                      {
+                        key: 'notes',
+                        label: '实现说明',
+                        children:
+                          '标签和内容保持同一份语义结构。整行内容可以包含长文本、链接和操作，并根据视口宽度重新排列。',
+                        span: 'filled',
+                      },
+                    ]}
+                  />
+                  <ConfigProvider
+                    direction="rtl"
+                    componentSize="small"
+                    theme={{ mode: 'dark' }}
+                  >
+                    <Descriptions
+                      title="RTL 垂直详情"
+                      bordered
+                      layout="vertical"
+                      column={{ xs: 1, md: 2 }}
+                      items={[
+                        {
+                          key: 'locale',
+                          label: '界面方向',
+                          children: '从右向左',
+                        },
+                        {
+                          key: 'scope',
+                          label: '局部主题',
+                          children: '深色 · 小号',
+                        },
+                      ]}
+                    />
+                  </ConfigProvider>
+                  <Descriptions title="空详情预览" items={[]} />
+                </section>
                 <Stack direction="row" wrap gap="lg" align="center">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <FormField

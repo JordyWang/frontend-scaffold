@@ -185,8 +185,13 @@ export type {
   AvatarGroupItem,
   AvatarGroupProps,
 } from './avatar'
-export { Descriptions } from './display-extended'
-export type { DescriptionItem, DescriptionsProps } from './display-extended'
+export { Descriptions } from './descriptions'
+export type {
+  DescriptionColumns,
+  DescriptionSpan,
+  DescriptionItem,
+  DescriptionsProps,
+} from './descriptions'
 export {
   AutoComplete,
   DatePicker,

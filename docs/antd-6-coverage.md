@@ -34,6 +34,8 @@
 
 `Avatar` 支持图片失败回退、重新设置图片源、图标和长字符自动缩放，以及 Tailwind 断点尺寸。`AvatarGroup` 用项目成员数组契约展示重叠头像，溢出按钮通过公共 Popover 展示其余成员，并跟随 RTL。`/__ui` 展示失败恢复、长文字、响应式、空组和 RTL，键盘与 H5 触控均有回归。
 
+`Descriptions` 补齐基于自身容器宽度的响应式列数和单项跨度、`filled` 行剩余填充、标题操作区、冒号、三种尺寸及语义 Tailwind 类名。数字跨度会限制在可用列数内，每行末项填满剩余位置；水平和垂直边框闭合，垂直字段使用 subgrid 对齐。`/__ui` 展示可切换布局、尺寸、边框、更新操作、长文本、RTL 深色主题和空数据，并验证 PC 窄卡片能回退为单列。
+
 ConfigProvider 的 RTL 方向已覆盖 Select、Dialog、Sheet、Dropdown、Popover、Tooltip 的弹层容器，Select 的触发器和选项使用 Tailwind 逻辑方向样式；`/__ui` 提供键盘与 H5 触控预览。
 
 Dropdown、Popover、Tooltip 的浮层已在裁切容器、RTL、桌面与 H5 中验证。Dropdown 的上下方向键、Enter、空格和正反向 Tab，以及 Popover 中交互内容的 Tab 顺序已有浏览器回归。
