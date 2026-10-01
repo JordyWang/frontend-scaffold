@@ -18,6 +18,8 @@
 | DateRangePicker                 | `value` / `defaultValue`、`picker`、`onChange`、`mode`、`onCalendarChange`、`needConfirm`、`presets`、`allowEmpty`、`disabledDate`                    | 日期单位起止元组；默认项目双面板，窄容器单面板；独立端点、确认、开放区间、键盘与 44px 触控                                  |
 | MultiDatePicker                 | `value` / `defaultValue`、`onChange`、`order`、`needConfirm`、`maxCount`、`maxTagCount`、`renderTag`                                                  | 日期单位数组；同 `DatePicker multiple`，跨月切换、临时选择、逐项删除、44px 触控                                             |
 | TimeRangePicker                 | `value` / `defaultValue`、`onChange`、`onCalendarChange`、`mode`、`precision`、`needConfirm`、`order`、`disabledTime`、端点控制、`presets`            | 同日时间元组；默认项目时间列面板，临时范围与提交分离；支持秒、12 小时显示、锁定端点、开放区间与窄容器                       |
+| DateTimePicker                  | `value` / `defaultValue`、`onChange`、`onCalendarChange`、`mode`、`precision`、`needConfirm`、`defaultOpenTime`、日期相关禁用回调                     | 完整本地日期时间字符串；同 `DatePicker showTime`，日期/时间共用一次确认，边界时间与跨日步长一致                             |
+| DateTimeRangePicker             | `value` / `defaultValue`、`onChange`、`onCalendarChange`、`needConfirm`、`order`、`allowEmpty`、端点控制、`defaultOpenTime`、日期/端点禁用回调        | 完整日期时间元组；同 `DateRangePicker showTime`，跨日、一次确认、锁定端点、JSON 表单提交、响应式日期/时间面板               |
 | Calendar                        | `value` / `defaultValue`、`month` / `defaultMonth`、`onChange`、`onMonthChange`、`minDate`、`maxDate`、`disabledDate`、`renderDate`                   | 选中日期使用 `YYYY-MM-DD`，月份使用 `YYYY-MM`；网格支持方向键、Home/End、PageUp/PageDown；日期按钮至少 44px                 |
 | ColorPicker                     | `value` / `defaultValue`、`onChange`、`showText`、`size`、`label`、常用 `aria-*`                                                                      | 使用原生颜色控件，统一输出六位小写 hex；保留键盘、系统颜色面板和 44px 触控区域                                              |
 | AutoComplete / Cascader         | `options`、`value` / `defaultValue`、`onChange`、`label`；Cascader 支持列式浏览、路径搜索、`changeOnSelect`、`mode`、四向弹层、外观和语义插槽         | 自动完成使用 `combobox` + `listbox`；级联选择默认列式弹层，支持内嵌面板与原生分级表单控件                                   |
@@ -131,7 +133,7 @@
 
 点击输入或图标打开，输入的 ArrowDown / Enter 进入网格；网格支持方向键、Home/End、PageUp/PageDown 与 Shift+PageUp/PageDown。日期选择、确定和 Escape 还输入焦点；面板首项 Shift+Tab 返回输入，末项 Tab 接回字段按钮及后续控件。`onBlur` 的事件来自根 span，只在离开输入、字段按钮和 Portal 面板组成的整个控件时调用；与 `Form validateOn="blur"` 配合不会在浏览日期时提前报错。`name` 在面板模式通过隐藏字段提交已确认值，临时值不进入 FormData；非受控原生 form reset 恢复初值且不发 `onChange`。项目 Form 的必填规则与 reset 沿用普通字符串控件契约。
 
-`weekStartsOn` 在日期网格中支持周一/周日，`locale` 默认继承 ConfigProvider。`renderDate` 只放非交互内容，额外说明通过 `getDateDescription` 同步给辅助技术；`footer` 和 `suffixIcon` 提供内容与装饰图标插槽。其他日期单位、范围与多选通过下述项目 API 提供，日期时间单选组合见下文，范围组合后续补齐。
+`weekStartsOn` 在日期网格中支持周一/周日，`locale` 默认继承 ConfigProvider。`renderDate` 只放非交互内容，额外说明通过 `getDateDescription` 同步给辅助技术；`footer` 和 `suffixIcon` 提供内容与装饰图标插槽。其他日期单位、范围与多选通过下述项目 API 提供，日期时间单选与范围组合见下文。
 
 ### 周、月、季度和年
 
@@ -167,7 +169,7 @@
 
 `open` / `defaultOpen` / `onOpenChange`、四向逻辑 `placement`、输入 ref、size/variant/status 沿用字段契约，`className` 修饰输入；语义 Tailwind 插槽包含 root/input/toggle/clear/popup/panel/presets/columns/column/option/footer/error。`onBlur` 来自根 span，只在离开输入、按钮和 Portal 弹层组成的整个控件时触发。隐藏 `name` 字段仅提交已确认值；待确认或无效时间由原生 validity 阻止提交，非受控原生 form reset 和项目 Form 的校验/重置都有回归。`inputReadOnly` 使用 HTML readOnly，因此必填等原生约束不参与浏览器校验，项目 Form 规则仍有效。
 
-`/__ui` 的“时间选择面板预览”包括分钟/秒、12 小时、条件禁用、跨午夜、手工输入、立即提交、外部开合、240px 常驻、动态禁用、只读、错误和预约表单。PC Chromium、H5 Chromium/WebKit 覆盖键盘、触控选择、确认/取消、Tab、列滚动、定位、RTL 与表单协作。日期时间范围组合、滚动即选择、悬停值预览、毫秒精度和任意 format 尚未实现。
+`/__ui` 的“时间选择面板预览”包括分钟/秒、12 小时、条件禁用、跨午夜、手工输入、立即提交、外部开合、240px 常驻、动态禁用、只读、错误和预约表单。PC Chromium、H5 Chromium/WebKit 覆盖键盘、触控选择、确认/取消、Tab、列滚动、定位、RTL 与表单协作。日期时间范围组合见下文；滚动即选择、悬停值预览、毫秒精度和任意 format 尚未实现。
 
 ### 日期时间单选组合
 
@@ -185,7 +187,23 @@
 
 `className` 修饰输入，Tailwind classNames 插槽为 root/input/toggle/clear/popup/panel/presets/switcher/calendar/time/columns/column/option/footer/error。`onBlur` 来自根 span，只在整个输入、按钮和 Portal 面板组合离焦时调用。`name` 隐藏字段只提交已确认值；未确认手工输入即使尚未打开面板也通过原生 validity 阻止提交。`inputReadOnly` 使用 HTML readOnly，原生约束不参与浏览器校验，项目 Form 规则仍有效。支持外部 form、非受控原生 reset 和 FormItem 的字符串规则与重置。
 
-`/__ui` 的“日期时间组合预览”展示闰月、跨日秒精度、12 小时、边界、默认打开时间、输入错误、预设、立即提交、受控开合、240px 常驻与响应式常驻、动态禁用、大小/外观、只读、RTL 深色和原生适配。PC Chromium、H5 Chromium/WebKit 验证联动、确认/取消、键盘、触控、局部滚动、窄屏定位与表单；宽屏到窄屏的焦点恢复在桌面 Chromium 验证。日期时间范围、滚动即选择、悬停值预览、毫秒和任意 format 仍待实现。
+`/__ui` 的“日期时间组合预览”展示闰月、跨日秒精度、12 小时、边界、默认打开时间、输入错误、预设、立即提交、受控开合、240px 常驻与响应式常驻、动态禁用、大小/外观、只读、RTL 深色和原生适配。PC Chromium、H5 Chromium/WebKit 验证联动、确认/取消、键盘、触控、局部滚动、窄屏定位与表单；宽屏到窄屏的焦点恢复在桌面 Chromium 验证。日期时间范围使用下述独立入口；滚动即选择、悬停值预览、毫秒和任意 format 仍待实现。
+
+### 日期时间范围组合
+
+`DateTimeRangePicker` 提供独立入口，`DateRangePicker showTime` 使用同一实现；showTime 可为 true 或 `DateRangeTimeOptions` 对象，对象选项优先于同名顶层选项，只支持 `picker="date"`。`DateTimeRange` 为 `[start: string, end: string]`，两端遵循单日期时间的严格本地格式和分钟/秒精度，空端点为 `''`。时间字符串包含日期，因此可以明确表达跨午夜、跨月和闰日范围，不转换时区。
+
+两端日期与时间共用一个选择会话，默认 `needConfirm=true`。`onCalendarChange(range, { endpoint, part })` 返回临时元组，part 为 date/time；确定或有效手工输入 Enter 才调用 onChange/onOk。`needConfirm=false` 只在范围完整、可选时立即提交，已有提交值在取消后保留；未完成选择取消恢复。默认时间 `defaultOpenTime={[startTime, endTime]}` 只含时间，选日期时才使用；未提供则优先沿用另一端时间，再回退午夜。打开、浏览和切换端点不提交。presets 使用 `{ key, label, value: DateTimeRange | (() => DateTimeRange) }[]`，函数只在点击时求值；`showNow` 默认关闭，开启时调整当前端点。
+
+`min` / `max` 限制完整日期时间，边界当天限制时间，总秒 `step` 保留原始基准且跨日连续计算。`disabledDate(date, info)`、`disabledHours(date, info)`、`disabledMinutes(hour, date, info)`、`disabledSeconds(hour, minute, date, info)` 和 `disabledTime(value, info)` 的 info 为 `{ endpoint: 'start' | 'end', from?: string }`，from 为另一端完整日期时间。面板、输入、预设、此刻和提交使用同一约束；回调应同步、纯且快速。
+
+`order="clear"` 默认在交叉时清空可编辑的另一端，`order="sort"` 在提交时排序并重新验证端点限制；锁定端点不会清空或移动。`disabled` 支持 boolean 或 `[startDisabled, endDisabled]`，越过锁定端点的日期/时刻禁用，缩窄边界不改变原始步长网格。`allowEmpty={[false, true]}` 允许明确确认开放区间，空元组不可确认。清除单端是立即动作，保留另一端；readOnly 禁止操作，inputReadOnly 仅禁止手工输入。
+
+`activeEndpoint` / `defaultActiveEndpoint` / `onActiveEndpointChange`、`panelMonth` / `defaultPanelMonth` / `onPanelMonthChange` 与 open 独立受控。外部未接受端点切换时，面板继续显示实际端点的月份。一个活动端点复用公共日期时间面板：640px 容器断点以上日期/时间并排，窄容器通过按钮切换；两输入在 440px 以下纵向排列。日期有范围开始、结束和区间内的文字/ARIA 说明；端点、日期和时间内容插槽带 endpoint/from 信息。字段 label 命名整个 fieldset，startLabel/endLabel 各自命名输入；className 修饰根，classNames 提供 root/fields/input/startInput/endInput/clear/toggle/popup/panel/endpoints/presets/switcher/calendar/time/columns/column/option/footer/error 的 Tailwind 插槽。
+
+`onBlur` 来自根 fieldset，只在整个字段、按钮和 Portal 面板组合离焦时调用。WebKit 内部触控、隐藏面板切换及边界导航按钮禁用造成的临时失焦保留会话，恢复可用焦点且不抢走外部焦点。正反向 Tab 与 Escape 沿用公共弹层契约。name 隐藏字段只提交已确认的 JSON 元组；待确认输入通过原生 validity 阻止提交。inputReadOnly 使用 HTML readOnly，原生约束不参与浏览器校验，项目 Form 规则仍有效。项目 Form 支持完整范围规则、组合失焦与重置；显式 native 模式使用两个 datetime-local 输入和一个隐藏 JSON 字段，支持外部 form reset、零秒补齐及拒绝非零毫秒。
+
+`/__ui` 的“日期时间范围组合预览”展示跨日分钟/秒、日期/端点相关禁用、12 小时、交叉清空/排序、锁定端点、开放区间、默认时间、手工输入、立即提交、预设、受控开合、240px 与响应式常驻、动态可用性、大小/外观、只读、错误、RTL 深色、Form 和原生重置。PC Chromium 与 H5 Chromium/WebKit 验证两端联动、一次确认、JSON 提交值、键盘/触控、44px 目标、Tab、局部滚动和四向定位；桌面 Chromium 验证宽屏到窄屏焦点交接。滚动即选择、悬停值预览、毫秒精度和任意 format 仍待实现。
 
 ### 日期多选
 
@@ -229,7 +247,7 @@ ref 指向输入；`className` 修饰输入，`classNames` 除日期插槽外提
 
 首项 Shift+Tab 回到活动输入并保留待确认范围，末项 Tab 结束会话后接回结束字段操作；Escape 还焦点，动态禁用活动端点恢复到另一可用端点且不抢走外部焦点。`onBlur` 来自根 fieldset，仅在离开输入、操作和 Portal 面板组成的整个控件时触发。`name` 将已提交元组作为 JSON 隐藏字段提交，临时范围不会进入 FormData；全部禁用时省略，支持外部 form、原生 reset 和项目 Form 重置。与 `FormItem` 配合使用 `emptyValue={[]}`，完整区间另加元组规则；`inputReadOnly` 使用 HTML readOnly，项目 Form 仍按规则校验。
 
-`/__ui` 的“时间范围面板预览”覆盖条件禁用、秒说明、12 小时、交叉清空、自动排序、手工输入、锁定端点、开放区间、即时提交、外部开合、240px 常驻、只读、错误、原生模式与 Form。PC Chromium、H5 Chromium/WebKit 验证两端协作、确认/取消、键盘与触控、Tab、局部滚动、RTL 和窄屏定位。该范围不包含日期时间范围组合、滚动即选择、悬停值预览或毫秒精度。
+`/__ui` 的“时间范围面板预览”覆盖条件禁用、秒说明、12 小时、交叉清空、自动排序、手工输入、锁定端点、开放区间、即时提交、外部开合、240px 常驻、只读、错误、原生模式与 Form。PC Chromium、H5 Chromium/WebKit 验证两端协作、确认/取消、键盘与触控、Tab、局部滚动、RTL 和窄屏定位。日期时间范围组合见上文；该时间范围测试不包含滚动即选择、悬停值预览或毫秒精度。
 
 `InputOTP` 的左右方向键按格子的视觉顺序移动焦点；方向默认跟随 `ConfigProvider.direction`，也可通过原生 `dir` 属性覆盖。RTL 格子顺序和 44px 触控区域在 `/__ui` 中预览。
 

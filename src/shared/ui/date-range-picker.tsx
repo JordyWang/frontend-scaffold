@@ -14,6 +14,10 @@ import { cn } from '@/shared/lib/utils'
 import { Button } from './button'
 import { DatePickerPanel } from './date-picker-panel'
 import {
+  DateTimeRangePicker,
+  type DateTimeRangePickerProps,
+} from './date-time-range-picker'
+import {
   resolveComponentSize,
   useConfig,
   type ControlSize,
@@ -72,6 +76,7 @@ export type DateRangePickerPart =
   | 'footer'
   | 'error'
 type DateRangePickerBaseProps = {
+  showTime?: false
   value?: DateRange
   defaultValue?: DateRange
   onChange?: (value: DateRange) => void
@@ -140,11 +145,33 @@ type DateRangePickerBaseProps = {
   'aria-label'?: string
   'aria-labelledby'?: string
 }
-export type DateRangePickerProps = DateRangePickerBaseProps &
+type DateOnlyRangePickerProps = DateRangePickerBaseProps &
   (
     | { picker?: 'date'; mode?: 'popup' | 'panel' | 'native' }
     | { picker: DatePeriodUnit; mode?: 'popup' | 'panel' }
   )
+export type DateRangeTimeOptions = Pick<
+  DateTimeRangePickerProps,
+  | 'precision'
+  | 'use12Hours'
+  | 'hourStep'
+  | 'minuteStep'
+  | 'secondStep'
+  | 'defaultOpenTime'
+  | 'hideDisabledOptions'
+  | 'disabledHours'
+  | 'disabledMinutes'
+  | 'disabledSeconds'
+  | 'disabledTime'
+  | 'renderCell'
+  | 'getCellDescription'
+>
+export type DateRangePickerDateTimeProps = DateTimeRangePickerProps & {
+  picker?: 'date'
+  showTime: true | DateRangeTimeOptions
+}
+export type DateRangePickerProps =
+  DateOnlyRangePickerProps | DateRangePickerDateTimeProps
 
 const asRange = (value?: DateRange): DateRange => [
   value?.[0] ?? '',
@@ -156,7 +183,7 @@ const equalRange = (left: DateRange, right: DateRange) =>
 /** Pending endpoints remain separate from the submitted unit-string tuple. */
 const DateRangePickerControl = forwardRef<
   HTMLInputElement,
-  DateRangePickerProps
+  DateOnlyRangePickerProps
 >(function DateRangePickerControl(allProps, ref) {
   const controlled = Object.prototype.hasOwnProperty.call(allProps, 'value')
   const {
@@ -1049,7 +1076,24 @@ export const DateRangePicker = forwardRef<
   HTMLInputElement,
   DateRangePickerProps
 >(function DateRangePicker(props, ref) {
+  if (props.showTime) {
+    const { showTime, picker, ...dateTimeProps } = props
+    void picker
+    return (
+      <DateTimeRangePicker
+        {...dateTimeProps}
+        {...(typeof showTime === 'object' ? showTime : {})}
+        ref={ref}
+      />
+    )
+  }
+  const { showTime, ...dateProps } = props
+  void showTime
   return (
-    <DateRangePickerControl {...props} key={props.picker ?? 'date'} ref={ref} />
+    <DateRangePickerControl
+      {...dateProps}
+      key={dateProps.picker ?? 'date'}
+      ref={ref}
+    />
   )
 })

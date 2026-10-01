@@ -223,6 +223,19 @@ export type { SingleDatePickerProps } from './date-picker'
 export type { TimePickerPart, TimePickerPreset } from './time-picker'
 export type { TimePrecision, TimeUnit } from './time-picker-state'
 export { DateTimePicker } from './date-time-picker'
+export { DateTimeRangePicker } from './date-time-range-picker'
+export type {
+  DateTimeRange,
+  DateTimeRangeInfo,
+  DateTimeRangeEndpoint,
+  DateTimeRangePreset,
+  DateTimeRangePickerProps,
+  DateTimeRangePickerPart,
+} from './date-time-range-picker'
+export type {
+  DateRangeTimeOptions,
+  DateRangePickerDateTimeProps,
+} from './date-range-picker'
 export type {
   DateTimePickerProps,
   DateTimePickerPart,

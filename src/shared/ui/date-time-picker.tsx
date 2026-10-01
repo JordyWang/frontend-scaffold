@@ -23,7 +23,6 @@ import { useNativeFormReset } from './native-form-reset'
 import {
   focusAfterPicker,
   pickerFocusable,
-  revealPickerTarget,
   usePickerPosition,
   type PickerPlacement,
 } from './picker-popup'
@@ -34,16 +33,13 @@ import {
   inputStyles,
   inputVariantStyles,
 } from './tailwind-styles'
-import { TimePickerPanel } from './time-picker-panel'
-import { DatePickerPanel } from './date-picker-panel'
+import { DateTimePickerPanel } from './date-time-picker-panel'
+import { focusDateTimePanel } from './date-time-panel-focus'
 import { parseMonth, toISO, toMonth } from './date-picker-state'
 import {
-  dateTimeDateSelectable,
   dateTimeDisplay,
-  dateTimeForDate,
   dateTimeInput,
   dateTimeSelectable,
-  dateTimeTimeConstraints,
   parseDateTime,
   type DateTimeConstraints,
 } from './date-time-picker-state'
@@ -87,7 +83,7 @@ export type DateTimePickerProps = Omit<
   | 'max'
   | 'multiple'
 > &
-  Omit<DateTimeConstraints, 'precision'> & {
+  Omit<DateTimeConstraints, 'precision' | 'stepBase'> & {
     value?: string
     defaultValue?: string
     precision?: TimePrecision
@@ -202,8 +198,6 @@ const DateTimePickerControl = forwardRef<
     inputRef = useRef<HTMLInputElement>(null),
     popupRef = useRef<HTMLDivElement>(null),
     panelRef = useRef<HTMLDivElement>(null)
-  const partFocusRequested = useRef(false)
-  const lastPartFocus = useRef<HTMLElement | null>(null)
   const pointerInside = useRef(false)
   const owned = useRef(false),
     requested = useRef(false),
@@ -219,7 +213,6 @@ const DateTimePickerControl = forwardRef<
     [editing, setEditing] = useState(false),
     [error, setError] = useState(''),
     [internalOpen, setInternalOpen] = useState(defaultOpen)
-  const [activePart, setActivePart] = useState<'date' | 'time'>('date')
   function initialMonth(next: string) {
     const proposed = toMonth(
       parseMonth(defaultPanelMonth) ??
@@ -293,18 +286,7 @@ const DateTimePickerControl = forwardRef<
     inputRef.current?.focus({ preventScroll: true })
   }
   function focusPanel() {
-    const part = panelRef.current?.querySelector<HTMLElement>(
-      '[data-datetime-part="' + activePart + '"]',
-    )
-    const target =
-      part?.querySelector<HTMLElement>(
-        '[data-calendar-date][tabindex="0"],[data-time-unit][tabindex="0"]',
-      ) ?? (part ? pickerFocusable(part)[0] : undefined)
-    if (target) revealPickerTarget(target)
-    else
-      panelRef.current
-        ?.querySelector<HTMLElement>('button:not(:disabled)')
-        ?.focus({ preventScroll: true })
+    focusDateTimePanel(panelRef.current)
   }
   function begin(focus = false) {
     if (inactive || mode !== 'popup') return
@@ -314,7 +296,6 @@ const DateTimePickerControl = forwardRef<
       const next = editing && typed && selectable(typed) ? typed : current
       setCandidate(next)
       if (panelMonth === undefined) setInternalMonth(initialMonth(next))
-      setActivePart('date')
       requested.current = focus
       setOpen(true)
     } else if (focus) focusPanel()
@@ -431,31 +412,6 @@ const DateTimePickerControl = forwardRef<
       owned.current = false
     }
   })
-  useLayoutEffect(() => {
-    if (partFocusRequested.current && showing) {
-      partFocusRequested.current = false
-      focusPanel()
-    }
-  })
-  useEffect(() => {
-    const panel = panelRef.current
-    if (!showing || !panel || typeof ResizeObserver === 'undefined') return
-    const observer = new ResizeObserver(() => {
-      const focused = document.activeElement
-      if (
-        (focused instanceof HTMLElement &&
-          panel.contains(focused) &&
-          !focused.getClientRects().length) ||
-        (focused === document.body &&
-          owned.current &&
-          lastPartFocus.current &&
-          !lastPartFocus.current.getClientRects().length)
-      )
-        focusPanel()
-    })
-    observer.observe(panel)
-    return () => observer.disconnect()
-  })
   useEffect(() => {
     if (!isOpen) return
     const outside = (event: Event) => {
@@ -511,21 +467,9 @@ const DateTimePickerControl = forwardRef<
       : needConfirm
         ? candidate
         : current
-  const parts = parseDateTime(panelValue)
-  const timeConstraints = useMemo(
-    () => dateTimeTimeConstraints(parts?.date ?? '', constraints),
-    [parts?.date, constraints],
-  )
   const panel = (
     <div
       id={mode === 'panel' ? popupId : undefined}
-      ref={panelRef}
-      onFocusCapture={(event) => {
-        const target = event.target as HTMLElement
-        lastPartFocus.current = target.closest('[data-datetime-part]')
-          ? target
-          : null
-      }}
       className={cn('@container min-w-0 space-y-2', classNames?.panel)}
     >
       {presets.length > 0 && (
@@ -560,95 +504,27 @@ const DateTimePickerControl = forwardRef<
           ))}
         </div>
       )}
-      <div
-        role="group"
-        aria-label={label + '面板切换'}
-        className={cn('flex gap-2', classNames?.switcher)}
-      >
-        {(['date', 'time'] as const).map((part) => (
-          <Button
-            key={part}
-            data-datetime-switch={part}
-            variant={activePart === part ? 'primary' : 'outline'}
-            aria-pressed={activePart === part}
-            disabled={inactive}
-            onClick={() => {
-              setActivePart(part)
-              partFocusRequested.current = true
-            }}
-          >
-            {part === 'date' ? '选择日期' : '调整时间'}
-          </Button>
-        ))}
-      </div>
-      <div className="grid min-w-0 gap-3 @min-[640px]:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div
-          data-datetime-part="date"
-          className={cn(
-            activePart !== 'date' && 'hidden @min-[640px]:block',
-            'min-w-0',
-            classNames?.calendar,
-          )}
-        >
-          <DatePickerPanel
-            picker="date"
-            label={label + '日期'}
-            value={parts?.date ?? ''}
-            month={month}
-            onMonthChange={changeMonth}
-            disabled={inactive}
-            minDate={parseDateTime(min)?.date}
-            maxDate={parseDateTime(max)?.date}
-            disabledDate={(date) => !dateTimeDateSelectable(date, constraints)}
-            weekStartsOn={weekStartsOn}
-            locale={locale}
-            renderDate={renderDate}
-            getDateDescription={getDateDescription}
-            classNames={{ grid: 'min-w-[308px]', cell: 'p-0' }}
-            onChange={(date) => {
-              const next = dateTimeForDate(
-                date,
-                parts?.time ?? defaultOpenTime,
-                constraints,
-              )
-              if (next) choose(next, 'date')
-              else setError('所选日期没有可用时间，请选择其他日期')
-            }}
-          />
-        </div>
-        <div
-          data-datetime-part="time"
-          className={cn(
-            activePart !== 'time' && 'hidden @min-[640px]:block',
-            'min-w-0 space-y-2',
-            classNames?.time,
-          )}
-        >
-          <p className="text-sm text-muted-foreground">
-            {parts?.date ?? '请先选择日期'}
-          </p>
-          <TimePickerPanel
-            label={label}
-            value={parts?.time ?? ''}
-            defaultOpenValue={defaultOpenTime}
-            constraints={timeConstraints}
-            disabled={inactive || !parts}
-            onChange={(time) => {
-              if (parts) choose(parts.date + 'T' + time, 'time')
-            }}
-            use12Hours={use12Hours}
-            hideDisabledOptions={hideDisabledOptions}
-            renderCell={renderCell}
-            getCellDescription={getCellDescription}
-            classNames={classNames}
-            onFocusUnavailable={() =>
-              panelRef.current
-                ?.querySelector<HTMLElement>('[data-datetime-switch="date"]')
-                ?.focus({ preventScroll: true })
-            }
-          />
-        </div>
-      </div>
+      <DateTimePickerPanel
+        ref={panelRef}
+        label={label}
+        value={panelValue}
+        month={month}
+        onMonthChange={changeMonth}
+        onChange={(next, info) => choose(next, info.part)}
+        onError={setError}
+        constraints={constraints}
+        disabled={inactive}
+        defaultOpenTime={defaultOpenTime}
+        use12Hours={use12Hours}
+        hideDisabledOptions={hideDisabledOptions}
+        weekStartsOn={weekStartsOn}
+        locale={locale}
+        renderDate={renderDate}
+        getDateDescription={getDateDescription}
+        renderCell={renderCell}
+        getCellDescription={getCellDescription}
+        classNames={classNames}
+      />
       <p role="status" className="text-sm text-muted-foreground">
         {needConfirm ? '待确认日期时间' : '已选日期时间'}：
         {dateTimeDisplay(panelValue, precision, use12Hours) || '未选择'}
@@ -737,13 +613,14 @@ const DateTimePickerControl = forwardRef<
         // Safari touch buttons can blur the previous control before click without
         // focusing the button. Keep the composite session through that gesture.
         if (!event.relatedTarget && pointerInside.current) return
-        // WebKit blurs a focused date when the responsive switch hides its part.
-        // The layout effect/resize observer moves focus to the visible part.
+        // Hiding a part or disabling a boundary navigation button can blur it.
+        // Panel effects move focus to an available visible control.
         if (
           !event.relatedTarget &&
           event.target instanceof HTMLElement &&
           panelRef.current?.contains(event.target) &&
-          !event.target.getClientRects().length
+          (!event.target.getClientRects().length ||
+            (owned.current && event.target.matches(':disabled')))
         )
           return
         if (mode !== 'native') leave()

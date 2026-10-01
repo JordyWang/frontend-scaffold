@@ -22,6 +22,8 @@ export type DateTimeConstraints = Omit<
 > & {
   min?: string
   max?: string
+  /** Internal range bounds can narrow availability while retaining the original step grid. */
+  stepBase?: string
   disabledDate?: (date: string) => boolean
   disabledHours?: (date: string) => number[]
   disabledMinutes?: (hour: number, date: string) => number[]
@@ -101,7 +103,9 @@ export function dateTimeTimeConstraints(
   const count = Number(
     options.step ?? (options.precision === 'minute' ? 60 : 1),
   )
-  const base = lower ?? 0
+  const base = parseDateTime(options.stepBase)
+    ? dateTimeSeconds(options.stepBase!)
+    : (lower ?? 0)
   return {
     precision: options.precision,
     min: min?.date === date ? min.time : undefined,
