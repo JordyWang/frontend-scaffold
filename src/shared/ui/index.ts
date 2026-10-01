@@ -129,7 +129,13 @@ export type { ColorPickerProps } from './color-picker'
 export { Calendar } from './calendar'
 export type { CalendarProps } from './calendar'
 export { Tag, Badge, Image, Skeleton } from './display'
-export type { TagProps, BadgeProps, ImageProps, SkeletonProps } from './display'
+export type {
+  TagProps,
+  BadgeProps,
+  ImageProps,
+  SkeletonProps,
+  SkeletonParagraph,
+} from './display'
 export { Alert } from './alert'
 export type { AlertProps } from './alert'
 export { Spinner } from './spinner'

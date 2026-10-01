@@ -165,6 +165,7 @@ export function DesignSystemPreview() {
     3,
   )
   const [statisticLoading, setStatisticLoading] = useState(true)
+  const [skeletonLoading, setSkeletonLoading] = useState(true)
   const [colorValue, setColorValue] = useState('#1677ff')
   const [dateRange, setDateRange] = useState<DateRange>(['', ''])
   const [timeRange, setTimeRange] = useState<TimeRange>(['', ''])
@@ -972,6 +973,38 @@ export function DesignSystemPreview() {
                 />
                 <Skeleton width="80%" label="标题正在加载" />
                 <Skeleton shape="block" height={48} label="内容正在加载" />
+                <div
+                  role="group"
+                  aria-label="组合骨架屏预览"
+                  className="grid w-full gap-3"
+                >
+                  <Button
+                    variant="outline"
+                    className="justify-self-start"
+                    onClick={() => setSkeletonLoading((current) => !current)}
+                  >
+                    {skeletonLoading ? '显示加载结果' : '显示骨架屏'}
+                  </Button>
+                  <Skeleton
+                    shape="content"
+                    label="文章正在加载"
+                    loading={skeletonLoading}
+                    avatar={{ size: 48, shape: 'square' }}
+                    title={{ width: '48%' }}
+                    paragraph={{ rows: 3, width: ['100%', '82%', '56%'] }}
+                    round
+                  >
+                    <div className="flex min-w-0 items-start gap-4">
+                      <Avatar label="文章作者">作</Avatar>
+                      <div className="min-w-0 space-y-2">
+                        <h4 className="font-semibold">加载完成的文章</h4>
+                        <p className="text-sm text-muted-foreground">
+                          骨架屏消失后，真实内容进入阅读顺序。
+                        </p>
+                      </div>
+                    </div>
+                  </Skeleton>
+                </div>
                 <Stack direction="row" align="center" gap="sm">
                   <Spinner label="正在处理" />
                   <Typography variant="caption">处理中</Typography>

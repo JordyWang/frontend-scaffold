@@ -28,6 +28,8 @@
 
 `Spinner` 和 `Spin` 已统一小号、默认和大号指示器尺寸及动画，在 `/__ui` 并排预览，并通过桌面和 H5 浏览器检查减少动态效果设置。
 
+`Skeleton` 在原有单块占位之外提供显式内容形态：头像、标题、可配置段落行数与宽度；`loading` 切换时真实内容才进入阅读和焦点顺序。`/__ui` 展示加载与完成状态，桌面键盘、H5 触控及减少动态效果设置均有回归。
+
 ConfigProvider 的 RTL 方向已覆盖 Select、Dialog、Sheet、Dropdown、Popover、Tooltip 的弹层容器，Select 的触发器和选项使用 Tailwind 逻辑方向样式；`/__ui` 提供键盘与 H5 触控预览。
 
 Dropdown、Popover、Tooltip 的浮层已在裁切容器、RTL、桌面与 H5 中验证。Dropdown 的上下方向键、Enter、空格和正反向 Tab，以及 Popover 中交互内容的 Tab 顺序已有浏览器回归。

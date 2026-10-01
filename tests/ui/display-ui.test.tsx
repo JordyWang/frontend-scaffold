@@ -100,6 +100,65 @@ describe('display and feedback semantics', () => {
     expect(screen.getByRole('status', { name: '正在处理' })).toBeInTheDocument()
   })
 
+  it('renders a composite skeleton and swaps to real content when loading ends', () => {
+    const { rerender } = render(
+      <Skeleton
+        shape="content"
+        label="文章正在加载"
+        avatar={{ size: 40, shape: 'square' }}
+        title={{ width: '48%' }}
+        paragraph={{ rows: 3, width: ['100%', '80%', '50%'] }}
+        round
+      >
+        <button type="button">阅读文章</button>
+      </Skeleton>,
+    )
+    const status = screen.getByRole('status', { name: '文章正在加载' })
+    expect(status).toHaveAttribute('data-ui-skeleton', 'content')
+    expect(status.querySelector('[data-ui-skeleton-avatar]')).toHaveStyle({
+      width: '40px',
+      height: '40px',
+    })
+    expect(status.querySelector('[data-ui-skeleton-title]')).toHaveStyle({
+      width: '48%',
+    })
+    expect(status.querySelectorAll('[data-ui-skeleton-row]')).toHaveLength(3)
+    expect(status.querySelector('[data-ui-skeleton-row="2"]')).toHaveStyle({
+      width: '50%',
+    })
+    expect(screen.queryByRole('button', { name: '阅读文章' })).toBeNull()
+
+    rerender(
+      <Skeleton shape="content" label="文章正在加载" loading={false}>
+        <button type="button">阅读文章</button>
+      </Skeleton>,
+    )
+    expect(screen.queryByRole('status', { name: '文章正在加载' })).toBeNull()
+    expect(screen.getByRole('button', { name: '阅读文章' })).toBeVisible()
+  })
+
+  it('supports static content placeholders without title or avatar', () => {
+    render(
+      <Skeleton
+        shape="content"
+        label="说明正在加载"
+        active={false}
+        title={false}
+        paragraph={{ rows: 2, width: '70%' }}
+      />,
+    )
+    const status = screen.getByRole('status', { name: '说明正在加载' })
+    expect(status.querySelector('[data-ui-skeleton-avatar]')).toBeNull()
+    expect(status.querySelector('[data-ui-skeleton-title]')).toBeNull()
+    expect(status.querySelectorAll('[data-ui-skeleton-row]')).toHaveLength(2)
+    expect(status.querySelector('[data-ui-skeleton-row="1"]')).toHaveStyle({
+      width: '70%',
+    })
+    expect(status.querySelector('[data-ui-skeleton-row]')).not.toHaveClass(
+      'animate-pulse',
+    )
+  })
+
   it('applies the provider size consistently to standalone and wrapped loading', () => {
     render(
       <ConfigProvider componentSize="large">

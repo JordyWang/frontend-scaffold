@@ -2022,6 +2022,41 @@ test('spinner and spin share sizes and respect reduced motion', async ({
   ).toHaveCSS('animation-name', 'none')
 })
 
+test('composite skeleton reveals content with keyboard and touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const group = page.getByRole('group', { name: '组合骨架屏预览' })
+  const status = group.getByRole('status', { name: '文章正在加载' })
+  const rows = status.locator('[data-ui-skeleton-row]')
+  await expect(rows).toHaveCount(3)
+  await expect(status.locator('[data-ui-skeleton-avatar]')).toHaveCSS(
+    'width',
+    '48px',
+  )
+  const widths = await rows.evaluateAll((elements) =>
+    elements.map((element) => element.getBoundingClientRect().width),
+  )
+  expect(widths[0]).toBeGreaterThan(widths[1])
+  expect(widths[1]).toBeGreaterThan(widths[2])
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await expect(rows.first()).toHaveCSS('animation-name', 'none')
+
+  const reveal = group.getByRole('button', { name: '显示加载结果' })
+  if (testInfo.project.name.startsWith('mobile-')) await reveal.tap()
+  else await reveal.press('Enter')
+  await expect(status).toHaveCount(0)
+  await expect(
+    group.getByRole('heading', { name: '加载完成的文章' }),
+  ).toBeVisible()
+  await expect(group.getByRole('img', { name: '文章作者' })).toBeVisible()
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+})
+
 test('watermark follows theme and keeps covered controls touchable', async ({
   page,
 }, testInfo) => {

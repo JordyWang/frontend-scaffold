@@ -143,21 +143,119 @@ export function Image({
   )
 }
 
-export type SkeletonProps = HTMLAttributes<HTMLDivElement> & {
+export type SkeletonParagraph = {
+  rows?: number
+  width?: string | number | Array<string | number>
+}
+
+export type SkeletonProps = Omit<HTMLAttributes<HTMLDivElement>, 'title'> & {
   width?: string | number
   height?: string | number
-  shape?: 'line' | 'circle' | 'block'
+  shape?: 'line' | 'circle' | 'block' | 'content'
   label?: string
+  loading?: boolean
+  active?: boolean
+  avatar?: boolean | { size?: number; shape?: 'circle' | 'square' }
+  title?: boolean | { width?: string | number }
+  paragraph?: boolean | SkeletonParagraph
+  round?: boolean
 }
 export function Skeleton({
   width,
   height,
   shape = 'line',
   label = '正在加载',
+  loading = true,
+  active = true,
+  avatar = false,
+  title = true,
+  paragraph = true,
+  round = false,
+  children,
   className,
   style,
   ...props
 }: SkeletonProps) {
+  if (!loading) return <>{children}</>
+
+  const animationClass = active && 'animate-pulse motion-reduce:animate-none'
+  if (shape === 'content') {
+    const avatarConfig = typeof avatar === 'object' ? avatar : undefined
+    const avatarSize =
+      avatarConfig?.size !== undefined && Number.isFinite(avatarConfig.size)
+        ? Math.max(16, Math.min(160, avatarConfig.size))
+        : 48
+    const titleWidth = typeof title === 'object' ? title.width : undefined
+    const paragraphConfig =
+      typeof paragraph === 'object' ? paragraph : undefined
+    const requestedRows = paragraphConfig?.rows
+    const rows =
+      requestedRows !== undefined && Number.isFinite(requestedRows)
+        ? Math.max(1, Math.min(20, Math.floor(requestedRows)))
+        : 3
+    const paragraphWidth = paragraphConfig?.width
+    return (
+      <div
+        role="status"
+        aria-label={label}
+        data-ui-skeleton="content"
+        className={cn('flex w-full max-w-full items-start gap-4', className)}
+        style={style}
+        {...props}
+      >
+        {avatar && (
+          <span
+            aria-hidden="true"
+            data-ui-skeleton-avatar=""
+            className={cn(
+              'shrink-0 bg-secondary',
+              avatarConfig?.shape === 'square'
+                ? 'rounded-[var(--radius-sm)]'
+                : 'rounded-full',
+              animationClass,
+            )}
+            style={{ width: avatarSize, height: avatarSize }}
+          />
+        )}
+        <span aria-hidden="true" className="min-w-0 flex-1 space-y-3">
+          {title !== false && (
+            <span
+              data-ui-skeleton-title=""
+              className={cn(
+                'block h-5 max-w-full bg-secondary',
+                round ? 'rounded-full' : 'rounded-[var(--radius-sm)]',
+                animationClass,
+              )}
+              style={{ width: titleWidth ?? '40%' }}
+            />
+          )}
+          {paragraph !== false && (
+            <span data-ui-skeleton-paragraph="" className="block space-y-2">
+              {Array.from({ length: rows }, (_, index) => {
+                const rowWidth = Array.isArray(paragraphWidth)
+                  ? (paragraphWidth[index] ?? '100%')
+                  : index === rows - 1
+                    ? (paragraphWidth ?? '60%')
+                    : '100%'
+                return (
+                  <span
+                    key={index}
+                    data-ui-skeleton-row={index}
+                    className={cn(
+                      'block h-4 max-w-full bg-secondary',
+                      round ? 'rounded-full' : 'rounded-[var(--radius-sm)]',
+                      animationClass,
+                    )}
+                    style={{ width: rowWidth }}
+                  />
+                )
+              })}
+            </span>
+          )}
+        </span>
+      </div>
+    )
+  }
   const shapeStyles = {
     line: 'h-4 w-full rounded-[var(--radius-sm)]',
     circle: 'size-12 rounded-full',
@@ -168,7 +266,8 @@ export function Skeleton({
       role="status"
       aria-label={label}
       className={cn(
-        'animate-pulse bg-secondary motion-reduce:animate-none',
+        'bg-secondary',
+        animationClass,
         shapeStyles[shape],
         className,
       )}
