@@ -644,6 +644,30 @@ describe('Ant Design-inspired shared components', () => {
     expect(screen.getByRole('heading', { name: '完成' })).toBeInTheDocument()
   })
 
+  it('joins compact controls without removing their individual semantics', () => {
+    render(
+      <>
+        <Space.Compact aria-label="紧凑工具栏">
+          <button type="button">前缀</button>
+          <button type="button">提交</button>
+        </Space.Compact>
+        <Space.Compact direction="vertical" aria-label="纵向工具栏" block>
+          <button type="button">上方</button>
+          <button type="button">下方</button>
+        </Space.Compact>
+      </>,
+    )
+    const horizontal = screen.getByRole('group', { name: '紧凑工具栏' })
+    const vertical = screen.getByRole('group', { name: '纵向工具栏' })
+    expect(horizontal).toHaveAttribute('data-ui-space-compact', '')
+    expect(horizontal).toHaveClass('flex-row')
+    expect(vertical).toHaveClass('flex-col', 'w-full')
+    expect(
+      within(horizontal).getByRole('button', { name: '提交' }),
+    ).toBeVisible()
+    expect(within(vertical).getByRole('button', { name: '下方' })).toBeVisible()
+  })
+
   it('names the result region and exposes complex error details after actions', () => {
     const { rerender } = render(
       <Result

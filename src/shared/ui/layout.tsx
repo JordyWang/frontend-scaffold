@@ -77,6 +77,15 @@ export type SpaceProps = Omit<HTMLAttributes<HTMLDivElement>, 'children'> & {
   split?: ReactNode
 }
 
+export type SpaceCompactProps = Omit<
+  HTMLAttributes<HTMLDivElement>,
+  'children'
+> & {
+  children?: ReactNode
+  direction?: 'horizontal' | 'vertical'
+  block?: boolean
+}
+
 const spaceGap: Record<'small' | 'middle' | 'large', Gap> = {
   small: 'sm',
   middle: 'md',
@@ -84,7 +93,7 @@ const spaceGap: Record<'small' | 'middle' | 'large', Gap> = {
 }
 
 /** Ant Design-like spacing primitive; unlike Stack it defaults to a row. */
-export function Space({
+function SpaceBase({
   direction = 'horizontal',
   size = 'middle',
   align = 'center',
@@ -128,6 +137,36 @@ export function Space({
     </div>
   )
 }
+
+/** Joined controls for compact toolbars while preserving each child's semantics. */
+export function SpaceCompact({
+  direction = 'horizontal',
+  block = false,
+  children,
+  className,
+  role,
+  ...props
+}: SpaceCompactProps) {
+  return (
+    <div
+      data-ui-space-compact=""
+      role={role ?? (props['aria-label'] ? 'group' : undefined)}
+      className={cn(
+        'inline-flex max-w-full [&>*]:rounded-none [&>*]:focus-visible:z-10 [&>*+*]:-ms-px [&>*:first-child]:rounded-s-[var(--ui-field-radius)] [&>*:last-child]:rounded-e-[var(--ui-field-radius)]',
+        direction === 'vertical'
+          ? 'flex-col [&>*+*]:-mt-px [&>*+*]:-ms-0 [&>*:first-child]:rounded-s-none [&>*:first-child]:rounded-t-[var(--ui-field-radius)] [&>*:last-child]:rounded-e-none [&>*:last-child]:rounded-b-[var(--ui-field-radius)]'
+          : 'flex-row',
+        block && 'flex w-full',
+        className,
+      )}
+      {...props}
+    >
+      {Children.toArray(children)}
+    </div>
+  )
+}
+
+export const Space = Object.assign(SpaceBase, { Compact: SpaceCompact })
 
 export type GridProps = HTMLAttributes<HTMLDivElement> & {
   minItemWidth?: string

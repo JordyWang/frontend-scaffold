@@ -67,6 +67,36 @@ test('small Card applies its size to slots and keeps actions touchable', async (
   await expect(compact.getByRole('status')).toHaveText('已执行操作')
 })
 
+test('Space.Compact keeps control order, semantics and H5 touch targets', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const compact = preview.getByRole('group', { name: '紧凑操作组' })
+  const prefix = compact.getByRole('button', { name: '前缀' })
+  const input = compact.getByRole('textbox', { name: '紧凑输入' })
+  const submit = compact.getByRole('button', { name: '提交' })
+  for (const control of [prefix, input, submit]) {
+    const box = await control.boundingBox()
+    expect(box!.height).toBeGreaterThanOrEqual(44)
+  }
+  await prefix.focus()
+  await prefix.press('Tab')
+  await expect(input).toBeFocused()
+  if (testInfo.project.name === 'mobile-webkit') await submit.focus()
+  else await input.press('Tab')
+  await expect(submit).toBeFocused()
+  if (testInfo.project.name.startsWith('mobile-')) await submit.tap()
+  else await submit.press('Enter')
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
+})
+
 test('closable Alert supports keyboard and touch dismissal with focus recovery', async ({
   page,
 }, testInfo) => {

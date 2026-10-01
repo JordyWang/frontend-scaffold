@@ -447,6 +447,23 @@ export function DesignSystemPreview() {
                 <Typography variant="caption" tone="muted">
                   Grid 根据可用宽度自动换列。
                 </Typography>
+                <Space.Compact aria-label="紧凑操作组">
+                  <Button variant="outline">前缀</Button>
+                  <Input
+                    aria-label="紧凑输入"
+                    className="w-40"
+                    defaultValue="内容"
+                  />
+                  <Button>提交</Button>
+                </Space.Compact>
+                <Space.Compact
+                  direction="vertical"
+                  aria-label="纵向紧凑操作组"
+                  className="max-w-48"
+                >
+                  <Button variant="outline">纵向操作一</Button>
+                  <Button variant="outline">纵向操作二</Button>
+                </Space.Compact>
               </Stack>
             </CardContent>
           </Card>

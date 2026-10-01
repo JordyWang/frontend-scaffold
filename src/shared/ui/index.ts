@@ -91,8 +91,14 @@ export { Icon } from './icon'
 export type { IconProps } from './icon'
 export { Typography } from './typography'
 export type { TypographyProps } from './typography'
-export { Stack, Flex, Space, Grid, Divider } from './layout'
-export type { StackProps, SpaceProps, GridProps, DividerProps } from './layout'
+export { Stack, Flex, Space, SpaceCompact, Grid, Divider } from './layout'
+export type {
+  StackProps,
+  SpaceProps,
+  SpaceCompactProps,
+  GridProps,
+  DividerProps,
+} from './layout'
 export { Splitter } from './splitter'
 export type { SplitterPanel, SplitterProps } from './splitter'
 export { Masonry } from './masonry'

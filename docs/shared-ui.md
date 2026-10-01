@@ -73,6 +73,8 @@
 | Carousel                        | `items`、`index` / `defaultIndex`、`autoplay`、`dots`、`dotPlacement`、`effect`、`infinite`、`adaptiveHeight`、`ref`                                  | 受控轮播、四向指示点、两种动效、键盘/手势切换、播放进度及隐藏内容焦点恢复                                                   |
 | Tree                            | `treeData`、`expandedKeys`、`selectedKey` / `selectedKeys`、`checkedKeys`、`multiple`、`loadChildren`、`classNames`                                   | 选择和勾选独立；父子传导与半选、禁用边界、异步加载与取消/重试、唯一 Tab 入口、RTL 键盘与空状态                              |
 
+`Space.Compact` 是 `Space` 的紧凑组合入口，也可直接导入 `SpaceCompact`。`direction` 支持 horizontal / vertical，`block` 让组合填满容器；子控件保留自己的语义、焦点顺序和 44px 触控尺寸，只合并相邻边框和圆角。
+
 `Progress` 的 `type` 可选 `line`、`circle`、`dashboard`。`steps` 可传数字或 `{ count, gap? }`；`gap` 单位为 px，线性默认间距为 4px，圆环及仪表盘默认间距为 2px，最多渲染 100 段。圆环与仪表盘的 `strokeWidth` 沿用项目的像素单位。仪表盘 `gapDegree` 默认 75°、限制在 0–295°，`gapPlacement` 默认 `bottom`，`start` / `end` 跟随 ConfigProvider 的 LTR/RTL 方向。所有形态只暴露一个 `progressbar`，百分比文本由 `format` 控制。
 
 `Result.children` 用于展示复杂错误详情或后续说明，位于 `extra` 操作区之后，并使用主题背景承载内容。结果区由标题提供可访问名称，默认及自定义图标均作为装饰内容隐藏，避免重复播报。
