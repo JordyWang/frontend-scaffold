@@ -14,7 +14,7 @@
 | Form / FormItem                 | `initialValues`、`values`、`onValuesChange`、`onFinish`、`onFinishFailed`、`onFinishError`、`rules`、`valuePropName`、`emptyValue`、`trigger`         | 表单只协调值和校验；控件仍使用项目自己的 API，规则错误通过 FormField 的 `aria-describedby` 暴露                             |
 | InputNumber / Slider            | `value` / `defaultValue`、`min`、`max`、`step`、`onChange`、`label`                                                                                   | 使用原生 number/range 控件；数值提交时限制在范围内，键盘和触控由浏览器处理                                                  |
 | DatePicker                      | `value` / `defaultValue`、`onChange`、`mode`、`open` / `defaultOpen`、`panelMonth`、`needConfirm`、`presets`、`disabledDate`、`classNames`            | 日期单位字符串；默认项目弹层，可选常驻面板或原生输入，确认前不提交；键盘、RTL、44px 网格和组合失焦                          |
-| TimePicker                      | 原生时间属性、`value`、`defaultValue`、`onChange`、`size`                                                                                             | 输出本地时间字符串；由浏览器提供键盘和触控选择器                                                                            |
+| TimePicker                      | `value` / `defaultValue`、`onChange`、`mode`、`precision`、`use12Hours`、`needConfirm`、单位步长、禁用回调、`presets`、`classNames`                   | 24 小时本地时间字符串；默认项目时间列面板，可选常驻/原生模式；确认、键盘、RTL 与 44px 触控                                  |
 | DateRangePicker                 | `value` / `defaultValue`、`picker`、`onChange`、`mode`、`onCalendarChange`、`needConfirm`、`presets`、`allowEmpty`、`disabledDate`                    | 日期单位起止元组；默认项目双面板，窄容器单面板；独立端点、确认、开放区间、键盘与 44px 触控                                  |
 | MultiDatePicker                 | `value` / `defaultValue`、`onChange`、`order`、`needConfirm`、`maxCount`、`maxTagCount`、`renderTag`                                                  | 日期单位数组；同 `DatePicker multiple`，跨月切换、临时选择、逐项删除、44px 触控                                             |
 | TimeRangePicker                 | `value` / `defaultValue`、`onChange`、`min`、`max`、`step`、`required`、`disabled`、`name`、`size`                                                    | 两个原生时间输入组成同日时间区间；可精确到秒，窄屏纵向排列                                                                  |
@@ -117,7 +117,7 @@
 
 `Button` 在原有 `variant`、`size`、`loading` 基础上支持 `danger`、`block`、`shape`（default、round、circle）以及 `icon` / `iconPosition` 插槽；`danger` 会优先使用错误主题色。
 
-`InputNumber`、`DatePicker`、`TimePicker`、`DateRangePicker`、`TimeRangePicker` 和 `AutoComplete` 同样支持 `variant` 与 `status`；错误状态通过 `aria-invalid` 传递；单日期与日期范围默认使用项目面板，时间控件目前仍使用浏览器原生选择器。
+`InputNumber`、`DatePicker`、`TimePicker`、`DateRangePicker`、`TimeRangePicker` 和 `AutoComplete` 同样支持 `variant` 与 `status`；错误状态通过 `aria-invalid` 传递；单日期、日期范围与单时间默认使用项目面板，时间范围目前仍使用浏览器原生选择器。
 
 `InputNumber` 输入期间保留原始数字草稿，`onChange` 会收到当前数值或清空时的 `undefined`；失焦时再按 `min` / `max` 限制数值，并在修正后再次调用 `onChange`。受控用法可传入 `value={undefined}` 表示空值，并在 `onChange` 中同步更新。
 
@@ -152,6 +152,22 @@
 浏览状态仍使用 `panelMonth` 的 YYYY-MM：周显示这个月份中的周行，月和季度使用其年份，年使用其十年区间。标题可逐层进入月份、年份和十年网格，选择浏览单元格只改变视图；选择目标单位才修改临时或提交值。浏览当前单位的按钮只定位，不提交。方向键按视觉列数移动并跳过禁用项，RTL 反转左右；Home/End 定位本行，Ctrl+Home/End 定位当前网格首尾，PageUp/PageDown 翻月、年、十年或百年；周模式 Shift+PageUp/PageDown 翻年。导航受 min/max 约束，内部焦点滚动不移动页面；动态禁用焦点所在项时恢复到可用项。
 
 `renderCell(value, picker)` 和 `getCellDescription(value, picker)` 提供统一的非交互内容与无障碍说明，优先于原有 renderDate/getDateDescription，只用于目标单位的单元格。网格按钮至少 44px，常驻面板按自身容器收缩，`/__ui` 展示跨年周、禁用月份、确认季度、年份层级、多选、手工输入、240px 内嵌面板、表单校验/重置和 RTL 深色。切换 DatePicker 的 picker 会重建对应选择会话；调用方应同时传入新单位的 value/defaultValue，旧格式不被自动猜测或转换。各单位的范围选择使用下述 DateRangePicker。
+
+### 时间选择器
+
+`TimePicker` 默认 `mode="popup"`，提供 `panel` 常驻与显式 `native` 原生适配。值仍为 24 小时本地字符串：分钟精度为 `HH:mm`，秒精度为 `HH:mm:ss`，空值为 `''`；拒绝 24:00、非法分秒、时区和毫秒。显式 `value={undefined}` 表示受控空值。`precision` 为 minute/second；未指定时，value/defaultValue/min/max/defaultOpenValue 含秒或 `step` 不是 60 的整数倍会采用秒精度。切换精度会重建会话，调用方同步提供对应格式的值。
+
+`use12Hours` 将时间列与输入显示为 `hh:mm[:ss] AM/PM`，手工输入同时接受该格式和规范的 24 小时格式，回调及隐藏表单字段始终保持 24 小时值。12 AM 为 00 点、12 PM 为 12 点。`min` / `max` 和预设仍使用 24 小时字符串；min 大于 max 表示跨午夜的可用窗口，时间字符串本身不附带日期。
+
+`hourStep` / `minuteStep` / `secondStep` 限制单位选项；`step` 以秒为单位，基准为有效 min 或午夜，跨午夜窗口按从 min 延续到次日的距离计算，`step="any"` 不限制总秒步长。`disabledHours()`、`disabledMinutes(hour)`、`disabledSeconds(hour, minute)` 与 `disabledTime(value)` 同时约束输入、面板、此刻和预设；这些同步函数应保持纯且快速。`hideDisabledOptions` 隐藏不可选选项。更改上级单位优先保留下级单位，不可用时找本单位内距离最近的有效补全；不会自动提交初始浏览用的 `defaultOpenValue`。
+
+默认 `needConfirm=true`：选项及预设只更新待确认时间，“确定”或有效编辑输入的 Enter 提交并调用 `onOk`。取消、Escape、外部关闭及整个控件失焦恢复已提交值，返回输入或在列间移动保留临时值。`needConfirm=false` 选择后立即提交，面板保持打开供继续调整，“完成”结束会话；非法输入 Enter 给出错误，移出控件后恢复原时间。`allowClear` 为明确的立即清空动作，`disabled` / `readOnly` 禁止操作，`inputReadOnly` 仅禁止手工输入。`showNow` 默认开启，每次点击求当前时间并执行同一约束；`presets` 使用 `{ key, label, value: string | (() => string) }[]`，函数在点击时求值。
+
+时、分、秒和时段列分别为 listbox，每列一个 Tab 入口；上下方向键、Home/End、PageUp/PageDown（五项）只浏览，左右键跨列且跟随 RTL，Enter/Space 或触控才选择。首项 Shift+Tab 回到输入，末项 Tab 取消未确认会话后接回字段按钮，Escape 还焦点；动态禁用恢复可用焦点且不抢走外部焦点。列内部滚动不选择时间，按钮至少 44px，窄容器及 RTL 深色沿用语义 Token。`renderCell(value, unit)` 只放非交互内容，`getCellDescription(value, unit)` 提供读屏说明，unit 为 hour/minute/second/meridiem。
+
+`open` / `defaultOpen` / `onOpenChange`、四向逻辑 `placement`、输入 ref、size/variant/status 沿用字段契约，`className` 修饰输入；语义 Tailwind 插槽包含 root/input/toggle/clear/popup/panel/presets/columns/column/option/footer/error。`onBlur` 来自根 span，只在离开输入、按钮和 Portal 弹层组成的整个控件时触发。隐藏 `name` 字段仅提交已确认值；待确认或无效时间由原生 validity 阻止提交，非受控原生 form reset 和项目 Form 的校验/重置都有回归。`inputReadOnly` 使用 HTML readOnly，因此必填等原生约束不参与浏览器校验，项目 Form 规则仍有效。
+
+`/__ui` 的“时间选择面板预览”包括分钟/秒、12 小时、条件禁用、跨午夜、手工输入、立即提交、外部开合、240px 常驻、动态禁用、只读、错误和预约表单。PC Chromium、H5 Chromium/WebKit 覆盖键盘、触控选择、确认/取消、Tab、列滚动、定位、RTL 与表单协作。`TimeRangePicker` 的项目时间列面板、日期时间组合、滚动即选择、毫秒精度和任意 format 尚未实现。
 
 ### 日期多选
 

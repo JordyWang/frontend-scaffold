@@ -24,6 +24,12 @@ const paths = {
   calendar: (
     <path d="M3 4h14v13H3ZM3 8h14M6 2v4M14 2v4M6 11h.01M10 11h.01M14 11h.01M6 14h.01M10 14h.01" />
   ),
+  clock: (
+    <>
+      <circle cx="10" cy="10" r="7" />
+      <path d="M10 5v5l3 2" />
+    </>
+  ),
   info: (
     <>
       <circle cx="10" cy="10" r="7" />

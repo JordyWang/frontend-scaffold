@@ -223,70 +223,11 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(function Slider(
   )
 })
 
-type NativePickerProps = Omit<
-  InputHTMLAttributes<HTMLInputElement>,
-  'type' | 'value' | 'defaultValue' | 'onChange' | 'size'
-> & {
-  value?: string
-  defaultValue?: string
-  size?: ControlSize
-  variant?: InputVariant
-  status?: InputStatus
-  onChange?: (value: string) => void
-}
-
-const NativePicker = forwardRef<
-  HTMLInputElement,
-  NativePickerProps & { type: 'date' | 'time' }
->(function NativePicker(
-  {
-    type,
-    value,
-    defaultValue,
-    size,
-    variant = 'outlined',
-    status = 'default',
-    onChange,
-    className,
-    'aria-invalid': ariaInvalid,
-    ...props
-  },
-  ref,
-) {
-  const { componentSize } = useConfig()
-  const resolvedSize = resolveComponentSize(componentSize, size)
-  return (
-    <input
-      {...props}
-      ref={ref}
-      type={type}
-      className={cn(
-        inputStyles,
-        inputVariantStyles[variant],
-        inputStatusStyles[status],
-        inputSizeStyles[resolvedSize],
-        'touch-manipulation',
-        className,
-      )}
-      aria-invalid={status === 'error' || ariaInvalid || undefined}
-      data-status={status === 'default' ? undefined : status}
-      value={value}
-      defaultValue={defaultValue}
-      onChange={(event) => onChange?.(event.currentTarget.value)}
-    />
-  )
-})
-
-export type TimePickerProps = NativePickerProps
+export { TimePicker } from './time-picker'
+export type { TimePickerProps } from './time-picker'
 
 export { DatePicker } from './date-picker'
 export type { DatePickerProps } from './date-picker'
-
-export const TimePicker = forwardRef<HTMLInputElement, TimePickerProps>(
-  function TimePicker(props, ref) {
-    return <NativePicker {...props} ref={ref} type="time" />
-  },
-)
 
 export type AutoCompleteOption = {
   value: string

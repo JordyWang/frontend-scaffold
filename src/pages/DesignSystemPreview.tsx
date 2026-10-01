@@ -14,6 +14,7 @@ import { DateRangePreview } from './DateRangePreview'
 import { MultiDatePreview } from './MultiDatePreview'
 import { DateUnitPreview } from './DateUnitPreview'
 import { DateUnitRangePreview } from './DateUnitRangePreview'
+import { TimePickerPreview } from './TimePickerPreview'
 import {
   Alert,
   Affix,
@@ -1316,7 +1317,7 @@ export function DesignSystemPreview() {
                 />
                 <FormField
                   label="开始时间"
-                  control={<TimePicker aria-label="开始时间" />}
+                  control={<TimePicker mode="native" aria-label="开始时间" />}
                 />
                 <FormField
                   label="时间范围"
@@ -2056,6 +2057,7 @@ export function DesignSystemPreview() {
           <MultiDatePreview />
           <DateUnitPreview />
           <DateUnitRangePreview />
+          <TimePickerPreview />
           <Card className="col-span-full">
             <CardContent>
               <Stack gap="md">
