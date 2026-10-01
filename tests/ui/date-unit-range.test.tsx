@@ -152,6 +152,13 @@ describe('DateRangePicker period sessions', () => {
     fireEvent.mouseLeave(
       screen.getByRole('grid', { name: /2024年/ }).parentElement!,
     )
+    expect(cell('2024-06')).toHaveAttribute('data-picker-preview', '')
+    const pointerMove = new Event('pointermove', { bubbles: true })
+    Object.defineProperty(pointerMove, 'pointerType', { value: 'mouse' })
+    fireEvent(cell('2024-06'), pointerMove)
+    fireEvent.mouseLeave(
+      screen.getByRole('grid', { name: /2024年/ }).parentElement!,
+    )
     expect(cell('2024-06')).not.toHaveAttribute('data-picker-preview')
   })
 

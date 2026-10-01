@@ -255,7 +255,7 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
           }}
         />
         {controls && (
-          <span className="flex h-full min-h-11 shrink-0 flex-col border-s border-input">
+          <span className="flex min-h-11 shrink-0 items-stretch border-s border-input">
             <button
               type="button"
               tabIndex={-1}
@@ -264,7 +264,7 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
                 disabled ||
                 (max !== undefined && current !== undefined && current >= max)
               }
-              className="flex min-h-5 w-8 flex-1 touch-manipulation items-center justify-center border-b border-input text-muted-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex min-h-11 w-11 touch-manipulation items-center justify-center border-e border-input text-muted-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => stepBy(1)}
             >
@@ -282,7 +282,7 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
                 disabled ||
                 (min !== undefined && current !== undefined && current <= min)
               }
-              className="flex min-h-5 w-8 flex-1 touch-manipulation items-center justify-center text-muted-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex min-h-11 w-11 touch-manipulation items-center justify-center text-muted-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => stepBy(-1)}
             >

@@ -17,6 +17,14 @@ test('formatted number keeps canonical values while stepping on PC and H5', asyn
     exact: true,
   })
   await input.scrollIntoViewIfNeeded()
+  for (const button of [
+    increase,
+    page.getByRole('button', { name: '格式化金额减少', exact: true }),
+  ]) {
+    const box = (await button.boundingBox())!
+    expect(box.width).toBeGreaterThanOrEqual(44)
+    expect(box.height).toBeGreaterThanOrEqual(44)
+  }
   await expect(input).toHaveValue('¥12.50')
   await input.fill('13.25')
   await expect(input).toHaveValue('13.25')
@@ -25,6 +33,10 @@ test('formatted number keeps canonical values while stepping on PC and H5', asyn
   if (info.project.name.startsWith('mobile-')) await increase.tap()
   else await increase.click()
   await expect(input).toHaveValue('¥13.75')
+  await input.locator('..').screenshot({
+    path:
+      'output/playwright/input-number-controls-' + info.project.name + '.png',
+  })
   const overflow = await page.evaluate(
     () =>
       document.documentElement.scrollWidth >

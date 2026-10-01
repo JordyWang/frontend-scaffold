@@ -324,6 +324,8 @@ export function DesignSystemPreview() {
         </Typography>
       </Stack>
       <ThemeScope
+        role="group"
+        aria-label="组件状态主题预览"
         mode={mode}
         density={density}
         className="rounded-xl border border-border p-4 sm:p-6"
@@ -2563,7 +2565,9 @@ export function DesignSystemPreview() {
                         </Button>
                       </Badge>
                       <Badge count={24} label="24 条独立 RTL 通知" />
-                      <span role="status">{badgeStatus}</span>
+                      <span role="status" aria-label="RTL 通知操作状态">
+                        {badgeStatus}
+                      </span>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Dialog
@@ -2680,6 +2684,8 @@ export function DesignSystemPreview() {
         <Icon name="home" />
       </FloatButton>
       <ThemeScope
+        role="group"
+        aria-label="局部品牌主题预览"
         mode={mode === 'light' ? 'dark' : 'light'}
         density="compact"
         tokens={{
@@ -2737,6 +2743,8 @@ export function DesignSystemPreview() {
           </Badge>
         </Stack>
         <ThemeScope
+          role="group"
+          aria-label="嵌套主题预览"
           density="default"
           className="mt-4 rounded-xl border border-border p-4"
         >

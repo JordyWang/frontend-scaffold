@@ -237,7 +237,9 @@ test('Badge reserves space alone and follows the logical end in RTL', async ({
     await rtlButton.focus()
     await rtlButton.press('Enter')
   }
-  await expect(rtl.getByRole('status')).toHaveText('已打开 RTL 通知')
+  await expect(
+    rtl.getByRole('status', { name: 'RTL 通知操作状态', exact: true }),
+  ).toHaveText('已打开 RTL 通知')
 })
 
 test('controlled Rate clears and reselects with keyboard and touch', async ({
@@ -696,10 +698,9 @@ test('system dark mode keeps local light surfaces and state colors distinct', as
     'rgb(15, 23, 42)',
   )
   const preview = page.getByRole('region', { name: '设计系统补充组件' })
-  await expect(preview.locator('[data-ui-theme="light"]')).toHaveCSS(
-    'background-color',
-    'rgb(248, 250, 252)',
-  )
+  await expect(
+    preview.getByRole('group', { name: '组件状态主题预览', exact: true }),
+  ).toHaveCSS('background-color', 'rgb(248, 250, 252)')
   await expect(
     page.getByRole('status', { name: '任务状态：已完成' }).first(),
   ).toHaveCSS('background-color', 'rgb(20, 83, 45)')
@@ -724,8 +725,7 @@ test('default status labels meet AA contrast in light and dark themes', async ({
   await page.goto('/__ui')
   const scope = page
     .getByRole('region', { name: '设计系统补充组件' })
-    .locator('[data-ui-scope]')
-    .first()
+    .getByRole('group', { name: '组件状态主题预览', exact: true })
   const contrast = (tone: 'success' | 'warning' | 'error') =>
     scope.locator(`[data-ui-tone="${tone}"]`).evaluate((element) => {
       const style = getComputedStyle(element)
@@ -767,7 +767,10 @@ test('custom status seeds keep soft backgrounds and readable labels in both them
 }) => {
   await page.goto('/__ui')
   const preview = page.getByRole('region', { name: '设计系统补充组件' })
-  const scope = preview.locator('[data-ui-scope][data-ui-theme]').nth(1)
+  const scope = preview.getByRole('group', {
+    name: '局部品牌主题预览',
+    exact: true,
+  })
   const colors = async (
     tone: 'success' | 'warning' | 'error',
     tag = scope.locator(`[data-ui-tone="${tone}"]`).first(),
@@ -888,8 +891,13 @@ test('design system controls support keyboard, touch and local themes', async ({
   await expect(checkbox).toBeChecked()
   await expect(switchControl).not.toBeChecked()
   await expect(preview.getByText('当前：深色 · 常规')).toBeVisible()
-  await expect(preview.locator('[data-ui-theme="dark"]')).toHaveCount(1)
-  const brandedScope = preview.locator('[data-ui-theme="light"]')
+  await expect(
+    preview.getByRole('group', { name: '组件状态主题预览', exact: true }),
+  ).toHaveAttribute('data-ui-theme', 'dark')
+  const brandedScope = preview.getByRole('group', {
+    name: '局部品牌主题预览',
+    exact: true,
+  })
   await expect(
     brandedScope.getByRole('button', { name: '主要操作' }),
   ).toHaveCSS('background-color', 'rgb(22, 119, 255)')
@@ -899,7 +907,10 @@ test('design system controls support keyboard, touch and local themes', async ({
   await expect(
     brandedScope.getByRole('button', { name: '主要操作' }),
   ).toHaveCSS('border-radius', '999px')
-  const nestedScope = brandedScope.locator('[data-ui-density="default"]')
+  const nestedScope = brandedScope.getByRole('group', {
+    name: '嵌套主题预览',
+    exact: true,
+  })
   await expect(nestedScope.getByRole('button', { name: '继承按钮' })).toHaveCSS(
     'border-radius',
     '999px',
@@ -2266,7 +2277,7 @@ test('qrcode renders in the design system and supports expired refresh on touch'
   if (testInfo.project.name.startsWith('mobile-')) await expire.tap()
   else await expire.click()
   await expect(preview.getByText('二维码已失效')).toBeVisible()
-  const refresh = preview.getByRole('button', { name: '刷新' })
+  const refresh = preview.getByRole('button', { name: '刷新', exact: true })
   if (testInfo.project.name.startsWith('mobile-')) await refresh.tap()
   else await refresh.click()
   await expect(preview.getByText('二维码已失效')).toHaveCount(0)

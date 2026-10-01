@@ -300,6 +300,8 @@ const DateRangePickerControl = forwardRef<
   const [internalOpen, setInternalOpen] = useState(defaultOpen)
   const [error, setError] = useState('')
   const [hovered, setHovered] = useState<string>()
+  // Touch browsers can send a delayed mouse leave after keyboard focus moves.
+  const keyboardRangePreview = useRef(false)
   const focusRequested = useRef<DateRangeEndpoint | null>(null)
   const ownedFocus = useRef(false)
   const wasOpen = useRef(false)
@@ -833,7 +835,9 @@ const DateRangePickerControl = forwardRef<
                       ? (value) => getCellDescription(value, picker)
                       : getDateDescription
                   }
-                  onDateHover={setHovered}
+                  onDateHover={(date) => {
+                    if (!keyboardRangePreview.current) setHovered(date)
+                  }}
                   onDateFocus={setHovered}
                   onPreview={previewValue === 'hover' ? onPreview : undefined}
                   classNames={{
@@ -904,6 +908,32 @@ const DateRangePickerControl = forwardRef<
       )}
       onFocusCapture={() => {
         ownedFocus.current = true
+      }}
+      onKeyDownCapture={() => {
+        keyboardRangePreview.current = true
+      }}
+      onPointerDownCapture={() => {
+        keyboardRangePreview.current = false
+      }}
+      onPointerMoveCapture={(event) => {
+        if (
+          event.pointerType !== 'mouse' ||
+          (typeof window.matchMedia === 'function' &&
+            !window.matchMedia('(any-hover: hover)').matches)
+        )
+          return
+        keyboardRangePreview.current = false
+        const target =
+          event.target instanceof Element
+            ? event.target.closest<HTMLButtonElement>(
+                '[data-picker-value], [data-calendar-date]',
+              )
+            : null
+        setHovered(
+          target && !target.disabled
+            ? (target.dataset.pickerValue ?? target.dataset.calendarDate)
+            : undefined,
+        )
       }}
       onBlurCapture={(event) => {
         if (event.relatedTarget && !inside(event.relatedTarget))

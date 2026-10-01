@@ -125,7 +125,7 @@
 
 `InputNumber`、`DatePicker`、`TimePicker`、`DateRangePicker`、`TimeRangePicker` 和 `AutoComplete` 同样支持 `variant` 与 `status`；错误状态通过 `aria-invalid` 传递；日期与时间的单选和范围默认使用项目面板，也提供显式原生适配。
 
-`InputNumber` 输入期间保留原始数字草稿，`onChange` 会收到当前数值或清空时的 `undefined`；失焦时再按 `min` / `max` 限制数值，并在修正后再次调用 `onChange`。受控用法可传入 `value={undefined}` 表示空值，并在 `onChange` 中同步更新。`precision` 在提交和步进时限制小数位；`formatter(value, { userTyping, input })` 与 `parser(text)` 负责展示和规范值转换；`controls` 默认显示 44px 步进按钮，也可传入上下图标，`keyboard` 控制上下方向键，`changeOnWheel` 显式开启聚焦时滚轮步进，`onStep(value, { offset, type })` 报告步进结果。原生 form reset 恢复 `defaultValue`，无效草稿不会绕过边界约束。
+`InputNumber` 输入期间保留原始数字草稿，`onChange` 会收到当前数值或清空时的 `undefined`；失焦时再按 `min` / `max` 限制数值，并在修正后再次调用 `onChange`。受控用法可传入 `value={undefined}` 表示空值，并在 `onChange` 中同步更新。`precision` 在提交和步进时限制小数位；`formatter(value, { userTyping, input })` 与 `parser(text)` 负责展示和规范值转换；`controls` 默认横向显示两个至少 44×44px 的步进按钮，也可传入上下图标，`keyboard` 控制上下方向键，`changeOnWheel` 显式开启聚焦时滚轮步进，`onStep(value, { offset, type })` 报告步进结果。原生 form reset 恢复 `defaultValue`，无效草稿不会绕过边界约束。
 
 ## 日期与时间的公共 format
 

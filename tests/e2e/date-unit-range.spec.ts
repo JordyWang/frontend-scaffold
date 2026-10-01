@@ -65,6 +65,16 @@ for (const [label, initial, first, last, key] of [
         'data-picker-preview',
         '',
       )
+      await popup
+        .locator('[data-picker-unit]')
+        .first()
+        .dispatchEvent('mouseout', {
+          relatedTarget: null,
+        })
+      await expect(target(popup, last)).toHaveAttribute(
+        'data-picker-preview',
+        '',
+      )
       await activate(target(popup, last), mobile)
       if (label === '发布季度范围') {
         await expect(status).toHaveText(initial)
