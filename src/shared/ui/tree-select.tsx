@@ -15,7 +15,8 @@ import { resolveComponentSize, useConfig } from './config-context'
 import { Portal } from './portal'
 import { Icon } from './icon'
 import type { InputStatus, InputVariant } from './input'
-import { Tree, type TreeHandle } from './tree'
+import { Tree, type TreeHandle, type TreeNode } from './tree'
+import { TreeLoaderContext, useTreeLoader } from './tree-loader'
 import {
   changeCheck,
   checkBoundary,
@@ -27,6 +28,7 @@ import {
   limitTreeSelectNodes,
   treeSelectCheckedValues,
   treeSelectNodes,
+  treeSelectOption,
   type TreeSelectCheckedStrategy,
 } from './tree-select-state'
 import {
@@ -49,6 +51,10 @@ export type TreeSelectOption = {
   icon?: ReactNode
 }
 export type TreeSelectValue = string | string[]
+export type TreeSelectLoadChildren = (
+  node: TreeSelectOption,
+  options: { signal: AbortSignal },
+) => Promise<TreeSelectOption[]>
 export type TreeSelectPlacement =
   'bottomStart' | 'bottomEnd' | 'topStart' | 'topEnd'
 export type TreeSelectPart =
@@ -67,8 +73,14 @@ export type TreeSelectPart =
   | 'title'
   | 'switcher'
   | 'checkbox'
+  | 'loading'
+  | 'error'
 export type TreeSelectProps = {
   treeData: TreeSelectOption[]
+  loadChildren?: TreeSelectLoadChildren
+  loadVersion?: string | number
+  onLoad?: (node: TreeSelectOption, children: TreeSelectOption[]) => void
+  onLoadError?: (error: unknown, node: TreeSelectOption) => void
   value?: TreeSelectValue
   defaultValue?: TreeSelectValue
   onChange?: (value: TreeSelectValue | undefined) => void
@@ -149,6 +161,10 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
   function TreeSelect(allProps, forwardedRef) {
     const {
       treeData,
+      loadChildren,
+      loadVersion = 0,
+      onLoad,
+      onLoadError,
       value,
       defaultValue,
       onChange,
@@ -223,14 +239,43 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
     const [feedback, setFeedback] = useState('')
     const [popupStyle, setPopupStyle] = useState<CSSProperties>()
     const [actualPlacement, setActualPlacement] = useState(placement)
-    const nodes = useMemo(() => treeSelectNodes(treeData), [treeData])
+    const sourceNodes = useMemo(() => treeSelectNodes(treeData), [treeData])
+    const loadNodes = useMemo(
+      () =>
+        loadChildren
+          ? async (node: TreeNode, options: { signal: AbortSignal }) => {
+              const children = await loadChildren(
+                treeSelectOption(node),
+                options,
+              )
+              if (!Array.isArray(children))
+                throw new TypeError('子选项数据必须是数组')
+              return treeSelectNodes(children)
+            }
+          : undefined,
+      [loadChildren],
+    )
+    const loader = useTreeLoader({
+      treeData: sourceNodes,
+      loadChildren: loadNodes,
+      loadVersion,
+      disabled,
+      onLoad: (node, children) =>
+        onLoad?.(treeSelectOption(node), children.map(treeSelectOption)),
+      onLoadError: (error, node) =>
+        onLoadError?.(error, treeSelectOption(node)),
+    })
+    const nodes = loader.treeData
     const entries = useMemo(() => indexTree(nodes), [nodes])
     const [internalExpanded, setInternalExpanded] = useState(() =>
       treeDefaultExpandAll
         ? [...entries.values()]
-            .filter(({ node }) => node.children?.length)
+            .filter(({ node }) => loader.expandable(node))
             .map(({ node }) => node.key)
         : defaultExpandedValues,
+    )
+    const [selectionPaths, setSelectionPaths] = useState(
+      new Map<string, string[]>(),
     )
     const isMultiple = multiple || checkable
     const valueControlled = Object.prototype.hasOwnProperty.call(
@@ -317,9 +362,41 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
       ),
     )
 
-    if (!valueControlled && selected.some((key) => !entries.has(key))) {
-      const remaining = selected.filter((key) => entries.has(key))
-      setInternalValue(isMultiple ? remaining : remaining[0])
+    if (!valueControlled) {
+      const remaining = selected.filter((key) => {
+        if (entries.has(key)) return true
+        if (!loadChildren) return false
+        const path = selectionPaths.get(key)
+        // Unknown initial values may still resolve. Known values only wait for an unloaded ancestor.
+        return (
+          !path ||
+          path.some((ancestor) => {
+            const node = entries.get(ancestor)?.node
+            return node && !node.children?.length && loader.expandable(node)
+          })
+        )
+      })
+      if (remaining.length !== selected.length)
+        setInternalValue(isMultiple ? remaining : remaining[0])
+      const nextPaths = new Map(
+        [...selectionPaths].filter(([key]) => remaining.includes(key)),
+      )
+      for (const key of remaining) {
+        const entry = entries.get(key)
+        if (entry) nextPaths.set(key, entry.ancestors)
+      }
+      if (
+        nextPaths.size !== selectionPaths.size ||
+        [...nextPaths].some(([key, path]) => {
+          const previous = selectionPaths.get(key)
+          return (
+            !previous ||
+            previous.length !== path.length ||
+            previous.some((ancestor, index) => ancestor !== path[index])
+          )
+        })
+      )
+        setSelectionPaths(nextPaths)
     }
     if (
       expandedValues === undefined &&
@@ -436,6 +513,12 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
         document.getElementById(popupId)?.contains(element)
       )
     }
+
+    useLayoutEffect(() => {
+      if (!isOpen || search.trim())
+        for (const [key, status] of loader.statuses)
+          if (status === 'loading') loader.cancel(key)
+    })
 
     useLayoutEffect(() => {
       if (!isOpen) return
@@ -861,72 +944,85 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
                   }}
                 />
               )}
-              <Tree
-                ref={treeRef}
-                id={treeId}
-                label={label}
-                treeData={filtered}
-                height={popupHeight}
-                virtual={virtual}
-                expandedKeys={effectiveExpanded}
-                onExpand={(keys) => {
-                  if (search.trim()) return
-                  if (expandedValues === undefined) setInternalExpanded(keys)
-                  onExpand?.(keys)
+              <TreeLoaderContext.Provider
+                value={{
+                  ...loader,
+                  treeData: filtered,
+                  request: search.trim()
+                    ? () => Promise.resolve()
+                    : loader.request,
                 }}
-                multiple={isMultiple}
-                selectable={!checkable}
-                selectedKeys={checkable ? [] : selected}
-                onSelect={(key) => {
-                  if (!isMultiple) changeSelected([key])
-                }}
-                onSelectionChange={(_, info) => {
-                  if (isMultiple)
-                    changeSelected(
-                      selected.includes(info.node.key)
-                        ? selected.filter((key) => key !== info.node.key)
-                        : [...selected, info.node.key],
+              >
+                <Tree
+                  ref={treeRef}
+                  id={treeId}
+                  label={label}
+                  treeData={filtered}
+                  height={popupHeight}
+                  virtual={virtual}
+                  expandedKeys={effectiveExpanded}
+                  onExpand={(keys) => {
+                    if (search.trim()) return
+                    if (expandedValues === undefined) setInternalExpanded(keys)
+                    onExpand?.(keys)
+                  }}
+                  multiple={isMultiple}
+                  selectable={!checkable}
+                  selectedKeys={checkable ? [] : selected}
+                  onSelect={(key) => {
+                    if (!isMultiple) changeSelected([key])
+                  }}
+                  onSelectionChange={(_, info) => {
+                    if (isMultiple)
+                      changeSelected(
+                        selected.includes(info.node.key)
+                          ? selected.filter((key) => key !== info.node.key)
+                          : [...selected, info.node.key],
+                      )
+                  }}
+                  checkable={checkable}
+                  checkStrictly
+                  checkedKeys={[...checks.checked]}
+                  halfCheckedKeys={[...checks.halfChecked]}
+                  onCheck={(_, info) => changeChecks(info.node.key)}
+                  aria-describedby={limit !== undefined ? limitId : undefined}
+                  onClickCapture={(event) => {
+                    if (
+                      !checkable ||
+                      !(event.target instanceof Element) ||
+                      !event.target.closest('[data-tree-label]') ||
+                      event.target.closest(
+                        'button, a, input, select, textarea, [contenteditable="true"]',
+                      )
                     )
-                }}
-                checkable={checkable}
-                checkStrictly
-                checkedKeys={[...checks.checked]}
-                halfCheckedKeys={[...checks.halfChecked]}
-                onCheck={(_, info) => changeChecks(info.node.key)}
-                aria-describedby={limit !== undefined ? limitId : undefined}
-                onClickCapture={(event) => {
-                  if (
-                    !checkable ||
-                    !(event.target instanceof Element) ||
-                    !event.target.closest('[data-tree-label]') ||
-                    event.target.closest(
-                      'button, a, input, select, textarea, [contenteditable="true"]',
-                    )
-                  )
-                    return
-                  const item =
-                    event.target.closest<HTMLElement>('[data-tree-key]')
-                  if (!item || !event.currentTarget.contains(item)) return
-                  if (entries.get(item.dataset.treeKey!)?.node.disabled) return
-                  event.preventDefault()
-                  event.stopPropagation()
-                  item.focus({ preventScroll: true })
-                  changeChecks(item.dataset.treeKey!)
-                }}
-                showLine={showLine}
-                showIcon={showIcon}
-                emptyText={emptyText}
-                classNames={{
-                  root: cn(
-                    'rounded-none border-0 bg-transparent p-0',
-                    classNames?.tree,
-                  ),
-                  item: classNames?.item,
-                  title: classNames?.title,
-                  switcher: classNames?.switcher,
-                  checkbox: classNames?.checkbox,
-                }}
-              />
+                      return
+                    const item =
+                      event.target.closest<HTMLElement>('[data-tree-key]')
+                    if (!item || !event.currentTarget.contains(item)) return
+                    if (entries.get(item.dataset.treeKey!)?.node.disabled)
+                      return
+                    event.preventDefault()
+                    event.stopPropagation()
+                    item.focus({ preventScroll: true })
+                    changeChecks(item.dataset.treeKey!)
+                  }}
+                  showLine={showLine}
+                  showIcon={showIcon}
+                  emptyText={emptyText}
+                  classNames={{
+                    root: cn(
+                      'rounded-none border-0 bg-transparent p-0',
+                      classNames?.tree,
+                    ),
+                    item: classNames?.item,
+                    title: classNames?.title,
+                    switcher: classNames?.switcher,
+                    checkbox: classNames?.checkbox,
+                    loading: classNames?.loading,
+                    error: classNames?.error,
+                  }}
+                />
+              </TreeLoaderContext.Provider>
             </div>
           </Portal>
         )}

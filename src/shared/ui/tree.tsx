@@ -1,4 +1,5 @@
 import {
+  useContext,
   useEffect,
   useId,
   useImperativeHandle,
@@ -18,7 +19,11 @@ import { Empty } from './empty'
 import { Icon } from './icon'
 import { Button } from './button'
 import { spinnerIndicatorStyles } from './tailwind-styles'
-import { useTreeLoader, type TreeLoadChildren } from './tree-loader'
+import {
+  TreeLoaderContext,
+  useTreeLoader,
+  type TreeLoadChildren,
+} from './tree-loader'
 import { useTreeVirtualizer, type TreeScrollOptions } from './tree-virtualizer'
 import { treeNodeText, useTreeDrag } from './tree-drag'
 import { TreeMoveControls } from './tree-move-controls'
@@ -190,14 +195,16 @@ export function Tree(allProps: TreeProps) {
   } = allProps
   const config = useConfig()
   const direction = dir ?? config.direction
-  const loader = useTreeLoader({
+  const inheritedLoader = useContext(TreeLoaderContext)
+  const localLoader = useTreeLoader({
     treeData: sourceData,
-    loadChildren,
+    loadChildren: inheritedLoader ? undefined : loadChildren,
     loadVersion,
     disabled,
     onLoad,
     onLoadError,
   })
+  const loader = inheritedLoader ?? localLoader
   const treeData = loader.treeData
   const { expandable } = loader
   const entries = useMemo(() => indexTree(treeData), [treeData])

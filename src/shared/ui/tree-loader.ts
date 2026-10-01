@@ -1,4 +1,11 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import {
+  createContext,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import type { TreeNode } from './tree'
 import { indexTree } from './tree-state'
 
@@ -256,3 +263,8 @@ export function useTreeLoader(options: LoaderOptions) {
 
   return { treeData: resolved.treeData, statuses, expandable, request, cancel }
 }
+
+/** Internal bridge: a composite owns the cache while Tree renders its filtered view. */
+export const TreeLoaderContext = createContext<ReturnType<
+  typeof useTreeLoader
+> | null>(null)

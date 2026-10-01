@@ -28,6 +28,21 @@ export function treeSelectNodes(options: TreeSelectOption[]): TreeNode[] {
   }))
 }
 
+export function treeSelectOption(node: TreeNode): TreeSelectOption {
+  return {
+    value: node.key,
+    label: node.title,
+    searchText: node.textValue,
+    disabled: node.disabled,
+    selectable: node.selectable,
+    checkable: node.checkable,
+    disableCheckbox: node.disableCheckbox,
+    isLeaf: node.isLeaf,
+    icon: node.icon,
+    children: node.children?.map(treeSelectOption),
+  }
+}
+
 export function filterTreeSelect(nodes: TreeNode[], query: string): TreeNode[] {
   const text = query.trim().toLocaleLowerCase()
   if (!text) return nodes

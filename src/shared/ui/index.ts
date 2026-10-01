@@ -230,6 +230,7 @@ export type {
   TreeSelectValue,
   TreeSelectPart,
   TreeSelectPlacement,
+  TreeSelectLoadChildren,
 } from './tree-select'
 export type { TreeSelectCheckedStrategy } from './tree-select-state'
 export { Transfer } from './transfer'

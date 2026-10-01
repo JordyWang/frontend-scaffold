@@ -143,7 +143,7 @@
 
 `TreeSelect` 的左右方向键随 `ConfigProvider.direction` 调整展开和折叠方向，弹层在独立 Portal 容器中也保留 RTL。多选 `allowClear` 清空后关闭弹层并把焦点还给触发器。
 
-`TreeSelectOption` 继续使用唯一 `value` 和展示用 `label`，复杂标签通过 `searchText` 提供查找文本；标签应使用非交互内容。单项支持 `disabled`、`selectable`、`checkable`、`disableCheckbox`、`isLeaf` 和装饰性 `icon`。`value` 为字符串或字符串数组，显式 `value={undefined}` 是受控空值；`checkable` 自动使用数组契约。非受控状态清理已删除节点的选择与展开键，受控未知值保留原始 value 回填，父级决定如何更新它。
+`TreeSelectOption` 继续使用唯一 `value` 和展示用 `label`，复杂标签通过 `searchText` 提供查找文本；标签应使用非交互内容。单项支持 `disabled`、`selectable`、`checkable`、`disableCheckbox`、`isLeaf` 和装饰性 `icon`。`value` 为字符串或字符串数组，显式 `value={undefined}` 是受控空值；`checkable` 自动使用数组契约。非受控状态清理已删除的已知选项选择与展开键；受控未知值及异步模式的待加载值保留原始 value 回填，数据载入后自动解析标签。
 
 勾选模式默认父子关联，并遵守公共 Tree 的禁用和不可勾选边界；`checkStrictly` 让节点独立勾选，值仍为字符串数组。`checkedStrategy` 为 leaf（默认）、parent 或 all，决定勾选值的回填与 `onChange` 返回方式；严格模式始终返回所有独立勾选键。搜索只过滤显示，不改变完整树的父子关联、半选状态或已选兄弟节点。普通 `multiple` 同样保留被搜索过滤掉的选择。
 
@@ -153,11 +153,17 @@
 
 `placement` 指定 topStart / topEnd / bottomStart / bottomEnd，默认 bottomStart，起止跟随 RTL。空间不足时翻转上下方向；`popupWidth` 可指定正数宽度，未指定时跟随触发器，实际宽度和位置限制在可视视口内并保留 8px 边距。位置同时跟随页面、容器和软键盘引起的可视视口变化，锚点完全移出视口时隐藏弹层。
 
+异步选项使用项目契约 `loadChildren(option, { signal }): Promise<TreeSelectOption[]>`，单项和返回值继续使用 value / label。TreeSelect 持有公共 Tree 加载器的缓存，关闭再打开弹层不丢失已加载选项；这些选项参与完整树的搜索、回填、父子勾选、半选及实际叶节点计数。父节点原有选择会传导给新后代；异步增加的叶数可能使原有选择超过 `maxCount`，既有值不被截断，仍可取消。未解析值计入上限，载入后改按节点关系计数。
+
+提供加载器后，没有 `children` 的节点可展开；`isLeaf: true` 表示已知叶节点，显式空数组默认也是叶子，`isLeaf: false` 可将其声明为待加载目录。空结果成为叶节点，返回非法或重复 value 时显示错误。同一节点请求去重，失败通过按钮或展开方向键重试；`onLoad(option, children)` / `onLoadError(error, option)` 报告结果。`loadVersion`（默认 0）改变时清除缓存并取消旧请求；外部明确提供的 children / isLeaf 优先。加载器引用变化本身不刷新缓存。
+
+关闭弹层、收起目录或祖先、禁用、删除、刷新版本、卸载和输入非空搜索时会取消在途请求；过期结果被忽略。搜索仅过滤当前已知选项，不自动发起加载；清空搜索恢复持久展开，尚未加载的展开目录可重新读取。取消按钮收起目录并保留树项焦点，失败重试完成后恢复该树项焦点。异步初始未知值等待加载，曾解析的值在祖先缓存刷新时也可等待重新载入；已知值失去所属分支或外部明确删除后清理，不会随数据恢复重新出现。移除或清除入口可请求取消未知值，移除加载器后恢复静态数据清理约定。
+
 `expandedValues` / `defaultExpandedValues` 和 `onExpand` 管理展开，`treeDefaultExpandAll` 只负责初始化。搜索时临时展开匹配节点的祖先，清除搜索后恢复原展开状态；此时开合不改变持久展开键。`searchValue` / `defaultSearchValue`、`onSearch` 可控制搜索文本，`clearSearchOnSelect` 可在多选操作后请求清空搜索（默认保持搜索）。`onClear` 只在点击公共清除入口后报告一次，清除后的值为单选 undefined 或多选空数组。
 
 弹层复用 Tree 的可变高度窗口；`listHeight` 默认 256px，实际高度按视口和搜索区可用空间限制，`virtual={false}` 保留完整嵌套树。键盘支持方向键、Home / End、字符查找和可见焦点；Enter 或空格选择/勾选，Escape 关闭并恢复触发器焦点。Tab 从搜索进入树，反向 Tab 回到搜索或触发器，从树向前 Tab 关闭弹层并继续触发器之后的表单控件（包括清除入口）。打开时、跨窗口定位时不改变页面滚动；外部点击或焦点移出时关闭，不抢回外部焦点。
 
-`variant`、`status` 和 `size` 与其他输入控件统一，错误状态设置 `aria-invalid`，`prefix` / `suffixIcon` 提供非交互装饰。`showLine` / `showIcon` 复用 Tree 视觉，`emptyText` 配置无结果文案。`classNames` 提供 root / trigger / value / tag / remove / prefix / suffix / clear / popup / search / tree / item / title / switcher / checkbox 的 Tailwind 插槽。`/__ui` 独立预览关联/严格勾选、三种回填、选择上限、标签折叠、逐项移除、四向弹出、受控空值、千节点窗口、四种外观、错误/警告、空结果与 RTL 深色。
+`variant`、`status` 和 `size` 与其他输入控件统一，错误状态设置 `aria-invalid`，`prefix` / `suffixIcon` 提供非交互装饰。`showLine` / `showIcon` 复用 Tree 视觉，`emptyText` 配置无结果文案。`classNames` 提供 root / trigger / value / tag / remove / prefix / suffix / clear / popup / search / tree / item / title / switcher / checkbox / loading / error 的 Tailwind 插槽。`/__ui` 独立预览关联/严格勾选、三种回填、选择上限、标签折叠、逐项移除、四向弹出、受控空值、千节点窗口、四种外观、错误/警告、空结果与 RTL 深色；异步预览包含延迟、缓存、嵌套目录、空结果、失败、取消、刷新、删除与待加载值。
 
 `Tabs` 在非受控模式下会在当前项被移除或禁用时显示第一个可用面板；原项重新可用后会恢复之前的选择。若键盘焦点停在被移除或禁用的标签上，焦点会转到当前可用标签。受控模式仍以传入的 `value` 为准。
 
