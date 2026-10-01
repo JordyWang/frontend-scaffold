@@ -123,6 +123,41 @@
 
 `InputNumber` 输入期间保留原始数字草稿，`onChange` 会收到当前数值或清空时的 `undefined`；失焦时再按 `min` / `max` 限制数值，并在修正后再次调用 `onChange`。受控用法可传入 `value={undefined}` 表示空值，并在 `onChange` 中同步更新。
 
+## 日期与时间的公共 format
+
+DatePicker（五单位单选与 multiple）、MultiDatePicker、DateRangePicker、TimePicker、TimeRangePicker、DateTimePicker 和 DateTimeRangePicker 共用 `format` / `parseInput`。DatePicker / DateRangePicker 的 `showTime` 分支使用顶层 `format` 表示完整日期时间，不能把时间段格式单独作为完整格式。
+
+```tsx
+<DatePicker format={['DD/MM/YYYY', 'YYYY-M-D']} />
+<TimePicker precision="millisecond" format={['hh:mm:ss.SSS a', 'HH:mm:ss.SSS']} />
+<DatePicker picker="week" format="GGGG年[第]WW[周]" />
+<DatePicker picker="quarter" format="YYYY年[第]Q[季度]" />
+```
+
+项目 `PickerFormat` 为字符串、`(canonicalValue: string) => string`，或这两类的只读数组。数组首项用于展示，所有字符串项都可匹配输入；空数组沿用默认展示和规范输入。输入匹配严格的位数、有效日期/时间和格式回显，名称/时段大小写不敏感，忽略首尾空白；不自动修正 2 月 30 日、错误星期或重复字段冲突。多选标签、hover 输入、范围端点与状态文案同步格式化；自定义 `renderTag` 仍接收规范值。
+
+`parseInput(text, { kind, picker, precision, locale })` 可补充函数格式的反向解析；返回规范字符串或 undefined。返回值必须通过严格规范解析和当前可选约束。函数不推测逆向转换；可传 `inputReadOnly` 通过面板选择，或在数组中提供可解析字符串格式。回调不接收 Day.js 对象，底层库不会泄漏到业务 API。
+
+| 内容             | 支持的格式 token                                            |
+| ---------------- | ----------------------------------------------------------- |
+| 年、月、日       | YYYY、YY、M、MM、MMM、MMMM、D、DD、Do                       |
+| 星期（验证日期） | d、dd、ddd、dddd                                            |
+| ISO 周年、周号   | GGGG / gggg、W / WW、w / ww、wo                             |
+| 季度             | Q                                                           |
+| 时间             | H / HH、h / hh、k / kk、m / mm、s / ss、S / SS / SSS、A / a |
+| 本地化别名       | LT、LTS、L / LL / LLL / LLLL 及小写变体                     |
+| 字面量           | `[文字]`，如 `YYYY年[第]Q[季度]`                            |
+
+周始终按项目 ISO 周计算；周选择中的 YYYY / YY 同样表示 ISO 周年，跨年不会显示上一日历年。YY 使用 Day.js 的 00–68 → 2000–2068、69–99 → 1969–1999 规则；0001–0099 年应使用 YYYY。日期输入需要完整年月日，月份需年月，季度需年和 Q，周需周年和周号，年份需年；不能从缺失字段猜测今日日期。时间至少需小时和分钟，缺失秒/毫秒补零；h / hh 必须配合 A / a，k / kk 中 24 表示同日的 00 点。
+
+显式 `precision` 优先。已有规范值按规范值和 step 推断精度；初始空值可从格式中的秒/小数 token 或 LTS 补充推断。动态切换 format 不降低已初始化空控件的精度，变化后的上下界/step/默认时间仍可提高空控件的精度；隐藏秒/毫秒不修改已选值；需要固定精度时显式指定 precision，值、上下界和默认时间按该规范精度提供。低精度不接受非零低位，毫秒规范值固定三位。未显式提供 `use12Hours` 时，首个字符串格式的 h / hh 决定 12 小时列；显式值优先。
+
+默认 locale 保持英文格式名称；显式 locale 优先于 ConfigProvider.locale。内置 Day.js locale 为 en、en-gb、zh-cn、zh-tw、fr、de、es、ja、ko，区域名先匹配完整名称再匹配语言，未载入的语言回退英文；额外语言可通过函数格式和 parseInput 接入。中文 A / a 支持凌晨、早上、上午、中午、下午、晚上。本批处理公历 civil 字段，不做时区转换；DST 跳过的墙上时间仍保持用户输入。Z / ZZ / z / zzz / X / x 不属于项目日期值的格式契约，若需要外部时区/时间戳请在业务适配层转换后使用函数格式。
+
+格式、解析器或 locale 改变时清除未完成手工草稿与旧输入错误，保持当前已提交值及已通过可选约束的临时面板选择，不触发值回调；等价格式数组不会因父组件普通重渲染丢失草稿。规范值仍用于 min/max/step、disabled 回调、preset、onChange/onCalendarChange/onOk 和隐藏 FormData；模式为 native 时忽略 format / parseInput，浏览器负责展示，继续使用原生归一化。分段 mask 输入另行实现。
+
+`/__ui` 的“日期与时间格式”展示多格式、函数解析、五单位、早年、跨日、12 小时、毫秒、语言切换、格式切换、原生适配与 240px RTL 深色。验证覆盖严格解析、提交隔离、Form 校验/重置和 PC/H5 交互。
+
 `DatePicker` 的值为严格的 `YYYY-MM-DD` 字符串（0001–9999 年），空值为 `''`；显式 `value={undefined}` 仍表示受控空值。默认 `mode="popup"`，`mode="panel"` 将面板常驻在输入之后，`mode="native"` 使用浏览器原生日期输入。输入 ref、原生输入属性、`size`、`variant` 与 `status` 保留；`className` 修饰输入，`classNames` 提供 root/input/toggle/clear/popup/panel/presets/footer/error 插槽。样式使用 Tailwind 与语义 Token。
 
 `open` / `defaultOpen` / `onOpenChange` 只控制弹层模式。`panelMonth` / `onPanelMonthChange` 用 `YYYY-MM` 表示独立浏览月份；`defaultPanelMonth` 在首次展示及每次非受控弹层打开时作为起始月份，否则按当前有效日期定位。浏览、方向键和月份切换都不改变 `value`；手工提交或预设选中会请求展示对应月份，受控月份继续由外部更新。`placement` 为 bottomStart/bottomEnd/topStart/topEnd，逻辑起止跟随 RTL；空间不足时翻转并限制在视觉视口内。
@@ -169,7 +204,7 @@
 
 `open` / `defaultOpen` / `onOpenChange`、四向逻辑 `placement`、输入 ref、size/variant/status 沿用字段契约，`className` 修饰输入；语义 Tailwind 插槽包含 root/input/toggle/clear/popup/panel/presets/columns/column/option/footer/error。`onBlur` 来自根 span，只在离开输入、按钮和 Portal 弹层组成的整个控件时触发。隐藏 `name` 字段仅提交已确认值；待确认或无效时间由原生 validity 阻止提交，非受控原生 form reset 和项目 Form 的校验/重置都有回归。`inputReadOnly` 使用 HTML readOnly，因此必填等原生约束不参与浏览器校验，项目 Form 规则仍有效。
 
-`/__ui` 的“时间选择面板预览”包括分钟/秒、12 小时、条件禁用、跨午夜、手工输入、立即提交、外部开合、240px 常驻、动态禁用、只读、错误和预约表单。PC Chromium、H5 Chromium/WebKit 覆盖键盘、触控选择、确认/取消、Tab、列滚动、定位、RTL 与表单协作。日期时间范围组合见下文；滚动选择与悬停值预览见公共时间交互约定，毫秒精度见公共毫秒约定，任意 format 尚未实现。
+`/__ui` 的“时间选择面板预览”包括分钟/秒、12 小时、条件禁用、跨午夜、手工输入、立即提交、外部开合、240px 常驻、动态禁用、只读、错误和预约表单。PC Chromium、H5 Chromium/WebKit 覆盖键盘、触控选择、确认/取消、Tab、列滚动、定位、RTL 与表单协作。日期时间范围组合见下文；滚动选择与悬停值预览见公共时间交互约定，毫秒精度见公共毫秒约定，format 见公共格式约定，分段 mask 仍需实现。
 
 ### 日期时间单选组合
 
@@ -187,7 +222,7 @@
 
 `className` 修饰输入，Tailwind classNames 插槽为 root/input/toggle/clear/popup/panel/presets/switcher/calendar/time/columns/column/option/footer/error。`onBlur` 来自根 span，只在整个输入、按钮和 Portal 面板组合离焦时调用。`name` 隐藏字段只提交已确认值；未确认手工输入即使尚未打开面板也通过原生 validity 阻止提交。`inputReadOnly` 使用 HTML readOnly，原生约束不参与浏览器校验，项目 Form 规则仍有效。支持外部 form、非受控原生 reset 和 FormItem 的字符串规则与重置。
 
-`/__ui` 的“日期时间组合预览”展示闰月、跨日秒精度、12 小时、边界、默认打开时间、输入错误、预设、立即提交、受控开合、240px 常驻与响应式常驻、动态禁用、大小/外观、只读、RTL 深色和原生适配。PC Chromium、H5 Chromium/WebKit 验证联动、确认/取消、键盘、触控、局部滚动、窄屏定位与表单；宽屏到窄屏的焦点恢复在桌面 Chromium 验证。日期时间范围使用下述独立入口；时间滚动选择与悬停预览见公共时间交互约定，毫秒精度见公共毫秒约定，任意 format 仍待实现。
+`/__ui` 的“日期时间组合预览”展示闰月、跨日秒精度、12 小时、边界、默认打开时间、输入错误、预设、立即提交、受控开合、240px 常驻与响应式常驻、动态禁用、大小/外观、只读、RTL 深色和原生适配。PC Chromium、H5 Chromium/WebKit 验证联动、确认/取消、键盘、触控、局部滚动、窄屏定位与表单；宽屏到窄屏的焦点恢复在桌面 Chromium 验证。日期时间范围使用下述独立入口；时间滚动选择与悬停预览见公共时间交互约定，毫秒精度见公共毫秒约定，format 见公共格式约定，分段 mask 仍需实现。
 
 ### 日期时间范围组合
 
@@ -203,7 +238,7 @@
 
 `onBlur` 来自根 fieldset，只在整个字段、按钮和 Portal 面板组合离焦时调用。WebKit 内部触控、隐藏面板切换及边界导航按钮禁用造成的临时失焦保留会话，恢复可用焦点且不抢走外部焦点。正反向 Tab 与 Escape 沿用公共弹层契约。name 隐藏字段只提交已确认的 JSON 元组；待确认输入通过原生 validity 阻止提交。inputReadOnly 使用 HTML readOnly，原生约束不参与浏览器校验，项目 Form 规则仍有效。项目 Form 支持完整范围规则、组合失焦与重置；显式 native 模式使用两个 datetime-local 输入和一个隐藏 JSON 字段，支持外部 form reset、零秒和毫秒尾零补齐及拒绝超出精度的非零低位。
 
-`/__ui` 的“日期时间范围组合预览”展示跨日分钟/秒、日期/端点相关禁用、12 小时、交叉清空/排序、锁定端点、开放区间、默认时间、手工输入、立即提交、预设、受控开合、240px 与响应式常驻、动态可用性、大小/外观、只读、错误、RTL 深色、Form 和原生重置。PC Chromium 与 H5 Chromium/WebKit 验证两端联动、一次确认、JSON 提交值、键盘/触控、44px 目标、Tab、局部滚动和四向定位；桌面 Chromium 验证宽屏到窄屏焦点交接。时间滚动选择与悬停预览见公共时间交互约定；毫秒精度见公共毫秒约定，任意 format 仍待实现。
+`/__ui` 的“日期时间范围组合预览”展示跨日分钟/秒、日期/端点相关禁用、12 小时、交叉清空/排序、锁定端点、开放区间、默认时间、手工输入、立即提交、预设、受控开合、240px 与响应式常驻、动态可用性、大小/外观、只读、错误、RTL 深色、Form 和原生重置。PC Chromium 与 H5 Chromium/WebKit 验证两端联动、一次确认、JSON 提交值、键盘/触控、44px 目标、Tab、局部滚动和四向定位；桌面 Chromium 验证宽屏到窄屏焦点交接。时间滚动选择与悬停预览见公共时间交互约定；毫秒精度见公共毫秒约定，format 见公共格式约定，分段 mask 仍需实现。
 
 ### 公共时间交互：滚动选择与悬停预览
 
@@ -215,7 +250,7 @@
 
 `previewValue` 默认 `'hover'`，传 false 关闭。只有鼠标悬停可用时间选项时，输入临时显示完整候选时间；触控不会触发悬停预览。预览不改变实际临时值、隐藏表单字段、ARIA 选中状态或 onChange/onCalendarChange/onOk。范围仅预览活动端点，不清空另一端或提前排序。离开选项、键盘操作、实际选择、取消、切换端点或日期/时间面板时恢复实际值；外部值或可用性变化也使旧预览失效。手工输入草稿优先，不被悬停覆盖。
 
-`/__ui` 的“时间滚动与悬停预览”覆盖默认预览/关闭预览、确认与立即滚动、末项、禁用选项、范围交叉与锁定、跨日秒限制、动态可用性和 240px RTL 深色常驻。单测验证显示预览与提交隔离、手势静止/释放、程序滚动、取消与 FormData。E2E 使用桌面 Chromium 真实滚轮和鼠标悬停、移动 Chromium 真实触控滑动、H5 Chromium/WebKit 的 tap 选择与确认；两种移动引擎还以合成手势加真实 scroller 位置验证滚动提交、局部滚动、末项和窄容器。WebKit 的自动化滚动路径未模拟原生手指滑动。日期输入的悬停预览见下文；毫秒精度见公共毫秒约定，任意 format 仍需补齐。
+`/__ui` 的“时间滚动与悬停预览”覆盖默认预览/关闭预览、确认与立即滚动、末项、禁用选项、范围交叉与锁定、跨日秒限制、动态可用性和 240px RTL 深色常驻。单测验证显示预览与提交隔离、手势静止/释放、程序滚动、取消与 FormData。E2E 使用桌面 Chromium 真实滚轮和鼠标悬停、移动 Chromium 真实触控滑动、H5 Chromium/WebKit 的 tap 选择与确认；两种移动引擎还以合成手势加真实 scroller 位置验证滚动提交、局部滚动、末项和窄容器。WebKit 的自动化滚动路径未模拟原生手指滑动。日期输入的悬停预览见下文；毫秒精度见公共毫秒约定，format 见公共格式约定，分段 mask 仍需实现。
 
 ### 公共毫秒精度约定
 
@@ -239,7 +274,7 @@
 
 显示预览不能代替必填选择：日期/时间单选及允许另一端留空的范围，在实际必填值为空时仍阻止原生表单提交，隐藏值保持为空。inputReadOnly 使用 HTML readOnly，其浏览器原生校验行为与已有字段约定一致；项目 Form 的值校验继续读取实际提交值。
 
-`/__ui` 的“日期输入悬停预览”展示默认/关闭预览、动态禁用、范围交叉、多选、四种日期单位、日期时间边界补全、跨日端点限制、必填提交和 240px RTL 深色。单测验证 FormData、ARIA、确认/取消、动态限制、手工草稿和必填隔离；桌面 Chromium 验证真实 hover，H5 Chromium/WebKit 验证 tap 选择与确认，三项目验证键盘和窄容器局部滚动。毫秒精度见公共毫秒约定，任意 format 与 mask 格式输入仍需实现。
+`/__ui` 的“日期输入悬停预览”展示默认/关闭预览、动态禁用、范围交叉、多选、四种日期单位、日期时间边界补全、跨日端点限制、必填提交和 240px RTL 深色。单测验证 FormData、ARIA、确认/取消、动态限制、手工草稿和必填隔离；桌面 Chromium 验证真实 hover，H5 Chromium/WebKit 验证 tap 选择与确认，三项目验证键盘和窄容器局部滚动。毫秒精度见公共毫秒约定，format 见公共格式约定；分段 mask 输入仍需实现。
 
 ### 日期多选
 

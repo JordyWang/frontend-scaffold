@@ -37,21 +37,23 @@ import {
 import { DateTimePickerPanel } from './date-time-picker-panel'
 import { focusDateTimePanel } from './date-time-panel-focus'
 import { usePickerPreview } from './picker-preview'
+import {
+  usePickerFormat,
+  usePickerTimePrecision,
+  formatUses12Hours,
+  type PickerFormatProps,
+} from './picker-format'
 import { parseMonth, toISO, toMonth } from './date-picker-state'
 import {
   parseDateTime,
   nativeDateTimeInput,
   dateTimeMilliseconds,
-  dateTimeDisplay,
-  dateTimeInput,
   dateTimeSelectable,
   type DateTimeConstraints,
 } from './date-time-picker-state'
 import {
   timeNow,
-  timeFormat,
   defaultTimeStep,
-  inferTimePrecision,
   type TimePrecision,
   type TimeUnit,
 } from './time-picker-state'
@@ -97,107 +99,108 @@ export type DateTimeRangePickerProps = Omit<
   | 'disabledSeconds'
   | 'disabledMilliseconds'
   | 'disabledTime'
-> & {
-  value?: DateTimeRange
-  defaultValue?: DateTimeRange
-  onChange?: (value: DateTimeRange) => void
-  onCalendarChange?: (
-    value: DateTimeRange,
-    info: { endpoint: DateTimeRangeEndpoint; part: 'date' | 'time' },
-  ) => void
-  onBlur?: FocusEventHandler<HTMLFieldSetElement>
-  onFocus?: (
-    event: FocusEvent<HTMLInputElement>,
-    info: { endpoint: DateTimeRangeEndpoint },
-  ) => void
-  label?: string
-  startLabel?: string
-  endLabel?: string
-  mode?: 'popup' | 'panel' | 'native'
-  precision?: TimePrecision
-  use12Hours?: boolean
-  disabledDate?: (date: string, info: DateTimeRangeInfo) => boolean
-  disabledHours?: (date: string, info: DateTimeRangeInfo) => number[]
-  disabledMinutes?: (
-    hour: number,
-    date: string,
-    info: DateTimeRangeInfo,
-  ) => number[]
-  disabledSeconds?: (
-    hour: number,
-    minute: number,
-    date: string,
-    info: DateTimeRangeInfo,
-  ) => number[]
-  disabledMilliseconds?: (
-    hour: number,
-    minute: number,
-    second: number,
-    date: string,
-    info: DateTimeRangeInfo,
-  ) => number[]
-  disabledTime?: (value: string, info: DateTimeRangeInfo) => boolean
-  disabled?: boolean | [start: boolean, end: boolean]
-  readOnly?: boolean
-  inputReadOnly?: boolean
-  hideDisabledOptions?: boolean
-  changeOnScroll?: boolean
-  previewValue?: false | 'hover'
-  allowEmpty?: [start: boolean, end: boolean]
-  allowClear?: boolean
-  onClear?: () => void
-  needConfirm?: boolean
-  onOk?: (value: DateTimeRange) => void
-  order?: 'clear' | 'sort'
-  open?: boolean
-  defaultOpen?: boolean
-  onOpenChange?: (open: boolean) => void
-  activeEndpoint?: DateTimeRangeEndpoint
-  defaultActiveEndpoint?: DateTimeRangeEndpoint
-  onActiveEndpointChange?: (endpoint: DateTimeRangeEndpoint) => void
-  defaultOpenTime?: [start: string, end: string]
-  panelMonth?: string
-  defaultPanelMonth?: string
-  onPanelMonthChange?: (month: string) => void
-  weekStartsOn?: 0 | 1
-  locale?: string
-  renderDate?: (date: string, info: DateTimeRangeInfo) => ReactNode
-  getDateDescription?: (
-    date: string,
-    info: DateTimeRangeInfo,
-  ) => string | undefined
-  placement?: PickerPlacement
-  presets?: DateTimeRangePreset[]
-  showNow?: boolean
-  renderCell?: (
-    value: number,
-    unit: TimeUnit,
-    info: DateTimeRangeInfo,
-  ) => ReactNode
-  getCellDescription?: (
-    value: number,
-    unit: TimeUnit,
-    info: DateTimeRangeInfo,
-  ) => string | undefined
-  footer?: ReactNode
-  separator?: ReactNode
-  suffixIcon?: ReactNode
-  name?: string
-  form?: string
-  id?: string
-  endRef?: Ref<HTMLInputElement>
-  size?: ControlSize
-  variant?: InputVariant
-  status?: InputStatus
-  required?: boolean
-  placeholder?: [start: string, end: string]
-  className?: string
-  classNames?: Partial<Record<DateTimeRangePickerPart, string>>
-  'aria-describedby'?: string
-  'aria-invalid'?: boolean
-  'aria-label'?: string
-  'aria-labelledby'?: string
-}
+> &
+  PickerFormatProps & {
+    value?: DateTimeRange
+    defaultValue?: DateTimeRange
+    onChange?: (value: DateTimeRange) => void
+    onCalendarChange?: (
+      value: DateTimeRange,
+      info: { endpoint: DateTimeRangeEndpoint; part: 'date' | 'time' },
+    ) => void
+    onBlur?: FocusEventHandler<HTMLFieldSetElement>
+    onFocus?: (
+      event: FocusEvent<HTMLInputElement>,
+      info: { endpoint: DateTimeRangeEndpoint },
+    ) => void
+    label?: string
+    startLabel?: string
+    endLabel?: string
+    mode?: 'popup' | 'panel' | 'native'
+    precision?: TimePrecision
+    use12Hours?: boolean
+    disabledDate?: (date: string, info: DateTimeRangeInfo) => boolean
+    disabledHours?: (date: string, info: DateTimeRangeInfo) => number[]
+    disabledMinutes?: (
+      hour: number,
+      date: string,
+      info: DateTimeRangeInfo,
+    ) => number[]
+    disabledSeconds?: (
+      hour: number,
+      minute: number,
+      date: string,
+      info: DateTimeRangeInfo,
+    ) => number[]
+    disabledMilliseconds?: (
+      hour: number,
+      minute: number,
+      second: number,
+      date: string,
+      info: DateTimeRangeInfo,
+    ) => number[]
+    disabledTime?: (value: string, info: DateTimeRangeInfo) => boolean
+    disabled?: boolean | [start: boolean, end: boolean]
+    readOnly?: boolean
+    inputReadOnly?: boolean
+    hideDisabledOptions?: boolean
+    changeOnScroll?: boolean
+    previewValue?: false | 'hover'
+    allowEmpty?: [start: boolean, end: boolean]
+    allowClear?: boolean
+    onClear?: () => void
+    needConfirm?: boolean
+    onOk?: (value: DateTimeRange) => void
+    order?: 'clear' | 'sort'
+    open?: boolean
+    defaultOpen?: boolean
+    onOpenChange?: (open: boolean) => void
+    activeEndpoint?: DateTimeRangeEndpoint
+    defaultActiveEndpoint?: DateTimeRangeEndpoint
+    onActiveEndpointChange?: (endpoint: DateTimeRangeEndpoint) => void
+    defaultOpenTime?: [start: string, end: string]
+    panelMonth?: string
+    defaultPanelMonth?: string
+    onPanelMonthChange?: (month: string) => void
+    weekStartsOn?: 0 | 1
+    locale?: string
+    renderDate?: (date: string, info: DateTimeRangeInfo) => ReactNode
+    getDateDescription?: (
+      date: string,
+      info: DateTimeRangeInfo,
+    ) => string | undefined
+    placement?: PickerPlacement
+    presets?: DateTimeRangePreset[]
+    showNow?: boolean
+    renderCell?: (
+      value: number,
+      unit: TimeUnit,
+      info: DateTimeRangeInfo,
+    ) => ReactNode
+    getCellDescription?: (
+      value: number,
+      unit: TimeUnit,
+      info: DateTimeRangeInfo,
+    ) => string | undefined
+    footer?: ReactNode
+    separator?: ReactNode
+    suffixIcon?: ReactNode
+    name?: string
+    form?: string
+    id?: string
+    endRef?: Ref<HTMLInputElement>
+    size?: ControlSize
+    variant?: InputVariant
+    status?: InputStatus
+    required?: boolean
+    placeholder?: [start: string, end: string]
+    className?: string
+    classNames?: Partial<Record<DateTimeRangePickerPart, string>>
+    'aria-describedby'?: string
+    'aria-invalid'?: boolean
+    'aria-label'?: string
+    'aria-labelledby'?: string
+  }
 const asRange = (value?: DateTimeRange): DateTimeRange => [
   value?.[0] ?? '',
   value?.[1] ?? '',
@@ -254,6 +257,8 @@ const DateTimeRangePickerControl = forwardRef<
     order = 'clear',
     mode = 'popup',
     use12Hours = false,
+    format,
+    parseInput,
     open,
     defaultOpen = false,
     onOpenChange,
@@ -294,6 +299,15 @@ const DateTimeRangePickerControl = forwardRef<
   } = allProps
   const { direction, componentSize } = useConfig()
   const resolvedSize = resolveComponentSize(componentSize, size)
+  const presentation = usePickerFormat({
+    kind: 'dateTime',
+    precision,
+    use12Hours,
+    format,
+    parseInput,
+    locale,
+    native: mode === 'native',
+  })
   const generated = useId(),
     ids = [id ?? generated + '-start', generated + '-end'],
     labelIds = [generated + '-start-label', generated + '-end-label'],
@@ -315,10 +329,10 @@ const DateTimeRangePickerControl = forwardRef<
   const currentKey = JSON.stringify(current)
   const display = useCallback(
     (range: DateTimeRange): DateTimeRange => [
-      dateTimeDisplay(range[0], precision, use12Hours),
-      dateTimeDisplay(range[1], precision, use12Hours),
+      presentation.display(range[0]),
+      presentation.display(range[1]),
     ],
-    [precision, use12Hours],
+    [presentation],
   )
   const [previous, setPrevious] = useState(currentKey),
     [candidate, setCandidate] = useState(current),
@@ -346,6 +360,13 @@ const DateTimeRangePickerControl = forwardRef<
   const isOpen = mode === 'popup' && !inactive && (open ?? internalOpen),
     showing = mode === 'panel' || isOpen
   if (inactive && open === undefined && internalOpen) setInternalOpen(false)
+  const [previousPresentation, setPreviousPresentation] = useState(presentation)
+  if (previousPresentation !== presentation) {
+    setPreviousPresentation(presentation)
+    setDraft(display(showing ? candidate : current))
+    setDirty(false)
+    setError('')
+  }
   if (previous !== currentKey) {
     setPrevious(currentKey)
     setCandidate(current)
@@ -465,8 +486,8 @@ const DateTimeRangePickerControl = forwardRef<
       (time, part) => isDisabled(part as 0 | 1) && time !== current[part],
     )
   function parsedInput(raw: DateTimeRange = draft): DateTimeRange | undefined {
-    const start = raw[0] ? dateTimeInput(raw[0], precision, use12Hours) : '',
-      end = raw[1] ? dateTimeInput(raw[1], precision, use12Hours) : ''
+    const start = raw[0] ? presentation.parse(raw[0]) : '',
+      end = raw[1] ? presentation.parse(raw[1]) : ''
     return start === undefined || end === undefined
       ? undefined
       : normalized([start, end], lastEdited.current)
@@ -549,11 +570,7 @@ const DateTimeRangePickerControl = forwardRef<
     const parsed = parsedInput(),
       next = parsed ? normalized(parsed, lastEdited.current, true) : undefined
     if (!next || !validRange(next) || lockedChanged(next)) {
-      setError(
-        '请输入可选的日期时间范围（YYYY-MM-DD ' +
-          timeFormat(precision, use12Hours) +
-          '）',
-      )
+      setError('请输入可选的日期时间范围（' + presentation.hint + '）')
       return false
     }
     if (needConfirm && confirm && !validRange(next, true)) {
@@ -752,9 +769,7 @@ const DateTimeRangePickerControl = forwardRef<
               setEndpoint(part === 0 ? 'start' : 'end')
             }}
           >
-            {text}：
-            {dateTimeDisplay(candidate[part], precision, use12Hours) ||
-              '未选择'}
+            {text}：{presentation.display(candidate[part]) || '未选择'}
           </Button>
         ))}
       </div>
@@ -857,8 +872,8 @@ const DateTimeRangePickerControl = forwardRef<
       />
       <p role="status" className="text-sm text-muted-foreground">
         {needConfirm ? '待确认范围' : '已选范围'}：
-        {dateTimeDisplay(candidate[0], precision, use12Hours) || '未选开始'} →{' '}
-        {dateTimeDisplay(candidate[1], precision, use12Hours) || '未选结束'}
+        {presentation.display(candidate[0]) || '未选开始'} →{' '}
+        {presentation.display(candidate[1]) || '未选结束'}
       </p>
       <div
         className={cn(
@@ -1010,10 +1025,7 @@ const DateTimeRangePickerControl = forwardRef<
                   disabled={Array.isArray(disabled) ? disabled[part] : disabled}
                   readOnly={readOnly || (mode !== 'native' && inputReadOnly)}
                   autoComplete="off"
-                  placeholder={
-                    placeholder?.[part] ??
-                    'YYYY-MM-DD ' + timeFormat(precision, use12Hours)
-                  }
+                  placeholder={placeholder?.[part] ?? presentation.hint}
                   value={displayed[part]}
                   data-picker-preview={
                     preview && part === index ? 'hover' : undefined
@@ -1219,22 +1231,27 @@ export const DateTimeRangePicker = forwardRef<
   HTMLInputElement,
   DateTimeRangePickerProps
 >(function DateTimeRangePicker(props, ref) {
-  const precision =
-    props.precision ??
-    inferTimePrecision(
-      [
-        ...(props.value ?? []),
-        ...(props.defaultValue ?? []),
-        ...(props.defaultOpenTime ?? []),
-        props.min,
-        props.max,
-      ],
-      props.step,
-    )
+  const { locale: configuredLocale } = useConfig()
+  const locale = props.locale ?? configuredLocale
+  const precision = usePickerTimePrecision(
+    { ...props, locale },
+    [
+      ...(props.value ?? []),
+      ...(props.defaultValue ?? []),
+      ...(props.defaultOpenTime ?? []),
+      props.min,
+      props.max,
+    ],
+    (props.value ?? props.defaultValue ?? []).some(Boolean),
+  )
   return (
     <DateTimeRangePickerControl
       {...props}
       precision={precision}
+      use12Hours={
+        props.use12Hours ??
+        (props.mode !== 'native' && formatUses12Hours(props.format, locale))
+      }
       key={precision}
       ref={ref}
     />

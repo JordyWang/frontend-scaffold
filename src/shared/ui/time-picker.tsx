@@ -37,13 +37,15 @@ import {
 import { TimePickerPanel } from './time-picker-panel'
 import { usePickerPreview } from './picker-preview'
 import {
-  timeDisplay,
-  timeInput,
+  usePickerFormat,
+  usePickerTimePrecision,
+  formatUses12Hours,
+  type PickerFormatProps,
+} from './picker-format'
+import {
   timeSelectable,
   timeNow,
-  timeFormat,
   defaultTimeStep,
-  inferTimePrecision,
   nativeTimeInput,
   type TimeConstraints,
   type TimePrecision,
@@ -80,6 +82,7 @@ export type TimePickerProps = Omit<
   | 'max'
   | 'multiple'
 > &
+  PickerFormatProps &
   Omit<TimeConstraints, 'precision' | 'stepBaseMilliseconds'> & {
     value?: string
     defaultValue?: string
@@ -101,6 +104,7 @@ export type TimePickerProps = Omit<
     onClear?: () => void
     inputReadOnly?: boolean
     placement?: PickerPlacement
+    locale?: string
     use12Hours?: boolean
     hideDisabledOptions?: boolean
     changeOnScroll?: boolean
@@ -141,6 +145,9 @@ const TimePickerControl = forwardRef<
     inputReadOnly = false,
     placement = 'bottomStart',
     use12Hours = false,
+    format,
+    parseInput,
+    locale,
     hideDisabledOptions = false,
     changeOnScroll = false,
     previewValue = 'hover',
@@ -177,6 +184,15 @@ const TimePickerControl = forwardRef<
   } = allProps
   const { direction, componentSize } = useConfig()
   const resolvedSize = resolveComponentSize(componentSize, size)
+  const presentation = usePickerFormat({
+    kind: 'time',
+    precision,
+    use12Hours,
+    format,
+    parseInput,
+    locale,
+    native: mode === 'native',
+  })
   const id = useId(),
     popupId = id + '-popup',
     errorId = id + '-error'
@@ -192,7 +208,7 @@ const TimePickerControl = forwardRef<
   const current = controlled ? (value ?? '') : internal
   const [previous, setPrevious] = useState(current),
     [candidate, setCandidate] = useState(current),
-    [draft, setDraft] = useState(timeDisplay(current, precision, use12Hours)),
+    [draft, setDraft] = useState(presentation.display(current)),
     [editing, setEditing] = useState(false),
     [error, setError] = useState(''),
     [internalOpen, setInternalOpen] = useState(defaultOpen)
@@ -200,10 +216,17 @@ const TimePickerControl = forwardRef<
   const isOpen = mode === 'popup' && !inactive && (open ?? internalOpen)
   const showing = mode === 'panel' || isOpen
   if (inactive && open === undefined && internalOpen) setInternalOpen(false)
+  const [previousPresentation, setPreviousPresentation] = useState(presentation)
+  if (previousPresentation !== presentation) {
+    setPreviousPresentation(presentation)
+    setDraft(presentation.display(showing ? candidate : current))
+    setEditing(false)
+    setError('')
+  }
   if (previous !== current) {
     setPrevious(current)
     setCandidate(current)
-    setDraft(timeDisplay(current, precision, use12Hours))
+    setDraft(presentation.display(current))
     setEditing(false)
     setError('')
   }
@@ -267,7 +290,7 @@ const TimePickerControl = forwardRef<
     if (inactive || mode !== 'popup') return
     setError('')
     if (!isOpen) {
-      const typed = timeInput(draft, precision, use12Hours)
+      const typed = presentation.parse(draft)
       setCandidate(editing && typed && selectable(typed) ? typed : current)
       requested.current = focus
       setOpen(true)
@@ -276,7 +299,7 @@ const TimePickerControl = forwardRef<
   function cancel(restore = false) {
     onPreview()
     setCandidate(current)
-    setDraft(timeDisplay(current, precision, use12Hours))
+    setDraft(presentation.display(current))
     setEditing(false)
     setError('')
     requested.current = false
@@ -287,7 +310,7 @@ const TimePickerControl = forwardRef<
     if (inactive || (next && !selectable(next))) return false
     if (!controlled) setInternal(next)
     setCandidate(controlled ? current : next)
-    setDraft(timeDisplay(controlled ? current : next, precision, use12Hours))
+    setDraft(presentation.display(controlled ? current : next))
     setEditing(false)
     setError('')
     if (next !== current) onChange?.(next)
@@ -295,9 +318,9 @@ const TimePickerControl = forwardRef<
   }
   function finishInput(confirm = false) {
     if (!editing) return true
-    const next = draft ? timeInput(draft, precision, use12Hours) : ''
+    const next = draft ? presentation.parse(draft) : ''
     if (next === undefined || (next && !selectable(next))) {
-      setError('请输入可选时间（' + timeFormat(precision, use12Hours) + '）')
+      setError('请输入可选时间（' + presentation.hint + '）')
       return false
     }
     if (needConfirm && !confirm && mode !== 'native') {
@@ -312,7 +335,7 @@ const TimePickerControl = forwardRef<
     if (needConfirm) cancel()
     else {
       if (editing && !finishInput()) {
-        setDraft(timeDisplay(current, precision, use12Hours))
+        setDraft(presentation.display(current))
         setEditing(false)
         setError('时间不可选，已恢复原时间')
       }
@@ -326,12 +349,12 @@ const TimePickerControl = forwardRef<
     setEditing(false)
     if (needConfirm) {
       setCandidate(time)
-      setDraft(timeDisplay(time, precision, use12Hours))
+      setDraft(presentation.display(time))
     } else publish(time)
   }
   function confirm() {
     onPreview()
-    const next = editing ? timeInput(draft, precision, use12Hours) : candidate
+    const next = editing ? presentation.parse(draft) : candidate
     if (!next || !selectable(next) || !publish(next)) return
     if (needConfirm) onOk?.(next)
     if (mode === 'popup') {
@@ -342,12 +365,12 @@ const TimePickerControl = forwardRef<
   useLayoutEffect(() => {
     if (wasOpen.current && !isOpen && needConfirm) {
       setCandidate(current)
-      setDraft(timeDisplay(current, precision, use12Hours))
+      setDraft(presentation.display(current))
       setEditing(false)
       setError('')
     }
     wasOpen.current = isOpen
-  }, [isOpen, current, needConfirm, precision, use12Hours])
+  }, [isOpen, current, needConfirm, presentation])
   useLayoutEffect(() => {
     if (isOpen && requested.current) {
       requested.current = false
@@ -355,7 +378,7 @@ const TimePickerControl = forwardRef<
     }
     const shown = editing
       ? draft
-        ? timeInput(draft, precision, use12Hours)
+        ? presentation.parse(draft)
         : ''
       : needConfirm && showing
         ? candidate
@@ -405,7 +428,7 @@ const TimePickerControl = forwardRef<
   })
   const parsedDraft = editing
     ? draft
-      ? timeInput(draft, precision, use12Hours)
+      ? presentation.parse(draft)
       : ''
     : undefined
   const shown = editing
@@ -420,7 +443,7 @@ const TimePickerControl = forwardRef<
   )
   const displayed = editing
     ? draft
-    : timeDisplay(preview ?? shown ?? '', precision, use12Hours)
+    : presentation.display(preview ?? shown ?? '')
   const invalid =
     status === 'error' ||
     ariaInvalid ||
@@ -483,7 +506,7 @@ const TimePickerControl = forwardRef<
       />
       <p role="status" className="text-sm text-muted-foreground">
         {needConfirm ? '待确认时间' : '已选时间'}：
-        {timeDisplay(candidate, precision, use12Hours) || '未选择'}
+        {presentation.display(candidate) || '未选择'}
       </p>
       <div
         className={cn(
@@ -579,9 +602,7 @@ const TimePickerControl = forwardRef<
           disabled={disabled}
           readOnly={readOnly || (mode !== 'native' && inputReadOnly)}
           autoComplete={inputProps.autoComplete ?? 'off'}
-          placeholder={
-            inputProps.placeholder ?? timeFormat(precision, use12Hours)
-          }
+          placeholder={inputProps.placeholder ?? presentation.hint}
           value={mode === 'native' ? current : displayed}
           data-picker-preview={preview ? 'hover' : undefined}
           className={cn(
@@ -613,7 +634,7 @@ const TimePickerControl = forwardRef<
             } else {
               setDraft(next)
               setEditing(true)
-              const parsed = timeInput(next, precision, use12Hours)
+              const parsed = presentation.parse(next)
               if (needConfirm && parsed && selectable(parsed))
                 setCandidate(parsed)
             }
@@ -743,22 +764,27 @@ const TimePickerControl = forwardRef<
 
 export const TimePicker = forwardRef<HTMLInputElement, TimePickerProps>(
   function TimePicker(props, ref) {
-    const precision =
-      props.precision ??
-      inferTimePrecision(
-        [
-          props.value,
-          props.defaultValue,
-          props.min,
-          props.max,
-          props.defaultOpenValue,
-        ],
-        props.step,
-      )
+    const { locale: configuredLocale } = useConfig()
+    const locale = props.locale ?? configuredLocale
+    const precision = usePickerTimePrecision(
+      { ...props, locale },
+      [
+        props.value,
+        props.defaultValue,
+        props.min,
+        props.max,
+        props.defaultOpenValue,
+      ],
+      Boolean(props.value ?? props.defaultValue),
+    )
     return (
       <TimePickerControl
         {...props}
         precision={precision}
+        use12Hours={
+          props.use12Hours ??
+          (props.mode !== 'native' && formatUses12Hours(props.format, locale))
+        }
         key={precision}
         ref={ref}
       />

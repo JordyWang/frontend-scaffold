@@ -38,15 +38,17 @@ import {
 import { TimePickerPanel } from './time-picker-panel'
 import { usePickerPreview } from './picker-preview'
 import {
+  usePickerFormat,
+  usePickerTimePrecision,
+  formatUses12Hours,
+  type PickerFormatProps,
+} from './picker-format'
+import {
   parseTime,
-  timeDisplay,
-  timeInput,
   timeMilliseconds,
   timeSelectable,
   timeNow,
-  timeFormat,
   defaultTimeStep,
-  inferTimePrecision,
   nativeTimeInput,
   type TimeConstraints,
   type TimePrecision,
@@ -87,86 +89,92 @@ export type TimeRangePickerProps = Omit<
   | 'disabledMilliseconds'
   | 'stepBaseMilliseconds'
   | 'disabledTime'
-> & {
-  value?: TimeRange
-  defaultValue?: TimeRange
-  onChange?: (value: TimeRange) => void
-  onCalendarChange?: (
-    value: TimeRange,
-    info: { endpoint: TimeRangeEndpoint },
-  ) => void
-  onBlur?: FocusEventHandler<HTMLFieldSetElement>
-  onFocus?: (
-    event: FocusEvent<HTMLInputElement>,
-    info: { endpoint: TimeRangeEndpoint },
-  ) => void
-  label?: string
-  startLabel?: string
-  endLabel?: string
-  mode?: 'popup' | 'panel' | 'native'
-  precision?: TimePrecision
-  use12Hours?: boolean
-  disabledHours?: (info: TimeRangeInfo) => number[]
-  disabledMinutes?: (hour: number, info: TimeRangeInfo) => number[]
-  disabledSeconds?: (
-    hour: number,
-    minute: number,
-    info: TimeRangeInfo,
-  ) => number[]
-  disabledMilliseconds?: (
-    hour: number,
-    minute: number,
-    second: number,
-    info: TimeRangeInfo,
-  ) => number[]
-  disabledTime?: (value: string, info: TimeRangeInfo) => boolean
-  disabled?: boolean | [start: boolean, end: boolean]
-  readOnly?: boolean
-  inputReadOnly?: boolean
-  hideDisabledOptions?: boolean
-  changeOnScroll?: boolean
-  previewValue?: false | 'hover'
-  allowEmpty?: [start: boolean, end: boolean]
-  allowClear?: boolean
-  onClear?: () => void
-  needConfirm?: boolean
-  onOk?: (value: TimeRange) => void
-  order?: 'clear' | 'sort'
-  open?: boolean
-  defaultOpen?: boolean
-  onOpenChange?: (open: boolean) => void
-  activeEndpoint?: TimeRangeEndpoint
-  defaultActiveEndpoint?: TimeRangeEndpoint
-  onActiveEndpointChange?: (endpoint: TimeRangeEndpoint) => void
-  defaultOpenValue?: TimeRange
-  placement?: PickerPlacement
-  presets?: TimeRangePreset[]
-  showNow?: boolean
-  renderCell?: (value: number, unit: TimeUnit, info: TimeRangeInfo) => ReactNode
-  getCellDescription?: (
-    value: number,
-    unit: TimeUnit,
-    info: TimeRangeInfo,
-  ) => string | undefined
-  footer?: ReactNode
-  separator?: ReactNode
-  suffixIcon?: ReactNode
-  name?: string
-  form?: string
-  id?: string
-  endRef?: Ref<HTMLInputElement>
-  size?: ControlSize
-  variant?: InputVariant
-  status?: InputStatus
-  required?: boolean
-  placeholder?: [start: string, end: string]
-  className?: string
-  classNames?: Partial<Record<TimeRangePickerPart, string>>
-  'aria-describedby'?: string
-  'aria-invalid'?: boolean
-  'aria-label'?: string
-  'aria-labelledby'?: string
-}
+> &
+  PickerFormatProps & {
+    value?: TimeRange
+    defaultValue?: TimeRange
+    onChange?: (value: TimeRange) => void
+    onCalendarChange?: (
+      value: TimeRange,
+      info: { endpoint: TimeRangeEndpoint },
+    ) => void
+    onBlur?: FocusEventHandler<HTMLFieldSetElement>
+    onFocus?: (
+      event: FocusEvent<HTMLInputElement>,
+      info: { endpoint: TimeRangeEndpoint },
+    ) => void
+    label?: string
+    startLabel?: string
+    endLabel?: string
+    mode?: 'popup' | 'panel' | 'native'
+    precision?: TimePrecision
+    locale?: string
+    use12Hours?: boolean
+    disabledHours?: (info: TimeRangeInfo) => number[]
+    disabledMinutes?: (hour: number, info: TimeRangeInfo) => number[]
+    disabledSeconds?: (
+      hour: number,
+      minute: number,
+      info: TimeRangeInfo,
+    ) => number[]
+    disabledMilliseconds?: (
+      hour: number,
+      minute: number,
+      second: number,
+      info: TimeRangeInfo,
+    ) => number[]
+    disabledTime?: (value: string, info: TimeRangeInfo) => boolean
+    disabled?: boolean | [start: boolean, end: boolean]
+    readOnly?: boolean
+    inputReadOnly?: boolean
+    hideDisabledOptions?: boolean
+    changeOnScroll?: boolean
+    previewValue?: false | 'hover'
+    allowEmpty?: [start: boolean, end: boolean]
+    allowClear?: boolean
+    onClear?: () => void
+    needConfirm?: boolean
+    onOk?: (value: TimeRange) => void
+    order?: 'clear' | 'sort'
+    open?: boolean
+    defaultOpen?: boolean
+    onOpenChange?: (open: boolean) => void
+    activeEndpoint?: TimeRangeEndpoint
+    defaultActiveEndpoint?: TimeRangeEndpoint
+    onActiveEndpointChange?: (endpoint: TimeRangeEndpoint) => void
+    defaultOpenValue?: TimeRange
+    placement?: PickerPlacement
+    presets?: TimeRangePreset[]
+    showNow?: boolean
+    renderCell?: (
+      value: number,
+      unit: TimeUnit,
+      info: TimeRangeInfo,
+    ) => ReactNode
+    getCellDescription?: (
+      value: number,
+      unit: TimeUnit,
+      info: TimeRangeInfo,
+    ) => string | undefined
+    footer?: ReactNode
+    separator?: ReactNode
+    suffixIcon?: ReactNode
+    name?: string
+    form?: string
+    id?: string
+    endRef?: Ref<HTMLInputElement>
+    size?: ControlSize
+    variant?: InputVariant
+    status?: InputStatus
+    required?: boolean
+    placeholder?: [start: string, end: string]
+    className?: string
+    classNames?: Partial<Record<TimeRangePickerPart, string>>
+    'aria-describedby'?: string
+    'aria-invalid'?: boolean
+    'aria-label'?: string
+    'aria-labelledby'?: string
+  }
 const asRange = (value?: TimeRange): TimeRange => [
   value?.[0] ?? '',
   value?.[1] ?? '',
@@ -223,6 +231,9 @@ const TimeRangePickerControl = forwardRef<
     order = 'clear',
     mode = 'popup',
     use12Hours = false,
+    format,
+    parseInput,
+    locale,
     open,
     defaultOpen = false,
     onOpenChange,
@@ -256,6 +267,15 @@ const TimeRangePickerControl = forwardRef<
   } = allProps
   const { direction, componentSize } = useConfig()
   const resolvedSize = resolveComponentSize(componentSize, size)
+  const presentation = usePickerFormat({
+    kind: 'time',
+    precision,
+    use12Hours,
+    format,
+    parseInput,
+    locale,
+    native: mode === 'native',
+  })
   const generated = useId(),
     ids = [id ?? generated + '-start', generated + '-end'],
     labelIds = [generated + '-start-label', generated + '-end-label'],
@@ -276,10 +296,10 @@ const TimeRangePickerControl = forwardRef<
   const currentKey = JSON.stringify(current)
   const display = useCallback(
     (range: TimeRange): TimeRange => [
-      timeDisplay(range[0], precision, use12Hours),
-      timeDisplay(range[1], precision, use12Hours),
+      presentation.display(range[0]),
+      presentation.display(range[1]),
     ],
-    [precision, use12Hours],
+    [presentation],
   )
   const [previous, setPrevious] = useState(currentKey),
     [candidate, setCandidate] = useState(current),
@@ -307,6 +327,13 @@ const TimeRangePickerControl = forwardRef<
   const isOpen = mode === 'popup' && !inactive && (open ?? internalOpen),
     showing = mode === 'panel' || isOpen
   if (inactive && open === undefined && internalOpen) setInternalOpen(false)
+  const [previousPresentation, setPreviousPresentation] = useState(presentation)
+  if (previousPresentation !== presentation) {
+    setPreviousPresentation(presentation)
+    setDraft(display(showing ? candidate : current))
+    setDirty(false)
+    setError('')
+  }
   if (previous !== currentKey) {
     setPrevious(currentKey)
     setCandidate(current)
@@ -375,8 +402,8 @@ const TimeRangePickerControl = forwardRef<
       (time, part) => isDisabled(part as 0 | 1) && time !== current[part],
     )
   function parsedInput(raw: TimeRange = draft): TimeRange | undefined {
-    const start = raw[0] ? timeInput(raw[0], precision, use12Hours) : '',
-      end = raw[1] ? timeInput(raw[1], precision, use12Hours) : ''
+    const start = raw[0] ? presentation.parse(raw[0]) : '',
+      end = raw[1] ? presentation.parse(raw[1]) : ''
     return start === undefined || end === undefined
       ? undefined
       : normalized([start, end], lastEdited.current)
@@ -454,9 +481,7 @@ const TimeRangePickerControl = forwardRef<
     const parsed = parsedInput(),
       next = parsed ? normalized(parsed, lastEdited.current, true) : undefined
     if (!next || !validRange(next) || lockedChanged(next)) {
-      setError(
-        '请输入可选的时间范围（' + timeFormat(precision, use12Hours) + '）',
-      )
+      setError('请输入可选的时间范围（' + presentation.hint + '）')
       return false
     }
     if (needConfirm && confirm && !validRange(next, true)) {
@@ -644,8 +669,7 @@ const TimeRangePickerControl = forwardRef<
               setEndpoint(part === 0 ? 'start' : 'end')
             }}
           >
-            {text}：
-            {timeDisplay(candidate[part], precision, use12Hours) || '未选择'}
+            {text}：{presentation.display(candidate[part]) || '未选择'}
           </Button>
         ))}
       </div>
@@ -730,8 +754,8 @@ const TimeRangePickerControl = forwardRef<
       />
       <p role="status" className="text-sm text-muted-foreground">
         {needConfirm ? '待确认范围' : '已选范围'}：
-        {timeDisplay(candidate[0], precision, use12Hours) || '未选开始'} →{' '}
-        {timeDisplay(candidate[1], precision, use12Hours) || '未选结束'}
+        {presentation.display(candidate[0]) || '未选开始'} →{' '}
+        {presentation.display(candidate[1]) || '未选结束'}
       </p>
       <div
         className={cn(
@@ -862,9 +886,7 @@ const TimeRangePickerControl = forwardRef<
                   disabled={Array.isArray(disabled) ? disabled[part] : disabled}
                   readOnly={readOnly || (mode !== 'native' && inputReadOnly)}
                   autoComplete="off"
-                  placeholder={
-                    placeholder?.[part] ?? timeFormat(precision, use12Hours)
-                  }
+                  placeholder={placeholder?.[part] ?? presentation.hint}
                   value={displayed[part]}
                   data-picker-preview={
                     preview && part === index ? 'hover' : undefined
@@ -1070,22 +1092,27 @@ export const TimeRangePicker = forwardRef<
   HTMLInputElement,
   TimeRangePickerProps
 >(function TimeRangePicker(props, ref) {
-  const precision =
-    props.precision ??
-    inferTimePrecision(
-      [
-        ...(props.value ?? []),
-        ...(props.defaultValue ?? []),
-        ...(props.defaultOpenValue ?? []),
-        props.min,
-        props.max,
-      ],
-      props.step,
-    )
+  const { locale: configuredLocale } = useConfig()
+  const locale = props.locale ?? configuredLocale
+  const precision = usePickerTimePrecision(
+    { ...props, locale },
+    [
+      ...(props.value ?? []),
+      ...(props.defaultValue ?? []),
+      ...(props.defaultOpenValue ?? []),
+      props.min,
+      props.max,
+    ],
+    (props.value ?? props.defaultValue ?? []).some(Boolean),
+  )
   return (
     <TimeRangePickerControl
       {...props}
       precision={precision}
+      use12Hours={
+        props.use12Hours ??
+        (props.mode !== 'native' && formatUses12Hours(props.format, locale))
+      }
       key={precision}
       ref={ref}
     />

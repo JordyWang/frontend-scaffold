@@ -36,10 +36,14 @@ import {
 import { DateTimePickerPanel } from './date-time-picker-panel'
 import { focusDateTimePanel } from './date-time-panel-focus'
 import { usePickerPreview } from './picker-preview'
+import {
+  usePickerFormat,
+  usePickerTimePrecision,
+  formatUses12Hours,
+  type PickerFormatProps,
+} from './picker-format'
 import { parseMonth, toISO, toMonth } from './date-picker-state'
 import {
-  dateTimeDisplay,
-  dateTimeInput,
   dateTimeSelectable,
   parseDateTime,
   nativeDateTimeInput,
@@ -47,9 +51,7 @@ import {
 } from './date-time-picker-state'
 import {
   timeNow,
-  timeFormat,
   defaultTimeStep,
-  inferTimePrecision,
   type TimePrecision,
   type TimeUnit,
 } from './time-picker-state'
@@ -87,6 +89,7 @@ export type DateTimePickerProps = Omit<
   | 'max'
   | 'multiple'
 > &
+  PickerFormatProps &
   Omit<DateTimeConstraints, 'precision' | 'stepBase'> & {
     value?: string
     defaultValue?: string
@@ -165,6 +168,8 @@ const DateTimePickerControl = forwardRef<
     inputReadOnly = false,
     placement = 'bottomStart',
     use12Hours = false,
+    format,
+    parseInput,
     hideDisabledOptions = false,
     changeOnScroll = false,
     previewValue = 'hover',
@@ -201,6 +206,15 @@ const DateTimePickerControl = forwardRef<
   } = allProps
   const { direction, componentSize } = useConfig()
   const resolvedSize = resolveComponentSize(componentSize, size)
+  const presentation = usePickerFormat({
+    kind: 'dateTime',
+    precision,
+    use12Hours,
+    format,
+    parseInput,
+    locale,
+    native: mode === 'native',
+  })
   const id = useId(),
     popupId = id + '-popup',
     errorId = id + '-error'
@@ -217,9 +231,7 @@ const DateTimePickerControl = forwardRef<
   const current = controlled ? (value ?? '') : internal
   const [previous, setPrevious] = useState(current),
     [candidate, setCandidate] = useState(current),
-    [draft, setDraft] = useState(
-      dateTimeDisplay(current, precision, use12Hours),
-    ),
+    [draft, setDraft] = useState(presentation.display(current)),
     [editing, setEditing] = useState(false),
     [error, setError] = useState(''),
     [internalOpen, setInternalOpen] = useState(defaultOpen)
@@ -241,10 +253,17 @@ const DateTimePickerControl = forwardRef<
   const isOpen = mode === 'popup' && !inactive && (open ?? internalOpen)
   const showing = mode === 'panel' || isOpen
   if (inactive && open === undefined && internalOpen) setInternalOpen(false)
+  const [previousPresentation, setPreviousPresentation] = useState(presentation)
+  if (previousPresentation !== presentation) {
+    setPreviousPresentation(presentation)
+    setDraft(presentation.display(showing ? candidate : current))
+    setEditing(false)
+    setError('')
+  }
   if (previous !== current) {
     setPrevious(current)
     setCandidate(current)
-    setDraft(dateTimeDisplay(current, precision, use12Hours))
+    setDraft(presentation.display(current))
     setEditing(false)
     setError('')
   }
@@ -306,7 +325,7 @@ const DateTimePickerControl = forwardRef<
     if (inactive || mode !== 'popup') return
     setError('')
     if (!isOpen) {
-      const typed = dateTimeInput(draft, precision, use12Hours)
+      const typed = presentation.parse(draft)
       const next = editing && typed && selectable(typed) ? typed : current
       setCandidate(next)
       if (panelMonth === undefined) setInternalMonth(initialMonth(next))
@@ -317,7 +336,7 @@ const DateTimePickerControl = forwardRef<
   function cancel(restore = false) {
     onPreview()
     setCandidate(current)
-    setDraft(dateTimeDisplay(current, precision, use12Hours))
+    setDraft(presentation.display(current))
     setEditing(false)
     setError('')
     requested.current = false
@@ -328,9 +347,7 @@ const DateTimePickerControl = forwardRef<
     if (inactive || (next && !selectable(next))) return false
     if (!controlled) setInternal(next)
     setCandidate(controlled ? current : next)
-    setDraft(
-      dateTimeDisplay(controlled ? current : next, precision, use12Hours),
-    )
+    setDraft(presentation.display(controlled ? current : next))
     setEditing(false)
     setError('')
     if (next !== current) onChange?.(next)
@@ -338,13 +355,9 @@ const DateTimePickerControl = forwardRef<
   }
   function finishInput(confirm = false) {
     if (!editing) return true
-    const next = draft ? dateTimeInput(draft, precision, use12Hours) : ''
+    const next = draft ? presentation.parse(draft) : ''
     if (next === undefined || (next && !selectable(next))) {
-      setError(
-        '请输入可选日期时间（YYYY-MM-DD ' +
-          timeFormat(precision, use12Hours) +
-          '）',
-      )
+      setError('请输入可选日期时间（' + presentation.hint + '）')
       return false
     }
     if (needConfirm && !confirm && mode !== 'native') {
@@ -359,7 +372,7 @@ const DateTimePickerControl = forwardRef<
     if (needConfirm) cancel()
     else {
       if (editing && !finishInput()) {
-        setDraft(dateTimeDisplay(current, precision, use12Hours))
+        setDraft(presentation.display(current))
         setEditing(false)
         setError('日期时间不可选，已恢复原值')
       }
@@ -373,16 +386,14 @@ const DateTimePickerControl = forwardRef<
     setEditing(false)
     if (needConfirm) {
       setCandidate(next)
-      setDraft(dateTimeDisplay(next, precision, use12Hours))
+      setDraft(presentation.display(next))
     } else publish(next)
     onCalendarChange?.(next, { part })
     if (next.slice(0, 7) !== month) changeMonth(next.slice(0, 7))
   }
   function confirm() {
     onPreview()
-    const next = editing
-      ? dateTimeInput(draft, precision, use12Hours)
-      : candidate
+    const next = editing ? presentation.parse(draft) : candidate
     if (!next || !selectable(next) || !publish(next)) return
     if (needConfirm) onOk?.(next)
     if (mode === 'popup') {
@@ -393,12 +404,12 @@ const DateTimePickerControl = forwardRef<
   useLayoutEffect(() => {
     if (wasOpen.current && !isOpen && needConfirm) {
       setCandidate(current)
-      setDraft(dateTimeDisplay(current, precision, use12Hours))
+      setDraft(presentation.display(current))
       setEditing(false)
       setError('')
     }
     wasOpen.current = isOpen
-  }, [isOpen, current, needConfirm, precision, use12Hours])
+  }, [isOpen, current, needConfirm, presentation])
   useLayoutEffect(() => {
     if (isOpen && requested.current) {
       requested.current = false
@@ -406,7 +417,7 @@ const DateTimePickerControl = forwardRef<
     }
     const shown = editing
       ? draft
-        ? dateTimeInput(draft, precision, use12Hours)
+        ? presentation.parse(draft)
         : ''
       : needConfirm && showing
         ? candidate
@@ -457,7 +468,7 @@ const DateTimePickerControl = forwardRef<
   })
   const parsedDraft = editing
     ? draft
-      ? dateTimeInput(draft, precision, use12Hours)
+      ? presentation.parse(draft)
       : ''
     : undefined
   const shown = editing
@@ -472,7 +483,7 @@ const DateTimePickerControl = forwardRef<
   )
   const displayed = editing
     ? draft
-    : dateTimeDisplay(preview ?? shown ?? '', precision, use12Hours)
+    : presentation.display(preview ?? shown ?? '')
   const invalid =
     status === 'error' ||
     ariaInvalid ||
@@ -548,7 +559,7 @@ const DateTimePickerControl = forwardRef<
       />
       <p role="status" className="text-sm text-muted-foreground">
         {needConfirm ? '待确认日期时间' : '已选日期时间'}：
-        {dateTimeDisplay(panelValue, precision, use12Hours) || '未选择'}
+        {presentation.display(panelValue) || '未选择'}
       </p>
       <div
         className={cn(
@@ -668,10 +679,7 @@ const DateTimePickerControl = forwardRef<
           disabled={disabled}
           readOnly={readOnly || (mode !== 'native' && inputReadOnly)}
           autoComplete={inputProps.autoComplete ?? 'off'}
-          placeholder={
-            inputProps.placeholder ??
-            'YYYY-MM-DD ' + timeFormat(precision, use12Hours)
-          }
+          placeholder={inputProps.placeholder ?? presentation.hint}
           value={mode === 'native' ? current : displayed}
           data-picker-preview={preview ? 'hover' : undefined}
           className={cn(
@@ -703,7 +711,7 @@ const DateTimePickerControl = forwardRef<
             } else {
               setDraft(next)
               setEditing(true)
-              const parsed = dateTimeInput(next, precision, use12Hours)
+              const parsed = presentation.parse(next)
               if (needConfirm && parsed && selectable(parsed)) {
                 setCandidate(parsed)
                 if (showing)
@@ -843,22 +851,27 @@ const DateTimePickerControl = forwardRef<
 
 export const DateTimePicker = forwardRef<HTMLInputElement, DateTimePickerProps>(
   function DateTimePicker(props, ref) {
-    const precision =
-      props.precision ??
-      inferTimePrecision(
-        [
-          props.value,
-          props.defaultValue,
-          props.min,
-          props.max,
-          props.defaultOpenTime,
-        ],
-        props.step,
-      )
+    const { locale: configuredLocale } = useConfig()
+    const locale = props.locale ?? configuredLocale
+    const precision = usePickerTimePrecision(
+      { ...props, locale },
+      [
+        props.value,
+        props.defaultValue,
+        props.min,
+        props.max,
+        props.defaultOpenTime,
+      ],
+      Boolean(props.value ?? props.defaultValue),
+    )
     return (
       <DateTimePickerControl
         {...props}
         precision={precision}
+        use12Hours={
+          props.use12Hours ??
+          (props.mode !== 'native' && formatUses12Hours(props.format, locale))
+        }
         key={precision}
         ref={ref}
       />

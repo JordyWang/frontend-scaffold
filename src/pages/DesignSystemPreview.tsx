@@ -21,6 +21,7 @@ import { DateTimeRangePreview } from './DateTimeRangePreview'
 import { TimeInteractionPreview } from './TimeInteractionPreview'
 import { DateInputPreview } from './DateInputPreview'
 import { MillisecondTimePreview } from './MillisecondTimePreview'
+import { PickerFormatPreview } from './PickerFormatPreview'
 import {
   Alert,
   Affix,
@@ -2073,6 +2074,7 @@ export function DesignSystemPreview() {
           <TimeInteractionPreview />
           <DateInputPreview />
           <MillisecondTimePreview />
+          <PickerFormatPreview />
           <Card className="col-span-full">
             <CardContent>
               <Stack gap="md">

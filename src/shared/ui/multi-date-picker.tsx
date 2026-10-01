@@ -18,7 +18,6 @@ import {
   parsePickerValue,
   pickerBoundMonth,
   pickerDefaultBounds,
-  pickerFormats,
   pickerUnitNames,
   pickerStepMatches,
   pickerValueMonth,
@@ -33,6 +32,7 @@ import {
 } from './picker-popup'
 import { Portal } from './portal'
 import { usePickerPreview } from './picker-preview'
+import { usePickerFormat } from './picker-format'
 import {
   inputSizeStyles,
   inputStatusStyles,
@@ -117,6 +117,8 @@ export const MultiDatePicker = forwardRef<
     presets = [],
     weekStartsOn = 1,
     locale,
+    format,
+    parseInput,
     inputReadOnly = false,
     renderDate,
     getDateDescription,
@@ -143,6 +145,13 @@ export const MultiDatePicker = forwardRef<
   } = allProps
   const { componentSize, direction } = useConfig()
   const resolvedSize = resolveComponentSize(componentSize, size)
+  const presentation = usePickerFormat({
+    kind: 'date',
+    picker,
+    format,
+    parseInput,
+    locale,
+  })
   const generated = useId(),
     popupId = generated + '-popup',
     errorId = generated + '-error',
@@ -173,6 +182,12 @@ export const MultiDatePicker = forwardRef<
   const isOpen = mode === 'popup' && !inactive && (open ?? internalOpen)
   const showing = mode === 'panel' || isOpen
   if (inactive && open === undefined && internalOpen) setInternalOpen(false)
+  const [previousPresentation, setPreviousPresentation] = useState(presentation)
+  if (previousPresentation !== presentation) {
+    setPreviousPresentation(presentation)
+    setDraft('')
+    setError('')
+  }
   if (previous !== currentKey) {
     setPrevious(currentKey)
     setCandidate(current)
@@ -294,9 +309,9 @@ export const MultiDatePicker = forwardRef<
   function addDraft() {
     const base = showing ? candidate : current
     if (!draft.trim()) return base
-    const date = draft.trim()
-    if (!selectable(date)) {
-      setError('请输入可选日期（' + pickerFormats[picker] + '）')
+    const date = presentation.parse(draft)
+    if (!date || !selectable(date)) {
+      setError('请输入可选日期（' + presentation.hint + '）')
       return undefined
     }
     const next = normalize([...base, date])
@@ -379,7 +394,8 @@ export const MultiDatePicker = forwardRef<
       focusCalendar()
     }
     inputRef.current?.setCustomValidity(
-      draft && !selectable(draft.trim())
+      draft &&
+        (!presentation.parse(draft) || !selectable(presentation.parse(draft)!))
         ? '请输入有效且可选的日期'
         : !valid(displayed)
           ? '已选日期当前不可用'
@@ -609,11 +625,11 @@ export const MultiDatePicker = forwardRef<
             inputProps.placeholder ??
             (inputReadOnly
               ? '选择多个' + pickerUnitNames[picker]
-              : pickerFormats[picker] + '，Enter 添加')
+              : presentation.hint + '，Enter 添加')
           }
           disabled={disabled}
           readOnly={readOnly || inputReadOnly}
-          value={preview ?? draft}
+          value={preview ? presentation.display(preview) : draft}
           data-picker-preview={preview ? 'hover' : undefined}
           className={cn(
             inputStyles,
@@ -647,7 +663,7 @@ export const MultiDatePicker = forwardRef<
             if (event.key === 'ArrowDown' && mode === 'popup') {
               event.preventDefault()
               begin(true)
-            } else if (event.key === 'Escape' && isOpen) {
+            } else if (event.key === 'Escape' && (isOpen || Boolean(draft))) {
               event.preventDefault()
               event.stopPropagation()
               cancel(true)
@@ -666,7 +682,9 @@ export const MultiDatePicker = forwardRef<
                   if (mode === 'popup' && !isOpen) {
                     setOpen(true)
                   }
-                  changeMonth(pickerValueMonth(draft.trim(), picker)!)
+                  changeMonth(
+                    pickerValueMonth(presentation.parse(draft), picker)!,
+                  )
                   pending(dates)
                 }
               } else if (showing) finish()
@@ -730,12 +748,17 @@ export const MultiDatePicker = forwardRef<
               )}
             >
               <span className="min-w-0 break-words px-3 py-2 text-sm">
-                {renderTag?.(date) ?? date}
+                {renderTag?.(date) ?? presentation.display(date)}
               </span>
               {!inactive && (
                 <button
                   type="button"
-                  aria-label={'移除' + pickerUnitNames[picker] + ' ' + date}
+                  aria-label={
+                    '移除' +
+                    pickerUnitNames[picker] +
+                    ' ' +
+                    presentation.display(date)
+                  }
                   data-multi-remove={date}
                   className={cn(
                     'flex min-h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring',

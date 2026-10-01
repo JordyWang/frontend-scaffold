@@ -1,5 +1,6 @@
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useId,
   useLayoutEffect,
@@ -27,7 +28,6 @@ import {
   parsePickerValue,
   pickerBoundMonth,
   pickerDefaultBounds,
-  pickerFormats,
   pickerStepMatches,
   pickerUnitNames,
   pickerValueMonth,
@@ -45,6 +45,7 @@ import {
 } from './picker-popup'
 import { Portal } from './portal'
 import { usePickerPreview } from './picker-preview'
+import { usePickerFormat, type PickerFormatProps } from './picker-format'
 import {
   inputSizeStyles,
   inputStatusStyles,
@@ -76,7 +77,7 @@ export type DateRangePickerPart =
   | 'presets'
   | 'footer'
   | 'error'
-type DateRangePickerBaseProps = {
+type DateRangePickerBaseProps = PickerFormatProps & {
   showTime?: false
   value?: DateRange
   defaultValue?: DateRange
@@ -230,6 +231,8 @@ const DateRangePickerControl = forwardRef<
     presets = [],
     weekStartsOn = 1,
     locale,
+    format,
+    parseInput,
     renderDate,
     getDateDescription,
     renderCell,
@@ -244,7 +247,7 @@ const DateRangePickerControl = forwardRef<
     variant = 'outlined',
     status = 'default',
     required = false,
-    placeholder = [pickerFormats[picker], pickerFormats[picker]],
+    placeholder,
     className,
     classNames,
     'aria-describedby': ariaDescribedBy,
@@ -254,6 +257,21 @@ const DateRangePickerControl = forwardRef<
   } = allProps
   const { direction, componentSize } = useConfig()
   const resolvedSize = resolveComponentSize(componentSize, size)
+  const presentation = usePickerFormat({
+    kind: 'date',
+    picker,
+    format,
+    parseInput,
+    locale,
+    native: mode === 'native',
+  })
+  const display = useCallback(
+    (range: DateRange): DateRange => [
+      presentation.display(range[0]),
+      presentation.display(range[1]),
+    ],
+    [presentation],
+  )
   const generated = useId()
   const ids = [id ?? generated + '-start', generated + '-end']
   const labelIds = [generated + '-start-label', generated + '-end-label']
@@ -271,7 +289,7 @@ const DateRangePickerControl = forwardRef<
   const currentKey = JSON.stringify(current)
   const [previous, setPrevious] = useState(currentKey)
   const [candidate, setCandidate] = useState(current)
-  const [draft, setDraft] = useState(current)
+  const [draft, setDraft] = useState(display(current))
   const [dirty, setDirty] = useState(false)
   const lastEdited = useRef<0 | 1>(0)
   const [internalEndpoint, setInternalEndpoint] = useState(
@@ -343,10 +361,17 @@ const DateRangePickerControl = forwardRef<
   const panelSpan =
     picker === 'date' || picker === 'week' ? 1 : picker === 'year' ? 120 : 12
   const nextMonth = toMonth(addMonths(parseMonth(month)!, panelSpan))
+  const [previousPresentation, setPreviousPresentation] = useState(presentation)
+  if (previousPresentation !== presentation) {
+    setPreviousPresentation(presentation)
+    setDraft(display(showing ? candidate : current))
+    setDirty(false)
+    setError('')
+  }
   if (previous !== currentKey) {
     setPrevious(currentKey)
     setCandidate(current)
-    setDraft(current)
+    setDraft(display(current))
     setDirty(false)
     setError('')
   }
@@ -388,15 +413,23 @@ const DateRangePickerControl = forwardRef<
       elements[0]
     if (target) revealPickerTarget(target)
   }
+  function parsedInput(): DateRange | undefined {
+    const start = presentation.parse(draft[0]),
+      end = presentation.parse(draft[1])
+    return start === undefined || end === undefined
+      ? undefined
+      : normalize([start, end], lastEdited.current)
+  }
   function begin(part: 0 | 1, focus = false) {
     onPreview()
     if (isDisabled(part) || mode !== 'popup') return
     setError('')
     setEndpoint(part === 0 ? 'start' : 'end')
     if (!isOpen) {
-      setCandidate(dirty && validRange(draft) ? draft : current)
+      const typed = dirty ? parsedInput() : undefined
+      setCandidate(typed && validRange(typed) ? typed : current)
       if (panelMonth === undefined) {
-        const range = dirty ? draft : current
+        const range = typed ?? current
         setInternalMonth(
           monthFor(range[part] || range[part === 0 ? 1 : 0], true),
         )
@@ -419,7 +452,7 @@ const DateRangePickerControl = forwardRef<
   function cancel(restore = false) {
     onPreview()
     setCandidate(current)
-    setDraft(current)
+    setDraft(display(current))
     setDirty(false)
     setError('')
     setHovered(undefined)
@@ -450,7 +483,7 @@ const DateRangePickerControl = forwardRef<
       return false
     if (!controlled) setInternal(asRange(next))
     setCandidate(controlled ? current : next)
-    setDraft(controlled ? current : next)
+    setDraft(display(controlled ? current : next))
     setDirty(false)
     setError('')
     if (!equalRange(next, current)) onChange?.(asRange(next))
@@ -458,9 +491,9 @@ const DateRangePickerControl = forwardRef<
   }
   function commitInput(confirm = false) {
     if (!dirty) return true
-    const next = normalize(draft, lastEdited.current)
-    if (!validRange(next)) {
-      setError('请输入可选的日期范围（' + pickerFormats[picker] + '）')
+    const next = parsedInput()
+    if (!next || !validRange(next)) {
+      setError('请输入可选的日期范围（' + presentation.hint + '）')
       return false
     }
     if (needConfirm && !confirm && mode !== 'native') {
@@ -480,13 +513,13 @@ const DateRangePickerControl = forwardRef<
   function leave() {
     onPreview()
     if (dirty && !needConfirm && !commitInput()) {
-      setDraft(current)
+      setDraft(display(current))
       setDirty(false)
       setError('日期范围不可选，已恢复原范围')
     } else {
       setCandidate(current)
       if (needConfirm) {
-        setDraft(current)
+        setDraft(display(current))
         setDirty(false)
         setError('')
       }
@@ -503,7 +536,7 @@ const DateRangePickerControl = forwardRef<
       index,
     )
     setCandidate(next)
-    setDraft(next)
+    setDraft(display(next))
     setDirty(false)
     setError('')
     setHovered(undefined)
@@ -528,8 +561,8 @@ const DateRangePickerControl = forwardRef<
     }
   }
   function confirm() {
-    const next = dirty ? normalize(draft, lastEdited.current) : candidate
-    if (!validRange(next, true) || !publish(next)) return
+    const next = dirty ? parsedInput() : candidate
+    if (!next || !validRange(next, true) || !publish(next)) return
     onOk?.(asRange(next))
     if (mode === 'popup') {
       setOpen(false)
@@ -539,19 +572,25 @@ const DateRangePickerControl = forwardRef<
   useLayoutEffect(() => {
     if (wasOpen.current && !isOpen && needConfirm) {
       setCandidate(current)
-      setDraft(current)
+      setDraft(display(current))
       setDirty(false)
       setHovered(undefined)
       setError('')
     }
     wasOpen.current = isOpen
-  }, [isOpen, current, needConfirm])
+  }, [isOpen, current, needConfirm, display])
   useLayoutEffect(() => {
     if (showing && focusRequested.current === endpoint) {
       focusRequested.current = null
       focusCalendar()
     }
-    const shown = dirty ? draft : showing ? candidate : current
+    const parsed = dirty ? parsedInput() : undefined
+    const invalidDraft = dirty && parsed === undefined
+    const shown = dirty
+      ? (parsed ?? (['', ''] as DateRange))
+      : showing
+        ? candidate
+        : current
     for (const [part, field] of [
       startRef.current,
       finishRef.current,
@@ -559,7 +598,7 @@ const DateRangePickerControl = forwardRef<
       field?.setCustomValidity(
         inputPreview && part === index && field.required && !shown[part]
           ? '请选择日期'
-          : !validRange(shown)
+          : invalidDraft || !validRange(shown)
             ? '请选择有效且可选的日期范围'
             : showing && !equalRange(candidate, current)
               ? '请完成或确认日期范围选择'
@@ -614,7 +653,13 @@ const DateRangePickerControl = forwardRef<
       associatedForm.removeEventListener('submit', submit, true)
     }
   })
-  const shown = dirty ? draft : showing ? candidate : current
+  const parsed = dirty ? parsedInput() : undefined
+  const invalidDraft = dirty && parsed === undefined
+  const shown = dirty
+    ? (parsed ?? (['', ''] as DateRange))
+    : showing
+      ? candidate
+      : current
   const { preview: inputPreview, onPreview } = usePickerPreview(
     JSON.stringify([
       currentKey,
@@ -629,12 +674,18 @@ const DateRangePickerControl = forwardRef<
     previewValue === 'hover' && showing && !dirty && !isDisabled(index),
     (date) => selectable(date, index, candidate),
   )
-  const displayed = inputPreview ? asRange(shown) : shown
-  if (inputPreview) displayed[index] = inputPreview
+  const displayed =
+    mode === 'native'
+      ? asRange(current)
+      : dirty
+        ? asRange(draft)
+        : display(shown)
+  if (inputPreview) displayed[index] = presentation.display(inputPreview)
   const invalid =
     status === 'error' ||
     ariaInvalid ||
     Boolean(error) ||
+    invalidDraft ||
     !validRange(shown) ||
     undefined
   const description =
@@ -669,7 +720,7 @@ const DateRangePickerControl = forwardRef<
               )
             }}
           >
-            {text}：{candidate[part] || '未选择'}
+            {text}：{presentation.display(candidate[part]) || '未选择'}
           </Button>
         ))}
       </div>
@@ -710,7 +761,7 @@ const DateRangePickerControl = forwardRef<
                   return
                 }
                 setCandidate(next)
-                setDraft(next)
+                setDraft(display(next))
                 setDirty(false)
                 setError('')
                 setHovered(undefined)
@@ -798,7 +849,8 @@ const DateRangePickerControl = forwardRef<
       </div>
       <p role="status" className="text-sm text-muted-foreground">
         请选择{index === 0 ? startLabel : endLabel}；
-        {candidate[0] || '未选开始'} → {candidate[1] || '未选结束'}
+        {presentation.display(candidate[0]) || '未选开始'} →{' '}
+        {presentation.display(candidate[1]) || '未选结束'}
       </p>
       {(needConfirm || allowEmpty.some(Boolean) || footer) && (
         <div
@@ -819,11 +871,7 @@ const DateRangePickerControl = forwardRef<
           <Button
             tabIndex={0}
             disabled={
-              inactive ||
-              !validRange(
-                dirty ? normalize(draft, lastEdited.current) : candidate,
-                true,
-              )
+              inactive || invalidDraft || !validRange(parsed ?? candidate, true)
             }
             onClick={confirm}
           >
@@ -916,7 +964,7 @@ const DateRangePickerControl = forwardRef<
                   disabled={Array.isArray(disabled) ? disabled[part] : disabled}
                   readOnly={readOnly || (mode !== 'native' && inputReadOnly)}
                   autoComplete="off"
-                  placeholder={placeholder[part]}
+                  placeholder={placeholder?.[part] ?? presentation.hint}
                   value={displayed[part]}
                   data-picker-preview={
                     inputPreview && part === index ? 'hover' : undefined
@@ -963,7 +1011,7 @@ const DateRangePickerControl = forwardRef<
                     if (event.key === 'ArrowDown' && mode === 'popup') {
                       event.preventDefault()
                       begin(part as 0 | 1, true)
-                    } else if (event.key === 'Escape' && isOpen) {
+                    } else if (event.key === 'Escape' && (isOpen || dirty)) {
                       event.preventDefault()
                       event.stopPropagation()
                       cancel(true)

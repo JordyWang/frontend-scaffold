@@ -23,7 +23,6 @@ import {
   parsePickerValue,
   pickerBoundMonth,
   pickerDefaultBounds,
-  pickerFormats,
   pickerStepMatches,
   pickerValueMonth,
   type DatePickerUnit,
@@ -42,6 +41,7 @@ import {
 } from './picker-popup'
 import { Portal } from './portal'
 import { usePickerPreview } from './picker-preview'
+import { usePickerFormat, type PickerFormatProps } from './picker-format'
 import {
   inputSizeStyles,
   inputStatusStyles,
@@ -75,48 +75,49 @@ type SingleDatePickerBaseProps = Omit<
   | 'min'
   | 'max'
   | 'multiple'
-> & {
-  multiple?: false
-  showTime?: false
-  value?: string
-  defaultValue?: string
-  min?: string
-  max?: string
-  onChange?: (value: string) => void
-  /** Fires when focus leaves the entire field and its portalled panel. */
-  onBlur?: FocusEventHandler<HTMLSpanElement>
-  size?: ControlSize
-  variant?: InputVariant
-  status?: InputStatus
-  label?: string
-  open?: boolean
-  defaultOpen?: boolean
-  onOpenChange?: (open: boolean) => void
-  allowClear?: boolean
-  onClear?: () => void
-  needConfirm?: boolean
-  previewValue?: false | 'hover'
-  onOk?: (value: string) => void
-  disabledDate?: (date: string) => boolean
-  panelMonth?: string
-  defaultPanelMonth?: string
-  onPanelMonthChange?: (month: string) => void
-  placement?: PickerPlacement
-  presets?: DatePickerPreset[]
-  weekStartsOn?: 0 | 1
-  locale?: string
-  inputReadOnly?: boolean
-  renderDate?: (date: string) => ReactNode
-  getDateDescription?: (date: string) => string | undefined
-  renderCell?: (value: string, picker: DatePickerUnit) => ReactNode
-  getCellDescription?: (
-    value: string,
-    picker: DatePickerUnit,
-  ) => string | undefined
-  footer?: ReactNode
-  suffixIcon?: ReactNode
-  classNames?: Partial<Record<DatePickerPart, string>>
-}
+> &
+  PickerFormatProps & {
+    multiple?: false
+    showTime?: false
+    value?: string
+    defaultValue?: string
+    min?: string
+    max?: string
+    onChange?: (value: string) => void
+    /** Fires when focus leaves the entire field and its portalled panel. */
+    onBlur?: FocusEventHandler<HTMLSpanElement>
+    size?: ControlSize
+    variant?: InputVariant
+    status?: InputStatus
+    label?: string
+    open?: boolean
+    defaultOpen?: boolean
+    onOpenChange?: (open: boolean) => void
+    allowClear?: boolean
+    onClear?: () => void
+    needConfirm?: boolean
+    previewValue?: false | 'hover'
+    onOk?: (value: string) => void
+    disabledDate?: (date: string) => boolean
+    panelMonth?: string
+    defaultPanelMonth?: string
+    onPanelMonthChange?: (month: string) => void
+    placement?: PickerPlacement
+    presets?: DatePickerPreset[]
+    weekStartsOn?: 0 | 1
+    locale?: string
+    inputReadOnly?: boolean
+    renderDate?: (date: string) => ReactNode
+    getDateDescription?: (date: string) => string | undefined
+    renderCell?: (value: string, picker: DatePickerUnit) => ReactNode
+    getCellDescription?: (
+      value: string,
+      picker: DatePickerUnit,
+    ) => string | undefined
+    footer?: ReactNode
+    suffixIcon?: ReactNode
+    classNames?: Partial<Record<DatePickerPart, string>>
+  }
 export type SingleDatePickerProps = SingleDatePickerBaseProps &
   (
     | { picker?: 'date'; mode?: 'popup' | 'panel' | 'native' }
@@ -183,6 +184,8 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
       presets = [],
       weekStartsOn = 1,
       locale,
+      format,
+      parseInput,
       inputReadOnly = false,
       renderDate,
       getDateDescription,
@@ -209,6 +212,14 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
     } = allProps
     const { componentSize, direction } = useConfig()
     const resolvedSize = resolveComponentSize(componentSize, size)
+    const presentation = usePickerFormat({
+      kind: 'date',
+      picker,
+      format,
+      parseInput,
+      locale,
+      native: mode === 'native',
+    })
     const id = useId()
     const popupId = id + '-popup'
     const errorId = id + '-error'
@@ -223,7 +234,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
     useNativeFormReset(inputRef, controlled, defaultValue, setInternal)
     const current = controlled ? (value ?? '') : internal
     const [editing, setEditing] = useState(false)
-    const [draft, setDraft] = useState(current)
+    const [draft, setDraft] = useState(presentation.display(current))
     const [candidate, setCandidate] = useState(current)
     const [previous, setPrevious] = useState(current)
     const [error, setError] = useState('')
@@ -262,10 +273,18 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
       initialMonth(current),
     )
     const month = parseMonth(panelMonth) ? panelMonth! : internalMonth
+    const [previousPresentation, setPreviousPresentation] =
+      useState(presentation)
+    if (previousPresentation !== presentation) {
+      setPreviousPresentation(presentation)
+      setDraft(presentation.display(showingPanel ? candidate : current))
+      setEditing(false)
+      setError('')
+    }
     if (previous !== current) {
       setPrevious(current)
       setCandidate(current)
-      setDraft(current)
+      setDraft(presentation.display(current))
       setError('')
     }
     usePickerPosition(inputRef, popupRef, isOpen, placement, direction)
@@ -300,9 +319,10 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
       if (inactive) return
       setError('')
       if (!isOpen) {
-        setCandidate(editing && selectable(draft) ? draft : current)
+        const typed = presentation.parse(draft)
+        setCandidate(editing && typed && selectable(typed) ? typed : current)
         if (panelMonth === undefined)
-          setInternalMonth(initialMonth(editing ? draft : current))
+          setInternalMonth(initialMonth(editing && typed ? typed : current))
         focusRequested.current = focus
         setOpen(true)
       } else if (focus) focusCalendar()
@@ -313,7 +333,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
     function cancel(restore = false) {
       onPreview()
       setCandidate(current)
-      setDraft(current)
+      setDraft(presentation.display(current))
       setEditing(false)
       setError('')
       focusRequested.current = false
@@ -325,36 +345,37 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
       if (inactive || (next && !selectable(next))) return false
       if (!controlled) setInternal(next)
       setEditing(false)
-      setDraft(controlled ? current : next)
+      setDraft(presentation.display(controlled ? current : next))
       setError('')
       if (next !== current) onChange?.(next)
       return true
     }
     function finishInput(confirm = false) {
       if (!editing) return true
-      if (draft && !selectable(draft)) {
-        setError('请输入可选日期（' + pickerFormats[picker] + '）')
+      const next = presentation.parse(draft)
+      if (next === undefined || (next && !selectable(next))) {
+        setError('请输入可选日期（' + presentation.hint + '）')
         return false
       }
       if (needConfirm && !confirm) {
-        setCandidate(draft)
+        setCandidate(next)
         return true
       }
-      const accepted = publish(draft)
-      const nextMonth = pickerValueMonth(draft, picker)
+      const accepted = publish(next)
+      const nextMonth = pickerValueMonth(next, picker)
       if (accepted && nextMonth && nextMonth !== month) changeMonth(nextMonth)
-      if (accepted && confirm && needConfirm) onOk?.(draft)
+      if (accepted && confirm && needConfirm) onOk?.(next)
       return accepted
     }
     function leave() {
       onPreview()
       if (needConfirm) {
         setCandidate(current)
-        setDraft(current)
+        setDraft(presentation.display(current))
         setEditing(false)
         setError('')
       } else if (editing && !finishInput()) {
-        setDraft(current)
+        setDraft(presentation.display(current))
         setEditing(false)
         setError(
           current ? '日期不可选，已恢复原日期' : '日期不可选，已清空输入',
@@ -369,7 +390,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
       setError('')
       if (needConfirm) {
         setCandidate(date)
-        setDraft(date)
+        setDraft(presentation.display(date))
         setEditing(false)
       } else {
         publish(date)
@@ -381,8 +402,8 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
     }
     function confirm() {
       onPreview()
-      const next = editing ? draft : candidate
-      if (!selectable(next) || !publish(next)) return
+      const next = editing ? presentation.parse(draft) : candidate
+      if (!next || !selectable(next) || !publish(next)) return
       onOk?.(next)
       if (mode === 'popup') {
         setOpen(false)
@@ -392,26 +413,26 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
     useLayoutEffect(() => {
       if (wasOpen.current && !isOpen && needConfirm) {
         setCandidate(current)
-        setDraft(current)
+        setDraft(presentation.display(current))
         setEditing(false)
         setError('')
       }
       wasOpen.current = isOpen
-    }, [isOpen, current, needConfirm])
+    }, [isOpen, current, needConfirm, presentation])
     useLayoutEffect(() => {
       if (isOpen && focusRequested.current) {
         focusRequested.current = false
         focusCalendar()
       }
       const displayed = editing
-        ? draft
+        ? presentation.parse(draft)
         : needConfirm && showingPanel
           ? candidate
           : current
       inputRef.current?.setCustomValidity(
         preview && inputRef.current.required && !displayed
           ? '请选择日期'
-          : displayed && !selectable(displayed)
+          : displayed === undefined || (displayed && !selectable(displayed))
             ? '请选择有效且可选的日期'
             : needConfirm && showingPanel && candidate !== current
               ? '请先确认日期'
@@ -463,7 +484,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
     })
 
     const shown = editing
-      ? draft
+      ? presentation.parse(draft)
       : needConfirm && showingPanel
         ? candidate
         : current
@@ -585,12 +606,15 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
         )}
       </div>
     )
-    const displayed = preview ?? shown
+    const displayed = editing
+      ? draft
+      : presentation.display(preview ?? shown ?? '')
     const invalid =
       status === 'error' ||
       ariaInvalid ||
       Boolean(error) ||
-      (Boolean(shown) && !selectable(shown)) ||
+      shown === undefined ||
+      Boolean(shown && !selectable(shown)) ||
       undefined
     return (
       <span
@@ -649,7 +673,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
             disabled={disabled}
             readOnly={readOnly || (mode !== 'native' && inputReadOnly)}
             autoComplete={inputProps.autoComplete ?? 'off'}
-            placeholder={inputProps.placeholder ?? pickerFormats[picker]}
+            placeholder={inputProps.placeholder ?? presentation.hint}
             className={cn(
               inputStyles,
               inputVariantStyles[variant],
@@ -693,7 +717,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
               if (event.key === 'ArrowDown' && mode === 'popup') {
                 event.preventDefault()
                 begin(true)
-              } else if (event.key === 'Escape' && isOpen) {
+              } else if (event.key === 'Escape' && (isOpen || editing)) {
                 event.preventDefault()
                 event.stopPropagation()
                 cancel(true)
