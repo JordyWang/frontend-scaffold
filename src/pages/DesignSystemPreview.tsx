@@ -4,6 +4,7 @@ import {
   Affix,
   Anchor,
   Avatar,
+  AvatarGroup,
   AutoComplete,
   BackTop,
   Badge,
@@ -168,6 +169,7 @@ export function DesignSystemPreview() {
   const [statisticLoading, setStatisticLoading] = useState(true)
   const [skeletonLoading, setSkeletonLoading] = useState(true)
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false)
+  const [avatarRecovered, setAvatarRecovered] = useState(false)
   const [colorValue, setColorValue] = useState('#1677ff')
   const [dateRange, setDateRange] = useState<DateRange>(['', ''])
   const [timeRange, setTimeRange] = useState<TimeRange>(['', ''])
@@ -1643,6 +1645,66 @@ export function DesignSystemPreview() {
                     B
                   </Avatar>
                 </Space>
+                <section
+                  aria-label="头像状态预览"
+                  className="grid min-w-0 gap-4"
+                >
+                  <h3 className="m-0 text-base font-semibold">头像与成员组</h3>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <Avatar
+                      label="失败回退头像"
+                      src={
+                        avatarRecovered
+                          ? '/mock/media/poster.svg'
+                          : '/mock/media/missing-avatar.svg'
+                      }
+                    >
+                      回退
+                    </Avatar>
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        setAvatarRecovered((previous) => !previous)
+                      }
+                    >
+                      {avatarRecovered ? '恢复失败头像' : '替换为可用头像'}
+                    </Button>
+                    <Avatar label="长文字头像" size={56} gap={6}>
+                      USERNAME
+                    </Avatar>
+                    <Avatar label="图标头像" icon={<Icon name="user" />} />
+                    <Avatar
+                      label="响应式头像"
+                      size={{ xs: 32, sm: 40, md: 48, xl: 64 }}
+                    >
+                      团队
+                    </Avatar>
+                  </div>
+                  <AvatarGroup
+                    label="项目成员"
+                    maxCount={2}
+                    items={[
+                      { key: 'one', label: '项目设计师', children: '设' },
+                      { key: 'two', label: '项目开发者', children: '开' },
+                      { key: 'three', label: '项目测试者', children: '测' },
+                      { key: 'four', label: '项目负责人', children: '负' },
+                    ]}
+                  />
+                  <ConfigProvider direction="rtl">
+                    <AvatarGroup
+                      label="RTL 成员组"
+                      size="small"
+                      shape="square"
+                      maxCount={1}
+                      items={[
+                        { key: 'one', label: 'RTL 设计师', children: '设' },
+                        { key: 'two', label: 'RTL 开发者', children: '开' },
+                        { key: 'three', label: 'RTL 测试者', children: '测' },
+                      ]}
+                    />
+                  </ConfigProvider>
+                  <AvatarGroup label="空成员组" items={[]} />
+                </section>
                 <Descriptions
                   column={2}
                   bordered

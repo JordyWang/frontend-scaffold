@@ -32,6 +32,8 @@
 
 `Image` 增加默认可开启的全屏预览，支持受控开合、独立大图地址、缩放、旋转、翻转、重置、拖动与双指缩放；`ImagePreviewGroup` 使用项目图片数组契约实现相册切换。预览复用主题 Portal、焦点约束和背景滚动管理，失败时提供重试；`/__ui` 展示单图、相册、外部控制与错误状态。
 
+`Avatar` 支持图片失败回退、重新设置图片源、图标和长字符自动缩放，以及 Tailwind 断点尺寸。`AvatarGroup` 用项目成员数组契约展示重叠头像，溢出按钮通过公共 Popover 展示其余成员，并跟随 RTL。`/__ui` 展示失败恢复、长文字、响应式、空组和 RTL，键盘与 H5 触控均有回归。
+
 ConfigProvider 的 RTL 方向已覆盖 Select、Dialog、Sheet、Dropdown、Popover、Tooltip 的弹层容器，Select 的触发器和选项使用 Tailwind 逻辑方向样式；`/__ui` 提供键盘与 H5 触控预览。
 
 Dropdown、Popover、Tooltip 的浮层已在裁切容器、RTL、桌面与 H5 中验证。Dropdown 的上下方向键、Enter、空格和正反向 Tab，以及 Popover 中交互内容的 Tab 顺序已有浏览器回归。

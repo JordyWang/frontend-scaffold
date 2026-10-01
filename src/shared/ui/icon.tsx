@@ -2,6 +2,12 @@ import type { SVGProps } from 'react'
 import { cn } from '@/shared/lib/utils'
 
 const paths = {
+  user: (
+    <>
+      <circle cx="10" cy="6" r="3" />
+      <path d="M3 18v-2a7 7 0 0 1 14 0v2" />
+    </>
+  ),
   home: (
     <>
       <path d="m3 9 7-6 7 6v8H3z" />

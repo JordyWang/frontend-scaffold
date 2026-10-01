@@ -178,12 +178,15 @@ export type {
 } from './feedback'
 export { Collapse } from './disclosure'
 export type { CollapseItem, CollapseProps } from './disclosure'
-export { Avatar, Descriptions } from './display-extended'
+export { Avatar, AvatarGroup } from './avatar'
 export type {
   AvatarProps,
-  DescriptionItem,
-  DescriptionsProps,
-} from './display-extended'
+  AvatarSize,
+  AvatarGroupItem,
+  AvatarGroupProps,
+} from './avatar'
+export { Descriptions } from './display-extended'
+export type { DescriptionItem, DescriptionsProps } from './display-extended'
 export {
   AutoComplete,
   DatePicker,
