@@ -360,11 +360,13 @@ const TimePickerControl = forwardRef<
         ? candidate
         : current
     inputRef.current?.setCustomValidity(
-      shown === undefined || (shown && !selectable(shown))
-        ? '请选择有效且可选的时间'
-        : needConfirm && showing && candidate !== current
-          ? '请先确认时间'
-          : '',
+      preview && inputRef.current.required && !shown
+        ? '请选择时间'
+        : shown === undefined || (shown && !selectable(shown))
+          ? '请选择有效且可选的时间'
+          : needConfirm && showing && candidate !== current
+            ? '请先确认时间'
+            : '',
     )
     if (inactive && owned.current && document.activeElement === document.body) {
       focusAfterPicker(inputRef.current!, rootRef.current!)

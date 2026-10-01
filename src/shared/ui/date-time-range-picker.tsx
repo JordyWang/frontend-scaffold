@@ -628,12 +628,14 @@ const DateTimeRangePickerControl = forwardRef<
       field?.setCustomValidity(
         isDisabled(part as 0 | 1)
           ? ''
-          : !shown || !validRange(shown)
-            ? '请选择有效且可选的日期时间范围'
-            : (needConfirm && dirty && !equalRange(shown, current)) ||
-                (showing && !equalRange(candidate, current))
-              ? '请完成或确认日期时间范围选择'
-              : '',
+          : preview && part === index && field.required && !shown?.[part]
+            ? '请选择日期时间'
+            : !shown || !validRange(shown)
+              ? '请选择有效且可选的日期时间范围'
+              : (needConfirm && dirty && !equalRange(shown, current)) ||
+                  (showing && !equalRange(candidate, current))
+                ? '请完成或确认日期时间范围选择'
+                : '',
       )
     }
     if (
@@ -685,7 +687,15 @@ const DateTimeRangePickerControl = forwardRef<
   })
   const shown = dirty ? parsedInput() : showing ? candidate : current
   const { preview, onPreview } = usePickerPreview(
-    JSON.stringify([currentKey, candidate, showing, mode, dirty, endpoint]),
+    JSON.stringify([
+      currentKey,
+      candidate,
+      showing,
+      mode,
+      month,
+      dirty,
+      endpoint,
+    ]),
     previewValue === 'hover' && showing && !dirty && !isDisabled(index),
     (value) => dateTimeSelectable(value, constraintsFor(index, candidate)),
   )

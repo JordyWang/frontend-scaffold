@@ -44,6 +44,7 @@ import {
   type PickerPlacement,
 } from './picker-popup'
 import { Portal } from './portal'
+import { usePickerPreview } from './picker-preview'
 import {
   inputSizeStyles,
   inputStatusStyles,
@@ -106,6 +107,7 @@ type DateRangePickerBaseProps = {
   allowClear?: boolean
   onClear?: () => void
   needConfirm?: boolean
+  previewValue?: false | 'hover'
   onOk?: (value: DateRange) => void
   open?: boolean
   defaultOpen?: boolean
@@ -210,6 +212,7 @@ const DateRangePickerControl = forwardRef<
     allowClear = true,
     onClear,
     needConfirm = false,
+    previewValue = 'hover',
     onOk,
     mode = 'popup',
     open,
@@ -355,6 +358,7 @@ const DateRangePickerControl = forwardRef<
     onOpenChange?.(next)
   }
   function setEndpoint(next: DateRangeEndpoint) {
+    onPreview()
     if (next === endpoint) return
     if (activeEndpoint === undefined) setInternalEndpoint(next)
     onActiveEndpointChange?.(next)
@@ -383,6 +387,7 @@ const DateRangePickerControl = forwardRef<
     if (target) revealPickerTarget(target)
   }
   function begin(part: 0 | 1, focus = false) {
+    onPreview()
     if (isDisabled(part) || mode !== 'popup') return
     setError('')
     setEndpoint(part === 0 ? 'start' : 'end')
@@ -410,6 +415,7 @@ const DateRangePickerControl = forwardRef<
     })
   }
   function cancel(restore = false) {
+    onPreview()
     setCandidate(current)
     setDraft(current)
     setDirty(false)
@@ -431,6 +437,7 @@ const DateRangePickerControl = forwardRef<
     return next
   }
   function publish(next: DateRange) {
+    onPreview()
     if (
       inactive ||
       !validRange(next) ||
@@ -469,6 +476,7 @@ const DateRangePickerControl = forwardRef<
     return true
   }
   function leave() {
+    onPreview()
     if (dirty && !needConfirm && !commitInput()) {
       setDraft(current)
       setDirty(false)
@@ -486,6 +494,7 @@ const DateRangePickerControl = forwardRef<
     setOpen(false)
   }
   function choose(date: string) {
+    onPreview()
     if (isDisabled(index) || !selectable(date, index, candidate)) return
     const next = normalize(
       index === 0 ? [date, candidate[1]] : [candidate[0], date],
@@ -546,11 +555,13 @@ const DateRangePickerControl = forwardRef<
       finishRef.current,
     ].entries()) {
       field?.setCustomValidity(
-        !validRange(shown)
-          ? '请选择有效且可选的日期范围'
-          : showing && !equalRange(candidate, current)
-            ? '请完成或确认日期范围选择'
-            : '',
+        inputPreview && part === index && field.required && !shown[part]
+          ? '请选择日期'
+          : !validRange(shown)
+            ? '请选择有效且可选的日期范围'
+            : showing && !equalRange(candidate, current)
+              ? '请完成或确认日期范围选择'
+              : '',
       )
       if (isDisabled(part as 0 | 1)) field?.setCustomValidity('')
     }
@@ -601,12 +612,28 @@ const DateRangePickerControl = forwardRef<
       associatedForm.removeEventListener('submit', submit, true)
     }
   })
-  const displayed = dirty ? draft : showing ? candidate : current
+  const shown = dirty ? draft : showing ? candidate : current
+  const { preview: inputPreview, onPreview } = usePickerPreview(
+    JSON.stringify([
+      currentKey,
+      candidate,
+      showing,
+      picker,
+      mode,
+      endpoint,
+      month,
+      dirty,
+    ]),
+    previewValue === 'hover' && showing && !dirty && !isDisabled(index),
+    (date) => selectable(date, index, candidate),
+  )
+  const displayed = inputPreview ? asRange(shown) : shown
+  if (inputPreview) displayed[index] = inputPreview
   const invalid =
     status === 'error' ||
     ariaInvalid ||
     Boolean(error) ||
-    !validRange(displayed) ||
+    !validRange(shown) ||
     undefined
   const description =
     [ariaDescribedBy, error ? errorId : undefined].filter(Boolean).join(' ') ||
@@ -755,6 +782,7 @@ const DateRangePickerControl = forwardRef<
                   }
                   onDateHover={setHovered}
                   onDateFocus={setHovered}
+                  onPreview={previewValue === 'hover' ? onPreview : undefined}
                   classNames={{
                     root: 'border-0 p-0 sm:p-0 rounded-none',
                     header: 'mb-2 px-1',
@@ -888,6 +916,9 @@ const DateRangePickerControl = forwardRef<
                   autoComplete="off"
                   placeholder={placeholder[part]}
                   value={displayed[part]}
+                  data-picker-preview={
+                    inputPreview && part === index ? 'hover' : undefined
+                  }
                   className={cn(
                     inputStyles,
                     inputVariantStyles[variant],
@@ -896,7 +927,7 @@ const DateRangePickerControl = forwardRef<
                     'min-w-0 touch-manipulation focus-visible:border-ring',
                     mode === 'popup' && 'pe-12',
                     allowClear &&
-                      displayed[part] &&
+                      shown[part] &&
                       !isDisabled(part as 0 | 1) &&
                       (mode === 'popup' ? 'pe-24' : 'pe-12'),
                     classNames?.input,
@@ -906,14 +937,13 @@ const DateRangePickerControl = forwardRef<
                     setEndpoint(part === 0 ? 'start' : 'end')
                     if (isOpen)
                       changeMonth(
-                        monthFor(
-                          displayed[part] || displayed[part === 0 ? 1 : 0],
-                        ),
+                        monthFor(shown[part] || shown[part === 0 ? 1 : 0]),
                       )
                     onFocus?.(event, { endpoint: part === 0 ? 'start' : 'end' })
                   }}
                   onClick={() => begin(part as 0 | 1)}
                   onChange={(event) => {
+                    onPreview()
                     const next = asRange(draft)
                     next[part] = event.currentTarget.value
                     lastEdited.current = part as 0 | 1
@@ -926,6 +956,7 @@ const DateRangePickerControl = forwardRef<
                     }
                   }}
                   onKeyDown={(event) => {
+                    onPreview()
                     if (isDisabled(part as 0 | 1) || mode === 'native') return
                     if (event.key === 'ArrowDown' && mode === 'popup') {
                       event.preventDefault()
@@ -945,31 +976,29 @@ const DateRangePickerControl = forwardRef<
                     }
                   }}
                 />
-                {allowClear &&
-                  displayed[part] &&
-                  !isDisabled(part as 0 | 1) && (
-                    <button
-                      type="button"
-                      tabIndex={0}
-                      aria-label={'清空' + text}
-                      data-range-clear={part}
-                      className={cn(
-                        'absolute inset-y-0 flex min-h-11 w-11 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] text-muted-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring',
-                        mode === 'popup' ? 'end-11' : 'end-0',
-                        classNames?.clear,
-                      )}
-                      onClick={() => {
-                        const next = asRange(current)
-                        next[part] = ''
-                        publish(next)
-                        setOpen(false)
-                        onClear?.()
-                        restoreFocus(part as 0 | 1)
-                      }}
-                    >
-                      <Icon name="close" size={16} />
-                    </button>
-                  )}
+                {allowClear && shown[part] && !isDisabled(part as 0 | 1) && (
+                  <button
+                    type="button"
+                    tabIndex={0}
+                    aria-label={'清空' + text}
+                    data-range-clear={part}
+                    className={cn(
+                      'absolute inset-y-0 flex min-h-11 w-11 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] text-muted-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring',
+                      mode === 'popup' ? 'end-11' : 'end-0',
+                      classNames?.clear,
+                    )}
+                    onClick={() => {
+                      const next = asRange(current)
+                      next[part] = ''
+                      publish(next)
+                      setOpen(false)
+                      onClear?.()
+                      restoreFocus(part as 0 | 1)
+                    }}
+                  >
+                    <Icon name="close" size={16} />
+                  </button>
+                )}
                 {mode === 'popup' && (
                   <button
                     type="button"

@@ -407,12 +407,14 @@ const DateTimePickerControl = forwardRef<
         ? candidate
         : current
     inputRef.current?.setCustomValidity(
-      shown === undefined || (shown && !selectable(shown))
-        ? '请选择有效且可选的日期时间'
-        : needConfirm &&
-            (editing ? shown !== current : showing && candidate !== current)
-          ? '请先确认日期时间'
-          : '',
+      preview && inputRef.current.required && !shown
+        ? '请选择日期时间'
+        : shown === undefined || (shown && !selectable(shown))
+          ? '请选择有效且可选的日期时间'
+          : needConfirm &&
+              (editing ? shown !== current : showing && candidate !== current)
+            ? '请先确认日期时间'
+            : '',
     )
     if (inactive && owned.current && document.activeElement === document.body) {
       focusAfterPicker(inputRef.current!, rootRef.current!)
@@ -459,7 +461,7 @@ const DateTimePickerControl = forwardRef<
       ? candidate
       : current
   const { preview, onPreview } = usePickerPreview(
-    JSON.stringify([current, candidate, showing, mode, editing]),
+    JSON.stringify([current, candidate, showing, mode, month, editing]),
     previewValue === 'hover' && showing && !editing && !inactive,
     selectable,
   )

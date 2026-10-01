@@ -41,6 +41,7 @@ import {
   type PickerPlacement,
 } from './picker-popup'
 import { Portal } from './portal'
+import { usePickerPreview } from './picker-preview'
 import {
   inputSizeStyles,
   inputStatusStyles,
@@ -94,6 +95,7 @@ type SingleDatePickerBaseProps = Omit<
   allowClear?: boolean
   onClear?: () => void
   needConfirm?: boolean
+  previewValue?: false | 'hover'
   onOk?: (value: string) => void
   disabledDate?: (date: string) => boolean
   panelMonth?: string
@@ -169,6 +171,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
       allowClear = true,
       onClear,
       needConfirm = false,
+      previewValue = 'hover',
       onOk,
       disabledDate,
       panelMonth,
@@ -291,6 +294,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
       if (target) revealPickerTarget(target)
     }
     function begin(focus = false) {
+      onPreview()
       if (inactive) return
       setError('')
       if (!isOpen) {
@@ -305,6 +309,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
       inputRef.current?.focus({ preventScroll: true })
     }
     function cancel(restore = false) {
+      onPreview()
       setCandidate(current)
       setDraft(current)
       setEditing(false)
@@ -314,6 +319,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
       if (restore) restoreFocus()
     }
     function publish(next: string) {
+      onPreview()
       if (inactive || (next && !selectable(next))) return false
       if (!controlled) setInternal(next)
       setEditing(false)
@@ -339,6 +345,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
       return accepted
     }
     function leave() {
+      onPreview()
       if (needConfirm) {
         setCandidate(current)
         setDraft(current)
@@ -355,6 +362,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
       setOpen(false)
     }
     function choose(date: string) {
+      onPreview()
       if (inactive || !selectable(date)) return
       setError('')
       if (needConfirm) {
@@ -370,6 +378,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
       }
     }
     function confirm() {
+      onPreview()
       const next = editing ? draft : candidate
       if (!selectable(next) || !publish(next)) return
       onOk?.(next)
@@ -398,11 +407,13 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
           ? candidate
           : current
       inputRef.current?.setCustomValidity(
-        displayed && !selectable(displayed)
-          ? '请选择有效且可选的日期'
-          : needConfirm && showingPanel && candidate !== current
-            ? '请先确认日期'
-            : '',
+        preview && inputRef.current.required && !displayed
+          ? '请选择日期'
+          : displayed && !selectable(displayed)
+            ? '请选择有效且可选的日期'
+            : needConfirm && showingPanel && candidate !== current
+              ? '请先确认日期'
+              : '',
       )
       if (
         !isOpen &&
@@ -449,6 +460,24 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
       }
     })
 
+    const shown = editing
+      ? draft
+      : needConfirm && showingPanel
+        ? candidate
+        : current
+    const { preview, onPreview } = usePickerPreview(
+      JSON.stringify([
+        current,
+        candidate,
+        showingPanel,
+        picker,
+        mode,
+        month,
+        editing,
+      ]),
+      previewValue === 'hover' && showingPanel && !editing && !inactive,
+      selectable,
+    )
     const panel = (
       <div
         id={mode === 'panel' ? popupId : undefined}
@@ -499,6 +528,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
           month={month}
           onMonthChange={changeMonth}
           onChange={choose}
+          onPreview={previewValue === 'hover' ? onPreview : undefined}
           minDate={minDate}
           maxDate={maxDate}
           disabledDate={(date) => !selectable(date)}
@@ -553,16 +583,12 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
         )}
       </div>
     )
-    const displayed = editing
-      ? draft
-      : needConfirm && showingPanel
-        ? candidate
-        : current
+    const displayed = preview ?? shown
     const invalid =
       status === 'error' ||
       ariaInvalid ||
       Boolean(error) ||
-      (Boolean(displayed) && !selectable(displayed)) ||
+      (Boolean(shown) && !selectable(shown)) ||
       undefined
     return (
       <span
@@ -630,13 +656,14 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
               'min-w-0 touch-manipulation',
               mode === 'popup' && 'pe-12',
               allowClear &&
-                displayed &&
+                shown &&
                 !inactive &&
                 (mode === 'popup' ? 'pe-24' : 'pe-12'),
               className,
               classNames?.input,
             )}
             value={displayed}
+            data-picker-preview={preview ? 'hover' : undefined}
             onFocus={(event) => {
               onFocus?.(event)
             }}
@@ -645,6 +672,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
               if (!event.defaultPrevented && mode === 'popup') begin()
             }}
             onChange={(event) => {
+              onPreview()
               const next = event.currentTarget.value
               setError('')
               if (mode === 'native') publish(next)
@@ -656,6 +684,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
               }
             }}
             onKeyDown={(event) => {
+              onPreview()
               onKeyDown?.(event)
               if (event.defaultPrevented || inactive || mode === 'native')
                 return
@@ -677,7 +706,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
               }
             }}
           />
-          {allowClear && displayed && !inactive && (
+          {allowClear && shown && !inactive && (
             <button
               type="button"
               tabIndex={0}

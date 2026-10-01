@@ -16,13 +16,15 @@
 
 ## 已确认的下一批缺口
 
-对照 [DatePicker 6.6.5 文档](https://ant.design/components/date-picker-cn) 和 [TimePicker 6.6.5 文档](https://ant.design/components/time-picker-cn)，项目已实现日期、周、月、季度、年的单选、多选与范围面板，以及时间单选和范围的统一时间列面板。日期时间单选与范围组合、时间滚动选择与悬停输入预览已补齐；日期单选的悬停输入预览、毫秒精度与任意 format 尚未实现。日期范围的网格预览不能作为输入 previewValue 的完成证据。
+对照 [DatePicker 6.6.5 文档](https://ant.design/components/date-picker-cn) 和 [TimePicker 6.6.5 文档](https://ant.design/components/time-picker-cn)，项目已实现日期、周、月、季度、年的单选、多选与范围面板，以及时间单选和范围的统一时间列面板。日期时间单选与范围组合、时间滚动选择、日期/时间悬停输入预览已补齐；毫秒精度、任意 format 与 mask 格式输入尚未实现。日期范围的网格预览与输入 previewValue 分别验证。
 
 后续日期能力复用严格的本地日期计算、Calendar 网格、弹层定位与焦点契约，保持项目字符串值 API、Tailwind 语义 Token 和 44px 触控约定，同步键盘、焦点、RTL 与 `/__ui`。组件总览中的入口数量不能作为整库完成的验收依据。
 
 ## 已落地能力与验证范围
 
-`TimePicker`、`TimeRangePicker`、`DateTimePicker` 和 `DateTimeRangePicker` 共用可选 `changeOnScroll`（默认 false）与鼠标 `previewValue`（默认 hover）；DatePicker/DateRangePicker 的 showTime 对象转发同一 API。用户手势静止后选择顶部最近可用项，末项可对齐顶部，禁用项跳过；指针按住、程序滚动和键盘 reveal 不选择，取消/禁用/卸载清理等待。滚动保留确认、范围端点和日期相关约束。悬停仅临时显示输入，不改实际临时值、提交值、ARIA 或回调，离开/键盘/选择/取消/端点切换清理，触控不预览。`/__ui` 独立展示确认/立即滚动、末项、动态禁用、跨日限制和 240px RTL 深色；单测检查 FormData、手势等待与列外释放。桌面 Chromium 使用真实 wheel/hover，移动 Chromium 使用真实触控滑动，H5 Chromium/WebKit 使用 tap 选择确认，并以合成手势和真实 scroller 位置验证滚动路径；WebKit 未模拟原生手指滑动。毫秒、任意 format 和日期单选的悬停输入预览仍是缺口。
+日期单选、多选、范围及日期时间组合统一默认 hover / false 的 `previewValue`，日/周/月/季度/年只预览最终可选单位，上层层级只浏览；showTime 对象同时控制日期与时间预览。输入预览不改变实际待选值、ARIA、提交值、标签、数量或回调，范围交叉只改变活动端点显示。日期时间按实际时间/defaultOpenTime 与日期/端点约束补全，全天无可用时间不因悬停产生选择错误。离开、键盘、指针按下、实际选择、取消、组合失焦、月份与端点变化清理，手工草稿优先，触控不预览。范围的键盘网格预览保持独立。空必填单选及允许另一端为空的日期/时间范围不会因显示预览而通过原生提交校验；`/__ui` 展示必填表单、动态禁用、四种单位、跨日限制与 240px RTL 深色。单测验证实际值与显示值隔离；桌面 Chromium 使用真实 hover，H5 Chromium/WebKit 使用 tap，三项目验证键盘与窄容器。毫秒精度、任意 format、mask 格式输入仍需补齐。
+
+`TimePicker`、`TimeRangePicker`、`DateTimePicker` 和 `DateTimeRangePicker` 共用可选 `changeOnScroll`（默认 false）与鼠标 `previewValue`（默认 hover）；DatePicker/DateRangePicker 的 showTime 对象转发同一 API。用户手势静止后选择顶部最近可用项，末项可对齐顶部，禁用项跳过；指针按住、程序滚动和键盘 reveal 不选择，取消/禁用/卸载清理等待。滚动保留确认、范围端点和日期相关约束。悬停仅临时显示输入，不改实际临时值、提交值、ARIA 或回调，离开/键盘/选择/取消/端点切换清理，触控不预览。`/__ui` 独立展示确认/立即滚动、末项、动态禁用、跨日限制和 240px RTL 深色；单测检查 FormData、手势等待与列外释放。桌面 Chromium 使用真实 wheel/hover，移动 Chromium 使用真实触控滑动，H5 Chromium/WebKit 使用 tap 选择确认，并以合成手势和真实 scroller 位置验证滚动路径；WebKit 未模拟原生手指滑动。日期输入悬停预览由下述独立测试验证；毫秒和任意 format 仍是缺口。
 
 `DateTimeRangePicker` 与 `DateRangePicker showTime` 使用本地完整日期时间元组，复用单选的 Calendar 与时间列，一个会话管理两端、日期/时间切换及最终确认。日期相关禁用回调带 endpoint 和另一端完整 from；完整 min/max、跨日总秒 step、默认时间、交叉清空/提交排序、锁定端点和开放区间使用同一约束，锁定端点缩窄边界不移动原始步长网格。受控端点、月份和开合独立；预设点击求值，手工输入、立即提交、清空、取消、组合失焦、隐藏已提交 JSON、Form 与外部原生 reset 有回归。边界月份导航按钮禁用、WebKit 触控、动态端点/选项禁用与隐藏面板交接恢复可用焦点且保留外部焦点。`/__ui` 展示跨日分钟/秒、12 小时、条件禁用、交叉/排序/锁定、开放区间、240px 与响应式常驻、大小/外观、只读、错误和 RTL 深色。PC Chromium 与 H5 Chromium/WebKit 验证两端联动、一次确认、44px 选择、键盘、触控、Tab、局部滚动、四向定位及表单；桌面 Chromium 验证宽屏到窄屏焦点恢复。本批同时回归日期时间单选和原日期范围。时间滚动选择与悬停预览由独立公共交互测试验证；毫秒和任意 format 仍未实现。
 

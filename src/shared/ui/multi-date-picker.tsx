@@ -32,6 +32,7 @@ import {
   usePickerPosition,
 } from './picker-popup'
 import { Portal } from './portal'
+import { usePickerPreview } from './picker-preview'
 import {
   inputSizeStyles,
   inputStatusStyles,
@@ -107,6 +108,7 @@ export const MultiDatePicker = forwardRef<
     allowClear = true,
     onClear,
     needConfirm = false,
+    previewValue = 'hover',
     disabledDate,
     panelMonth,
     defaultPanelMonth,
@@ -258,6 +260,7 @@ export const MultiDatePicker = forwardRef<
   }
   const restoreFocus = () => inputRef.current?.focus({ preventScroll: true })
   function cancel(restore = false) {
+    onPreview()
     endingSession.current = true
     setCandidate(current)
     setDraft('')
@@ -304,6 +307,7 @@ export const MultiDatePicker = forwardRef<
     return next
   }
   function finish() {
+    onPreview()
     const dates = addDraft()
     if (!dates || !valid(dates) || (required && dates.length === 0)) {
       if (dates)
@@ -321,6 +325,7 @@ export const MultiDatePicker = forwardRef<
     if (mode === 'popup') restoreFocus()
   }
   function leave() {
+    onPreview()
     // React composite blur and document focusin can finish the same session.
     if (endingSession.current) return
     endingSession.current = true
@@ -337,6 +342,7 @@ export const MultiDatePicker = forwardRef<
     }
   }
   function choose(date: string) {
+    onPreview()
     if (inactive || !selectable(date)) return
     if (!candidate.includes(date) && candidate.length >= limit) {
       setError('最多选择 ' + limit + (picker === 'date' ? ' 个日期' : ' 项'))
@@ -438,6 +444,13 @@ export const MultiDatePicker = forwardRef<
     Boolean(error) ||
     !valid(displayed) ||
     undefined
+  const { preview, onPreview } = usePickerPreview(
+    JSON.stringify([currentKey, candidate, showing, picker, month, draft]),
+    previewValue === 'hover' && showing && !draft && !inactive,
+    (date) =>
+      selectable(date) &&
+      (candidate.includes(date) || candidate.length < limit),
+  )
   const panel = (
     <div
       id={mode === 'panel' ? popupId : undefined}
@@ -494,6 +507,7 @@ export const MultiDatePicker = forwardRef<
         month={month}
         onMonthChange={changeMonth}
         onChange={choose}
+        onPreview={previewValue === 'hover' ? onPreview : undefined}
         minDate={minDate}
         maxDate={maxDate}
         disabledDate={(date) =>
@@ -599,7 +613,8 @@ export const MultiDatePicker = forwardRef<
           }
           disabled={disabled}
           readOnly={readOnly || inputReadOnly}
-          value={draft}
+          value={preview ?? draft}
+          data-picker-preview={preview ? 'hover' : undefined}
           className={cn(
             inputStyles,
             inputVariantStyles[variant],
@@ -620,11 +635,13 @@ export const MultiDatePicker = forwardRef<
             if (!event.defaultPrevented) begin()
           }}
           onChange={(event) => {
+            onPreview()
             endingSession.current = false
             setDraft(event.currentTarget.value)
             setError('')
           }}
           onKeyDown={(event) => {
+            onPreview()
             onKeyDown?.(event)
             if (event.defaultPrevented || inactive) return
             if (event.key === 'ArrowDown' && mode === 'popup') {

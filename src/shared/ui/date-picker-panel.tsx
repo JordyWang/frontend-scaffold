@@ -49,14 +49,33 @@ type PanelProps = Pick<
   | 'onDateFocus'
   | 'showOutsideDays'
   | 'classNames'
-> & { picker: DatePickerUnit }
+> & { picker: DatePickerUnit; onPreview?: (value?: string) => void }
 type View = DatePeriodUnit | 'decade'
 type Cell = { value: string; date: Date; end: Date; text: string }
 
 export const DatePickerPanel = forwardRef<HTMLDivElement, PanelProps>(
-  function DatePickerPanel({ picker, ...props }, ref) {
+  function DatePickerPanel({ picker, onPreview, ...props }, ref) {
     return picker === 'date' ? (
-      <Calendar {...props} ref={ref} />
+      <Calendar
+        {...props}
+        ref={ref}
+        onPointerOver={(event) => {
+          if (event.pointerType !== 'mouse') return
+          const cell =
+            event.target instanceof Element
+              ? event.target.closest<HTMLButtonElement>(
+                  'button[data-calendar-date]',
+                )
+              : undefined
+          onPreview?.(
+            cell && !cell.disabled ? cell.dataset.calendarDate : undefined,
+          )
+        }}
+        onPointerOut={() => onPreview?.()}
+        onPointerLeave={() => onPreview?.()}
+        onPointerDownCapture={() => onPreview?.()}
+        onKeyDownCapture={() => onPreview?.()}
+      />
     ) : (
       <PeriodPanel
         {...props}
@@ -65,6 +84,7 @@ export const DatePickerPanel = forwardRef<HTMLDivElement, PanelProps>(
           grid: cn(props.classNames?.grid, 'min-w-0'),
         }}
         picker={picker}
+        onPreview={onPreview}
         ref={ref}
       />
     )
@@ -94,6 +114,7 @@ const PeriodPanel = forwardRef<
     getDateDescription,
     onDateHover,
     onDateFocus,
+    onPreview,
     classNames,
   },
   ref,
@@ -412,6 +433,9 @@ const PeriodPanel = forwardRef<
           owned.current = false
       }}
       onMouseLeave={() => onDateHover?.()}
+      onPointerLeave={() => onPreview?.()}
+      onPointerDownCapture={() => onPreview?.()}
+      onKeyDownCapture={() => onPreview?.()}
     >
       <div
         className={cn('flex min-w-0 items-center gap-1', classNames?.header)}
@@ -601,6 +625,11 @@ const PeriodPanel = forwardRef<
                     onMouseEnter={() => {
                       if (final) onDateHover?.(cell.value)
                     }}
+                    onPointerEnter={(event) => {
+                      if (final && !blocked && event.pointerType === 'mouse')
+                        onPreview?.(cell.value)
+                    }}
+                    onPointerLeave={() => onPreview?.()}
                     onKeyDown={(event) => handleKey(event, cell)}
                     onClick={() => select(cell)}
                   >

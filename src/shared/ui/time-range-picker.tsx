@@ -529,11 +529,13 @@ const TimeRangePickerControl = forwardRef<
       field?.setCustomValidity(
         isDisabled(part as 0 | 1)
           ? ''
-          : !shown || !validRange(shown)
-            ? '请选择有效且可选的时间范围'
-            : showing && !equalRange(candidate, current)
-              ? '请完成或确认时间范围选择'
-              : '',
+          : preview && part === index && field.required && !shown?.[part]
+            ? '请选择时间'
+            : !shown || !validRange(shown)
+              ? '请选择有效且可选的时间范围'
+              : showing && !equalRange(candidate, current)
+                ? '请完成或确认时间范围选择'
+                : '',
       )
     }
     if (

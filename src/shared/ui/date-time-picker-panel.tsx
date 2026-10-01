@@ -209,6 +209,21 @@ export const DateTimePickerPanel = forwardRef<
               if (next) onChange(next, { part: 'date' })
               else onError('所选日期没有可用时间，请选择其他日期')
             }}
+            onPreview={
+              onPreview
+                ? (date) => {
+                    onPreview(
+                      date
+                        ? dateTimeForDate(
+                            date,
+                            parts?.time ?? defaultOpenTime,
+                            constraints,
+                          )
+                        : undefined,
+                    )
+                  }
+                : undefined
+            }
           />
         </div>
         <div
