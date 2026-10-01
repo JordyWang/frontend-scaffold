@@ -1028,6 +1028,7 @@ export function Tree(allProps: TreeProps) {
   return (
     <div
       ref={scopeRef}
+      dir={direction}
       className="@container/treescope min-w-0 w-full space-y-2"
     >
       <TreeMoveControls

@@ -228,7 +228,9 @@ export type {
   TreeSelectOption,
   TreeSelectProps,
   TreeSelectValue,
+  TreeSelectPart,
 } from './tree-select'
+export type { TreeSelectCheckedStrategy } from './tree-select-state'
 export { Transfer } from './transfer'
 export type { TransferDirection, TransferItem, TransferProps } from './transfer'
 export { Statistic } from './data-display'
