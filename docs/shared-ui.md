@@ -130,7 +130,7 @@
 
 ## Slider
 
-`Slider` 保留单值 `number`，`range` 模式使用有序 `number[]`，至少显示两个滑块。`value` / `defaultValue` 和对应回调按单值/范围区分类型；`draggableTrack` 是范围模式的独立开关。非法数值、上下界和步长会归一化，值按步长、标记及 `min` / `max` 吸附；移动单个滑块不越过相邻点。显式 `value={undefined}` 为受控下界值，范围的短数组显示两个下界点；归一化不会触发变更回调。
+`Slider` 保留单值 `number`，`range` 模式使用有序 `number[]`，普通范围至少显示两个滑块；开启 `editable` 后允许单点与空数组。`value` / `defaultValue` 和对应回调按单值/范围区分类型；`draggableTrack` 与 `editable` 是范围模式的独立属性。非法数值、上下界和步长会归一化，值按步长、标记及 `min` / `max` 吸附；移动单个滑块不越过相邻点。显式 `value={undefined}` 为受控下界值，普通范围的短数组显示两个下界点；归一化不会触发变更回调。
 
 `marks` 使用 `{ value, label, className? }[]`，标签为非交互内容；重复值保留最后的标签，越界与非有限标记被忽略。`step={null}` 只允许标记及两个边界值，普通步长同时允许离散标记。标记按钮可以点选，无法越过禁用节点的标记不可操作。`dots` 显示步长圆点，密集刻度最多采样约 500 个步长圆点；采样不改变可选择的值。`included={false}` 显示独立点位并隐藏填充轨道。
 
@@ -138,7 +138,13 @@
 
 `disabled` 可整体禁用，也可用布尔数组固定部分滑块。固定点构成其他滑块的边界；存在固定点时停用整段拖动。`draggableTrack` 在显示填充轨道时整体平移区间，保持点间距离并遵守步长/标记及边界。`onChange` 报告实时值，松开指针、数值键或结束键盘焦点会话后，`onChangeComplete` 对有变化的会话报告一次。指针取消保留已报告的实时值并取消完成回调；外部值、范围结构或配置更新会终止失效会话。
 
-`tooltip` 默认在悬停、焦点和拖动时显示当前值，支持 `open`、`formatter(value, index)` 与四向 `placement`；`false` 或 `formatter: null` 隐藏提示。文本格式同步给默认 `aria-valuetext`，显式原生属性可以覆写。提示复用公共 Tooltip 的 Portal、定位和主题，自动提示可用 Escape 关闭。`status` 提供错误/警告，错误传递 `aria-invalid`；`size` 缩放可见圆点，触控区域保持 44px，并可继承全局尺寸。`className` / `style` 作用于根容器，`classNames` 支持 root、rail、track、thumb、dot、mark 的 Tailwind 类。
+`editable` 接受 `true` 或项目 `SliderEditable` 配置 `{ minCount?, maxCount? }`；默认最小数量为 0，最大数量不限。数量限制只约束用户增删，不截断外部数组，也不自动填充节点。负数或非整数数量归一到非负整数，最大数量不会低于最小数量。`editable` 优先于 `draggableTrack`，两种手势不同时启用；任意 `disabled` 数组项为 true 时停用节点增删，其他可用滑块仍可调整值。
+
+可编辑模式中点击轨道或可用标记添加节点，自动按步长/标记吸附、保持排序，并拒绝重复位置；到达最大数量或所有可选位置已有节点时停用添加。新节点可继续拖动，一次指针会话只报告一次完成。聚焦滑块后可按 Delete / Backspace 删除，按键重复和输入法组合不删除；`keyboard={false}` 保留显式增删按钮。拖动沿垂直于轨道的方向离开至少 48px 显示待移除反馈，松开才删除；返回轨道、指针取消或配置变化取消待移除。最小数量、只读、整体禁用和原生禁用 fieldset 均保护节点。
+
+编辑工具区提供十进制输入、添加和移除选中节点按钮，保证 H5 不依赖拖离或键盘。空闲位置的建议值不枚举密集步长网格；输入草稿不作为表单字段，不影响原生校验或已提交 JSON。成功增删后聚焦新节点或相邻节点，删除最后节点后聚焦可用的添加按钮，否则聚焦命名组；受控更新等待外部值确认再恢复焦点，已移到组件外部的焦点保持。空数组仍提交 `[]`，`ref` 在没有滑块时为 null；从空值开始的原生表单和外部 `form` 关联均支持 reset。
+
+`tooltip` 默认在悬停、焦点和拖动时显示当前值，支持 `open`、`formatter(value, index)` 与四向 `placement`；`false` 或 `formatter: null` 隐藏提示。文本格式同步给默认 `aria-valuetext`，显式原生属性可以覆写。提示复用公共 Tooltip 的 Portal、定位和主题，自动提示可用 Escape 关闭。`status` 提供错误/警告，错误传递 `aria-invalid`；`size` 缩放可见圆点，触控区域保持 44px，并可继承全局尺寸。`className` / `style` 作用于根容器，`classNames` 支持 root、rail、track、thumb、dot、mark、editor 的 Tailwind 类。
 
 `ref` 指向第一个原生范围输入，保留 `focus()` / `blur()`、标签、焦点和键盘事件。单值 `name` 按原生数值字符串提交，范围以一个 JSON 数组字段提交；部分禁用的范围保留完整数组，整体禁用时不提交。非受控原生 form reset 恢复默认值并尊重取消的重置事件，不触发值回调，也支持外部 `form` 关联；项目 `FormItem` 默认通过 `onChange` 连接，数组值使用 `emptyValue={[]}`。`/__ui` 提供单值、范围、多点、禁用点、离散刻度、方向、只读、表单和 240px RTL 深色预览。
 

@@ -39,6 +39,11 @@ export function SliderPreview() {
   const [decimal, setDecimal] = useState(0.3)
   const [formStatus, setFormStatus] = useState('尚未提交滑块')
   const [tipOpen, setTipOpen] = useState(false)
+  const [editablePoints, setEditablePoints] = useState([20, 80])
+  const [editableCompleted, setEditableCompleted] = useState([20, 80])
+  const [editCompletions, setEditCompletions] = useState(0)
+  const [minimumNodes, setMinimumNodes] = useState(0)
+  const [editLocked, setEditLocked] = useState(false)
   return (
     <Card className="col-span-full">
       <CardHeader>
@@ -209,6 +214,92 @@ export function SliderPreview() {
               }
             />
           </div>
+          <div className="grid min-w-0 gap-6 md:grid-cols-2">
+            <div className="min-w-0 space-y-3">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setMinimumNodes(minimumNodes ? 0 : 2)}
+                >
+                  {minimumNodes ? '允许删除全部节点' : '至少保留两个节点'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setEditLocked(!editLocked)}
+                >
+                  {editLocked ? '解锁编辑节点' : '固定编辑节点'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditablePoints([20, 80])
+                    setEditableCompleted([20, 80])
+                    setEditCompletions(0)
+                  }}
+                >
+                  重置节点编辑
+                </Button>
+              </div>
+              <FormField
+                label="可编辑节点"
+                control={
+                  <Slider
+                    range
+                    editable={{ minCount: minimumNodes, maxCount: 4 }}
+                    label="可编辑节点"
+                    value={editablePoints}
+                    step={5}
+                    disabled={editLocked ? [false, true] : false}
+                    onChange={setEditablePoints}
+                    onChangeComplete={(next) => {
+                      setEditableCompleted(next)
+                      setEditCompletions((count) => count + 1)
+                    }}
+                  />
+                }
+              />
+              <p role="status" aria-label="编辑节点实时值">
+                {JSON.stringify(editablePoints)}
+              </p>
+              <p role="status" aria-label="编辑节点完成值">
+                {JSON.stringify(editableCompleted)} · 完成 {editCompletions} 次
+              </p>
+            </div>
+            <FormField
+              label="垂直编辑节点"
+              control={
+                <Slider
+                  range
+                  editable={{ minCount: 1, maxCount: 3 }}
+                  label="垂直编辑节点"
+                  orientation="vertical"
+                  defaultValue={[20, 80]}
+                  marks={basicMarks}
+                  step={5}
+                />
+              }
+            />
+          </div>
+          <form aria-label="可编辑节点原生表单" className="space-y-3">
+            <FormField
+              label="离散可编辑节点"
+              description="空数组起步；只选择刻度与边界，表单重置恢复空值。"
+              control={
+                <Slider
+                  range
+                  editable={{ maxCount: 5 }}
+                  name="editableNodes"
+                  label="离散可编辑节点"
+                  defaultValue={[]}
+                  step={null}
+                  marks={temperatureMarks}
+                />
+              }
+            />
+            <Button type="reset" variant="outline">
+              重置空节点表单
+            </Button>
+          </form>
           <div className="grid min-w-0 gap-6 md:grid-cols-3">
             <FormField
               label="只读滑块"
@@ -278,6 +369,18 @@ export function SliderPreview() {
                     defaultValue={30}
                     step={5}
                     tooltip={{ formatter: (value) => `${value}%` }}
+                  />
+                }
+              />
+              <FormField
+                label="RTL 可编辑节点"
+                control={
+                  <Slider
+                    range
+                    editable={{ minCount: 1, maxCount: 3 }}
+                    label="RTL 可编辑节点"
+                    defaultValue={[25, 75]}
+                    step={5}
                   />
                 }
               />

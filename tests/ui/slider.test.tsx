@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { ConfigProvider, FormField, Slider, Tooltip } from '@/shared/ui'
 import {
   createSliderScale,
+  insertSliderValue,
   nextSliderValue,
   normalizeSliderValues,
   shiftSliderRange,
@@ -11,6 +12,7 @@ import {
   sliderDots,
   sliderPercent,
   snapSliderValue,
+  suggestSliderValue,
 } from '@/shared/ui/slider-state'
 
 function pointer(target: Element, type: string, x: number, y = 22) {
@@ -526,5 +528,380 @@ describe('Slider inputs and interactions', () => {
     expect(screen.getByRole('tooltip')).toHaveTextContent('受控提示')
     rerender(<Slider tooltip={{ open: true, formatter: null }} />)
     expect(screen.queryByRole('tooltip')).toBeNull()
+  })
+})
+
+describe('Slider editable nodes', () => {
+  it('finds free step and mark values without enumerating dense grids', () => {
+    const discrete = createSliderScale(0, 100, null, [20, 50, 80])
+    expect(insertSliderValue([20, 80], 47, discrete)).toEqual({
+      values: [20, 50, 80],
+      index: 1,
+    })
+    expect(insertSliderValue([20, 50, 80], 49, discrete)).toBeNull()
+    expect(suggestSliderValue([0, 20, 50, 80, 100], discrete)).toBeNull()
+    expect(suggestSliderValue([20, 80], discrete)).toBe(50)
+    expect(
+      suggestSliderValue([0, 100], createSliderScale(0, 100, 0.000001)),
+    ).toBe(50)
+    for (let mask = 0; mask < 32; mask++) {
+      const points = [0, 20, 50, 80, 100].filter(
+        (_, index) => mask & (1 << index),
+      )
+      const suggestion = suggestSliderValue(points, discrete)
+      if (points.length === 5) expect(suggestion).toBeNull()
+      else {
+        expect([0, 20, 50, 80, 100]).toContain(suggestion)
+        expect(points).not.toContain(suggestion)
+      }
+    }
+  })
+  it('adds, snaps, rejects duplicates, respects limits and focuses the inserted node', () => {
+    const onChange = vi.fn(),
+      onChangeComplete = vi.fn()
+    render(
+      <Slider
+        range
+        editable={{ minCount: 1, maxCount: 3 }}
+        label="节点"
+        defaultValue={[20, 80]}
+        step={5}
+        onChange={onChange}
+        onChangeComplete={onChangeComplete}
+      />,
+    )
+    const draft = screen.getByRole('textbox', { name: '节点新增节点值' })
+    fireEvent.change(draft, { target: { value: '21' } })
+    fireEvent.click(screen.getByRole('button', { name: '节点添加节点' }))
+    expect(screen.getByRole('status')).toHaveTextContent('此位置已有节点')
+    expect(onChange).not.toHaveBeenCalled()
+    fireEvent.change(draft, { target: { value: '47' } })
+    fireEvent.keyDown(draft, { key: 'Enter' })
+    expect(onChange).toHaveBeenCalledExactlyOnceWith([20, 45, 80])
+    expect(onChangeComplete).toHaveBeenCalledExactlyOnceWith([20, 45, 80])
+    expect(screen.getAllByRole('slider')[1]).toHaveFocus()
+    expect(screen.getByRole('button', { name: '节点添加节点' })).toBeDisabled()
+    fireEvent.keyDown(screen.getAllByRole('slider')[1], { key: 'Delete' })
+    expect(onChange).toHaveBeenLastCalledWith([20, 80])
+    expect(screen.getAllByRole('slider')[1]).toHaveFocus()
+    fireEvent.keyDown(screen.getAllByRole('slider')[1], { key: 'Backspace' })
+    expect(onChange).toHaveBeenLastCalledWith([20])
+    expect(screen.getByRole('slider')).toHaveFocus()
+    fireEvent.keyDown(screen.getByRole('slider'), { key: 'Delete' })
+    expect(screen.getAllByRole('slider')).toHaveLength(1)
+    expect(
+      screen.getByRole('button', { name: '节点移除选中节点' }),
+    ).toBeDisabled()
+  })
+  it('supports empty range values, removing the last node and adding after an empty form reset', async () => {
+    const onChange = vi.fn()
+    const { container } = render(
+      <form aria-label="节点表单">
+        <Slider
+          range
+          editable
+          name="nodes"
+          label="节点"
+          defaultValue={[]}
+          onChange={onChange}
+        />
+        <button type="reset">重置节点</button>
+      </form>,
+    )
+    const form = container.querySelector('form')!
+    expect(screen.queryByRole('slider')).toBeNull()
+    expect(screen.getByRole('group', { name: '节点' })).not.toHaveAttribute(
+      'aria-disabled',
+    )
+    expect(new FormData(form).get('nodes')).toBe('[]')
+    const add = screen.getByRole('button', { name: '节点添加节点' })
+    fireEvent.click(add)
+    expect(screen.getByRole('slider')).toHaveValue('0')
+    expect(screen.getByRole('slider')).toHaveFocus()
+    fireEvent.keyDown(screen.getByRole('slider'), { key: 'Delete' })
+    expect(screen.queryByRole('slider')).toBeNull()
+    expect(add).toHaveFocus()
+    expect(new FormData(form).get('nodes')).toBe('[]')
+    fireEvent.click(add)
+    onChange.mockClear()
+    fireEvent.click(screen.getByRole('button', { name: '重置节点' }))
+    await waitFor(() => expect(screen.queryByRole('slider')).toBeNull())
+    expect(new FormData(form).get('nodes')).toBe('[]')
+    expect(onChange).not.toHaveBeenCalled()
+    fireEvent.click(add)
+    expect(screen.getByRole('slider')).toHaveFocus()
+  })
+  it('makes one completion for insertion and drag, removes only on release, and cancels drag removal', () => {
+    const onChange = vi.fn(),
+      onChangeComplete = vi.fn()
+    const { container } = render(
+      <Slider
+        range
+        editable
+        defaultValue={[20, 80]}
+        onChange={onChange}
+        onChangeComplete={onChangeComplete}
+      />,
+    )
+    const { root, rail } = geometry(container)
+    pointer(rail, 'pointerdown', 50)
+    expect(screen.getAllByRole('slider')).toHaveLength(3)
+    pointer(root, 'pointermove', 55)
+    pointer(root, 'pointerup', 55)
+    expect(onChangeComplete).toHaveBeenCalledExactlyOnceWith([20, 55, 80])
+    const middle = screen.getAllByRole('slider')[1].parentElement!
+    pointer(middle, 'pointerdown', 55)
+    pointer(root, 'pointermove', 55, 160)
+    expect(screen.getByRole('status')).toHaveTextContent('松开后移除节点')
+    expect(screen.getAllByRole('slider')).toHaveLength(3)
+    pointer(root, 'pointercancel', 55, 160)
+    expect(screen.getAllByRole('slider')).toHaveLength(3)
+    expect(onChangeComplete).toHaveBeenCalledTimes(1)
+    pointer(middle, 'pointerdown', 55)
+    pointer(root, 'pointerup', 55, 160)
+    expect(onChange).toHaveBeenLastCalledWith([20, 80])
+    expect(onChangeComplete).toHaveBeenLastCalledWith([20, 80])
+    expect(screen.getAllByRole('slider')[1]).toHaveFocus()
+  })
+  it('preserves controlled values until accepted and keeps moved external focus', () => {
+    const onChange = vi.fn(),
+      onChangeComplete = vi.fn()
+    const { rerender } = render(
+      <>
+        <Slider
+          range
+          editable
+          value={[20, 80]}
+          label="节点"
+          onChange={onChange}
+          onChangeComplete={onChangeComplete}
+        />
+        <button>外部</button>
+      </>,
+    )
+    const draft = screen.getByRole('textbox', { name: '节点新增节点值' })
+    fireEvent.change(draft, { target: { value: '50' } })
+    fireEvent.click(screen.getByRole('button', { name: '节点添加节点' }))
+    expect(screen.getAllByRole('slider')).toHaveLength(2)
+    expect(onChange).toHaveBeenCalledExactlyOnceWith([20, 50, 80])
+    act(() => screen.getByRole('button', { name: '外部' }).focus())
+    rerender(
+      <>
+        <Slider
+          range
+          editable
+          value={[20, 50, 80]}
+          label="节点"
+          onChange={onChange}
+          onChangeComplete={onChangeComplete}
+        />
+        <button>外部</button>
+      </>,
+    )
+    expect(screen.getByRole('button', { name: '外部' })).toHaveFocus()
+    expect(screen.getAllByRole('slider')).toHaveLength(3)
+  })
+  it('blocks editing around frozen nodes, read-only values and disabled fieldsets', () => {
+    const onChange = vi.fn()
+    const { rerender, container } = render(
+      <Slider
+        range
+        editable
+        label="节点"
+        value={[20, 80]}
+        disabled={[true, false]}
+        onChange={onChange}
+      />,
+    )
+    expect(screen.getByRole('button', { name: '节点添加节点' })).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: '节点移除选中节点' }),
+    ).toBeDisabled()
+    fireEvent.keyDown(screen.getAllByRole('slider')[1], { key: 'Delete' })
+    expect(onChange).not.toHaveBeenCalled()
+    fireEvent.keyDown(screen.getAllByRole('slider')[1], { key: 'ArrowRight' })
+    expect(onChange).toHaveBeenLastCalledWith([20, 81])
+    onChange.mockClear()
+    rerender(
+      <Slider
+        range
+        editable
+        label="节点"
+        value={[20, 80]}
+        readOnly
+        onChange={onChange}
+      />,
+    )
+    expect(screen.getByRole('textbox')).toBeDisabled()
+    rerender(
+      <fieldset disabled>
+        <Slider
+          range
+          editable
+          label="节点"
+          defaultValue={[]}
+          onChange={onChange}
+        />
+      </fieldset>,
+    )
+    const { rail } = geometry(container)
+    pointer(rail, 'pointerdown', 50)
+    expect(onChange).not.toHaveBeenCalled()
+    expect(screen.queryByRole('slider')).toBeNull()
+  })
+  it('keeps external node counts and only restricts user edits when limits change', () => {
+    const onChange = vi.fn()
+    const { rerender } = render(
+      <Slider
+        range
+        editable={{ minCount: 2, maxCount: 2 }}
+        value={[20, 50, 80]}
+        onChange={onChange}
+      />,
+    )
+    expect(screen.getAllByRole('slider')).toHaveLength(3)
+    expect(screen.getByRole('button', { name: '数值添加节点' })).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: '数值移除选中节点' }),
+    ).toBeEnabled()
+    rerender(
+      <Slider
+        range
+        editable={{ minCount: 2, maxCount: 2 }}
+        value={[]}
+        onChange={onChange}
+      />,
+    )
+    expect(screen.queryByRole('slider')).toBeNull()
+    expect(screen.getByRole('button', { name: '数值添加节点' })).toBeEnabled()
+    expect(onChange).not.toHaveBeenCalled()
+  })
+  it('retains canonical FormData and validation while an uncommitted edit draft is invalid', () => {
+    const { container } = render(
+      <form>
+        <Slider
+          range
+          editable
+          label="节点"
+          name="points"
+          defaultValue={[20, 80]}
+        />
+      </form>,
+    )
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'invalid' },
+    })
+    const form = container.querySelector('form')!
+    expect(form.checkValidity()).toBe(true)
+    expect(new FormData(form).get('points')).toBe('[20,80]')
+    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter' })
+    expect(screen.getByRole('status')).toHaveTextContent('请输入有效的节点值')
+    expect(new FormData(form).get('points')).toBe('[20,80]')
+  })
+})
+
+describe('Slider editable session boundaries', () => {
+  it('cancels a pending removal when count limits change and preserves the node', () => {
+    const complete = vi.fn()
+    const { container, rerender } = render(
+      <Slider
+        range
+        editable
+        defaultValue={[20, 80]}
+        onChangeComplete={complete}
+      />,
+    )
+    const { root } = geometry(container)
+    pointer(screen.getAllByRole('slider')[0].parentElement!, 'pointerdown', 20)
+    pointer(root, 'pointermove', 20, 160)
+    expect(screen.getByRole('status')).toHaveTextContent('松开后移除节点')
+    rerender(
+      <Slider
+        range
+        editable={{ minCount: 2 }}
+        defaultValue={[20, 80]}
+        onChangeComplete={complete}
+      />,
+    )
+    pointer(root, 'pointerup', 20, 160)
+    expect(screen.getAllByRole('slider')).toHaveLength(2)
+    expect(complete).not.toHaveBeenCalled()
+  })
+  it('retains nodes after IME or repeated Delete keys and permits explicit buttons when keyboard is off', () => {
+    const { rerender } = render(
+      <Slider range editable defaultValue={[20, 80]} />,
+    )
+    const first = screen.getAllByRole('slider')[0]
+    fireEvent.keyDown(first, { key: 'Delete', isComposing: true })
+    fireEvent.keyDown(first, { key: 'Delete', repeat: true })
+    expect(screen.getAllByRole('slider')).toHaveLength(2)
+    rerender(<Slider range editable defaultValue={[20, 80]} keyboard={false} />)
+    fireEvent.keyDown(first, { key: 'Delete' })
+    expect(screen.getAllByRole('slider')).toHaveLength(2)
+    fireEvent.click(screen.getByRole('button', { name: '数值移除选中节点' }))
+    expect(screen.getAllByRole('slider')).toHaveLength(1)
+  })
+  it('restores an external native form that starts empty and never edits a frozen future slot', async () => {
+    const { container, rerender } = render(
+      <>
+        <form id="empty-slider-form">
+          <button type="reset">外部重置</button>
+        </form>
+        <Slider
+          range
+          editable
+          form="empty-slider-form"
+          name="points"
+          defaultValue={[]}
+        />
+      </>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '数值添加节点' }))
+    expect(new FormData(container.querySelector('form')!).get('points')).toBe(
+      '[0]',
+    )
+    fireEvent.click(screen.getByRole('button', { name: '外部重置' }))
+    await waitFor(() => expect(screen.queryByRole('slider')).toBeNull())
+    expect(new FormData(container.querySelector('form')!).get('points')).toBe(
+      '[]',
+    )
+    rerender(
+      <Slider range editable defaultValue={[]} disabled={[false, true]} />,
+    )
+    expect(screen.getByRole('button', { name: '数值添加节点' })).toBeDisabled()
+    expect(screen.getByRole('textbox')).toBeDisabled()
+  })
+  it('gives editing priority over whole-track dragging and preserves a clicked overlapping handle', () => {
+    const { container } = render(
+      <Slider range editable draggableTrack defaultValue={[20, 20, 80]} />,
+    )
+    const { root } = geometry(container)
+    expect(container.querySelector('[data-slider-draggable-track]')).toBeNull()
+    const first = screen.getAllByRole('slider')[0].parentElement!
+    pointer(first, 'pointerdown', 20)
+    pointer(root, 'pointermove', 10)
+    pointer(root, 'pointerup', 10)
+    expect(screen.getAllByRole('slider')[0]).toHaveValue('10')
+    expect(screen.getAllByRole('slider')[1]).toHaveValue('20')
+  })
+})
+
+describe('Slider controlled insertion focus', () => {
+  it('waits for the final accepted pointer value before focusing the new handle', () => {
+    const onChange = vi.fn()
+    const { container, rerender } = render(
+      <Slider range editable value={[20, 80]} onChange={onChange} />,
+    )
+    const { root, rail } = geometry(container)
+    act(() => screen.getAllByRole('slider')[0].focus())
+    pointer(rail, 'pointerdown', 50)
+    expect(screen.getAllByRole('slider')[0]).toHaveFocus()
+    pointer(root, 'pointermove', 55)
+    pointer(root, 'pointerup', 55)
+    expect(onChange).toHaveBeenLastCalledWith([20, 55, 80])
+    expect(screen.getAllByRole('slider')).toHaveLength(2)
+    rerender(<Slider range editable value={[20, 55, 80]} onChange={onChange} />)
+    expect(screen.getAllByRole('slider')[1]).toHaveFocus()
+    expect(screen.getAllByRole('slider')[1]).toHaveValue('55')
   })
 })

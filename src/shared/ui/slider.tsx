@@ -21,6 +21,7 @@ import type { InputStatus } from './input'
 import { Tooltip } from './overlay'
 import {
   createSliderScale,
+  insertSliderValue,
   moveSliderThumb,
   nextSliderValue,
   normalizeSliderValues,
@@ -29,10 +30,13 @@ import {
   sliderCoordinateReversed,
   sliderDots,
   sliderPercent,
+  suggestSliderValue,
 } from './slider-state'
 
 export type SliderMark = { value: number; label: ReactNode; className?: string }
-export type SliderPart = 'root' | 'rail' | 'track' | 'thumb' | 'dot' | 'mark'
+export type SliderPart =
+  'root' | 'rail' | 'track' | 'thumb' | 'dot' | 'mark' | 'editor'
+export type SliderEditable = { minCount?: number; maxCount?: number }
 export type SliderTooltip = {
   open?: boolean
   formatter?: ((value: number, index: number) => ReactNode) | null
@@ -71,6 +75,7 @@ type SliderCommonProps = Omit<
 export type SingleSliderProps = SliderCommonProps & {
   range?: false
   draggableTrack?: never
+  editable?: never
   value?: number
   defaultValue?: number
   onChange?: (value: number) => void
@@ -79,6 +84,7 @@ export type SingleSliderProps = SliderCommonProps & {
 export type RangeSliderProps = SliderCommonProps & {
   range: true
   draggableTrack?: boolean
+  editable?: boolean | SliderEditable
   value?: number[]
   defaultValue?: number[]
   onChange?: (value: number[]) => void
@@ -94,6 +100,7 @@ type DragSession = {
   initial: number[]
   latest: number[]
   changed: boolean
+  remove: boolean
 }
 type KeySession = { index: number; latest: number[]; changed: boolean }
 const navigationKeys = new Set([
@@ -115,6 +122,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
     const {
       range = false,
       draggableTrack = false,
+      editable = false,
       value,
       defaultValue,
       onChange,
@@ -152,6 +160,14 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       ...inputProps
     } = allProps
     const isRange = Boolean(range)
+    const editRequested = isRange && Boolean(editable)
+    const editConfig = typeof editable === 'object' ? editable : undefined
+    const minCount = Number.isFinite(editConfig?.minCount)
+      ? Math.max(0, Math.floor(editConfig!.minCount!))
+      : 0
+    const maxCount = Number.isFinite(editConfig?.maxCount)
+      ? Math.max(minCount, Math.floor(editConfig!.maxCount!))
+      : Infinity
     const { direction, componentSize } = useConfig()
     const resolvedSize = resolveComponentSize(componentSize, size)
     const generatedId = useId()
@@ -171,6 +187,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
         defaultValue ?? (isRange ? undefined : 0),
         isRange,
         scale,
+        editRequested,
       ),
     )
     const current = useMemo(
@@ -179,8 +196,9 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
           controlled ? value : isRange ? internal : internal[0],
           isRange,
           scale,
+          editRequested,
         ),
-      [controlled, value, isRange, internal, scale],
+      [controlled, value, isRange, internal, scale, editRequested],
     )
     const rootRef = useRef<HTMLDivElement>(null)
     const railRef = useRef<HTMLDivElement>(null)
@@ -190,6 +208,16 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
     const [focused, setFocused] = useState<number | null>(null)
     const [hovered, setHovered] = useState<number | null>(null)
     const [dragging, setDragging] = useState<number | 'track' | null>(null)
+    const [removing, setRemoving] = useState(false)
+    const [selected, setSelected] = useState<number | null>(null)
+    const [editDraft, setEditDraft] = useState<string | null>(null)
+    const [editMessage, setEditMessage] = useState('')
+    const addButtonRef = useRef<HTMLButtonElement>(null)
+    const pendingFocus = useRef<{
+      values: number[]
+      index: number | null
+      source: Element | null
+    } | null>(null)
     const [dismissedTooltip, setDismissedTooltip] = useState<number | null>(
       null,
     )
@@ -203,7 +231,8 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       Array.isArray(disabled) ? Boolean(disabled[index]) : disabled,
     )
     const unavailable =
-      handleDisabled.every(Boolean) ||
+      disabled === true ||
+      (handleDisabled.length > 0 && handleDisabled.every(Boolean)) ||
       scale.min === scale.max ||
       Boolean(readOnly)
     const configSignature = JSON.stringify([
@@ -211,22 +240,39 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       orientation,
       reverse,
       direction,
-      handleDisabled,
+      disabled,
       readOnly,
-      current.length,
       isRange,
       draggableTrack,
       included,
       keyboard,
+      editRequested,
+      minCount,
+      maxCount,
     ])
     const valueSignature = JSON.stringify(current)
     const previous = useRef({ configSignature, valueSignature })
+    const hasFrozenHandle = Array.isArray(disabled) && disabled.some(Boolean)
     const rangeDraggable =
       isRange &&
       draggableTrack &&
-      !handleDisabled.some(Boolean) &&
+      !editRequested &&
+      !hasFrozenHandle &&
       !unavailable &&
       included
+    const canEdit = editRequested && !unavailable && !hasFrozenHandle
+    const suggested = editRequested ? suggestSliderValue(current, scale) : null
+    const canAdd = canEdit && current.length < maxCount && suggested !== null
+    const selectedIndex =
+      selected === null
+        ? current.length
+          ? 0
+          : null
+        : current.length
+          ? Math.min(selected, current.length - 1)
+          : null
+    const canRemove =
+      canEdit && current.length > minCount && selectedIndex !== null
 
     useLayoutEffect(() => {
       const changedConfig = previous.current.configSignature !== configSignature
@@ -237,12 +283,14 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       const activeKeys = keySession.current
       if (
         changedConfig ||
+        (activeDrag && current.length !== activeDrag.latest.length) ||
         (changedValue &&
           activeDrag &&
           !sameSliderValues(current, activeDrag.latest))
       ) {
         drag.current = null
         setDragging(null)
+        setRemoving(false)
         if (
           activeDrag &&
           rootRef.current?.hasPointerCapture?.(activeDrag.pointerId)
@@ -251,12 +299,36 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       }
       if (
         changedConfig ||
+        (activeKeys && current.length !== activeKeys.latest.length) ||
         (changedValue &&
           activeKeys &&
           !sameSliderValues(current, activeKeys.latest))
       )
         keySession.current = null
     }, [configSignature, controlled, current, valueSignature])
+
+    useLayoutEffect(() => {
+      const pending = pendingFocus.current
+      if (!pending || !sameSliderValues(current, pending.values)) return
+      pendingFocus.current = null
+      const active = document.activeElement
+      if (
+        active !== document.body &&
+        active !== pending.source &&
+        !rootRef.current?.contains(active)
+      )
+        return
+      const preferred =
+        pending.index === null
+          ? (addButtonRef.current ?? rootRef.current)
+          : inputs.current[pending.index]
+      const target = preferred?.matches(':disabled')
+        ? (inputs.current.find(
+            (input) => input && !input.matches(':disabled'),
+          ) ?? rootRef.current)
+        : preferred
+      target?.focus({ preventScroll: true })
+    }, [current])
 
     useLayoutEffect(() => {
       if (
@@ -285,7 +357,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
     const defaultsSignature = JSON.stringify(defaultValue)
     useEffect(() => {
       if (controlled) return
-      const form = inputs.current[0]?.form
+      const form = inputs.current[0]?.form ?? addButtonRef.current?.form
       if (!form) return
       const reset = (event: Event) => {
         queueMicrotask(() => {
@@ -293,11 +365,17 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
           drag.current = null
           keySession.current = null
           setDragging(null)
+          setRemoving(false)
+          pendingFocus.current = null
+          setSelected(null)
+          setEditDraft(null)
+          setEditMessage('')
           setInternal(
             normalizeSliderValues(
               defaultValue ?? (isRange ? undefined : 0),
               isRange,
               scale,
+              editRequested,
             ),
           )
         })
@@ -309,6 +387,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       defaultValue,
       defaultsSignature,
       isRange,
+      editRequested,
       scale,
       inputProps.form,
     ])
@@ -326,6 +405,59 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       if (!onChangeComplete) return
       if (allProps.range) allProps.onChangeComplete?.([...next])
       else allProps.onChangeComplete?.(next[0])
+    }
+    function addHandle(desired: number) {
+      if (!canAdd || addButtonRef.current?.matches(':disabled')) return null
+      const inserted = insertSliderValue(current, desired, scale)
+      if (!inserted) {
+        setEditMessage('此位置已有节点')
+        return null
+      }
+      pendingFocus.current = {
+        values: inserted.values,
+        index: inserted.index,
+        source: document.activeElement,
+      }
+      setSelected(inserted.index)
+      setEditDraft(null)
+      setEditMessage(`已添加节点 ${inserted.values[inserted.index]}`)
+      publish(inserted.values)
+      return inserted
+    }
+    function removeHandle(index: number, values = current) {
+      if (
+        !canEdit ||
+        values.length <= minCount ||
+        index < 0 ||
+        index >= values.length ||
+        inputs.current[index]?.matches(':disabled')
+      )
+        return false
+      const next = values.filter((_, position) => position !== index)
+      const nextIndex = next.length ? Math.min(index, next.length - 1) : null
+      pendingFocus.current = {
+        values: next,
+        index: nextIndex,
+        source: document.activeElement,
+      }
+      setSelected(nextIndex)
+      setEditDraft(null)
+      setEditMessage(`已移除节点 ${values[index]}`)
+      publish(next, values)
+      complete(next)
+      return true
+    }
+    function submitAddedValue() {
+      const raw = editDraft ?? String(suggested ?? '')
+      if (
+        !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(raw.trim()) ||
+        !Number.isFinite(Number(raw))
+      ) {
+        setEditMessage('请输入有效的节点值')
+        return
+      }
+      const inserted = addHandle(Number(raw))
+      if (inserted) complete(inserted.values)
     }
     function closestHandle(desired: number) {
       let closest = -1
@@ -383,12 +515,21 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       const requestedIndex = requested
         ? Number(requested.dataset.sliderThumbIndex)
         : undefined
-      if (requestedIndex !== undefined && handleDisabled[requestedIndex]) return
+      if (
+        requestedIndex !== undefined &&
+        (handleDisabled[requestedIndex] ||
+          inputs.current[requestedIndex]?.matches(':disabled'))
+      )
+        return
       const point = pointerValue(event)
+      const inserted =
+        canEdit && requestedIndex === undefined ? addHandle(point) : null
+      if (canEdit && requestedIndex === undefined && !inserted) return
+      const sessionValues = inserted?.values ?? current
       const index =
         rangeDraggable && target?.closest('[data-slider-draggable-track]')
           ? null
-          : closestHandle(point)
+          : (inserted?.index ?? requestedIndex ?? closestHandle(point))
       if (index === -1) return
       event.preventDefault()
       if (event.nativeEvent.isTrusted)
@@ -400,21 +541,37 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
         start: point,
         grabOffset:
           requestedIndex !== undefined && index !== null
-            ? current[index] - point
+            ? sessionValues[index] - point
             : 0,
-        initial: [...current],
-        latest: [...current],
-        changed: false,
+        initial: [...sessionValues],
+        latest: [...sessionValues],
+        changed: Boolean(inserted),
+        remove: false,
       }
       setDragging(index === null ? 'track' : index)
       setDismissedTooltip(null)
-      inputs.current[index ?? 0]?.focus({ preventScroll: true })
-      if (index !== null && requestedIndex === undefined) movePointer(event)
+      if (!inserted) inputs.current[index ?? 0]?.focus({ preventScroll: true })
+      if (index !== null && requestedIndex === undefined && !inserted)
+        movePointer(event)
     }
     function movePointer(event: PointerEvent<HTMLDivElement>) {
       const session = drag.current
       if (!session || session.pointerId !== event.pointerId || unavailable)
         return
+      const box = railRef.current?.getBoundingClientRect()
+      const crossPosition = vertical ? event.clientX : event.clientY
+      const crossStart = vertical ? box?.left : box?.top
+      const crossEnd = vertical ? box?.right : box?.bottom
+      session.remove = Boolean(
+        canEdit &&
+        session.index !== null &&
+        session.latest.length > minCount &&
+        crossStart !== undefined &&
+        crossEnd !== undefined &&
+        (crossPosition < crossStart - 48 || crossPosition > crossEnd + 48),
+      )
+      setRemoving(session.remove)
+      if (session.remove) return
       const point = pointerValue(event)
       const next =
         session.index === null
@@ -427,6 +584,8 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
             )
       if (publish(next, session.latest)) session.changed = true
       session.latest = next
+      if (pendingFocus.current?.index === session.index)
+        pendingFocus.current.values = [...next]
     }
     function finishPointer(
       event: PointerEvent<HTMLDivElement>,
@@ -437,9 +596,12 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       if (!cancelled) movePointer(event)
       drag.current = null
       setDragging(null)
+      setRemoving(false)
       if (event.currentTarget.hasPointerCapture?.(event.pointerId))
         event.currentTarget.releasePointerCapture(event.pointerId)
-      if (!cancelled && session.changed) complete(session.latest)
+      if (!cancelled && session.remove && session.index !== null)
+        removeHandle(session.index, session.latest)
+      else if (!cancelled && session.changed) complete(session.latest)
     }
     function finishKeys() {
       const session = keySession.current
@@ -448,6 +610,20 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
     }
     function navigate(event: KeyboardEvent<HTMLInputElement>, index: number) {
       onKeyDown?.(event)
+      if (
+        keyboard &&
+        canEdit &&
+        !event.defaultPrevented &&
+        !event.repeat &&
+        !event.nativeEvent.isComposing &&
+        event.nativeEvent.keyCode !== 229 &&
+        (event.key === 'Delete' || event.key === 'Backspace')
+      ) {
+        event.preventDefault()
+        finishKeys()
+        removeHandle(index)
+        return
+      }
       if (event.defaultPrevented || !navigationKeys.has(event.key)) return
       event.preventDefault()
       if (!keyboard || unavailable || handleDisabled[index]) return
@@ -480,6 +656,11 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
     }
     function selectMark(markValue: number) {
       if (unavailable) return
+      if (canEdit) {
+        const inserted = addHandle(markValue)
+        if (inserted) complete(inserted.values)
+        return
+      }
       const index = closestHandle(markValue)
       if (index < 0) return
       inputs.current[index]?.focus({ preventScroll: true })
@@ -495,12 +676,20 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
       sliderPercent(item, scale, coordinateReversed),
     )
     const origin = sliderPercent(scale.min, scale, coordinateReversed)
-    const trackStart = Math.min(...positions, ...(isRange ? [] : [origin]))
-    const trackEnd = Math.max(...positions, ...(isRange ? [] : [origin]))
+    const trackStart = positions.length
+      ? Math.min(...positions, ...(isRange ? [] : [origin]))
+      : 0
+    const trackEnd = positions.length
+      ? Math.max(...positions, ...(isRange ? [] : [origin]))
+      : 0
     const invalid = status === 'error' || ariaInvalid || undefined
     const discrete = step === null || validMarks.length > 0
     const nativeStep = discrete ? 'any' : (scale.step ?? 'any')
     const allDots = sliderDots(scale, dots)
+    const describedBy =
+      [ariaDescribedBy, editRequested ? `${inputId}-edit-help` : undefined]
+        .filter(Boolean)
+        .join(' ') || undefined
     const endpointTransform = (percent: number) =>
       percent === 0 ? '-22px' : percent === 100 ? 'calc(-100% + 22px)' : '-50%'
 
@@ -511,7 +700,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
         tabIndex={-1}
         aria-label={!ariaLabelledBy ? (ariaLabel ?? label) : undefined}
         aria-labelledby={ariaLabelledBy}
-        aria-describedby={ariaDescribedBy}
+        aria-describedby={describedBy}
         aria-invalid={invalid}
         aria-disabled={unavailable || undefined}
         dir={direction}
@@ -522,7 +711,9 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
         className={cn(
           'relative min-w-0 text-foreground',
           vertical
-            ? 'inline-flex h-64 w-40 shrink-0 py-[22px] ps-[22px]'
+            ? editRequested
+              ? 'inline-grid w-40 shrink-0 py-[22px] ps-[22px]'
+              : 'inline-flex h-64 w-40 shrink-0 py-[22px] ps-[22px]'
             : 'w-full px-[22px]',
           unavailable && 'opacity-[0.55]',
           classNames?.root,
@@ -540,7 +731,11 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
           data-slider-rail=""
           className={cn(
             'relative touch-none',
-            vertical ? 'h-full w-11' : 'h-11 w-full',
+            vertical
+              ? editRequested
+                ? 'h-64 w-11'
+                : 'h-full w-11'
+              : 'h-11 w-full',
             classNames?.rail,
           )}
         >
@@ -553,7 +748,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
                 : 'inset-x-0 top-1/2 h-1.5 -translate-y-1/2',
             )}
           />
-          {included && (
+          {included && (!isRange || current.length > 1) && (
             <span
               aria-hidden="true"
               data-slider-track=""
@@ -652,6 +847,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
                       ? 'cursor-grabbing'
                       : 'cursor-grab',
                   classNames?.thumb,
+                  removing && dragging === index && 'opacity-40',
                 )}
                 onMouseEnter={() => {
                   setHovered(index)
@@ -711,7 +907,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
                           .join(' ')
                       : undefined
                   }
-                  aria-describedby={ariaDescribedBy}
+                  aria-describedby={describedBy}
                   aria-invalid={invalid}
                   aria-valuenow={item}
                   aria-valuetext={
@@ -724,6 +920,7 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
                   className="pointer-events-none absolute inset-0 size-11 cursor-grab touch-none opacity-0 disabled:cursor-not-allowed"
                   onFocus={(event) => {
                     setFocused(index)
+                    setSelected(index)
                     setDismissedTooltip(null)
                     onFocus?.(event)
                   }}
@@ -805,7 +1002,9 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
             className={cn(
               'grid',
               vertical
-                ? 'absolute inset-y-[22px] start-[66px] w-20'
+                ? editRequested
+                  ? 'absolute top-[22px] start-[66px] h-64 w-20'
+                  : 'absolute inset-y-[22px] start-[66px] w-20'
                 : 'relative w-full',
             )}
           >
@@ -841,13 +1040,15 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
                     data-slider-mark={mark.value}
                     data-active={active || undefined}
                     disabled={
-                      unavailable ||
-                      !current.some(
-                        (_, index) =>
-                          !handleDisabled[index] &&
-                          mark.value >= (current[index - 1] ?? scale.min) &&
-                          mark.value <= (current[index + 1] ?? scale.max),
-                      )
+                      canEdit
+                        ? !canAdd || current.includes(mark.value)
+                        : unavailable ||
+                          !current.some(
+                            (_, index) =>
+                              !handleDisabled[index] &&
+                              mark.value >= (current[index - 1] ?? scale.min) &&
+                              mark.value <= (current[index + 1] ?? scale.max),
+                          )
                     }
                     className={cn(
                       'min-h-11 min-w-11 max-w-[min(8rem,100%)] touch-manipulation rounded-[var(--radius-sm)] px-1 py-2 text-sm leading-5 text-muted-foreground wrap-anywhere hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring data-[active=true]:font-semibold data-[active=true]:text-foreground disabled:cursor-not-allowed',
@@ -863,13 +1064,89 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
             })}
           </div>
         )}
+        {editRequested && (
+          <div
+            className={cn('mt-3 space-y-2', classNames?.editor)}
+            data-slider-editor=""
+          >
+            <p
+              id={`${inputId}-edit-help`}
+              className="text-sm leading-5 text-muted-foreground"
+            >
+              点击轨道添加节点。选中后可用移除按钮、Delete /
+              Backspace，或拖离轨道并松开删除。
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="text"
+                inputMode="decimal"
+                aria-label={`${ariaLabel ?? label}新增节点值`}
+                value={
+                  editDraft ?? (suggested === null ? '' : String(suggested))
+                }
+                disabled={!canAdd}
+                className="min-h-11 w-24 min-w-0 rounded-md border border-input bg-card px-2 text-base text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
+                onChange={(event) => setEditDraft(event.currentTarget.value)}
+                onKeyDown={(event) => {
+                  if (
+                    event.key !== 'Enter' ||
+                    event.nativeEvent.isComposing ||
+                    event.nativeEvent.keyCode === 229
+                  )
+                    return
+                  event.preventDefault()
+                  submitAddedValue()
+                }}
+              />
+              <button
+                ref={addButtonRef}
+                type="button"
+                form={inputProps.form}
+                aria-label={`${ariaLabel ?? label}添加节点`}
+                disabled={!canAdd}
+                className="min-h-11 min-w-11 touch-manipulation rounded-md border border-border bg-card px-3 text-sm hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={submitAddedValue}
+              >
+                添加节点
+              </button>
+              <button
+                type="button"
+                aria-label={`${ariaLabel ?? label}移除选中节点`}
+                disabled={!canRemove}
+                className="min-h-11 min-w-11 touch-manipulation rounded-md border border-border bg-card px-3 text-sm hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => {
+                  if (selectedIndex !== null) removeHandle(selectedIndex)
+                }}
+              >
+                移除
+                {selectedIndex === null
+                  ? '节点'
+                  : `节点 ${current[selectedIndex]}`}
+              </button>
+            </div>
+            <p
+              role="status"
+              aria-label={`${ariaLabel ?? label}节点编辑状态`}
+              className="text-sm text-muted-foreground"
+            >
+              {removing ? '松开后移除节点' : editMessage} · {current.length}{' '}
+              个节点
+              {Number.isFinite(maxCount)
+                ? `（${minCount}–${maxCount}）`
+                : `（至少 ${minCount}）`}
+            </p>
+          </div>
+        )}
         {isRange && name && (
           <input
             type="hidden"
             name={name}
             form={inputProps.form}
             value={JSON.stringify(current)}
-            disabled={handleDisabled.every(Boolean)}
+            disabled={
+              disabled === true ||
+              (handleDisabled.length > 0 && handleDisabled.every(Boolean))
+            }
           />
         )}
       </div>

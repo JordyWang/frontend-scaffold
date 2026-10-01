@@ -417,3 +417,244 @@ test('project forms validate slider values and native reset restores canonical F
     )
     .toEqual({ nativeRatio: '30', nativeSpan: '[20,60]' })
 })
+
+test('editable slider nodes snap input, protect count limits and restore focus through an empty range', async ({
+  page,
+}, info) => {
+  const preview = page.getByRole('region', { name: '滑块能力预览' })
+  const group = preview.getByRole('group', { name: '可编辑节点', exact: true })
+  const draft = group.getByRole('textbox', {
+    name: '可编辑节点新增节点值',
+    exact: true,
+  })
+  const add = group.getByRole('button', {
+    name: '可编辑节点添加节点',
+    exact: true,
+  })
+  const remove = group.getByRole('button', {
+    name: '可编辑节点移除选中节点',
+    exact: true,
+  })
+  for (const control of [draft, add, remove]) {
+    const box = (await control.boundingBox())!
+    expect(box.width).toBeGreaterThanOrEqual(44)
+    expect(box.height).toBeGreaterThanOrEqual(44)
+  }
+  await expect(draft).toHaveCSS('font-size', '16px')
+  await draft.fill('47')
+  await activate(add, info.project.name.startsWith('mobile-'))
+  await expect(
+    preview.getByRole('status', { name: '编辑节点实时值', exact: true }),
+  ).toHaveText('[20,45,80]')
+  await expect(group.getByRole('slider').nth(1)).toBeFocused()
+  await expect(
+    preview.getByRole('status', { name: '编辑节点完成值', exact: true }),
+  ).toHaveText('[20,45,80] · 完成 1 次')
+  await group.getByRole('slider').nth(1).press('Delete')
+  await expect(group.getByRole('slider').nth(1)).toBeFocused()
+  await expect(
+    preview.getByRole('status', { name: '编辑节点实时值', exact: true }),
+  ).toHaveText('[20,80]')
+  await activate(
+    preview.getByRole('button', { name: '至少保留两个节点', exact: true }),
+    info.project.name.startsWith('mobile-'),
+  )
+  await group.getByRole('slider').nth(1).focus()
+  await group.getByRole('slider').nth(1).press('Backspace')
+  await expect(group.getByRole('slider')).toHaveCount(2)
+  await expect(remove).toBeDisabled()
+  await activate(
+    preview.getByRole('button', { name: '允许删除全部节点', exact: true }),
+    info.project.name.startsWith('mobile-'),
+  )
+  for (const point of [40, 60]) {
+    await draft.fill(String(point))
+    await activate(add, info.project.name.startsWith('mobile-'))
+  }
+  await expect(group.getByRole('slider')).toHaveCount(4)
+  await expect(add).toBeDisabled()
+  await expect(draft).toBeDisabled()
+  while (await group.getByRole('slider').count())
+    await group.getByRole('slider').last().press('Delete')
+  await expect(add).toBeFocused()
+  await expect(group).not.toHaveAttribute('aria-disabled')
+  await activate(add, info.project.name.startsWith('mobile-'))
+  await expect(group.getByRole('slider')).toHaveCount(1)
+  await expect(group.getByRole('slider')).toBeFocused()
+})
+
+test('editable slider pointer gestures insert and remove nodes with one completion per gesture', async ({
+  page,
+}, info) => {
+  const preview = page.getByRole('region', { name: '滑块能力预览' })
+  const group = preview.getByRole('group', { name: '可编辑节点', exact: true })
+  const rail = group.locator('[data-slider-rail]')
+  await rail.scrollIntoViewIfNeeded()
+  let box = (await rail.boundingBox())!
+  await dragSlider(
+    page,
+    rail,
+    group,
+    { x: box.x + box.width * 0.5, y: box.y + 22 },
+    { x: box.x + box.width * 0.6, y: box.y + 22 },
+    info.project.name,
+  )
+  await expect(
+    preview.getByRole('status', { name: '编辑节点实时值', exact: true }),
+  ).toHaveText('[20,60,80]')
+  await expect(
+    preview.getByRole('status', { name: '编辑节点完成值', exact: true }),
+  ).toHaveText('[20,60,80] · 完成 1 次')
+  await rail.scrollIntoViewIfNeeded()
+  box = (await rail.boundingBox())!
+  await dragSlider(
+    page,
+    group.getByRole('slider').nth(1),
+    group,
+    { x: box.x + box.width * 0.6, y: box.y + 22 },
+    { x: box.x + box.width * 0.6, y: box.y + box.height + 60 },
+    info.project.name,
+  )
+  await expect(
+    preview.getByRole('status', { name: '编辑节点实时值', exact: true }),
+  ).toHaveText('[20,80]')
+  await expect(
+    preview.getByRole('status', { name: '编辑节点完成值', exact: true }),
+  ).toHaveText('[20,80] · 完成 2 次')
+  await expect(group.getByRole('slider').nth(1)).toBeFocused()
+  await activate(
+    preview.getByRole('button', { name: '固定编辑节点', exact: true }),
+    info.project.name.startsWith('mobile-'),
+  )
+  await expect(
+    group.getByRole('button', { name: '可编辑节点添加节点', exact: true }),
+  ).toBeDisabled()
+  await expect(
+    group.getByRole('button', { name: '可编辑节点移除选中节点', exact: true }),
+  ).toBeDisabled()
+  await group.getByRole('slider').first().focus()
+  await group.getByRole('slider').first().press('Delete')
+  await expect(group.getByRole('slider')).toHaveCount(2)
+})
+
+test('editable slider marks and empty native forms retain sorted canonical values and reset safely', async ({
+  page,
+}, info) => {
+  const form = page.getByRole('form', {
+    name: '可编辑节点原生表单',
+    exact: true,
+  })
+  const group = form.getByRole('group', { name: '离散可编辑节点', exact: true })
+  const formValues = () =>
+    form.evaluate((element) =>
+      Object.fromEntries(new FormData(element as HTMLFormElement)),
+    )
+  await expect.poll(formValues).toEqual({ editableNodes: '[]' })
+  const draft = group.getByRole('textbox')
+  await draft.fill('35')
+  await draft.press('Enter')
+  await expect(group.getByRole('slider')).toHaveValue('37')
+  await activate(
+    group.getByRole('button', { name: '0°C', exact: true }),
+    info.project.name.startsWith('mobile-'),
+  )
+  await expect.poll(formValues).toEqual({ editableNodes: '[0,37]' })
+  await expect(group.getByRole('slider').first()).toBeFocused()
+  await expect(
+    group.getByRole('button', { name: '0°C', exact: true }),
+  ).toBeDisabled()
+  await draft.fill('invalid draft')
+  expect(
+    await form.evaluate((element) =>
+      (element as HTMLFormElement).checkValidity(),
+    ),
+  ).toBe(true)
+  await expect.poll(formValues).toEqual({ editableNodes: '[0,37]' })
+  await activate(
+    form.getByRole('button', { name: '重置空节点表单', exact: true }),
+    info.project.name.startsWith('mobile-'),
+  )
+  await expect(group.getByRole('slider')).toHaveCount(0)
+  await expect.poll(formValues).toEqual({ editableNodes: '[]' })
+  await activate(
+    group.getByRole('button', { name: '离散可编辑节点添加节点', exact: true }),
+    info.project.name.startsWith('mobile-'),
+  )
+  await expect(group.getByRole('slider')).toHaveCount(1)
+  await expect(group.getByRole('slider')).toBeFocused()
+})
+
+test('editable slider controls fit RTL narrow cards and vertical gestures use the perpendicular removal axis', async ({
+  page,
+}, info) => {
+  const preview = page.getByRole('group', {
+    name: '窄容器 RTL 滑块预览',
+    exact: true,
+  })
+  const group = preview.getByRole('group', {
+    name: 'RTL 可编辑节点',
+    exact: true,
+  })
+  const draft = group.getByRole('textbox')
+  await draft.fill('50')
+  await activate(
+    group.getByRole('button', { name: 'RTL 可编辑节点添加节点', exact: true }),
+    info.project.name.startsWith('mobile-'),
+  )
+  await expect(group.getByRole('slider').nth(1)).toHaveValue('50')
+  await expect(group.getByRole('slider').nth(1)).toBeFocused()
+  await group.getByRole('slider').nth(1).press('ArrowLeft')
+  await expect(group.getByRole('slider').nth(1)).toHaveValue('55')
+  await activate(
+    group.getByRole('button', {
+      name: 'RTL 可编辑节点移除选中节点',
+      exact: true,
+    }),
+    info.project.name.startsWith('mobile-'),
+  )
+  await expect(group.getByRole('slider')).toHaveCount(2)
+  await expect(group.getByRole('slider').nth(1)).toBeFocused()
+  const groupBox = (await group.boundingBox())!
+  for (const control of await group
+    .locator('input:not([type="hidden"]), button')
+    .all()) {
+    const box = (await control.boundingBox())!
+    expect(box.width).toBeGreaterThanOrEqual(44)
+    expect(box.height).toBeGreaterThanOrEqual(44)
+    expect(box.x).toBeGreaterThanOrEqual(groupBox.x)
+    expect(box.x + box.width).toBeLessThanOrEqual(groupBox.x + groupBox.width)
+  }
+  const vertical = page
+    .getByRole('region', { name: '滑块能力预览' })
+    .getByRole('group', { name: '垂直编辑节点', exact: true })
+  const rail = vertical.locator('[data-slider-rail]')
+  await rail.scrollIntoViewIfNeeded()
+  const box = (await rail.boundingBox())!
+  await dragSlider(
+    page,
+    vertical.getByRole('slider').first(),
+    vertical,
+    { x: box.x + 22, y: box.y + box.height * 0.8 },
+    { x: box.x + box.width + 60, y: box.y + box.height * 0.8 },
+    info.project.name,
+  )
+  await expect(vertical.getByRole('slider')).toHaveCount(1)
+  await expect(vertical.getByRole('slider')).toHaveValue('80')
+  await expect(
+    vertical.getByRole('button', {
+      name: '垂直编辑节点移除选中节点',
+      exact: true,
+    }),
+  ).toBeDisabled()
+  await preview.scrollIntoViewIfNeeded()
+  await preview.screenshot({
+    path: `output/playwright/slider-edit-rtl-${info.project.name}.png`,
+  })
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
+})

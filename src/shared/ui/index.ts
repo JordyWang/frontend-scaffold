@@ -141,6 +141,7 @@ export type {
   SliderMark,
   SliderPart,
   SliderTooltip,
+  SliderEditable,
 } from './slider'
 export { Calendar } from './calendar'
 export type { CalendarProps, CalendarPart } from './calendar'

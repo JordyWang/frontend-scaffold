@@ -64,15 +64,49 @@ export function normalizeSliderValues(
   raw: number | number[] | undefined,
   range: boolean,
   scale: SliderScale,
+  editable = false,
 ) {
   const values = range
-    ? Array.isArray(raw) && raw.length >= 2
+    ? Array.isArray(raw) && (editable || raw.length >= 2)
       ? raw
       : [scale.min, scale.min]
     : [typeof raw === 'number' ? raw : scale.min]
   return values
     .map((value) => snapSliderValue(value, scale))
     .sort((a, b) => a - b)
+}
+
+export function insertSliderValue(
+  values: number[],
+  desired: number,
+  scale: SliderScale,
+) {
+  const value = snapSliderValue(desired, scale)
+  if (values.includes(value)) return null
+  const next = [...values, value].sort((left, right) => left - right)
+  return { values: next, index: next.indexOf(value) }
+}
+
+/** Find a free selectable position without enumerating a potentially dense step grid. */
+export function suggestSliderValue(values: number[], scale: SliderScale) {
+  const bounds = [scale.min, ...values, scale.max]
+  const candidates = new Set([scale.min, scale.max, ...scale.marks])
+  for (let index = 1; index < bounds.length; index++) {
+    const lower = bounds[index - 1]
+    const upper = bounds[index]
+    candidates.add(snapSliderValue(lower + (upper - lower) / 2, scale))
+    candidates.add(nextSliderValue(lower, 1, scale))
+    candidates.add(nextSliderValue(upper, -1, scale))
+  }
+  const available = [...candidates].filter((value) => !values.includes(value))
+  if (!available.length) return null
+  const distance = (value: number) =>
+    values.length
+      ? Math.min(...values.map((point) => Math.abs(point - value)))
+      : 0
+  return available.sort(
+    (left, right) => distance(right) - distance(left) || left - right,
+  )[0]
 }
 
 export function nextSliderValue(
