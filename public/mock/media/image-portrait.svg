@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="640" viewBox="0 0 360 640">
+  <rect width="360" height="640" rx="24" fill="#e6f4ff" />
+  <circle cx="180" cy="175" r="88" fill="#1677ff" />
+  <path d="m128 184 32 32 72-78" fill="none" stroke="#fff" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" />
+  <rect x="56" y="328" width="248" height="24" rx="12" fill="#69b1ff" />
+  <rect x="56" y="376" width="212" height="16" rx="8" fill="#91caff" />
+  <rect x="56" y="416" width="248" height="16" rx="8" fill="#91caff" />
+  <rect x="56" y="456" width="168" height="16" rx="8" fill="#91caff" />
+  <text x="180" y="556" text-anchor="middle" fill="#0958d9" font-family="system-ui" font-size="20">Portrait preview fixture</text>
+</svg>

@@ -128,11 +128,17 @@ export { ColorPicker } from './color-picker'
 export type { ColorPickerProps } from './color-picker'
 export { Calendar } from './calendar'
 export type { CalendarProps } from './calendar'
-export { Tag, Badge, Image, Skeleton } from './display'
+export { Tag, Badge, Skeleton } from './display'
+export { Image, ImagePreviewGroup } from './image'
+export type {
+  ImageProps,
+  ImagePreviewOptions,
+  ImagePreviewItem,
+  ImagePreviewGroupProps,
+} from './image'
 export type {
   TagProps,
   BadgeProps,
-  ImageProps,
   SkeletonProps,
   SkeletonParagraph,
 } from './display'

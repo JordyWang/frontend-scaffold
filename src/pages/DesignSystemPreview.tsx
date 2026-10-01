@@ -35,6 +35,7 @@ import {
   Grid,
   Icon,
   Image,
+  ImagePreviewGroup,
   Input,
   InputOTP,
   InputNumber,
@@ -166,6 +167,7 @@ export function DesignSystemPreview() {
   )
   const [statisticLoading, setStatisticLoading] = useState(true)
   const [skeletonLoading, setSkeletonLoading] = useState(true)
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false)
   const [colorValue, setColorValue] = useState('#1677ff')
   const [dateRange, setDateRange] = useState<DateRange>(['', ''])
   const [timeRange, setTimeRange] = useState<TimeRange>(['', ''])
@@ -963,6 +965,47 @@ export function DesignSystemPreview() {
                   alt="示例封面"
                   width={240}
                   height={135}
+                  preview={{
+                    open: imagePreviewOpen,
+                    onOpenChange: setImagePreviewOpen,
+                    maxScale: 4,
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => setImagePreviewOpen(true)}
+                >
+                  打开受控图片预览
+                </Button>
+                <ImagePreviewGroup
+                  label="媒体相册预览"
+                  items={[
+                    { src: '/mock/media/poster.svg', alt: '相册横向封面' },
+                    {
+                      src: '/mock/media/image-portrait.svg',
+                      alt: '相册纵向插图',
+                    },
+                  ]}
+                />
+                <Dialog
+                  title="图片预览容器"
+                  trigger={
+                    <Button variant="outline">在对话框中预览图片</Button>
+                  }
+                >
+                  <Image
+                    src="/mock/media/poster.svg"
+                    alt="对话框中的封面"
+                    width={240}
+                    height={135}
+                  />
+                </Dialog>
+                <Image
+                  src="/mock/media/poster.svg"
+                  alt="预览加载失败示例"
+                  width={160}
+                  height={90}
+                  preview={{ src: '/mock/media/missing-preview.svg' }}
                 />
                 <Image
                   src="data:image/png;base64,broken"

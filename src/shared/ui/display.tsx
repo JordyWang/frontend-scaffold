@@ -1,9 +1,4 @@
-import {
-  useState,
-  type HTMLAttributes,
-  type ImgHTMLAttributes,
-  type ReactNode,
-} from 'react'
+import { type HTMLAttributes, type ReactNode } from 'react'
 import { cn } from '@/shared/lib/utils'
 
 type Tone = 'default' | 'success' | 'warning' | 'error'
@@ -94,52 +89,6 @@ export function Badge({
         </span>
       )}
     </span>
-  )
-}
-
-export type ImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'alt'> & {
-  alt: string
-  fallback?: ReactNode
-}
-export function Image({
-  src,
-  alt,
-  fallback,
-  className,
-  onError,
-  loading = 'lazy',
-  ...props
-}: ImageProps) {
-  const [failure, setFailure] = useState<{
-    src: string | undefined
-    failed: boolean
-  }>({ src, failed: false })
-  if (failure.src === src && failure.failed) {
-    return (
-      <div
-        role="img"
-        aria-label={alt}
-        className={cn(
-          'block min-h-24 max-w-full rounded-[var(--radius-md)] border border-dashed border-border bg-muted p-4 text-muted-foreground',
-          className,
-        )}
-      >
-        {fallback ?? alt}
-      </div>
-    )
-  }
-  return (
-    <img
-      src={src}
-      alt={alt}
-      loading={loading}
-      className={cn('block max-w-full rounded-[var(--radius-md)]', className)}
-      onError={(event) => {
-        setFailure({ src, failed: true })
-        onError?.(event)
-      }}
-      {...props}
-    />
   )
 }
 

@@ -28,6 +28,29 @@ const paths = {
       <path d="m13 13 4 4" />
     </>
   ),
+  zoomIn: (
+    <>
+      <circle cx="8.5" cy="8.5" r="5.5" />
+      <path d="m12.5 12.5 4.5 4.5M6 8.5h5M8.5 6v5" />
+    </>
+  ),
+  zoomOut: (
+    <>
+      <circle cx="8.5" cy="8.5" r="5.5" />
+      <path d="m12.5 12.5 4.5 4.5M6 8.5h5" />
+    </>
+  ),
+  rotateLeft: <path d="M3 8a7 7 0 1 1 1 7M3 3v5h5" />,
+  rotateRight: <path d="M17 8a7 7 0 1 0-1 7M17 3v5h-5" />,
+  flipHorizontal: (
+    <>
+      <path d="M10 2v16M7 5 2 15h5zM13 5l5 10h-5z" />
+    </>
+  ),
+  flipVertical: <path d="M2 10h16M5 7l10-5v5zM5 13l10 5v-5z" />,
+  reset: <path d="M3 8a7 7 0 1 1 1 7M3 3v5h5M10 6v4l3 2" />,
+  arrowLeft: <path d="m12 4-6 6 6 6" />,
+  arrowRight: <path d="m8 4 6 6-6 6" />,
   eye: (
     <>
       <path d="M2 10s2.7-4.5 8-4.5 8 4.5 8 4.5-2.7 4.5-8 4.5S2 10 2 10Z" />

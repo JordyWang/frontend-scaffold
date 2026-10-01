@@ -50,7 +50,8 @@
 | Segmented                       | `options`、`value` / `defaultValue`、`onChange`、`size`、`block`、`disabled`                                                                     | 原生单选控件；显式 `value={undefined}` 可清空，非受控选项失效时回退到可用项；支持方向键和窄屏横向滚动                       |
 | Rate                            | `count`、`value` / `defaultValue`、`onChange`、`allowClear`、`character`、`tooltips`、`disabled`                                                 | 原生单选控件；显式 `value={undefined}` 保持受控空值；支持方向键、清除和 44px 触控区域                                       |
 | Tag / Badge                     | `tone`；`Badge(count, max, dot, label)`                                                                                                          | 数量或标签可被辅助技术读取；Badge 可独立占位，也可附着于控件并跟随 RTL 逻辑末端                                             |
-| Image / Skeleton                | 原生 img 属性、必填 `alt`、`fallback`；`Skeleton(shape, width, height, label, loading, active, avatar, title, paragraph, round)`                 | 图片懒加载，加载失败展示替代内容；骨架屏有状态标签，内容形态支持头像、标题、段落及加载结束后展示真实内容                    |
+| Image / Skeleton                | 原生 img 属性、必填 `alt`、`fallback`、`preview`；`Skeleton(shape, width, height, label, loading, active, avatar, title, paragraph, round)`      | 图片支持放大预览和加载失败反馈；骨架屏有状态标签，内容形态支持头像、标题、段落及加载结束后展示真实内容                      |
+| ImagePreviewGroup               | `items`、`current` / `defaultCurrent`、`onCurrentChange`、`open` / `defaultOpen`、`onOpenChange`、`label`、缩放配置                              | 项目相册以图片数组表示，缩略图与预览地址可不同；键盘切换、触控工具栏和关闭后的焦点恢复共用图片预览实现                      |
 | Alert / Spinner                 | `Alert(title, description, tone, action, closable, closeLabel, onDismiss)`；`Spinner(label, size)`                                               | 错误与警告用 alert，其他状态用 status；可关闭提示保留 44px 操作区域；加载状态有可访问名称                                   |
 | Spin                            | `spinning`、`delay`、`tip`、`label`、`size`、`fullscreen`                                                                                        | 可包裹局部内容或全屏展示；加载时内容不可操作，延迟用于避免短任务闪烁                                                        |
 | Watermark                       | `content`、`image`、`markSize`、`gap`、`offset`、`rotate`、`opacity`、`fontSize`、`onRemove`                                                     | 在内容上重复绘制非交互水印；文字颜色跟随语义变量，图片加载失败时回退文字                                                    |
@@ -69,6 +70,10 @@
 `Result.children` 用于展示复杂错误详情或后续说明，位于 `extra` 操作区之后，并使用主题背景承载内容。结果区由标题提供可访问名称，默认及自定义图标均作为装饰内容隐藏，避免重复播报。
 
 `Skeleton` 默认保留单块占位；`shape="content"` 明确启用组合骨架屏。`avatar` 可传布尔值或 `{ size, shape }`，`title` 可传布尔值或 `{ width }`，`paragraph` 可传布尔值或 `{ rows, width }`；段落宽度可为单值或按行数组。`loading={false}` 直接渲染 `children`，加载时真实内容不进入焦点顺序。`active` 默认开启脉冲动画，可关闭，系统减少动态效果时停止动画。
+
+`Image` 默认允许点击或键盘打开预览，纯展示图片可传 `preview={false}`；原生属性、`className` 和事件仍作用于图片，`containerClassName` 调整预览入口。`preview` 对象支持独立大图 `src`、`open` / `defaultOpen` / `onOpenChange`、`label`、`maxScale`、`scaleStep`、`wheel` 和 `maskClosable`。缩放默认范围为 1–8 倍，`maxScale` 最大为 50，默认每步乘以 1.5；滚轮与点击空白关闭可独立禁用。
+
+`ImagePreviewGroup.items` 为 `{ src, alt, thumbnailSrc? }[]`，`current` 从 0 开始，并限制在当前图片范围。预览支持放大、缩小、左右旋转、水平和垂直翻转、重置，以及指针拖动和双指缩放。左右方向键切换相册并跟随 RTL；加减键缩放、0 重置、Shift 加方向键移动放大后的图片。预览复用主题 Portal 和 Radix 焦点、滚动管理；关闭后回到打开入口，图片加载失败时显示可重试错误状态。
 
 `BackTop` 在 `FloatButton` 之上提供回顶行为：`target?: () => Window | HTMLElement | null` 指定滚动目标，`visibilityHeight` 默认为 400px，`showProgress` 可显示进度环，`behavior` 默认为平滑滚动。系统要求减少动态效果时改用即时滚动；位置、安全区和至少 44px 的触控尺寸沿用 `FloatButton`。
 

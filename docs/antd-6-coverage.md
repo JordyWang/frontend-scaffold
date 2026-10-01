@@ -30,6 +30,8 @@
 
 `Skeleton` 在原有单块占位之外提供显式内容形态：头像、标题、可配置段落行数与宽度；`loading` 切换时真实内容才进入阅读和焦点顺序。`/__ui` 展示加载与完成状态，桌面键盘、H5 触控及减少动态效果设置均有回归。
 
+`Image` 增加默认可开启的全屏预览，支持受控开合、独立大图地址、缩放、旋转、翻转、重置、拖动与双指缩放；`ImagePreviewGroup` 使用项目图片数组契约实现相册切换。预览复用主题 Portal、焦点约束和背景滚动管理，失败时提供重试；`/__ui` 展示单图、相册、外部控制与错误状态。
+
 ConfigProvider 的 RTL 方向已覆盖 Select、Dialog、Sheet、Dropdown、Popover、Tooltip 的弹层容器，Select 的触发器和选项使用 Tailwind 逻辑方向样式；`/__ui` 提供键盘与 H5 触控预览。
 
 Dropdown、Popover、Tooltip 的浮层已在裁切容器、RTL、桌面与 H5 中验证。Dropdown 的上下方向键、Enter、空格和正反向 Tab，以及 Popover 中交互内容的 Tab 顺序已有浏览器回归。
