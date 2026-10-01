@@ -21,6 +21,7 @@ type Options = {
   estimate: number
   overscan: number
   keepKey?: string
+  keepKeys?: string[]
   rootRef: RefObject<HTMLDivElement | null>
   nodeRefs: RefObject<Map<string, HTMLLIElement>>
 }
@@ -86,6 +87,10 @@ export function useTreeVirtualizer(options: Options) {
   )
   const kept = keepKey ? layout.byKey.get(keepKey) : undefined
   if (kept) rendered.add(kept.index)
+  for (const key of options.keepKeys ?? []) {
+    const slot = layout.byKey.get(key)
+    if (slot) rendered.add(slot.index)
+  }
   const items = [...rendered]
     .sort((a, b) => a - b)
     .map((index) => layout.slots[index])

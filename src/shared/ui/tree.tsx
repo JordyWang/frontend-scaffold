@@ -20,6 +20,9 @@ import { Button } from './button'
 import { spinnerIndicatorStyles } from './tailwind-styles'
 import { useTreeLoader, type TreeLoadChildren } from './tree-loader'
 import { useTreeVirtualizer, type TreeScrollOptions } from './tree-virtualizer'
+import { treeNodeText, useTreeDrag } from './tree-drag'
+import { TreeMoveControls } from './tree-move-controls'
+import type { TreeDropInfo } from './tree-move'
 import {
   checkBoundary,
   changeCheck,
@@ -38,6 +41,9 @@ type TreePart =
   | 'group'
   | 'loading'
   | 'error'
+  | 'dragHandle'
+  | 'dropIndicator'
+  | 'moveControls'
 export type TreeNode = {
   key: string
   title: ReactNode
@@ -48,6 +54,7 @@ export type TreeNode = {
   selectable?: boolean
   checkable?: boolean
   disableCheckbox?: boolean
+  draggable?: boolean
   icon?: ReactNode
   className?: string
   classNames?: Partial<Record<TreePart, string>>
@@ -70,7 +77,7 @@ export type TreeHandle = {
 const emptyKeys: string[] = []
 export type TreeProps = Omit<
   HTMLAttributes<HTMLDivElement>,
-  'children' | 'onSelect' | 'onLoad' | 'dir'
+  'children' | 'onSelect' | 'onLoad' | 'dir' | 'draggable' | 'onDrop'
 > & {
   treeData: TreeNode[]
   expandedKeys?: string[]
@@ -102,6 +109,9 @@ export type TreeProps = Omit<
   loadVersion?: string | number
   onLoad?: (node: TreeNode, children: TreeNode[]) => void
   onLoadError?: (error: unknown, node: TreeNode) => void
+  draggable?: boolean | ((node: TreeNode) => boolean)
+  allowDrop?: (info: TreeDropInfo) => boolean
+  onDrop?: (info: TreeDropInfo) => void
   height?: number
   virtual?: boolean
   estimatedItemHeight?: number
@@ -159,6 +169,9 @@ export function Tree(allProps: TreeProps) {
     loadVersion = 0,
     onLoad,
     onLoadError,
+    draggable = false,
+    allowDrop,
+    onDrop,
     height,
     virtual = true,
     estimatedItemHeight = 44,
@@ -241,6 +254,7 @@ export function Tree(allProps: TreeProps) {
   )
   const id = useId()
   const rootRef = useRef<HTMLDivElement>(null)
+  const scopeRef = useRef<HTMLDivElement>(null)
   const nodeRefs = useRef(new Map<string, HTMLLIElement>())
   const focused = useRef<{
     key?: string
@@ -291,6 +305,32 @@ export function Tree(allProps: TreeProps) {
     [focusedKey, ...selected].find((key) =>
       available.some(({ node }) => node.key === key),
     ) ?? available[0]?.node.key
+  const drag = useTreeDrag({
+    treeData,
+    entries,
+    visibleKeys,
+    disabled,
+    draggable,
+    allowDrop,
+    onDrop,
+    expanded: expandedSet,
+    expand(key) {
+      if (!expandedSet.has(key)) toggle(key)
+    },
+    focus(key) {
+      if (!available.some(({ node }) => node.key === key)) return
+      pendingFocus.current = key
+      pendingScroll.current = { key, focus: true }
+      setFocusedKey(key)
+    },
+    rootRef,
+    scopeRef,
+    loadChildren: Boolean(loadChildren),
+    isUnloaded: (node) =>
+      Boolean(
+        loadChildren && loader.expandable(node) && !node.children?.length,
+      ),
+  })
   const windowing = useTreeVirtualizer({
     keys: visibleKeys,
     enabled: virtualEnabled,
@@ -298,13 +338,73 @@ export function Tree(allProps: TreeProps) {
     estimate: estimatedItemHeight,
     overscan,
     keepKey: tabbableKey,
+    keepKeys: drag.session ? [drag.session.source] : emptyKeys,
     rootRef,
     nodeRefs,
   })
 
+  function focusNode(key: string | undefined) {
+    if (!key || !available.some(({ node }) => node.key === key)) return
+    if (virtualEnabled) {
+      pendingFocus.current = key
+      setFocusedKey(key)
+      windowing.scrollTo({ key })
+    } else nodeRefs.current.get(key)?.focus()
+  }
+
+  function scrollToVisible(options: TreeScrollOptions) {
+    if (virtualEnabled) windowing.scrollTo(options)
+    else {
+      const element = nodeRefs.current.get(options.key)
+      const root = rootRef.current
+      if (element && root) {
+        const top =
+          element.getBoundingClientRect().top -
+          root.getBoundingClientRect().top +
+          root.scrollTop -
+          root.clientTop
+        const rowHeight =
+          element.querySelector('[data-ui-tree-row]')?.getBoundingClientRect()
+            .height ?? 44
+        const current = root.scrollTop
+        const offset = Number.isFinite(options.offset) ? options.offset! : 0
+        const align = options.align ?? 'auto'
+        const next =
+          align === 'start'
+            ? top
+            : align === 'center'
+              ? top - (root.clientHeight - rowHeight) / 2
+              : align === 'end'
+                ? top + rowHeight - root.clientHeight
+                : top < current
+                  ? top
+                  : top + rowHeight > current + root.clientHeight
+                    ? top + rowHeight - root.clientHeight
+                    : current
+        root.scrollTop = Math.max(0, next + offset)
+      }
+    }
+    if (
+      options.focus &&
+      available.some(({ node }) => node.key === options.key)
+    ) {
+      pendingFocus.current = options.key
+      setFocusedKey(options.key)
+      if (!virtualEnabled) {
+        pendingFocus.current = undefined
+        nodeRefs.current.get(options.key)?.focus({ preventScroll: true })
+      }
+    }
+  }
+
   useLayoutEffect(() => {
     const request = pendingScroll.current
-    if (request && !entries.has(request.key)) pendingScroll.current = null
+    if (
+      request &&
+      (!entries.has(request.key) ||
+        (!request.autoExpand && !visibleKeys.includes(request.key)))
+    )
+      pendingScroll.current = null
     else if (request && visibleKeys.includes(request.key)) {
       pendingScroll.current = null
       scrollToVisible(request)
@@ -389,7 +489,9 @@ export function Tree(allProps: TreeProps) {
       (current || previous.node === rootRef.current)
     )
       return
-    const ancestor = [...previous.ancestors]
+    const ancestor = [
+      ...(entries.get(previous.key ?? '')?.ancestors ?? previous.ancestors),
+    ]
       .reverse()
       .find((key) => available.some(({ node }) => node.key === key))
     const fallback = current?.node.key ?? ancestor ?? available[0]?.node.key
@@ -436,61 +538,38 @@ export function Tree(allProps: TreeProps) {
     })
   }
 
-  function focusNode(key: string | undefined) {
-    if (!key || !available.some(({ node }) => node.key === key)) return
-    if (virtualEnabled) {
-      pendingFocus.current = key
-      setFocusedKey(key)
-      windowing.scrollTo({ key })
-    } else nodeRefs.current.get(key)?.focus()
-  }
-
-  function scrollToVisible(options: TreeScrollOptions) {
-    if (virtualEnabled) windowing.scrollTo(options)
-    else {
-      const element = nodeRefs.current.get(options.key)
-      const root = rootRef.current
-      if (element && root) {
-        const top =
-          element.getBoundingClientRect().top -
-          root.getBoundingClientRect().top +
-          root.scrollTop -
-          root.clientTop
-        const rowHeight =
-          element.querySelector('[data-ui-tree-row]')?.getBoundingClientRect()
-            .height ?? 44
-        const current = root.scrollTop
-        const offset = Number.isFinite(options.offset) ? options.offset! : 0
-        const align = options.align ?? 'auto'
-        const next =
-          align === 'start'
-            ? top
-            : align === 'center'
-              ? top - (root.clientHeight - rowHeight) / 2
-              : align === 'end'
-                ? top + rowHeight - root.clientHeight
-                : top < current
-                  ? top
-                  : top + rowHeight > current + root.clientHeight
-                    ? top + rowHeight - root.clientHeight
-                    : current
-        root.scrollTop = Math.max(0, next + offset)
-      }
-    }
-    if (
-      options.focus &&
-      available.some(({ node }) => node.key === options.key)
-    ) {
-      pendingFocus.current = options.key
-      setFocusedKey(options.key)
-      if (!virtualEnabled) {
-        pendingFocus.current = undefined
-        nodeRefs.current.get(options.key)?.focus({ preventScroll: true })
-      }
-    }
-  }
-
   function handleKey(event: KeyboardEvent<HTMLLIElement>, node: TreeNode) {
+    if (
+      event.target === event.currentTarget &&
+      !event.defaultPrevented &&
+      !disabled &&
+      !node.disabled
+    ) {
+      if (
+        event.ctrlKey &&
+        !event.altKey &&
+        !event.metaKey &&
+        !event.shiftKey &&
+        event.key === ' ' &&
+        drag.canDrag(node.key)
+      ) {
+        event.preventDefault()
+        drag.begin(node.key)
+        return
+      }
+      if (
+        drag.session?.input === 'controls' &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.shiftKey &&
+        (event.key === 'Enter' || event.key === ' ')
+      ) {
+        event.preventDefault()
+        drag.commit(node.key)
+        return
+      }
+    }
     if (
       event.target !== event.currentTarget ||
       event.defaultPrevented ||
@@ -604,6 +683,11 @@ export function Tree(allProps: TreeProps) {
     const panelId = `${id}-${encodeURIComponent(node.key)}`
     const part = (name: TreePart) =>
       cn(classNames?.[name], node.classNames?.[name])
+    const dropTarget =
+      drag.session?.target === node.key ? drag.session : undefined
+    const dropError = dropTarget
+      ? drag.error(node.key, dropTarget.position)
+      : undefined
     return (
       <li
         key={node.key}
@@ -619,6 +703,7 @@ export function Tree(allProps: TreeProps) {
           virtualEnabled && 'absolute inset-x-0',
         )}
         data-ui-tree-item=""
+        data-tree-key={node.key}
         style={{ '--ui-tree-level': level, top } as CSSProperties}
         tabIndex={isDisabled ? -1 : node.key === tabbableKey ? 0 : -1}
         aria-labelledby={`${panelId}-label`}
@@ -645,6 +730,9 @@ export function Tree(allProps: TreeProps) {
             : undefined
         }
         aria-disabled={isDisabled || undefined}
+        aria-keyshortcuts={
+          draggable && drag.canDrag(node.key) ? 'Control+Space' : undefined
+        }
         aria-level={level + 1}
         aria-posinset={position + 1}
         aria-setsize={setSize}
@@ -652,7 +740,10 @@ export function Tree(allProps: TreeProps) {
           !virtualEnabled && hasChildren && isExpanded ? panelId : undefined
         }
         onFocus={(event) => {
-          if (event.target === event.currentTarget) setFocusedKey(node.key)
+          if (event.target === event.currentTarget) {
+            setFocusedKey(node.key)
+            if (drag.session?.input === 'controls') drag.choose(node.key)
+          }
         }}
         onClick={(event) => {
           if (
@@ -668,6 +759,11 @@ export function Tree(allProps: TreeProps) {
           )
             return
           event.currentTarget.focus({ preventScroll: true })
+          if (drag.session?.input === 'controls') {
+            drag.choose(node.key)
+            if (event.target.closest('[data-tree-toggle]')) toggle(node.key)
+            return
+          }
           if (event.target.closest('[data-tree-toggle]')) toggle(node.key)
           else if (event.target.closest('[data-tree-checkbox]')) check(node)
           else select(node)
@@ -679,7 +775,7 @@ export function Tree(allProps: TreeProps) {
             aria-hidden="true"
             data-ui-tree-line=""
             className={cn(
-              'pointer-events-none absolute inset-y-0 start-[calc(min(calc(var(--ui-tree-level)*1.5rem),25%)-2px)] w-6 border-s border-border before:absolute before:start-0 before:top-[22px] before:w-6 before:border-t before:border-border',
+              'pointer-events-none absolute inset-y-0 start-[calc(min(calc(var(--ui-tree-level)*var(--ui-tree-indent)),25%)-2px)] w-6 border-s border-border before:absolute before:start-0 before:top-[22px] before:w-6 before:border-t before:border-border',
               position === setSize - 1 && 'bottom-auto h-[22px]',
             )}
           />
@@ -693,7 +789,7 @@ export function Tree(allProps: TreeProps) {
                 key={key}
                 aria-hidden="true"
                 data-ui-tree-ancestor-line=""
-                className="pointer-events-none absolute inset-y-0 start-[calc(min(calc(var(--ui-tree-line-level)*1.5rem),25%)-2px)] border-s border-border"
+                className="pointer-events-none absolute inset-y-0 start-[calc(min(calc(var(--ui-tree-line-level)*var(--ui-tree-indent)),25%)-2px)] border-s border-border"
                 style={{ '--ui-tree-line-level': depth } as CSSProperties}
               />
             ) : null
@@ -705,17 +801,58 @@ export function Tree(allProps: TreeProps) {
             <span
               aria-hidden="true"
               data-ui-tree-parent-line=""
-              className="pointer-events-none absolute bottom-0 top-[22px] start-[calc(min(calc(var(--ui-tree-level)*1.5rem),25%)+22px)] border-s border-border"
+              className="pointer-events-none absolute bottom-0 top-[22px] start-[calc(min(calc(var(--ui-tree-level)*var(--ui-tree-indent)),25%)+22px)] border-s border-border"
             />
           )}
         <div
           data-ui-tree-row=""
+          data-tree-drop-position={dropTarget?.position}
+          data-tree-drop-invalid={dropError ? true : undefined}
+          onDragOver={(event) => drag.nativeOver(event, node.key)}
+          onDrop={(event) => drag.nativeDrop(event, node.key)}
           className={cn(
-            'group/treerow relative flex min-h-11 min-w-0 items-start ps-[min(calc(var(--ui-tree-level)*1.5rem),25%)]',
+            'group/treerow relative flex min-h-11 min-w-0 items-start ps-[min(calc(var(--ui-tree-level)*var(--ui-tree-indent)),25%)]',
             isDisabled && 'opacity-50',
             part('row'),
+            drag.session?.source === node.key && 'opacity-60',
+            dropTarget?.position === 'inside' &&
+              (dropError
+                ? 'rounded-sm outline-2 outline-destructive'
+                : 'rounded-sm bg-accent outline-2 outline-primary'),
           )}
         >
+          {dropTarget && dropTarget.position !== 'inside' && (
+            <span
+              aria-hidden="true"
+              data-ui-tree-drop-indicator=""
+              className={cn(
+                'pointer-events-none absolute inset-x-0 z-10 border-t-2',
+                dropTarget.position === 'before' ? 'top-0' : 'bottom-0',
+                dropError ? 'border-destructive' : 'border-primary',
+                part('dropIndicator'),
+              )}
+            />
+          )}
+          {draggable && (
+            <Button
+              tabIndex={-1}
+              variant="ghost"
+              size="icon"
+              aria-label={`移动${treeNodeText(node)}`}
+              aria-pressed={drag.session?.source === node.key}
+              disabled={!drag.canDrag(node.key)}
+              draggable={drag.canDrag(node.key)}
+              onDragStart={(event) => drag.nativeStart(event, node.key)}
+              onDragEnd={() => drag.nativeEnd()}
+              onClick={() => drag.clickHandle(node.key)}
+              className={cn(
+                'shrink-0 cursor-grab! active:cursor-grabbing!',
+                part('dragHandle'),
+              )}
+            >
+              <Icon name="grip" size={16} />
+            </Button>
+          )}
           <span
             className={cn(
               'grid size-11 shrink-0 place-items-center text-muted-foreground',
@@ -816,7 +953,7 @@ export function Tree(allProps: TreeProps) {
             loadStatus === 'cancelled') && (
             <div
               className={cn(
-                'flex min-w-0 flex-wrap items-center gap-2 ps-[min(calc(var(--ui-tree-level)*1.5rem+2.75rem),25%)] pb-2 text-sm',
+                'flex min-w-0 flex-wrap items-center gap-2 ps-[min(calc(var(--ui-tree-level)*var(--ui-tree-indent)+2.75rem),25%)] pb-2 text-sm',
                 part(loadStatus === 'error' ? 'error' : 'loading'),
               )}
             >
@@ -877,7 +1014,7 @@ export function Tree(allProps: TreeProps) {
               'm-0 list-none p-0',
               showLine &&
                 Boolean(node.children?.length) &&
-                'relative before:pointer-events-none before:absolute before:-top-[22px] before:start-[calc(min(calc(var(--ui-tree-level)*1.5rem),25%)+22px)] before:h-[22px] before:border-s before:border-border',
+                'relative before:pointer-events-none before:absolute before:-top-[22px] before:start-[calc(min(calc(var(--ui-tree-level)*var(--ui-tree-indent)),25%)+22px)] before:h-[22px] before:border-s before:border-border',
               part('group'),
             )}
           >
@@ -890,75 +1027,126 @@ export function Tree(allProps: TreeProps) {
 
   return (
     <div
-      {...props}
-      ref={rootRef}
-      role="tree"
-      aria-label={props['aria-label'] ?? label}
-      aria-multiselectable={multiple || undefined}
-      aria-disabled={disabled || undefined}
-      dir={direction}
-      tabIndex={props.tabIndex ?? (available.length ? -1 : 0)}
-      data-ui-tree=""
-      data-ui-tree-virtual={virtualEnabled || undefined}
-      style={{ ...style, height: constrainedHeight ?? style?.height }}
-      className={cn(
-        'min-w-0 w-full overflow-auto rounded-[var(--radius-md)] border border-border bg-card p-[var(--space-xs)] text-foreground focus-visible:outline-2 focus-visible:outline-ring',
-        classNames?.root,
-        className,
-        virtualEnabled &&
-          'touch-pan-y overflow-x-hidden overscroll-contain [overflow-anchor:none]',
-      )}
-      onScroll={(event) => {
-        if (virtualEnabled) windowing.onScroll()
-        onScroll?.(event)
-      }}
-      onFocusCapture={(event) => {
-        const item = event.target.closest<HTMLElement>('[data-ui-tree-item]')
-        const key = [...nodeRefs.current].find(
-          ([, element]) => element === item,
-        )?.[0]
-        focused.current = {
-          key,
-          ancestors: entries.get(key ?? '')?.ancestors ?? [],
-          node: event.target,
-        }
-        if (key) setFocusedKey(key)
-        onFocusCapture?.(event)
-      }}
-      onBlurCapture={(event) => {
-        if (
-          event.relatedTarget instanceof Node &&
-          !event.currentTarget.contains(event.relatedTarget)
-        )
-          focused.current = null
-        onBlurCapture?.(event)
-      }}
+      ref={scopeRef}
+      className="@container/treescope min-w-0 w-full space-y-2"
     >
-      {treeData.length ? (
-        <ul
-          role="none"
-          className={cn(
-            'm-0 list-none p-0',
-            virtualEnabled && 'relative',
-            virtualEnabled && classNames?.group,
-          )}
-          style={virtualEnabled ? { height: windowing.totalHeight } : undefined}
+      <TreeMoveControls
+        drag={drag}
+        source={
+          drag.session ? entries.get(drag.session.source)?.node : undefined
+        }
+        target={
+          drag.session?.target
+            ? entries.get(drag.session.target)?.node
+            : undefined
+        }
+        direction={direction}
+        className={cn(
+          classNames?.moveControls,
+          drag.session &&
+            entries.get(drag.session.source)?.node.classNames?.moveControls,
+        )}
+      />
+      <div
+        {...props}
+        ref={rootRef}
+        role="tree"
+        aria-label={props['aria-label'] ?? label}
+        aria-multiselectable={multiple || undefined}
+        aria-disabled={disabled || undefined}
+        aria-describedby={
+          [props['aria-describedby'], draggable ? `${id}-move-help` : undefined]
+            .filter(Boolean)
+            .join(' ') || undefined
+        }
+        dir={direction}
+        tabIndex={props.tabIndex ?? (available.length ? -1 : 0)}
+        data-ui-tree=""
+        data-ui-tree-virtual={virtualEnabled || undefined}
+        style={{ ...style, height: constrainedHeight ?? style?.height }}
+        className={cn(
+          'min-w-0 w-full overflow-auto rounded-[var(--radius-md)] border border-border bg-card p-[var(--space-xs)] text-foreground focus-visible:outline-2 focus-visible:outline-ring [--ui-tree-indent:1.5rem]',
+          draggable && '@max-sm/treescope:[--ui-tree-indent:0.75rem]',
+          classNames?.root,
+          className,
+          virtualEnabled &&
+            'touch-pan-y overflow-x-hidden overscroll-contain [overflow-anchor:none]',
+        )}
+        onScroll={(event) => {
+          if (virtualEnabled) windowing.onScroll()
+          onScroll?.(event)
+        }}
+        onDragLeave={(event) => {
+          drag.nativeLeave(event)
+          props.onDragLeave?.(event)
+        }}
+        onFocusCapture={(event) => {
+          const item = event.target.closest<HTMLElement>('[data-ui-tree-item]')
+          const key = [...nodeRefs.current].find(
+            ([, element]) => element === item,
+          )?.[0]
+          focused.current = {
+            key,
+            ancestors: entries.get(key ?? '')?.ancestors ?? [],
+            node: event.target,
+          }
+          if (key) setFocusedKey(key)
+          onFocusCapture?.(event)
+        }}
+        onBlurCapture={(event) => {
+          if (
+            event.relatedTarget instanceof Node &&
+            !event.currentTarget.contains(event.relatedTarget)
+          )
+            focused.current = null
+          onBlurCapture?.(event)
+        }}
+      >
+        {treeData.length ? (
+          <ul
+            role="none"
+            className={cn(
+              'm-0 list-none p-0',
+              virtualEnabled && 'relative',
+              virtualEnabled && classNames?.group,
+            )}
+            style={
+              virtualEnabled ? { height: windowing.totalHeight } : undefined
+            }
+          >
+            {virtualEnabled
+              ? windowing.items.map((slot) => {
+                  const entry = visible[slot.index]
+                  return renderNode(
+                    entry.node,
+                    entry.position,
+                    entry.setSize,
+                    entry.ancestors.length,
+                    slot.start,
+                  )
+                })
+              : renderNodes(treeData)}
+          </ul>
+        ) : (
+          <Empty title={emptyText} size="small" />
+        )}
+      </div>
+      {draggable && (
+        <p id={`${id}-move-help`} className="sr-only">
+          Ctrl+Space 开始移动节点，方向键选择目标，Enter 确认，Escape
+          取消；也可点击移动按钮和目标节点。
+        </p>
+      )}
+      {draggable && (
+        <p
+          role="status"
+          aria-label="树节点移动状态"
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
         >
-          {virtualEnabled
-            ? windowing.items.map((slot) => {
-                const entry = visible[slot.index]
-                return renderNode(
-                  entry.node,
-                  entry.position,
-                  entry.setSize,
-                  entry.ancestors.length,
-                  slot.start,
-                )
-              })
-            : renderNodes(treeData)}
-        </ul>
-      ) : (
-        <Empty title={emptyText} size="small" />
+          {drag.message}
+        </p>
       )}
     </div>
   )

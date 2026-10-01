@@ -287,3 +287,5 @@ export type {
 } from './tree'
 export type { TreeLoadChildren, TreeLoadStatus } from './tree-loader'
 export type { TreeScrollOptions } from './tree-virtualizer'
+export { moveTreeNode } from './tree-move'
+export type { TreeMove, TreeDropInfo, TreeDropPosition } from './tree-move'

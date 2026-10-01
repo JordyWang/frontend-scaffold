@@ -177,6 +177,22 @@
 
 `ref` 提供项目 `TreeHandle`：`getNodePath(key)` 返回当前已知节点从根到目标的 `TreeNode[]`，未知键返回空数组；`scrollTo({ key, align?, offset?, autoExpand?, focus? })` 按 key 定位已知节点。`align` 为 start / center / end / auto，默认 auto 只在目标不完整可见时滚动；正 `offset` 向下增加滚动距离，默认不改变焦点。`autoExpand` 请求展开已知目标的祖先，受控模式通过 `onExpand` 请求并等待外部更新，禁用祖先不会被强行展开；`focus` 仅聚焦可用节点。不提供高度时保留自然布局，定位不会触发未知异步子节点加载。`/__ui` 展示 1000 个文件、跨窗口定位、数据缩减、长标题/变高内容、虚拟化切换、异步反馈、RTL 深色及窄容器。
 
+`draggable` 默认关闭，可设为布尔值或 `(node) => boolean`，单项 `draggable: false` 禁止移动该节点。`onDrop(info)` 报告项目移动命令，数据仍由父级管理；`info` 包含 `dragKey`、`dropKey`、`position`（before / inside / after）、`dragNode`、`dropNode`、整棵来源分支的 `dragKeys` 和包含已加载子节点的当前 `treeData` 快照。异步树应使用这个快照更新，避免从原始数据中遗漏加载所得节点：
+
+```tsx
+<Tree
+  treeData={nodes}
+  draggable
+  onDrop={(info) => setNodes(moveTreeNode(info.treeData, info))}
+/>
+```
+
+`moveTreeNode(treeData, move)` 不可变地移动整棵分支，未改变的分支保留引用；拒绝不存在的键、自身及后代、禁用节点及其禁用祖先、不可移动来源、明确叶节点的内部放置和无实际变化的位置，返回原数组。移走最后一个子节点时保留明确的 `children: []` 并清除 `isLeaf: false`，避免异步缓存恢复已经移走的节点；该空目录仍可接收后续移动。`allowDrop(info)` 是组件的额外同步纯判断，工具函数不应用它。选择和显式勾选键按 key 保留，父子勾选按新结构重新计算。
+
+桌面从 44px 六点手柄原生拖动，目标行上部、中央和下部分别代表之前、内部和之后，边界线及目录高亮配合可访问状态文字反馈。悬停可接收的未展开目录 600ms 后请求展开；异步目录须先加载完成才能接收内部放置。虚拟窗口保留原生拖动来源的 DOM，指针靠近容器上下边缘时自动滚动，离开容器停止滚动。移动模式在小于 640px 的容器中将每级缩进从 24px 缩小到 12px，连接线同步调整，为标题保留空间，操作区域仍为 44px。
+
+H5 点击移动手柄、目标节点、位置和确认按钮完成同一命令；键盘 Ctrl+Space 开始，方向键选择目标，Enter / 空格按当前位置提交（默认 after），Escape 取消，面板按钮可通过 Tab 到达。无目标或不允许的位置禁用对应按钮，移动中不改变节点选择或勾选。内部放置请求展开接收目录，提交或取消后恢复来源焦点；外部指针、窗口失焦，或来源删除、禁用、隐藏时取消。受控父级仍需更新数据和展开键，状态文字只报告移动请求已提交。`classNames` 新增 dragHandle、dropIndicator、moveControls，局部 moveControls 使用活动来源节点的覆写。`/__ui` 的独立移动预览覆盖前后排序、整棵分支、保护规则、异步接收目录、虚拟滚动、键盘确认、RTL 深色和 H5 操作。
+
 Carousel 的 `items` 保持项目 ReactNode 数组 API；有状态的内容传稳定 React `key`，每项只挂载一次，切换后保留表单值。非活动幻灯片使用 `inert` 和 `aria-hidden`，动效期间也不进入焦点与辅助技术阅读顺序。`index` / `defaultIndex` 使用从零开始的索引，越界值限制到当前范围，非有限值回到首项；非受控状态会清理数据缩减后的索引，受控状态不回写父值。
 
 `dots` 默认显示一个可 Tab 到达的当前页码入口，四向 `dotPlacement` 为 `top` / `bottom` / `start` / `end`，逻辑位置跟随 RTL；点击或方向键选择页码，Home / End 到首尾。幻灯片区域也支持左右键和 Home / End，内容中的输入、链接与按钮保留原生键盘行为。`arrows` 默认保留原有上一项/下一项入口；`infinite={false}` 到首尾时禁用相应按钮，自动播放在末项停止，再次开始会回到首项。
