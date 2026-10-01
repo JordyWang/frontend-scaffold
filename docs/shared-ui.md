@@ -13,7 +13,8 @@
 | FormField                       | `label?`、`control`、`description`、`error`、`required`、`id`                                                                                         | 自动连接标签、说明和错误；自带标签的控件省略 `label`                                                                        |
 | Form / FormItem                 | `initialValues`、`values`、`onValuesChange`、`onFinish`、`onFinishFailed`、`onFinishError`、`rules`、`valuePropName`、`emptyValue`、`trigger`         | 表单只协调值和校验；控件仍使用项目自己的 API，规则错误通过 FormField 的 `aria-describedby` 暴露                             |
 | InputNumber / Slider            | `value` / `defaultValue`、`min`、`max`、`step`、`onChange`、`label`                                                                                   | 使用原生 number/range 控件；数值提交时限制在范围内，键盘和触控由浏览器处理                                                  |
-| DatePicker / TimePicker         | 原生日期/时间属性、`value`、`defaultValue`、`onChange`、`size`                                                                                        | 输出 ISO 日期或本地时间字符串；输入由浏览器提供键盘和触控选择器                                                             |
+| DatePicker                      | `value` / `defaultValue`、`onChange`、`mode`、`open` / `defaultOpen`、`panelMonth`、`needConfirm`、`presets`、`disabledDate`、`classNames`            | ISO 单日期；默认项目弹层，可选常驻面板或原生输入，确认前不提交；键盘、RTL、44px 网格和组合失焦                              |
+| TimePicker                      | 原生时间属性、`value`、`defaultValue`、`onChange`、`size`                                                                                             | 输出本地时间字符串；由浏览器提供键盘和触控选择器                                                                            |
 | DateRangePicker                 | `value` / `defaultValue`、`onChange`、`min`、`max`、`required`、`disabled`、`name`、`size`                                                            | 两个原生日期输入组成一个 `[开始, 结束]` 值；窄屏纵向排列，触控区域至少 44px                                                 |
 | TimeRangePicker                 | `value` / `defaultValue`、`onChange`、`min`、`max`、`step`、`required`、`disabled`、`name`、`size`                                                    | 两个原生时间输入组成同日时间区间；可精确到秒，窄屏纵向排列                                                                  |
 | Calendar                        | `value` / `defaultValue`、`month` / `defaultMonth`、`onChange`、`onMonthChange`、`minDate`、`maxDate`、`disabledDate`、`renderDate`                   | 选中日期使用 `YYYY-MM-DD`，月份使用 `YYYY-MM`；网格支持方向键、Home/End、PageUp/PageDown；日期按钮至少 44px                 |
@@ -115,9 +116,21 @@
 
 `Button` 在原有 `variant`、`size`、`loading` 基础上支持 `danger`、`block`、`shape`（default、round、circle）以及 `icon` / `iconPosition` 插槽；`danger` 会优先使用错误主题色。
 
-`InputNumber`、`DatePicker`、`TimePicker`、`DateRangePicker`、`TimeRangePicker` 和 `AutoComplete` 同样支持 `variant` 与 `status`；错误状态通过 `aria-invalid` 传递，日期和时间控件仍使用浏览器原生键盘与触控选择器。
+`InputNumber`、`DatePicker`、`TimePicker`、`DateRangePicker`、`TimeRangePicker` 和 `AutoComplete` 同样支持 `variant` 与 `status`；错误状态通过 `aria-invalid` 传递；单日期默认使用项目面板，日期范围和时间控件目前仍使用浏览器原生选择器。
 
 `InputNumber` 输入期间保留原始数字草稿，`onChange` 会收到当前数值或清空时的 `undefined`；失焦时再按 `min` / `max` 限制数值，并在修正后再次调用 `onChange`。受控用法可传入 `value={undefined}` 表示空值，并在 `onChange` 中同步更新。
+
+`DatePicker` 的值为严格的 `YYYY-MM-DD` 字符串（0001–9999 年），空值为 `''`；显式 `value={undefined}` 仍表示受控空值。默认 `mode="popup"`，`mode="panel"` 将面板常驻在输入之后，`mode="native"` 使用浏览器原生日期输入。输入 ref、原生输入属性、`size`、`variant` 与 `status` 保留；`className` 修饰输入，`classNames` 提供 root/input/toggle/clear/popup/panel/presets/footer/error 插槽。样式使用 Tailwind 与语义 Token。
+
+`open` / `defaultOpen` / `onOpenChange` 只控制弹层模式。`panelMonth` / `onPanelMonthChange` 用 `YYYY-MM` 表示独立浏览月份；`defaultPanelMonth` 在首次展示及每次非受控弹层打开时作为起始月份，否则按当前有效日期定位。浏览、方向键和月份切换都不改变 `value`；手工提交或预设选中会请求展示对应月份，受控月份继续由外部更新。`placement` 为 bottomStart/bottomEnd/topStart/topEnd，逻辑起止跟随 RTL；空间不足时翻转并限制在视觉视口内。
+
+`allowClear` 默认开启，清除发出 `onChange('')` 与 `onClear()` 并还输入焦点。`presets` 使用 `{ key, label, value }`，值可以是 ISO 字符串或点击时求值的函数；不可用的静态值禁用按钮，动态值失效时展示反馈。`min`、`max`、`step` 和 `disabledDate(date)` 同时限制面板、预设和手工输入；步长以日为单位，基准为有效 `min` 或 1970-01-01，计算不受夏令时小时差影响。
+
+`needConfirm` 将选择保留为临时值；“确定”或有效编辑输入的 Enter 才发出 `onChange` 和 `onOk`，取消、Escape 或整个控件离焦丢弃临时值。普通模式在日期选择后立即提交，输入编辑则在 Enter 或整个控件失焦时提交；无效输入不发值回调，失焦恢复原值并给出说明。返回输入或在面板按钮间移动保留输入草稿。`disabled` / `readOnly` 禁止日期操作，`inputReadOnly` 只阻止手工输入，仍可用面板选择；它使用 HTML readOnly，所以必填等原生约束不参与浏览器校验，项目 Form 规则仍有效。
+
+点击输入或图标打开，输入的 ArrowDown / Enter 进入网格；网格支持方向键、Home/End、PageUp/PageDown 与 Shift+PageUp/PageDown。日期选择、确定和 Escape 还输入焦点；面板首项 Shift+Tab 返回输入，末项 Tab 接回字段按钮及后续控件。`onBlur` 的事件来自根 span，只在离开输入、字段按钮和 Portal 面板组成的整个控件时调用；与 `Form validateOn="blur"` 配合不会在浏览日期时提前报错。`name` 在面板模式通过隐藏字段提交已确认值，临时值不进入 FormData；非受控原生 form reset 恢复初值且不发 `onChange`。项目 Form 的必填规则与 reset 沿用普通字符串控件契约。
+
+`weekStartsOn` 支持周一/周日，`locale` 默认继承 ConfigProvider。`renderDate` 只放非交互内容，额外说明通过 `getDateDescription` 同步给辅助技术；`footer` 和 `suffixIcon` 提供内容与装饰图标插槽。单日期面板的实现不包含范围、多选、其他日期单位或时间组合，这些能力后续单独补齐。
 
 `DateRangePicker` 以 `YYYY-MM-DD` 字符串元组表示范围，清空任一端保留另一端；若新选日期越过另一端，会清空另一端以避免倒序。`name` 将完整元组以 JSON 数组字符串提交。两个原生日期输入都支持浏览器键盘和 H5 日期选择器。与 `FormItem` 配合时传入 `emptyValue={[]}`；如果提交必须同时包含起止日期，应另加 `validator` 检查两个端点。
 

@@ -1,6 +1,7 @@
 import {
   forwardRef,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type HTMLAttributes,
@@ -9,6 +10,27 @@ import {
 } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { resolveComponentSize, useConfig } from './config-context'
+import { Icon } from './icon'
+import {
+  addDays,
+  addMonths,
+  calendarDate,
+  parseDate,
+  parseMonth,
+  sameMonth,
+  toISO,
+  toMonth,
+} from './date-picker-state'
+
+export type CalendarPart =
+  | 'root'
+  | 'header'
+  | 'heading'
+  | 'navigation'
+  | 'gridContainer'
+  | 'grid'
+  | 'cell'
+  | 'day'
 
 export type CalendarProps = Omit<
   HTMLAttributes<HTMLDivElement>,
@@ -32,57 +54,18 @@ export type CalendarProps = Omit<
   size?: 'default' | 'small'
   disabled?: boolean
   invalid?: boolean
+  classNames?: Partial<Record<CalendarPart, string>>
 }
 
 type Day = { date: Date; iso: string; inMonth: boolean }
 
-function toISO(date: Date) {
-  const year = String(date.getFullYear()).padStart(4, '0')
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-function toMonth(date: Date) {
-  return toISO(date).slice(0, 7)
-}
-
-function parseDate(value?: string) {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined
-  const [year, month, day] = value.split('-').map(Number)
-  const date = new Date(year, month - 1, day)
-  return toISO(date) === value ? date : undefined
-}
-
-function parseMonth(value?: string) {
-  if (!value || !/^\d{4}-\d{2}$/.test(value)) return undefined
-  const [year, month] = value.split('-').map(Number)
-  if (month < 1 || month > 12) return undefined
-  return new Date(year, month - 1, 1)
-}
-
-function addDays(date: Date, count: number) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + count)
-}
-
-function addMonths(date: Date, count: number) {
-  return new Date(date.getFullYear(), date.getMonth() + count, 1)
-}
-
-function sameMonth(left: Date, right: Date) {
-  return (
-    left.getFullYear() === right.getFullYear() &&
-    left.getMonth() === right.getMonth()
-  )
-}
-
 function monthDays(month: Date, weekStartsOn: 0 | 1): Day[] {
   const offset =
-    (new Date(month.getFullYear(), month.getMonth(), 1).getDay() -
+    (calendarDate(month.getFullYear(), month.getMonth(), 1).getDay() -
       weekStartsOn +
       7) %
     7
-  const first = new Date(month.getFullYear(), month.getMonth(), 1 - offset)
+  const first = calendarDate(month.getFullYear(), month.getMonth(), 1 - offset)
   return Array.from({ length: 42 }, (_, index) => {
     const date = addDays(first, index)
     return { date, iso: toISO(date), inMonth: sameMonth(date, month) }
@@ -91,8 +74,9 @@ function monthDays(month: Date, weekStartsOn: 0 | 1): Day[] {
 
 /** A project-owned month calendar with roving keyboard focus and ISO values. */
 export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
-  function Calendar(
-    {
+  function Calendar(allProps, ref) {
+    const controlled = Object.prototype.hasOwnProperty.call(allProps, 'value')
+    const {
       value,
       defaultValue,
       onChange,
@@ -112,21 +96,20 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
       disabled = false,
       invalid = false,
       className,
+      classNames,
       'aria-label': ariaLabel,
       'aria-invalid': ariaInvalid,
       ...props
-    },
-    ref,
-  ) {
-    const { componentSize, locale: configLocale } = useConfig()
+    } = allProps
+    const { componentSize, locale: configLocale, direction } = useConfig()
     const resolvedSize = resolveComponentSize(componentSize, size)
     const resolvedLocale = locale ?? configLocale ?? 'zh-CN'
     const today = new Date()
     const todayISO = toISO(today)
     const initialSelected = parseDate(defaultValue)
-    const selectedDate = parseDate(value) ?? initialSelected
+    const selectedDate = controlled ? parseDate(value) : initialSelected
     const [internalValue, setInternalValue] = useState(defaultValue)
-    const selectedISO = value ?? internalValue
+    const selectedISO = controlled ? value : internalValue
     const initialMonth =
       parseMonth(month) ??
       parseMonth(defaultMonth) ??
@@ -140,6 +123,8 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
       selectedDate ? toISO(selectedDate) : todayISO,
     )
     const pendingFocusRef = useRef<string | null>(null)
+    const rootRef = useRef<HTMLDivElement>(null)
+    const ownedFocus = useRef(false)
     const dayRefs = useRef(new Map<string, HTMLButtonElement>())
     const min = parseDate(minDate)
     const max = parseDate(maxDate)
@@ -151,6 +136,7 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
       : days.filter((day) => day.inMonth)
     const isUnavailable = (date: string) =>
       disabled ||
+      !parseDate(date) ||
       (minISO !== undefined && date < minISO) ||
       (maxISO !== undefined && date > maxISO) ||
       Boolean(disabledDate?.(date))
@@ -178,14 +164,50 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
     )
     const isInvalid = invalid || ariaInvalid === true || ariaInvalid === 'true'
 
-    useEffect(() => {
+    function reveal(button: HTMLButtonElement) {
+      button.focus({ preventScroll: true })
+      const scroller = button.closest<HTMLElement>('[data-calendar-scroll]')
+      if (!scroller) return
+      const bounds = scroller.getBoundingClientRect()
+      const row = button.getBoundingClientRect()
+      if (row.left < bounds.left) scroller.scrollLeft -= bounds.left - row.left
+      else if (row.right > bounds.right)
+        scroller.scrollLeft += row.right - bounds.right
+    }
+    useLayoutEffect(() => {
       const target = pendingFocusRef.current
       if (!target || target.slice(0, 7) !== visibleMonthKey) return
       const button = dayRefs.current.get(target)
       if (!button || button.disabled) return
       pendingFocusRef.current = null
-      button.focus()
+      if (ownedFocus.current) reveal(button)
     }, [visibleMonthKey])
+    useLayoutEffect(() => {
+      const current = document.activeElement
+      if (
+        ownedFocus.current &&
+        !pendingFocusRef.current &&
+        activeKey &&
+        (current === document.body ||
+          (rootRef.current?.contains(current) &&
+            current?.hasAttribute('data-calendar-date') &&
+            current.getAttribute('data-calendar-date') !== activeKey))
+      ) {
+        const button = dayRefs.current.get(activeKey)
+        if (button) reveal(button)
+      }
+    })
+    useEffect(() => {
+      const outside = (event: PointerEvent) => {
+        if (
+          event.target instanceof Node &&
+          !rootRef.current?.contains(event.target)
+        )
+          ownedFocus.current = false
+      }
+      document.addEventListener('pointerdown', outside, true)
+      return () => document.removeEventListener('pointerdown', outside, true)
+    }, [])
 
     function changeMonth(nextMonth: Date) {
       const next = toMonth(nextMonth)
@@ -198,8 +220,11 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
       setActiveDate(iso)
       if (!sameMonth(date, visibleMonth)) {
         pendingFocusRef.current = iso
-        changeMonth(new Date(date.getFullYear(), date.getMonth(), 1))
-      } else dayRefs.current.get(iso)?.focus()
+        changeMonth(calendarDate(date.getFullYear(), date.getMonth(), 1))
+      } else {
+        const button = dayRefs.current.get(iso)
+        if (button) reveal(button)
+      }
     }
 
     function findEnabled(start: Date, step: number) {
@@ -221,8 +246,9 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
       const key = event.key
       let target: Date | undefined
       let step = 1
-      if (key === 'ArrowRight') target = addDays(date, 1)
-      else if (key === 'ArrowLeft') {
+      if (key === (direction === 'rtl' ? 'ArrowLeft' : 'ArrowRight'))
+        target = addDays(date, 1)
+      else if (key === (direction === 'rtl' ? 'ArrowRight' : 'ArrowLeft')) {
         target = addDays(date, -1)
         step = -1
       } else if (key === 'ArrowDown') target = addDays(date, 7)
@@ -237,12 +263,12 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
       } else if (key === 'PageUp' || key === 'PageDown') {
         const direction = key === 'PageUp' ? -1 : 1
         const nextMonth = addMonths(date, direction * (event.shiftKey ? 12 : 1))
-        const lastDay = new Date(
+        const lastDay = calendarDate(
           nextMonth.getFullYear(),
           nextMonth.getMonth() + 1,
           0,
         ).getDate()
-        target = new Date(
+        target = calendarDate(
           nextMonth.getFullYear(),
           nextMonth.getMonth(),
           Math.min(date.getDate(), lastDay),
@@ -256,7 +282,7 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
 
     function selectDay(date: string) {
       if (isUnavailable(date)) return
-      if (value === undefined) setInternalValue(date)
+      if (!controlled) setInternalValue(date)
       setActiveDate(date)
       const selected = parseDate(date)!
       if (!sameMonth(selected, visibleMonth)) changeMonth(selected)
@@ -276,39 +302,74 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
     return (
       <div
         {...props}
-        ref={ref}
+        ref={(element) => {
+          rootRef.current = element
+          if (typeof ref === 'function') ref(element)
+          else if (ref) ref.current = element
+        }}
+        dir={props.dir ?? direction}
+        onFocusCapture={(event) => {
+          ownedFocus.current = true
+          props.onFocusCapture?.(event)
+        }}
+        onBlurCapture={(event) => {
+          if (
+            event.relatedTarget instanceof Node &&
+            !event.currentTarget.contains(event.relatedTarget)
+          )
+            ownedFocus.current = false
+          props.onBlurCapture?.(event)
+        }}
         aria-invalid={isInvalid || undefined}
         className={cn(
           'w-full min-w-0 rounded-[var(--ui-card-radius)] border border-border bg-card p-3 text-card-foreground',
           resolvedSize === 'default' && 'sm:p-4',
           isInvalid && 'border-destructive',
           className,
+          classNames?.root,
         )}
       >
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div>
+        <div
+          className={cn(
+            'mb-3 flex flex-wrap items-center justify-between gap-2',
+            classNames?.header,
+          )}
+        >
+          <div className={classNames?.heading}>
             <p className="text-sm font-medium text-muted-foreground">{label}</p>
             <p className="text-base font-semibold" aria-live="polite">
               {monthLabel}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div
+            className={cn(
+              'flex flex-wrap items-center gap-2',
+              classNames?.navigation,
+            )}
+          >
             <button
               type="button"
+              tabIndex={0}
               aria-label="上个月"
               disabled={!canGoPrevious}
               className="inline-flex size-11 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] border border-input text-base hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
               onClick={() => changeMonth(previousMonth)}
             >
-              ‹
+              <Icon
+                name={direction === 'rtl' ? 'arrowRight' : 'arrowLeft'}
+                size={16}
+              />
             </button>
             <button
               type="button"
+              tabIndex={0}
               aria-label="今天"
               disabled={!canGoToday}
               className="inline-flex min-h-11 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] border border-input px-3 text-sm hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
               onClick={() => {
-                changeMonth(new Date(today.getFullYear(), today.getMonth(), 1))
+                changeMonth(
+                  calendarDate(today.getFullYear(), today.getMonth(), 1),
+                )
                 setActiveDate(todayISO)
               }}
             >
@@ -316,20 +377,33 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
             </button>
             <button
               type="button"
+              tabIndex={0}
               aria-label="下个月"
               disabled={!canGoNext}
               className="inline-flex size-11 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] border border-input text-base hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
               onClick={() => changeMonth(nextMonth)}
             >
-              ›
+              <Icon
+                name={direction === 'rtl' ? 'arrowLeft' : 'arrowRight'}
+                size={16}
+              />
             </button>
           </div>
         </div>
-        <div className="max-w-full overflow-x-auto">
+        <div
+          data-calendar-scroll
+          className={cn(
+            'max-w-full overflow-x-auto',
+            classNames?.gridContainer,
+          )}
+        >
           <table
             role="grid"
             aria-label={ariaLabel ?? `${label}，${monthLabel}`}
-            className="w-full min-w-[336px] table-fixed border-separate border-spacing-0"
+            className={cn(
+              'w-full min-w-[336px] table-fixed border-separate border-spacing-0',
+              classNames?.grid,
+            )}
           >
             <thead>
               <tr role="row">
@@ -358,7 +432,10 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
                         key={day.iso}
                         role="gridcell"
                         aria-selected={selected}
-                        className="p-0.5 text-center align-top"
+                        className={cn(
+                          'p-0.5 text-center align-top',
+                          classNames?.cell,
+                        )}
                       >
                         {!hidden && (
                           <button
@@ -367,6 +444,7 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
                               else dayRefs.current.delete(day.iso)
                             }}
                             type="button"
+                            data-calendar-date={day.iso}
                             aria-label={
                               description
                                 ? `${dateLabel.format(day.date)}，${description}`
@@ -387,6 +465,7 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
                               !selected &&
                                 !unavailable &&
                                 'hover:bg-accent hover:text-accent-foreground',
+                              classNames?.day,
                             )}
                             onFocus={() => setActiveDate(day.iso)}
                             onKeyDown={(event) =>

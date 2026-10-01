@@ -277,14 +277,10 @@ const NativePicker = forwardRef<
   )
 })
 
-export type DatePickerProps = NativePickerProps
 export type TimePickerProps = NativePickerProps
 
-export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
-  function DatePicker(props, ref) {
-    return <NativePicker {...props} ref={ref} type="date" />
-  },
-)
+export { DatePicker } from './date-picker'
+export type { DatePickerProps } from './date-picker'
 
 export const TimePicker = forwardRef<HTMLInputElement, TimePickerProps>(
   function TimePicker(props, ref) {

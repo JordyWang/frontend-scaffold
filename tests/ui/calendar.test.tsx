@@ -3,6 +3,62 @@ import { describe, expect, it, vi } from 'vitest'
 import { Calendar, ConfigProvider } from '@/shared/ui'
 
 describe('Calendar', () => {
+  it('keeps controlled empty values empty and follows RTL visual navigation', () => {
+    render(
+      <ConfigProvider direction="rtl">
+        <Calendar
+          value={undefined}
+          defaultValue="2024-02-10"
+          defaultMonth="2024-02"
+        />
+      </ConfigProvider>,
+    )
+    expect(document.querySelector('[aria-selected="true"]')).toBeNull()
+    const day = document.querySelector<HTMLButtonElement>(
+      '[data-calendar-date="2024-02-10"]',
+    )!
+    day.focus()
+    fireEvent.keyDown(day, { key: 'ArrowLeft' })
+    expect(
+      document.querySelector('[data-calendar-date="2024-02-11"]'),
+    ).toHaveFocus()
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight' })
+    expect(day).toHaveFocus()
+  })
+
+  it('restores a focused date when it becomes unavailable without taking external focus', () => {
+    const { rerender } = render(
+      <>
+        <Calendar defaultMonth="2024-02" />
+        <button>外部</button>
+      </>,
+    )
+    const day = document.querySelector<HTMLButtonElement>(
+      '[data-calendar-date="2024-02-10"]',
+    )!
+    day.focus()
+    rerender(
+      <>
+        <Calendar
+          defaultMonth="2024-02"
+          disabledDate={(date) => date === '2024-02-10'}
+        />
+        <button>外部</button>
+      </>,
+    )
+    expect(
+      document.querySelector('[data-calendar-date="2024-02-01"]'),
+    ).toHaveFocus()
+    screen.getByRole('button', { name: '外部' }).focus()
+    rerender(
+      <>
+        <Calendar defaultMonth="2024-02" disabledDate={() => false} />
+        <button>外部</button>
+      </>,
+    )
+    expect(screen.getByRole('button', { name: '外部' })).toHaveFocus()
+  })
+
   it('inherits locale from ConfigProvider and lets an explicit locale win', () => {
     const englishMonth = new Intl.DateTimeFormat('en-US', {
       year: 'numeric',

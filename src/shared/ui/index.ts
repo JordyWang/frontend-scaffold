@@ -127,7 +127,7 @@ export type { RateProps } from './rate'
 export { ColorPicker } from './color-picker'
 export type { ColorPickerProps } from './color-picker'
 export { Calendar } from './calendar'
-export type { CalendarProps } from './calendar'
+export type { CalendarProps, CalendarPart } from './calendar'
 export { Tag, Badge, Skeleton } from './display'
 export { Image, ImagePreviewGroup } from './image'
 export type {
@@ -205,6 +205,11 @@ export {
   TimePicker,
   Upload,
 } from './data-input'
+export type {
+  DatePickerPreset,
+  DatePickerPart,
+  DatePickerPlacement,
+} from './date-picker'
 export type {
   AutoCompleteOption,
   AutoCompleteProps,

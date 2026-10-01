@@ -32,6 +32,7 @@ select {
   *::after {
     scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
+    /* Visibility must settle before a newly opened panel receives focus. */
+    transition-duration: 0s !important;
   }
 }

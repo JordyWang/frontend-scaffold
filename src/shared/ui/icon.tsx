@@ -21,6 +21,9 @@ const paths = {
   ),
   file: <path d="M4 2h7l5 5v11H4ZM11 2v5h5M7 11h6M7 14h6" />,
   close: <path d="M5 5l10 10M15 5 5 15" />,
+  calendar: (
+    <path d="M3 4h14v13H3ZM3 8h14M6 2v4M14 2v4M6 11h.01M10 11h.01M14 11h.01M6 14h.01M10 14h.01" />
+  ),
   info: (
     <>
       <circle cx="10" cy="10" r="7" />

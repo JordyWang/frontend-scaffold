@@ -9,6 +9,7 @@ import { TreeDragPreview } from './TreeDragPreview'
 import { TreeSelectPreview } from './TreeSelectPreview'
 import { TreeSelectAsyncPreview } from './TreeSelectAsyncPreview'
 import { CascaderPreview } from './CascaderPreview'
+import { DatePickerPreview } from './DatePickerPreview'
 import {
   Alert,
   Affix,
@@ -1270,7 +1271,7 @@ export function DesignSystemPreview() {
                 />
                 <FormField
                   label="开始日期"
-                  control={<DatePicker aria-label="开始日期" />}
+                  control={<DatePicker aria-label="开始日期" mode="native" />}
                 />
                 <FormField
                   label="日期范围"
@@ -2044,6 +2045,7 @@ export function DesignSystemPreview() {
           <TreeSelectPreview />
           <TreeSelectAsyncPreview />
           <CascaderPreview />
+          <DatePickerPreview />
           <Card className="col-span-full">
             <CardContent>
               <Stack gap="md">
