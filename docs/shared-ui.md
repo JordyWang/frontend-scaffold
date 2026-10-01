@@ -60,7 +60,7 @@
 | Tour                            | `steps`、`open`、`current`、`onChange`、`onClose`、`onFinish`、`mask`、`keyboard`、`placement`、`gap`、`scrollIntoViewOptions`                   | 目标高亮、遮罩、左右方向键和 Escape；卡片操作与触控目标至少 44px                                                            |
 | Progress / Result               | `Progress(percent, status, type, showInfo, steps, gapDegree, gapPlacement)`；`Result(status, title, subTitle, extra, children)`                  | 进度值限制在 0–100 并暴露单一 progressbar；支持线性、圆环、仪表盘及分段；结果状态提供明确文本、操作和错误详情               |
 | Toast / Message / Notification  | `toast(options)`；`message.open/success/warning/error(content)`；`notification.open/success/warning/error({ message, description?, duration? })` | 共用 Provider 和安全区配置；页面不直接依赖 Sonner                                                                           |
-| Collapse                        | `Collapse(items, activeKey, defaultActiveKey, accordion, onChange)`                                                                              | 使用按钮控制 region，支持受控/非受控和单开模式                                                                              |
+| Collapse                        | `items`、`activeKey` / `defaultActiveKey`、`accordion`、`size`、`collapsible`、`destroyOnHidden`、`classNames`                                   | 标题/图标开合、独立操作区、内容保留、方向键导航、动态焦点恢复及 RTL                                                         |
 | Avatar                          | `src`、`srcSet`、`alt`、`label`、`size`、`shape`、`icon`、`gap`、`onError`                                                                       | 头像保留单一可访问名称，失败后回退到图标或文字；长文字自动缩放，尺寸可响应断点                                              |
 | Descriptions                    | `items`、`column`、`bordered`、`layout`、`size`、`title`、`extra`、`colon`、`emptyText`、`classNames`                                            | `dl/dt/dd` 保持一份阅读顺序；响应式列数和跨度、整行剩余填充、统一尺寸、RTL 与空状态                                         |
 | AvatarGroup                     | `items`、`maxCount`、`size`、`shape`、`label`                                                                                                    | 重叠展示成员，溢出按钮支持键盘和触控打开公共 Popover 查看其余成员，布局跟随 RTL                                             |
@@ -214,6 +214,20 @@ Checkbox、Switch 和 RadioGroup 自带可访问标签。需要显示校验错�
 `QRCode` 默认使用 Canvas，也支持 SVG；`value` 采用字节模式编码，`errorLevel` 为 `L` / `M` / `Q` / `H`。`status="loading"` 和 `status="expired"` 会保留二维码容器并覆盖状态层，`onRefresh` 用于失效后的重新获取。
 
 `Tour.steps` 使用 `{ key, target?, title, description?, cover?, placement?, mask?, type? }`。`target` 可传元素或返回元素的函数；目标为空时卡片居中。开启遮罩时目标周围保留可直接操作的高亮区域，Tab 在卡片和高亮目标之间循环，遮罩区域可点击关闭；卡片或目标尺寸变化时会重新定位。`keyboard` 开启后支持 Escape、左右方向键，步骤切换会调用 `onChange`。`current` / `open` 为受控状态，`onFinish` 和 `onClose` 结束后恢复打开前焦点。
+
+## 折叠面板
+
+`Collapse.items` 使用稳定字符串 `key` 和非交互式 `label`，内容放在 `children`，标题旁的按钮放在 `extra`。`extra` 是展开按钮的兄弟节点，点击不会触发折叠；容器不足 360px 时操作区换行。`size` 为 `small` / `default` / `large`，未传时继承 ConfigProvider；`bordered={false}` 去掉外框，`ghost` 同时移除背景与分隔线。
+
+`activeKey` / `defaultActiveKey` 和 `onChange(keys)` 始终使用字符串数组；`accordion` 最多展开一项。重复和不存在的键会被过滤，再应用单开约束；非受控状态移除面板后清理它的展开键，受控状态只派生当前显示，不自动回调 `onChange`。
+
+`collapsible` 可设为 `header`（默认）、`icon` 或 `disabled`，单项同名字段可以覆写全局值。`disabled` 优先禁止用户开合，但不强制关闭受控展开的面板。`showArrow={false}` 隐藏箭头；与图标触发组合时回退为标题按钮，保留可操作入口。`expandIconPlacement` 为逻辑 `start` / `end`，跟随 RTL；`expandIcon({ key, expanded, disabled, direction })` 自定义装饰图标，不重复播报。
+
+默认内容首次展开才挂载，关闭后保持 DOM 与表单草稿；`destroyOnHidden` 关闭时卸载内容，单项 `forceRender` 则始终挂载并优先于销毁。内容区的 region 外壳始终保留，使 `aria-controls` 在关闭时也指向有效元素；隐藏内容不进入焦点和辅助技术阅读顺序。
+
+展开按钮支持 Enter、空格、上下方向键、Home / End，方向键跳过禁用项并循环；额外按钮、内容输入和嵌套面板各自保留键盘行为。内容关闭、面板删除或焦点所在的触发器禁用后，若焦点仍属于该面板，则恢复到原触发器、首个可用触发器或容器；用户移到外部的焦点保持原位。
+
+`classNames` 可指定 `root` / `item` / `header` / `icon` / `label` / `body` / `extra` 的 Tailwind 类，单项也支持除 `root` 外的同名槽位。空数据使用 `emptyText`（默认“暂无面板”），`label` 命名折叠组。`/__ui` 的独立折叠预览包含尺寸、外观、操作区、内容生命周期、受控动态数据、嵌套、RTL 深色和空状态。
 
 ## 使用示例
 

@@ -36,6 +36,8 @@
 
 `Descriptions` 补齐基于自身容器宽度的响应式列数和单项跨度、`filled` 行剩余填充、标题操作区、冒号、三种尺寸及语义 Tailwind 类名。数字跨度会限制在可用列数内，每行末项填满剩余位置；水平和垂直边框闭合，垂直字段使用 subgrid 对齐。`/__ui` 展示可切换布局、尺寸、边框、更新操作、长文本、RTL 深色主题和空数据，并验证 PC 窄卡片能回退为单列。
 
+`Collapse` 补齐三种尺寸、边框与透明外观、标题/图标触发、独立操作区、自定义箭头和语义 Tailwind 类。内容默认首次展开挂载并保留，支持隐藏销毁与单项强制挂载；动态移除的非受控键会清理，关闭或移除焦点所属面板、禁用焦点所在的触发器时恢复到可用入口。上下方向键及 Home / End 只处理本层触发器，嵌套与表单输入保留自身行为；`/__ui` 独立预览 PC 窄容器、H5、RTL 深色和内容生命周期。
+
 ConfigProvider 的 RTL 方向已覆盖 Select、Dialog、Sheet、Dropdown、Popover、Tooltip 的弹层容器，Select 的触发器和选项使用 Tailwind 逻辑方向样式；`/__ui` 提供键盘与 H5 触控预览。
 
 Dropdown、Popover、Tooltip 的浮层已在裁切容器、RTL、桌面与 H5 中验证。Dropdown 的上下方向键、Enter、空格和正反向 Tab，以及 Popover 中交互内容的 Tab 顺序已有浏览器回归。

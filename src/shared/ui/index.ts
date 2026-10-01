@@ -177,7 +177,12 @@ export type {
   ResultStatus,
 } from './feedback'
 export { Collapse } from './disclosure'
-export type { CollapseItem, CollapseProps } from './disclosure'
+export type {
+  CollapseItem,
+  CollapseProps,
+  CollapseTrigger,
+  CollapseIconOptions,
+} from './disclosure'
 export { Avatar, AvatarGroup } from './avatar'
 export type {
   AvatarProps,
