@@ -2,6 +2,7 @@ import * as SelectPrimitive from '@radix-ui/react-select'
 import {
   forwardRef,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -24,6 +25,12 @@ export type SelectOption = { value: string; label: string; disabled?: boolean }
 
 function firstEnabledIndex(items: SelectOption[]) {
   return items.findIndex((option) => !option.disabled)
+}
+
+function lastEnabledIndex(items: SelectOption[]) {
+  for (let index = items.length - 1; index >= 0; index--)
+    if (!items[index].disabled) return index
+  return -1
 }
 
 export type SelectProps = {
@@ -85,14 +92,24 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
     const { componentSize, direction } = useConfig()
     const resolvedSize = resolveComponentSize(componentSize, size)
     const portalContainer = usePortalContainer()
+    const generatedId = useId()
+    const triggerId = id ?? `select-${generatedId}`
+    const listId = `${triggerId}-list`
     const triggerRef = useRef<HTMLButtonElement>(null)
     const contentRef = useRef<HTMLDivElement>(null)
+    const viewportRef = useRef<HTMLDivElement>(null)
     const searchRef = useRef<HTMLInputElement>(null)
+    const composing = useRef(false)
+    const closeFocusTarget = useRef<HTMLElement | null>(null)
     const [internalValue, setInternalValue] = useState(defaultValue ?? '')
     const [open, setOpen] = useState(false)
     const [searchValue, setSearchValue] = useState('')
     const [activeSearchIndex, setActiveSearchIndex] = useState(-1)
     const currentValue = controlled ? (value ?? '') : internalValue
+    const isOpen = open && !disabled
+    const selectedLabel = options.find(
+      (option) => option.value === currentValue,
+    )?.label
     const filteredOptions = useMemo(
       () =>
         options.filter((option) =>
@@ -110,26 +127,71 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
       const option = filteredOptions[index]
       if (!option || option.disabled) return
       setActiveSearchIndex(index)
-      requestAnimationFrame(() => {
-        const element = contentRef.current?.querySelector<HTMLElement>(
-          `[data-select-option-index="${index}"]`,
-        )
-        if (element && typeof element.scrollIntoView === 'function')
-          element.focus()
-      })
+      const element = contentRef.current?.querySelector<HTMLElement>(
+        `[data-select-option-index="${index}"]`,
+      )
+      element?.focus({ preventScroll: true })
+      const viewport = viewportRef.current
+      if (!element || !viewport) return
+      const itemBox = element.getBoundingClientRect()
+      const viewportBox = viewport.getBoundingClientRect()
+      if (itemBox.top < viewportBox.top)
+        viewport.scrollTop += itemBox.top - viewportBox.top
+      else if (itemBox.bottom > viewportBox.bottom)
+        viewport.scrollTop += itemBox.bottom - viewportBox.bottom
     }
 
     useEffect(() => {
-      if (!open || !showSearch) return
-      const index = firstEnabledIndex(filteredOptions)
-      setActiveSearchIndex(index)
-      requestAnimationFrame(() => searchRef.current?.focus())
-    }, [filteredOptions, open, showSearch])
+      if (!isOpen || !showSearch) return
+      const frame = requestAnimationFrame(() =>
+        searchRef.current?.focus({ preventScroll: true }),
+      )
+      return () => cancelAnimationFrame(frame)
+    }, [isOpen, showSearch])
 
     useEffect(() => {
-      if (!open || !showSearch) return
+      if (!isOpen || !showSearch) return
       setActiveSearchIndex(firstEnabledIndex(filteredOptions))
-    }, [filteredOptions, open, showSearch])
+    }, [filteredOptions, isOpen, showSearch])
+
+    useEffect(() => {
+      if (!disabled) return
+      setOpen(false)
+      setSearchValue('')
+      setActiveSearchIndex(-1)
+      composing.current = false
+    }, [disabled])
+
+    function changeOpen(nextOpen: boolean) {
+      setOpen(nextOpen)
+      if (!nextOpen) {
+        setSearchValue('')
+        setActiveSearchIndex(-1)
+        composing.current = false
+      } else closeFocusTarget.current = null
+    }
+
+    function closeToNextControl() {
+      const trigger = triggerRef.current
+      if (trigger) {
+        const controls = [
+          ...trigger.ownerDocument.querySelectorAll<HTMLElement>(
+            'a[href], button, input, select, textarea, [tabindex]',
+          ),
+        ].filter(
+          (element) =>
+            element.tabIndex >= 0 &&
+            !element.matches(':disabled') &&
+            !element.closest('[inert], [hidden]') &&
+            element.getClientRects().length > 0 &&
+            getComputedStyle(element).visibility !== 'hidden' &&
+            !contentRef.current?.contains(element),
+        )
+        closeFocusTarget.current =
+          controls[controls.indexOf(trigger) + 1] ?? trigger
+      }
+      changeOpen(false)
+    }
 
     function changeValue(next: string) {
       if (!controlled) setInternalValue(next)
@@ -139,16 +201,10 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
     return (
       <SelectPrimitive.Root
         dir={direction}
-        open={open}
+        open={isOpen}
         value={currentValue}
         onValueChange={changeValue}
-        onOpenChange={(nextOpen) => {
-          setOpen(nextOpen)
-          if (!nextOpen) {
-            setSearchValue('')
-            setActiveSearchIndex(-1)
-          }
-        }}
+        onOpenChange={changeOpen}
         disabled={disabled}
         required={required}
         name={name}
@@ -160,7 +216,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
               if (typeof ref === 'function') ref(element)
               else if (ref) ref.current = element
             }}
-            id={id}
+            id={triggerId}
             dir={direction}
             className={cn(
               inputStyles,
@@ -172,10 +228,21 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
               className,
             )}
             {...ariaProps}
+            aria-controls={
+              ariaProps['aria-controls'] ?? (isOpen ? listId : undefined)
+            }
             aria-invalid={status === 'error' || ariaInvalid || undefined}
             data-status={status === 'default' ? undefined : status}
           >
-            <SelectPrimitive.Value placeholder={placeholder} />
+            <span className="min-w-0 flex-1 truncate">
+              <SelectPrimitive.Value placeholder={placeholder}>
+                {currentValue ? (
+                  <span className="block truncate">
+                    {selectedLabel ?? currentValue}
+                  </span>
+                ) : undefined}
+              </SelectPrimitive.Value>
+            </span>
             <SelectPrimitive.Icon
               aria-hidden="true"
               className="size-5 shrink-0 [&_svg]:size-5"
@@ -208,12 +275,63 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
         <SelectPrimitive.Portal container={portalContainer}>
           <SelectPrimitive.Content
             ref={contentRef}
+            id={listId}
             data-select-content=""
             dir={direction}
-            className="z-[70] max-h-[min(20rem,var(--radix-select-content-available-height))] min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-[var(--radius-md)] border border-border bg-card text-card-foreground shadow-xl"
+            className="z-[70] max-h-[min(20rem,var(--radix-select-content-available-height))] min-w-[var(--radix-select-trigger-width)] max-w-[var(--radix-select-content-available-width)] overflow-hidden rounded-[var(--radius-md)] border border-border bg-card text-card-foreground shadow-xl"
             position="popper"
             sideOffset={4}
             collisionPadding={8}
+            onEscapeKeyDown={(event) => {
+              if (
+                composing.current ||
+                event.isComposing ||
+                event.keyCode === 229
+              )
+                event.preventDefault()
+            }}
+            onCloseAutoFocus={(event) => {
+              const target = closeFocusTarget.current
+              closeFocusTarget.current = null
+              if (!target) return
+              event.preventDefault()
+              target.focus({ preventScroll: true })
+            }}
+            onKeyDownCapture={(event) => {
+              if (
+                !showSearch ||
+                composing.current ||
+                event.nativeEvent.isComposing ||
+                event.keyCode === 229
+              )
+                return
+              const inSearch = event.target === searchRef.current
+              if (event.key === 'Tab') {
+                event.preventDefault()
+                event.stopPropagation()
+                if (event.shiftKey) {
+                  if (!inSearch)
+                    searchRef.current?.focus({ preventScroll: true })
+                  else changeOpen(false)
+                } else if (
+                  inSearch &&
+                  firstEnabledIndex(filteredOptions) >= 0
+                ) {
+                  focusOption(firstEnabledIndex(filteredOptions))
+                } else closeToNextControl()
+              } else if (
+                event.key === 'ArrowUp' &&
+                !inSearch &&
+                event.target ===
+                  contentRef.current?.querySelector(
+                    `[data-select-option-index="${firstEnabledIndex(filteredOptions)}"]`,
+                  )
+              ) {
+                event.preventDefault()
+                event.stopPropagation()
+                searchRef.current?.focus({ preventScroll: true })
+              }
+            }}
           >
             {showSearch && (
               <div className="p-[var(--space-xs)]">
@@ -222,29 +340,34 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
                   type="search"
                   role="searchbox"
                   aria-label={`搜索${label ?? ariaProps['aria-label'] ?? '选择'}`}
+                  aria-controls={listId}
                   className={cn(inputStyles, 'min-h-11')}
                   value={searchValue}
+                  onCompositionStart={() => {
+                    composing.current = true
+                  }}
+                  onCompositionEnd={() => {
+                    composing.current = false
+                  }}
                   onChange={(event) =>
                     setSearchValue(event.currentTarget.value)
                   }
                   onKeyDown={(event) => {
+                    // The input owns text editing and IME keys; Radix owns item keys.
+                    event.stopPropagation()
+                    if (
+                      composing.current ||
+                      event.nativeEvent.isComposing ||
+                      event.keyCode === 229
+                    )
+                      return
                     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
                       event.preventDefault()
-                      const enabled = filteredOptions
-                        .map((option, index) => ({ option, index }))
-                        .filter(({ option }) => !option.disabled)
-                      if (!enabled.length) return
-                      const current = enabled.findIndex(
-                        ({ index }) => index === activeSearchIndex,
-                      )
-                      const offset = event.key === 'ArrowDown' ? 1 : -1
-                      const next =
-                        current < 0
-                          ? offset > 0
-                            ? 0
-                            : enabled.length - 1
-                          : (current + offset + enabled.length) % enabled.length
-                      focusOption(enabled[next].index)
+                      const index =
+                        event.key === 'ArrowDown'
+                          ? firstEnabledIndex(filteredOptions)
+                          : lastEnabledIndex(filteredOptions)
+                      focusOption(index)
                     } else if (event.key === 'Enter') {
                       event.preventDefault()
                       const option = filteredOptions[activeSearchIndex]
@@ -256,13 +379,16 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
                         ?.click()
                     } else if (event.key === 'Escape') {
                       event.preventDefault()
-                      setOpen(false)
+                      changeOpen(false)
                     }
                   }}
                 />
               </div>
             )}
-            <SelectPrimitive.Viewport className="p-[var(--space-xs)]">
+            <SelectPrimitive.Viewport
+              ref={viewportRef}
+              className="p-[var(--space-xs)]"
+            >
               {filteredOptions.length === 0 ? (
                 <div
                   role="status"
@@ -279,9 +405,11 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
                     data-select-option-index={index}
                     className="relative flex min-h-11 touch-manipulation items-center rounded-[var(--radius-sm)] py-2.5 pe-8 ps-3 outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50"
                   >
-                    <SelectPrimitive.ItemText>
-                      {option.label}
-                    </SelectPrimitive.ItemText>
+                    <span className="min-w-0 wrap-anywhere">
+                      <SelectPrimitive.ItemText>
+                        {option.label}
+                      </SelectPrimitive.ItemText>
+                    </span>
                     <SelectPrimitive.ItemIndicator
                       aria-hidden="true"
                       className="absolute end-3"

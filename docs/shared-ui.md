@@ -28,7 +28,7 @@
 | Upload                          | `accept`、`multiple`、`beforeUpload`、`onFiles`、`disabled`                                                                                           | 仅负责文件入口和筛选；预览、校验、上传进度继续使用 `capabilities/files`                                                     |
 | Card                            | `Card`、`CardHeader`、`CardTitle`、`CardDescription`、`CardContent`、`CardFooter`；`size` 为 default / small                                          | 组合式插槽共享尺寸；小号可继承 ConfigProvider.componentSize                                                                 |
 | Empty                           | `title`、`description`、`action`、`image`、`size`                                                                                                     | 无数据状态；default / small 尺寸，可继承 ConfigProvider.componentSize；默认插图可替换或隐藏                                 |
-| Select                          | `options`、`value` / `defaultValue`、`onValueChange`、`placeholder`、`disabled`、`name`、`required`、`size`、常用 `aria-*` 和焦点事件                 | 选项 `{ value, label, disabled? }`；Radix 处理方向键、搜索和焦点                                                            |
+| Select                          | `options`、`value` / `defaultValue`、`onValueChange`、`showSearch`、`filterOption`、`allowClear`；其余字段同输入约定                                  | 选项 `{ value, label, disabled? }`；项目处理搜索文本与输入法，Radix 处理选项键盘与弹层焦点                                  |
 | MultiSelect                     | `options`、`value` / `defaultValue`、`onValueChange`、`showSearch`、`allowClear`、`disabled`、`name`、`required`、`size`                              | 项目多选值为 `string[]`；弹层列表支持过滤、方向键、Enter/空格、Escape 和 H5 触控                                            |
 | Dialog / Modal / Sheet / Drawer | `title`、`description`、`trigger`、`children`、`footer`、`open` / `defaultOpen`、`onOpenChange`                                                       | `Modal`/`Drawer` 是项目 API 的 AntD 语义别名；焦点、Escape、背景滚动和 H5 底部面板由内部统一处理                            |
 | Dropdown / Tooltip / Popover    | `Dropdown(items, trigger)`；`Tooltip(title, children)`；`Popover(content, children, title?, label?, placement?)`                                      | 菜单支持 Enter、空格、上下方向键和 Escape；气泡内控件接续触发器的 Tab 顺序，提示用于可选信息，必要信息直接展示              |
@@ -338,7 +338,9 @@ ref 指向输入；`className` 修饰输入，`classNames` 除日期插槽外提
 
 单选 `Select.allowClear` 在有值且可用时显示独立 44px 清空按钮；清空后 `onValueChange('')`，非受控值显示占位文字、原生表单不再提交该字段，并把焦点还给触发器。传入 `label` 可为清空按钮生成具体的可访问名称；受控值仍由外部 `value` 决定。
 
-单选 `Select.showSearch` 在项目弹层顶部提供可见搜索输入，按 `label` / `value` 过滤选项；`filterOption(inputValue, option)` 可替换过滤规则。搜索输入支持上下方向键进入可用选项、Enter 选择、Escape 关闭，触控直接选择结果，搜索不会改变触发器当前值，选择后仍遵循原有表单和焦点契约。
+单选 `Select.showSearch` 在项目弹层顶部提供可见搜索输入，按 `label` / `value` 过滤选项；`filterOption(inputValue, option)` 可替换过滤规则。搜索输入的 ArrowDown / ArrowUp 分别进入首个 / 末个可用选项，Enter 选择首个匹配的可用选项，Escape 关闭；首个选项的 ArrowUp 返回搜索。文本光标、空格、删除和输入法确认由输入框处理，组合输入及兼容的 229 键码不会误选或关闭。搜索 Tab 进入可用选项，选项 Shift+Tab 返回搜索；搜索 Shift+Tab 关闭并恢复触发器，选项 Tab（或无可用结果时的搜索 Tab）关闭并继续触发器之后的表单顺序。触控直接选择结果，搜索保留触发器当前值与标签；关闭或禁用后清除搜索会话，重新打开从完整选项开始。触发器与搜索框都通过 `aria-controls` 关联弹层，选择后仍遵循原有表单和焦点契约。
+
+`Select` 弹层宽度限制在可用视口内，长选项和连续字符可换行；触发器中的已选长标签截断显示，完整文字保留在 DOM 中。`/__ui` 的 240px RTL 搜索预览覆盖这些状态。
 
 `Pagination` 可选 `onPageSizeChange(size, page)`、`pageSizeOptions`、`showQuickJumper` 和 `showTotal`。切换每页条数时，`page` 指向原先第一条记录所在的新页，由调用方同步更新 `pageSize` 和 `page`；快速跳页只接受当前范围内的整数，错误会在输入框旁显示。加载时这些控件不可操作，`load-more` 模式维持单按钮入口。
 

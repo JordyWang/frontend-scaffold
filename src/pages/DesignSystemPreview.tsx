@@ -1218,6 +1218,11 @@ export function DesignSystemPreview() {
                       label="可搜索选择"
                       showSearch
                       options={[
+                        {
+                          value: 'unavailable',
+                          label: '暂不可用城市',
+                          disabled: true,
+                        },
                         { value: 'beijing', label: '北京' },
                         { value: 'shanghai', label: '上海' },
                         { value: 'shenzhen', label: '深圳' },
@@ -2532,6 +2537,29 @@ export function DesignSystemPreview() {
                       options={[
                         { value: 'first', label: 'RTL 第一项' },
                         { value: 'second', label: 'RTL 第二项' },
+                      ]}
+                    />
+                    <Select
+                      label="RTL 搜索选择"
+                      aria-label="RTL 搜索选择"
+                      className="max-w-60"
+                      showSearch
+                      status="warning"
+                      defaultValue="first"
+                      options={[
+                        {
+                          value: 'unavailable',
+                          label: 'RTL 不可用项',
+                          disabled: true,
+                        },
+                        { value: 'first', label: 'RTL 搜索第一项' },
+                        { value: 'second', label: 'RTL 搜索第二项' },
+                        {
+                          value: 'long',
+                          label:
+                            'RTL 很长的选项 https://example.test/' +
+                            'a'.repeat(90),
+                        },
                       ]}
                     />
                     <MultiSelect

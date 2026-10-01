@@ -8,6 +8,138 @@ const options = [
 ]
 
 describe('Select clear action', () => {
+  it('keeps custom filtering, disabled results and empty results independent of selection', async () => {
+    const onValueChange = vi.fn()
+    const filterOption = vi.fn((query: string, option: { value: string }) =>
+      option.value.startsWith(query),
+    )
+    render(
+      <Select
+        label="城市"
+        showSearch
+        options={[
+          { value: 'shanghai', label: '上海', disabled: true },
+          { value: 'shenzhen', label: '深圳' },
+          { value: 'beijing', label: '北京' },
+        ]}
+        filterOption={filterOption}
+        onValueChange={onValueChange}
+      />,
+    )
+    fireEvent.click(screen.getByRole('combobox'))
+    const search = screen.getByRole('searchbox')
+    await waitFor(() => expect(search).toHaveFocus())
+    fireEvent.change(search, { target: { value: 'shang' } })
+    expect(filterOption).toHaveBeenCalledWith('shang', {
+      value: 'shanghai',
+      label: '上海',
+      disabled: true,
+    })
+    fireEvent.keyDown(search, { key: 'Enter' })
+    expect(onValueChange).not.toHaveBeenCalled()
+    expect(search).toBeVisible()
+    fireEvent.change(search, { target: { value: 'unknown' } })
+    expect(screen.getByRole('status')).toHaveTextContent('无匹配选项')
+    fireEvent.keyDown(search, { key: 'Enter' })
+    expect(onValueChange).not.toHaveBeenCalled()
+    fireEvent.change(search, { target: { value: 'sh' } })
+    fireEvent.keyDown(search, { key: 'Enter' })
+    expect(onValueChange).toHaveBeenCalledExactlyOnceWith('shenzhen')
+  })
+
+  it('closes a disabled popup and discards its previous search session', async () => {
+    const { rerender } = render(
+      <Select label="视图" options={options} showSearch />,
+    )
+    fireEvent.click(screen.getByRole('combobox'))
+    const search = screen.getByRole('searchbox')
+    await waitFor(() => expect(search).toHaveFocus())
+    fireEvent.change(search, { target: { value: 'list' } })
+    rerender(<Select label="视图" options={options} showSearch disabled />)
+    expect(screen.queryByRole('searchbox')).toBeNull()
+    expect(screen.getByRole('combobox')).toBeDisabled()
+    rerender(<Select label="视图" options={options} showSearch />)
+    expect(screen.queryByRole('searchbox')).toBeNull()
+    fireEvent.click(screen.getByRole('combobox'))
+    expect(screen.getByRole('searchbox')).toHaveValue('')
+    expect(screen.getByRole('option', { name: '网格' })).toBeVisible()
+  })
+
+  it('enters the first enabled result without skipping it', async () => {
+    const onValueChange = vi.fn()
+    render(
+      <Select
+        label="城市"
+        showSearch
+        options={[
+          { value: 'disabled', label: '不可选城市', disabled: true },
+          { value: 'beijing', label: '北京' },
+          { value: 'shanghai', label: '上海' },
+        ]}
+        onValueChange={onValueChange}
+      />,
+    )
+    fireEvent.click(screen.getByRole('combobox'))
+    const search = screen.getByRole('searchbox')
+    await waitFor(() => expect(search).toHaveFocus())
+    fireEvent.keyDown(search, { key: 'ArrowDown' })
+    fireEvent.keyDown(search, { key: 'Enter' })
+    expect(onValueChange).toHaveBeenCalledExactlyOnceWith('beijing')
+  })
+
+  it('does not select or dismiss while the input method is composing', async () => {
+    const onValueChange = vi.fn()
+    render(
+      <Select
+        label="城市"
+        showSearch
+        options={[{ value: 'shanghai', label: '上海' }]}
+        onValueChange={onValueChange}
+      />,
+    )
+    const trigger = screen.getByRole('combobox')
+    fireEvent.click(trigger)
+    const search = screen.getByRole('searchbox')
+    await waitFor(() => expect(search).toHaveFocus())
+    const popup = screen.getByRole('listbox')
+    expect(trigger).toHaveAttribute('aria-controls', popup.id)
+    expect(search).toHaveAttribute('aria-controls', popup.id)
+    fireEvent.compositionStart(search)
+    fireEvent.change(search, { target: { value: '上' } })
+    fireEvent.keyDown(search, { key: 'Enter', isComposing: true })
+    expect(onValueChange).not.toHaveBeenCalled()
+    expect(search).toBeVisible()
+    fireEvent.keyDown(search, { key: 'Escape', isComposing: true })
+    expect(search).toBeVisible()
+    fireEvent.compositionEnd(search)
+    fireEvent.keyDown(search, { key: 'Enter', keyCode: 229 })
+    expect(onValueChange).not.toHaveBeenCalled()
+    fireEvent.keyDown(search, { key: 'Enter' })
+    expect(onValueChange).toHaveBeenCalledExactlyOnceWith('shanghai')
+    expect(trigger).toHaveTextContent('上海')
+  })
+
+  it('keeps the selected label while filtering it out of the popup', async () => {
+    render(
+      <Select
+        label="城市"
+        showSearch
+        defaultValue="beijing"
+        options={[
+          { value: 'beijing', label: '北京' },
+          { value: 'shanghai', label: '上海' },
+        ]}
+      />,
+    )
+    const trigger = screen.getByRole('combobox')
+    fireEvent.click(trigger)
+    const search = screen.getByRole('searchbox')
+    await waitFor(() => expect(search).toHaveFocus())
+    fireEvent.change(search, { target: { value: 'shang' } })
+    expect(screen.queryByRole('option', { name: '北京' })).toBeNull()
+    expect(trigger).toHaveTextContent('北京')
+  })
+
   it('filters searchable options and supports keyboard selection', async () => {
     const onValueChange = vi.fn()
     render(
