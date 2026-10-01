@@ -1,11 +1,40 @@
-import { forwardRef, useId, useState, type FocusEventHandler } from 'react'
+import {
+  forwardRef,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FocusEvent,
+  type FocusEventHandler,
+  type ReactNode,
+  type Ref,
+} from 'react'
 import { cn } from '@/shared/lib/utils'
+import { Button } from './button'
+import { Calendar } from './calendar'
 import {
   resolveComponentSize,
   useConfig,
   type ControlSize,
 } from './config-context'
+import {
+  addMonths,
+  dateStepMatches,
+  parseDate,
+  parseMonth,
+  toMonth,
+} from './date-picker-state'
+import { Icon } from './icon'
 import type { InputStatus, InputVariant } from './input'
+import {
+  focusAfterPicker,
+  pickerFocusable,
+  revealPickerTarget,
+  usePickerPosition,
+  type PickerPlacement,
+} from './picker-popup'
+import { Portal } from './portal'
 import {
   inputSizeStyles,
   inputStatusStyles,
@@ -13,218 +42,943 @@ import {
   inputVariantStyles,
 } from './tailwind-styles'
 
-type RangeValue = [start: string, end: string]
-export type DateRange = RangeValue
-export type TimeRange = RangeValue
+export { TimeRangePicker } from './time-range-picker'
+export type { TimeRange, TimeRangePickerProps } from './time-range-picker'
 
-type NativeRangePickerProps = {
-  inputType: 'date' | 'time'
-  value?: RangeValue
-  defaultValue?: RangeValue
-  onChange?: (value: RangeValue) => void
+export type DateRange = [start: string, end: string]
+export type DateRangeEndpoint = 'start' | 'end'
+export type DateRangePreset = {
+  key: string
+  label: ReactNode
+  value: DateRange | (() => DateRange)
+}
+export type DateRangePickerPart =
+  | 'root'
+  | 'fields'
+  | 'input'
+  | 'startInput'
+  | 'endInput'
+  | 'clear'
+  | 'toggle'
+  | 'popup'
+  | 'panel'
+  | 'endpoints'
+  | 'presets'
+  | 'footer'
+  | 'error'
+export type DateRangePickerProps = {
+  value?: DateRange
+  defaultValue?: DateRange
+  onChange?: (value: DateRange) => void
+  onCalendarChange?: (
+    value: DateRange,
+    info: { endpoint: DateRangeEndpoint },
+  ) => void
   onBlur?: FocusEventHandler<HTMLFieldSetElement>
+  onFocus?: (
+    event: FocusEvent<HTMLInputElement>,
+    info: { endpoint: DateRangeEndpoint },
+  ) => void
   label?: string
   startLabel?: string
   endLabel?: string
   min?: string
   max?: string
-  step?: number
+  step?: number | string
+  disabledDate?: (
+    date: string,
+    info: { endpoint: DateRangeEndpoint; from?: string },
+  ) => boolean
+  disabled?: boolean | [start: boolean, end: boolean]
+  readOnly?: boolean
+  inputReadOnly?: boolean
+  allowEmpty?: [start: boolean, end: boolean]
+  allowClear?: boolean
+  onClear?: () => void
+  needConfirm?: boolean
+  onOk?: (value: DateRange) => void
+  mode?: 'popup' | 'panel' | 'native'
+  open?: boolean
+  defaultOpen?: boolean
+  onOpenChange?: (open: boolean) => void
+  activeEndpoint?: DateRangeEndpoint
+  defaultActiveEndpoint?: DateRangeEndpoint
+  onActiveEndpointChange?: (endpoint: DateRangeEndpoint) => void
+  panelMonth?: string
+  defaultPanelMonth?: string
+  onPanelMonthChange?: (month: string) => void
+  placement?: PickerPlacement
+  presets?: DateRangePreset[]
+  weekStartsOn?: 0 | 1
+  locale?: string
+  renderDate?: (date: string) => ReactNode
+  getDateDescription?: (date: string) => string | undefined
+  footer?: ReactNode
+  separator?: ReactNode
   name?: string
+  form?: string
   id?: string
+  endRef?: Ref<HTMLInputElement>
   size?: ControlSize
   variant?: InputVariant
   status?: InputStatus
   required?: boolean
-  disabled?: boolean
+  placeholder?: [start: string, end: string]
   className?: string
+  classNames?: Partial<Record<DateRangePickerPart, string>>
   'aria-describedby'?: string
   'aria-invalid'?: boolean
   'aria-label'?: string
   'aria-labelledby'?: string
 }
 
-export type DateRangePickerProps = Omit<
-  NativeRangePickerProps,
-  'inputType' | 'step'
->
-export type TimeRangePickerProps = Omit<NativeRangePickerProps, 'inputType'>
+const asRange = (value?: DateRange): DateRange => [
+  value?.[0] ?? '',
+  value?.[1] ?? '',
+]
+const equalRange = (left: DateRange, right: DateRange) =>
+  left[0] === right[0] && left[1] === right[1]
 
-function compareRangeValues(a: string, b: string, type: 'date' | 'time') {
-  if (type === 'date') return a < b ? -1 : a > b ? 1 : 0
-  const seconds = (value: string) => {
-    const [hour = 0, minute = 0, second = 0] = value.split(':').map(Number)
-    return hour * 3600 + minute * 60 + second
-  }
-  return seconds(a) - seconds(b)
-}
-
-const NativeRangePicker = forwardRef<HTMLInputElement, NativeRangePickerProps>(
-  function NativeRangePicker(
-    {
-      inputType,
-      value,
-      defaultValue = ['', ''],
-      onChange,
-      onBlur,
-      label = inputType === 'date' ? '日期范围' : '时间范围',
-      startLabel = inputType === 'date' ? '开始日期' : '开始时间',
-      endLabel = inputType === 'date' ? '结束日期' : '结束时间',
-      min,
-      max,
-      step,
-      name,
-      id,
-      size,
-      variant = 'outlined',
-      status = 'default',
-      required,
-      disabled,
-      className,
-      'aria-describedby': ariaDescribedBy,
-      'aria-invalid': ariaInvalid,
-      'aria-label': ariaLabel,
-      'aria-labelledby': ariaLabelledBy,
-    },
-    ref,
-  ) {
-    const { componentSize, direction } = useConfig()
-    const resolvedSize = resolveComponentSize(componentSize, size)
-    const generatedId = useId()
-    const startId = id ?? `${inputType}-range-${generatedId}-start`
-    const endId = `${inputType}-range-${generatedId}-end`
-    const [internalValue, setInternalValue] = useState<RangeValue>(defaultValue)
-    const [start = '', end = ''] = value ?? internalValue
-
-    function update(next: RangeValue) {
-      if (value === undefined) setInternalValue(next)
-      onChange?.(next)
-    }
-
-    return (
-      <fieldset
-        role="group"
-        dir={direction}
-        aria-label={ariaLabelledBy ? undefined : (ariaLabel ?? label)}
-        aria-labelledby={ariaLabelledBy}
-        aria-describedby={ariaDescribedBy}
-        aria-invalid={status === 'error' || ariaInvalid || undefined}
-        data-status={status === 'default' ? undefined : status}
-        aria-required={required || undefined}
-        disabled={disabled}
-        className={cn('m-0 min-w-0 border-0 p-0', className)}
-        onBlur={(event) => {
-          if (
-            event.relatedTarget instanceof Node &&
-            event.currentTarget.contains(event.relatedTarget)
-          )
-            return
-          onBlur?.(event)
-        }}
-      >
-        <div className="grid min-w-0 grid-cols-1 items-end gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
-          <div className="grid min-w-0 gap-1">
-            <label htmlFor={startId} className="text-sm text-muted-foreground">
-              {startLabel}
-            </label>
-            <input
-              ref={ref}
-              id={startId}
-              type={inputType}
-              value={start}
-              min={min}
-              max={max}
-              step={step}
-              required={required}
-              disabled={disabled}
-              aria-invalid={status === 'error' || ariaInvalid || undefined}
-              aria-describedby={ariaDescribedBy}
-              className={cn(
-                inputStyles,
-                inputVariantStyles[variant],
-                inputStatusStyles[status],
-                inputSizeStyles[resolvedSize],
-                'min-w-0 touch-manipulation focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20',
-              )}
-              onChange={(event) => {
-                const nextStart = event.currentTarget.value
-                update([
-                  nextStart,
-                  nextStart &&
-                  end &&
-                  compareRangeValues(nextStart, end, inputType) > 0
-                    ? ''
-                    : end,
-                ])
-              }}
-            />
-          </div>
-          <span
-            aria-hidden="true"
-            className="hidden min-h-11 items-center text-muted-foreground sm:flex"
-          >
-            –
-          </span>
-          <div className="grid min-w-0 gap-1">
-            <label htmlFor={endId} className="text-sm text-muted-foreground">
-              {endLabel}
-            </label>
-            <input
-              id={endId}
-              type={inputType}
-              value={end}
-              min={min}
-              max={max}
-              step={step}
-              required={required}
-              disabled={disabled}
-              aria-invalid={status === 'error' || ariaInvalid || undefined}
-              aria-describedby={ariaDescribedBy}
-              className={cn(
-                inputStyles,
-                inputVariantStyles[variant],
-                inputStatusStyles[status],
-                inputSizeStyles[resolvedSize],
-                'min-w-0 touch-manipulation focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20',
-              )}
-              onChange={(event) => {
-                const nextEnd = event.currentTarget.value
-                update([
-                  nextEnd &&
-                  start &&
-                  compareRangeValues(nextEnd, start, inputType) < 0
-                    ? ''
-                    : start,
-                  nextEnd,
-                ])
-              }}
-            />
-          </div>
-        </div>
-        {name && (
-          <input
-            type="hidden"
-            name={name}
-            value={JSON.stringify([start, end])}
-            disabled={disabled}
-          />
-        )}
-      </fieldset>
-    )
-  },
-)
-
-/** Two native date inputs with one controlled range value. */
+/** Pending calendar endpoints remain separate from the submitted ISO tuple. */
 export const DateRangePicker = forwardRef<
   HTMLInputElement,
   DateRangePickerProps
->(function DateRangePicker(props, ref) {
-  return <NativeRangePicker {...props} inputType="date" ref={ref} />
-})
-
-/** A same-day time interval with native keyboard and touch pickers. */
-export const TimeRangePicker = forwardRef<
-  HTMLInputElement,
-  TimeRangePickerProps
->(function TimeRangePicker(props, ref) {
-  return <NativeRangePicker {...props} inputType="time" ref={ref} />
+>(function DateRangePicker(allProps, ref) {
+  const controlled = Object.prototype.hasOwnProperty.call(allProps, 'value')
+  const {
+    value,
+    defaultValue,
+    onChange,
+    onCalendarChange,
+    onBlur,
+    onFocus,
+    label = '日期范围',
+    startLabel = '开始日期',
+    endLabel = '结束日期',
+    min,
+    max,
+    step,
+    disabledDate,
+    disabled = false,
+    readOnly = false,
+    inputReadOnly = false,
+    allowEmpty = [false, false],
+    allowClear = true,
+    onClear,
+    needConfirm = false,
+    onOk,
+    mode = 'popup',
+    open,
+    defaultOpen = false,
+    onOpenChange,
+    activeEndpoint,
+    defaultActiveEndpoint = 'start',
+    onActiveEndpointChange,
+    panelMonth,
+    defaultPanelMonth,
+    onPanelMonthChange,
+    placement = 'bottomStart',
+    presets = [],
+    weekStartsOn = 1,
+    locale,
+    renderDate,
+    getDateDescription,
+    footer,
+    separator = '–',
+    name,
+    form,
+    id,
+    endRef,
+    size,
+    variant = 'outlined',
+    status = 'default',
+    required = false,
+    placeholder = ['YYYY-MM-DD', 'YYYY-MM-DD'],
+    className,
+    classNames,
+    'aria-describedby': ariaDescribedBy,
+    'aria-invalid': ariaInvalid,
+    'aria-label': ariaLabel,
+    'aria-labelledby': ariaLabelledBy,
+  } = allProps
+  const { direction, componentSize } = useConfig()
+  const resolvedSize = resolveComponentSize(componentSize, size)
+  const generated = useId()
+  const ids = [id ?? generated + '-start', generated + '-end']
+  const labelIds = [generated + '-start-label', generated + '-end-label']
+  const popupId = generated + '-popup',
+    errorId = generated + '-error'
+  const rootRef = useRef<HTMLFieldSetElement>(null)
+  const fieldsRef = useRef<HTMLDivElement>(null)
+  const startRef = useRef<HTMLInputElement>(null)
+  const finishRef = useRef<HTMLInputElement>(null)
+  const popupRef = useRef<HTMLDivElement>(null)
+  const calendarsRef = useRef<HTMLDivElement>(null)
+  const initial = useRef(asRange(defaultValue))
+  const [internal, setInternal] = useState(initial.current)
+  const current = asRange(controlled ? value : internal)
+  const currentKey = JSON.stringify(current)
+  const [previous, setPrevious] = useState(currentKey)
+  const [candidate, setCandidate] = useState(current)
+  const [draft, setDraft] = useState(current)
+  const [dirty, setDirty] = useState(false)
+  const lastEdited = useRef<0 | 1>(0)
+  const [internalEndpoint, setInternalEndpoint] = useState(
+    defaultActiveEndpoint,
+  )
+  const endpoint = activeEndpoint ?? internalEndpoint
+  const index = endpoint === 'start' ? 0 : 1
+  const [internalOpen, setInternalOpen] = useState(defaultOpen)
+  const [error, setError] = useState('')
+  const [hovered, setHovered] = useState<string>()
+  const focusRequested = useRef<DateRangeEndpoint | null>(null)
+  const ownedFocus = useRef(false)
+  const isDisabled = (part: 0 | 1) =>
+    readOnly || (Array.isArray(disabled) ? disabled[part] : disabled)
+  const inactive = isDisabled(0) && isDisabled(1)
+  const isOpen = mode === 'popup' && !inactive && (open ?? internalOpen)
+  const showing = mode === 'panel' || isOpen
+  if (inactive && open === undefined && internalOpen) setInternalOpen(false)
+  const minDate = parseDate(min) ? min! : '0001-01-01'
+  const maxDate = parseDate(max) ? max! : '9999-12-31'
+  function selectable(date: string, part: 0 | 1, range: DateRange) {
+    const other = part === 0 ? 1 : 0,
+      from = range[other] || undefined
+    return (
+      Boolean(parseDate(date)) &&
+      date >= minDate &&
+      date <= maxDate &&
+      dateStepMatches(date, parseDate(min) ? min! : '1970-01-01', step) &&
+      !(
+        isDisabled(other) &&
+        from &&
+        (part === 0 ? date > from : date < from)
+      ) &&
+      !disabledDate?.(date, { endpoint: part === 0 ? 'start' : 'end', from })
+    )
+  }
+  function validRange(range: DateRange, complete = false) {
+    return (
+      range.every((date, part) =>
+        date
+          ? selectable(date, part as 0 | 1, range)
+          : !complete || allowEmpty[part],
+      ) &&
+      (!range[0] || !range[1] || range[0] <= range[1]) &&
+      (!complete || range.some(Boolean))
+    )
+  }
+  function monthFor(date?: string, useDefault = false) {
+    const proposed = toMonth(
+      (useDefault ? parseMonth(defaultPanelMonth) : undefined) ??
+        parseDate(date) ??
+        parseMonth(defaultPanelMonth) ??
+        new Date(),
+    )
+    return proposed < minDate.slice(0, 7)
+      ? minDate.slice(0, 7)
+      : proposed > maxDate.slice(0, 7)
+        ? maxDate.slice(0, 7)
+        : proposed
+  }
+  const [internalMonth, setInternalMonth] = useState(() =>
+    monthFor(current[index], true),
+  )
+  const month = parseMonth(panelMonth) ? panelMonth! : internalMonth
+  const nextMonth = toMonth(addMonths(parseMonth(month)!, 1))
+  if (previous !== currentKey) {
+    setPrevious(currentKey)
+    setCandidate(current)
+    setDraft(current)
+    setDirty(false)
+    setError('')
+  }
+  usePickerPosition(fieldsRef, popupRef, isOpen, placement, direction)
+  const inside = (target: EventTarget | null) =>
+    target instanceof Node &&
+    (rootRef.current?.contains(target) || popupRef.current?.contains(target))
+  function setOpen(next: boolean) {
+    if (mode !== 'popup' || next === isOpen || (next && inactive)) return
+    if (open === undefined) setInternalOpen(next)
+    onOpenChange?.(next)
+  }
+  function setEndpoint(next: DateRangeEndpoint) {
+    if (next === endpoint) return
+    if (activeEndpoint === undefined) setInternalEndpoint(next)
+    onActiveEndpointChange?.(next)
+    setHovered(undefined)
+  }
+  function changeMonth(next: string) {
+    if (panelMonth === undefined) setInternalMonth(next)
+    if (next !== month) onPanelMonthChange?.(next)
+  }
+  function focusCalendar() {
+    const calendars = calendarsRef.current
+    if (!calendars) return
+    const elements = pickerFocusable(calendars)
+    const target =
+      elements.find(
+        (element) => element.dataset.calendarDate === candidate[index],
+      ) ??
+      elements.find((element) => element.hasAttribute('data-calendar-date')) ??
+      elements[0]
+    if (target) revealPickerTarget(target)
+  }
+  function begin(part: 0 | 1, focus = false) {
+    if (isDisabled(part) || mode !== 'popup') return
+    setError('')
+    setEndpoint(part === 0 ? 'start' : 'end')
+    if (!isOpen) {
+      setCandidate(dirty && validRange(draft) ? draft : current)
+      if (panelMonth === undefined)
+        setInternalMonth(monthFor((dirty ? draft : current)[part], true))
+      focusRequested.current = focus ? (part === 0 ? 'start' : 'end') : null
+      setOpen(true)
+    } else if (focus) {
+      focusRequested.current = part === 0 ? 'start' : 'end'
+      if (part === index) {
+        focusRequested.current = null
+        focusCalendar()
+      }
+    }
+  }
+  function restoreFocus(part: 0 | 1 = index) {
+    ;(part === 0 ? startRef.current : finishRef.current)?.focus({
+      preventScroll: true,
+    })
+  }
+  function cancel(restore = false) {
+    setCandidate(current)
+    setDraft(current)
+    setDirty(false)
+    setError('')
+    setHovered(undefined)
+    focusRequested.current = null
+    setOpen(false)
+    if (restore) restoreFocus()
+  }
+  function normalize(raw: DateRange, part: 0 | 1): DateRange {
+    const next = asRange(raw)
+    if (
+      next[0] &&
+      next[1] &&
+      next[0] > next[1] &&
+      !isDisabled(part === 0 ? 1 : 0)
+    )
+      next[part === 0 ? 1 : 0] = ''
+    return next
+  }
+  function publish(next: DateRange) {
+    if (
+      inactive ||
+      !validRange(next) ||
+      next.some(
+        (date, part) => isDisabled(part as 0 | 1) && date !== current[part],
+      )
+    )
+      return false
+    if (!controlled) setInternal(asRange(next))
+    setCandidate(controlled ? current : next)
+    setDraft(controlled ? current : next)
+    setDirty(false)
+    setError('')
+    if (!equalRange(next, current)) onChange?.(asRange(next))
+    return true
+  }
+  function commitInput(confirm = false) {
+    if (!dirty) return true
+    const next = normalize(draft, lastEdited.current)
+    if (!validRange(next)) {
+      setError('请输入可选的日期范围（YYYY-MM-DD）')
+      return false
+    }
+    if (needConfirm && !confirm && mode !== 'native') {
+      setCandidate(next)
+      return true
+    }
+    if (needConfirm && confirm && !validRange(next, true)) {
+      setError('请选择完整的可用日期范围')
+      return false
+    }
+    if (!publish(next)) return false
+    if (next[lastEdited.current])
+      changeMonth(monthFor(next[lastEdited.current]))
+    if (needConfirm && confirm) onOk?.(asRange(next))
+    return true
+  }
+  function leave() {
+    if (dirty && !needConfirm && !commitInput()) {
+      setDraft(current)
+      setDirty(false)
+      setError('日期范围不可选，已恢复原范围')
+    } else {
+      setCandidate(current)
+      if (needConfirm) {
+        setDraft(current)
+        setDirty(false)
+        setError('')
+      }
+    }
+    setHovered(undefined)
+    focusRequested.current = null
+    setOpen(false)
+  }
+  function choose(date: string) {
+    if (isDisabled(index) || !selectable(date, index, candidate)) return
+    const next = normalize(
+      index === 0 ? [date, candidate[1]] : [candidate[0], date],
+      index,
+    )
+    setCandidate(next)
+    setDraft(next)
+    setDirty(false)
+    setError('')
+    setHovered(undefined)
+    onCalendarChange?.(asRange(next), { endpoint })
+    if (
+      !needConfirm &&
+      validRange(next, true) &&
+      (index === 1 || isDisabled(1))
+    ) {
+      if (publish(next) && mode === 'popup') {
+        setOpen(false)
+        restoreFocus()
+      }
+    } else {
+      const other = index === 0 ? 1 : 0
+      if (!isDisabled(other) && (index === 0 || !next[0])) {
+        const nextEndpoint = other === 0 ? 'start' : 'end'
+        focusRequested.current = nextEndpoint
+        setEndpoint(nextEndpoint)
+        changeMonth(monthFor(next[other] || date))
+      }
+    }
+  }
+  function confirm() {
+    const next = dirty ? normalize(draft, lastEdited.current) : candidate
+    if (!validRange(next, true) || !publish(next)) return
+    onOk?.(asRange(next))
+    if (mode === 'popup') {
+      setOpen(false)
+      restoreFocus()
+    }
+  }
+  useLayoutEffect(() => {
+    if (showing && focusRequested.current === endpoint) {
+      focusRequested.current = null
+      focusCalendar()
+    }
+    const shown = dirty ? draft : showing ? candidate : current
+    for (const [part, field] of [
+      startRef.current,
+      finishRef.current,
+    ].entries()) {
+      field?.setCustomValidity(
+        !validRange(shown)
+          ? '请选择有效且可选的日期范围'
+          : showing && !equalRange(candidate, current)
+            ? '请完成或确认日期范围选择'
+            : '',
+      )
+      if (isDisabled(part as 0 | 1)) field?.setCustomValidity('')
+    }
+    if (
+      inactive &&
+      ownedFocus.current &&
+      document.activeElement === document.body
+    ) {
+      const next = pickerFocusable(document.body).find((element) =>
+        Boolean(
+          (finishRef.current?.compareDocumentPosition(element) ?? 0) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
+      )
+      next?.focus({ preventScroll: true })
+      ownedFocus.current = false
+    }
+  })
+  useEffect(() => {
+    if (!isOpen) return
+    const outside = (event: Event) => {
+      if (!inside(event.target)) {
+        ownedFocus.current = false
+        leave()
+      }
+    }
+    document.addEventListener('pointerdown', outside, true)
+    document.addEventListener('focusin', outside, true)
+    return () => {
+      document.removeEventListener('pointerdown', outside, true)
+      document.removeEventListener('focusin', outside, true)
+    }
+  })
+  useEffect(() => {
+    const associatedForm = startRef.current?.form
+    if (!associatedForm) return
+    const reset = () => {
+      if (!controlled) setInternal(initial.current)
+      cancel()
+    }
+    const submit = () => {
+      if (dirty && !needConfirm) commitInput()
+    }
+    associatedForm.addEventListener('reset', reset)
+    associatedForm.addEventListener('submit', submit, true)
+    return () => {
+      associatedForm.removeEventListener('reset', reset)
+      associatedForm.removeEventListener('submit', submit, true)
+    }
+  })
+  const displayed = dirty ? draft : showing ? candidate : current
+  const invalid =
+    status === 'error' ||
+    ariaInvalid ||
+    Boolean(error) ||
+    !validRange(displayed) ||
+    undefined
+  const description =
+    [ariaDescribedBy, error ? errorId : undefined].filter(Boolean).join(' ') ||
+    undefined
+  const preview: DateRange | undefined =
+    hovered && !isDisabled(index) && selectable(hovered, index, candidate)
+      ? normalize(
+          index === 0 ? [hovered, candidate[1]] : [candidate[0], hovered],
+          index,
+        )
+      : undefined
+  const panel = (
+    <div className={cn('@container min-w-0 space-y-2', classNames?.panel)}>
+      <div
+        role="group"
+        aria-label={label + '选择端点'}
+        className={cn('flex flex-wrap gap-2', classNames?.endpoints)}
+      >
+        {([startLabel, endLabel] as const).map((text, part) => (
+          <Button
+            key={part}
+            tabIndex={0}
+            variant={index === part ? 'primary' : 'outline'}
+            aria-pressed={index === part}
+            disabled={isDisabled(part as 0 | 1)}
+            onClick={() => {
+              focusRequested.current = part === 0 ? 'start' : 'end'
+              setEndpoint(part === 0 ? 'start' : 'end')
+              changeMonth(
+                monthFor(candidate[part] || candidate[part === 0 ? 1 : 0]),
+              )
+            }}
+          >
+            {text}：{candidate[part] || '未选择'}
+          </Button>
+        ))}
+      </div>
+      {presets.length > 0 && (
+        <div
+          role="group"
+          aria-label={label + '快捷范围'}
+          className={cn('flex flex-wrap gap-2', classNames?.presets)}
+        >
+          {presets.map((preset) => (
+            <Button
+              key={preset.key}
+              tabIndex={0}
+              variant="outline"
+              disabled={
+                inactive ||
+                (typeof preset.value !== 'function' &&
+                  (!validRange(preset.value, true) ||
+                    preset.value.some(
+                      (date, part) =>
+                        isDisabled(part as 0 | 1) && date !== current[part],
+                    )))
+              }
+              onClick={() => {
+                const next = asRange(
+                  typeof preset.value === 'function'
+                    ? preset.value()
+                    : preset.value,
+                )
+                if (
+                  !validRange(next, true) ||
+                  next.some(
+                    (date, part) =>
+                      isDisabled(part as 0 | 1) && date !== current[part],
+                  )
+                ) {
+                  setError('快捷范围当前不可选，请选择其他日期')
+                  return
+                }
+                setCandidate(next)
+                setDraft(next)
+                setDirty(false)
+                setError('')
+                setHovered(undefined)
+                changeMonth(monthFor(next[0] || next[1]))
+                onCalendarChange?.(asRange(next), { endpoint })
+                if (!needConfirm && publish(next) && mode === 'popup') {
+                  setOpen(false)
+                  restoreFocus()
+                }
+              }}
+            >
+              {preset.label}
+            </Button>
+          ))}
+        </div>
+      )}
+      <div
+        ref={calendarsRef}
+        className="grid min-w-0 gap-4 @min-[660px]:grid-cols-2"
+      >
+        {[month, nextMonth].map(
+          (visibleMonth, offset) =>
+            parseMonth(visibleMonth) && (
+              <div
+                key={offset}
+                className={
+                  offset === 1 ? 'hidden min-w-0 @min-[660px]:block' : 'min-w-0'
+                }
+              >
+                <Calendar
+                  key={endpoint}
+                  label={label + (offset === 0 ? '月份' : '后续月份')}
+                  value={candidate[index] || candidate[index === 0 ? 1 : 0]}
+                  range={candidate}
+                  previewRange={preview}
+                  month={visibleMonth}
+                  onMonthChange={(next) =>
+                    changeMonth(
+                      offset === 0
+                        ? next
+                        : toMonth(addMonths(parseMonth(next)!, -1)),
+                    )
+                  }
+                  onChange={choose}
+                  minDate={minDate}
+                  maxDate={maxDate}
+                  disabled={isDisabled(index)}
+                  disabledDate={(date) => !selectable(date, index, candidate)}
+                  showOutsideDays={false}
+                  weekStartsOn={weekStartsOn}
+                  locale={locale}
+                  renderDate={renderDate}
+                  getDateDescription={getDateDescription}
+                  onDateHover={setHovered}
+                  onDateFocus={setHovered}
+                  classNames={{
+                    root: 'border-0 p-0 sm:p-0 rounded-none',
+                    header: 'mb-2 px-1',
+                    grid: 'min-w-[308px]',
+                    cell: 'p-0',
+                  }}
+                />
+              </div>
+            ),
+        )}
+      </div>
+      <p role="status" className="text-sm text-muted-foreground">
+        {index === 0 ? '请选择开始日期' : '请选择结束日期'}；
+        {candidate[0] || '未选开始'} → {candidate[1] || '未选结束'}
+      </p>
+      {(needConfirm || allowEmpty.some(Boolean) || footer) && (
+        <div
+          className={cn(
+            'flex flex-wrap items-center justify-end gap-2 border-t border-border pt-2',
+            classNames?.footer,
+          )}
+        >
+          {footer}
+          <Button
+            tabIndex={0}
+            variant="outline"
+            disabled={inactive}
+            onClick={() => cancel(mode === 'popup')}
+          >
+            取消
+          </Button>
+          <Button
+            tabIndex={0}
+            disabled={
+              inactive ||
+              !validRange(
+                dirty ? normalize(draft, lastEdited.current) : candidate,
+                true,
+              )
+            }
+            onClick={confirm}
+          >
+            {needConfirm ? '确定' : '应用范围'}
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+  return (
+    <fieldset
+      ref={rootRef}
+      role="group"
+      dir={direction}
+      disabled={
+        disabled === true ||
+        (Array.isArray(disabled) && disabled.every(Boolean))
+      }
+      aria-label={ariaLabelledBy ? undefined : (ariaLabel ?? label)}
+      aria-labelledby={ariaLabelledBy}
+      aria-describedby={description}
+      aria-invalid={invalid}
+      aria-required={required || undefined}
+      data-status={status === 'default' ? undefined : status}
+      className={cn(
+        'm-0 grid min-w-0 gap-2 border-0 p-0',
+        className,
+        classNames?.root,
+      )}
+      onFocusCapture={() => {
+        ownedFocus.current = true
+      }}
+      onBlurCapture={(event) => {
+        if (event.relatedTarget && !inside(event.relatedTarget))
+          ownedFocus.current = false
+      }}
+      onBlur={(event) => {
+        if (inside(event.relatedTarget)) return
+        leave()
+        onBlur?.(event)
+      }}
+    >
+      <div ref={fieldsRef} className={cn('@container', classNames?.fields)}>
+        <div className="grid min-w-0 grid-cols-1 items-end gap-2 @min-[440px]:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+          {([startLabel, endLabel] as const).map((text, part) => (
+            <div
+              key={part}
+              className={cn(
+                'grid min-w-0 gap-1',
+                part === 1 && '@min-[440px]:col-start-3',
+              )}
+            >
+              <label
+                id={labelIds[part]}
+                htmlFor={ids[part]}
+                className="text-sm text-muted-foreground"
+              >
+                {text}
+              </label>
+              <span className="relative flex min-w-0">
+                <input
+                  id={ids[part]}
+                  aria-labelledby={labelIds[part]}
+                  ref={(element) => {
+                    if (part === 0) {
+                      startRef.current = element
+                      if (typeof ref === 'function') ref(element)
+                      else if (ref) ref.current = element
+                    } else {
+                      finishRef.current = element
+                      if (typeof endRef === 'function') endRef(element)
+                      else if (endRef) endRef.current = element
+                    }
+                  }}
+                  type={mode === 'native' ? 'date' : 'text'}
+                  role={mode === 'popup' ? 'combobox' : undefined}
+                  form={form}
+                  aria-haspopup={mode === 'popup' ? 'dialog' : undefined}
+                  aria-expanded={
+                    mode === 'popup' ? isOpen && index === part : undefined
+                  }
+                  aria-controls={showing ? popupId : undefined}
+                  aria-invalid={invalid}
+                  aria-describedby={description}
+                  min={min}
+                  max={max}
+                  step={step}
+                  required={required && !allowEmpty[part]}
+                  disabled={Array.isArray(disabled) ? disabled[part] : disabled}
+                  readOnly={readOnly || (mode !== 'native' && inputReadOnly)}
+                  autoComplete="off"
+                  placeholder={placeholder[part]}
+                  value={displayed[part]}
+                  className={cn(
+                    inputStyles,
+                    inputVariantStyles[variant],
+                    inputStatusStyles[status],
+                    inputSizeStyles[resolvedSize],
+                    'min-w-0 touch-manipulation focus-visible:border-ring',
+                    mode === 'popup' && 'pe-12',
+                    allowClear &&
+                      displayed[part] &&
+                      !isDisabled(part as 0 | 1) &&
+                      (mode === 'popup' ? 'pe-24' : 'pe-12'),
+                    classNames?.input,
+                    part === 0 ? classNames?.startInput : classNames?.endInput,
+                  )}
+                  onFocus={(event) => {
+                    setEndpoint(part === 0 ? 'start' : 'end')
+                    if (isOpen)
+                      changeMonth(
+                        monthFor(
+                          displayed[part] || displayed[part === 0 ? 1 : 0],
+                        ),
+                      )
+                    onFocus?.(event, { endpoint: part === 0 ? 'start' : 'end' })
+                  }}
+                  onClick={() => begin(part as 0 | 1)}
+                  onChange={(event) => {
+                    const next = asRange(draft)
+                    next[part] = event.currentTarget.value
+                    lastEdited.current = part as 0 | 1
+                    setError('')
+                    if (mode === 'native')
+                      publish(normalize(next, part as 0 | 1))
+                    else {
+                      setDraft(next)
+                      setDirty(true)
+                    }
+                  }}
+                  onKeyDown={(event) => {
+                    if (isDisabled(part as 0 | 1) || mode === 'native') return
+                    if (event.key === 'ArrowDown' && mode === 'popup') {
+                      event.preventDefault()
+                      begin(part as 0 | 1, true)
+                    } else if (event.key === 'Escape' && isOpen) {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      cancel(true)
+                    } else if (event.key === 'Enter') {
+                      event.preventDefault()
+                      if (dirty) {
+                        if (commitInput(true) && mode === 'popup') {
+                          setOpen(false)
+                          restoreFocus(part as 0 | 1)
+                        }
+                      } else begin(part as 0 | 1, true)
+                    }
+                  }}
+                />
+                {allowClear &&
+                  displayed[part] &&
+                  !isDisabled(part as 0 | 1) && (
+                    <button
+                      type="button"
+                      tabIndex={0}
+                      aria-label={'清空' + text}
+                      data-range-clear={part}
+                      className={cn(
+                        'absolute inset-y-0 flex min-h-11 w-11 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] text-muted-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring',
+                        mode === 'popup' ? 'end-11' : 'end-0',
+                        classNames?.clear,
+                      )}
+                      onClick={() => {
+                        const next = asRange(current)
+                        next[part] = ''
+                        publish(next)
+                        setOpen(false)
+                        onClear?.()
+                        restoreFocus(part as 0 | 1)
+                      }}
+                    >
+                      <Icon name="close" size={16} />
+                    </button>
+                  )}
+                {mode === 'popup' && (
+                  <button
+                    type="button"
+                    tabIndex={0}
+                    disabled={isDisabled(part as 0 | 1)}
+                    aria-label={'打开' + text + '面板'}
+                    aria-expanded={isOpen && index === part}
+                    aria-controls={isOpen ? popupId : undefined}
+                    className={cn(
+                      'absolute inset-y-0 end-0 flex min-h-11 w-11 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] text-muted-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50',
+                      classNames?.toggle,
+                    )}
+                    onClick={() =>
+                      isOpen && index === part
+                        ? cancel(true)
+                        : begin(part as 0 | 1, true)
+                    }
+                  >
+                    <Icon name="calendar" size={16} />
+                  </button>
+                )}
+              </span>
+            </div>
+          ))}
+          <span
+            aria-hidden="true"
+            className="hidden min-h-11 items-center justify-center text-muted-foreground @min-[440px]:col-start-2 @min-[440px]:row-start-1 @min-[440px]:flex"
+          >
+            {separator}
+          </span>
+        </div>
+      </div>
+      {name && (
+        <input
+          type="hidden"
+          name={name}
+          form={form}
+          value={JSON.stringify(current)}
+          disabled={
+            disabled === true ||
+            (Array.isArray(disabled) && disabled.every(Boolean))
+          }
+          readOnly
+        />
+      )}
+      {error && (
+        <span
+          id={errorId}
+          role="alert"
+          className={cn('block text-sm text-destructive', classNames?.error)}
+        >
+          {error}
+        </span>
+      )}
+      {mode === 'panel' && <div id={popupId}>{panel}</div>}
+      {isOpen && (
+        <Portal>
+          <div
+            ref={popupRef}
+            data-picker-scroll
+            id={popupId}
+            role="dialog"
+            aria-label={label + '选择面板'}
+            dir={direction}
+            className={cn(
+              'invisible fixed z-[90] w-[44rem] min-w-0 overflow-auto rounded-[var(--ui-menu-radius)] border border-border bg-card p-2 text-card-foreground shadow-xl transition-none',
+              classNames?.popup,
+            )}
+            onKeyDownCapture={(event) => {
+              if (event.key === 'Escape') {
+                event.preventDefault()
+                event.stopPropagation()
+                cancel(true)
+              } else if (event.key === 'Tab') {
+                const popup = popupRef.current!,
+                  elements = pickerFocusable(popup)
+                if (event.shiftKey && event.target === elements[0]) {
+                  event.preventDefault()
+                  restoreFocus()
+                } else if (
+                  !event.shiftKey &&
+                  event.target === elements.at(-1)
+                ) {
+                  event.preventDefault()
+                  cancel()
+                  focusAfterPicker(
+                    finishRef.current!,
+                    popup,
+                    (element) =>
+                      element.hasAttribute('data-range-clear') &&
+                      !current[Number(element.dataset.rangeClear)],
+                  )
+                }
+              }
+            }}
+          >
+            {panel}
+          </div>
+        </Portal>
+      )}
+    </fieldset>
+  )
 })

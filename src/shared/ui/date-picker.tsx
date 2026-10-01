@@ -29,6 +29,7 @@ import { useNativeFormReset } from './native-form-reset'
 import {
   focusAfterPicker,
   pickerFocusable,
+  revealPickerTarget,
   usePickerPosition,
   type PickerPlacement,
 } from './picker-popup'
@@ -232,7 +233,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
         panel?.querySelector<HTMLElement>(
           '[data-calendar-date][tabindex="0"]',
         ) ?? (panel ? pickerFocusable(panel)[0] : undefined)
-      target?.focus({ preventScroll: true })
+      if (target) revealPickerTarget(target)
     }
     function begin(focus = false) {
       if (inactive) return
@@ -666,6 +667,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
           <Portal>
             <div
               ref={popupRef}
+              data-picker-scroll
               id={popupId}
               role="dialog"
               aria-label={label + '选择面板'}

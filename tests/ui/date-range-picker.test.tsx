@@ -8,12 +8,13 @@ import {
   FormItem,
 } from '@/shared/ui'
 
-describe('DateRangePicker', () => {
+describe('DateRangePicker native adapter', () => {
   it('emits ordered ranges and clears the opposite endpoint when dates cross', () => {
     const onChange = vi.fn()
     const { container } = render(
       <form>
         <DateRangePicker
+          mode="native"
           label="行程日期"
           name="trip"
           defaultValue={['2026-10-01', '2026-10-05']}
@@ -43,6 +44,7 @@ describe('DateRangePicker', () => {
     const onChange = vi.fn()
     const { rerender } = render(
       <DateRangePicker
+        mode="native"
         value={['2026-10-01', '2026-10-05']}
         onChange={onChange}
       />,
@@ -53,6 +55,7 @@ describe('DateRangePicker', () => {
     expect(start).toHaveValue('2026-10-01')
     rerender(
       <DateRangePicker
+        mode="native"
         value={['2026-10-03', '2026-10-05']}
         onChange={onChange}
       />,
@@ -71,6 +74,7 @@ describe('DateRangePicker', () => {
             error="请选择完整日期"
             control={
               <DateRangePicker
+                mode="native"
                 ref={startRef}
                 label="预约日期"
                 min="2026-10-01"
@@ -116,7 +120,7 @@ describe('DateRangePicker', () => {
                   : '请选择完整日期',
             },
           ]}
-          control={<DateRangePicker />}
+          control={<DateRangePicker mode="native" />}
         />
         <button type="submit">查询</button>
       </Form>,
@@ -155,7 +159,7 @@ describe('DateRangePicker', () => {
           name="period"
           emptyValue={[]}
           rules={[{ validator }]}
-          control={<DateRangePicker />}
+          control={<DateRangePicker mode="native" />}
         />
         <button type="button">离开</button>
       </Form>,

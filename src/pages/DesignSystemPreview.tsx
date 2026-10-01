@@ -10,6 +10,7 @@ import { TreeSelectPreview } from './TreeSelectPreview'
 import { TreeSelectAsyncPreview } from './TreeSelectAsyncPreview'
 import { CascaderPreview } from './CascaderPreview'
 import { DatePickerPreview } from './DatePickerPreview'
+import { DateRangePreview } from './DateRangePreview'
 import {
   Alert,
   Affix,
@@ -1277,6 +1278,7 @@ export function DesignSystemPreview() {
                   label="日期范围"
                   control={
                     <DateRangePicker
+                      mode="native"
                       value={dateRange}
                       onChange={setDateRange}
                       min="2026-01-01"
@@ -1299,6 +1301,7 @@ export function DesignSystemPreview() {
                   {dateRange[1] || '未选结束'}
                 </Typography>
                 <DateRangePicker
+                  mode="native"
                   label="不可用日期范围"
                   defaultValue={['2026-10-01', '2026-10-05']}
                   disabled
@@ -1306,7 +1309,7 @@ export function DesignSystemPreview() {
                 <FormField
                   label="错误日期范围"
                   error="请选择完整日期范围"
-                  control={<DateRangePicker />}
+                  control={<DateRangePicker mode="native" />}
                 />
                 <FormField
                   label="开始时间"
@@ -2046,6 +2049,7 @@ export function DesignSystemPreview() {
           <TreeSelectAsyncPreview />
           <CascaderPreview />
           <DatePickerPreview />
+          <DateRangePreview />
           <Card className="col-span-full">
             <CardContent>
               <Stack gap="md">

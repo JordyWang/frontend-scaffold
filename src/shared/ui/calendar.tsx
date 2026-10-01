@@ -11,6 +11,7 @@ import {
 import { cn } from '@/shared/lib/utils'
 import { resolveComponentSize, useConfig } from './config-context'
 import { Icon } from './icon'
+import { revealPickerTarget } from './picker-popup'
 import {
   addDays,
   addMonths,
@@ -55,6 +56,10 @@ export type CalendarProps = Omit<
   disabled?: boolean
   invalid?: boolean
   classNames?: Partial<Record<CalendarPart, string>>
+  range?: [start: string, end: string]
+  previewRange?: [start: string, end: string]
+  onDateHover?: (date?: string) => void
+  onDateFocus?: (date: string) => void
 }
 
 type Day = { date: Date; iso: string; inMonth: boolean }
@@ -97,6 +102,10 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
       invalid = false,
       className,
       classNames,
+      range,
+      previewRange,
+      onDateHover,
+      onDateFocus,
       'aria-label': ariaLabel,
       'aria-invalid': ariaInvalid,
       ...props
@@ -165,14 +174,7 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
     const isInvalid = invalid || ariaInvalid === true || ariaInvalid === 'true'
 
     function reveal(button: HTMLButtonElement) {
-      button.focus({ preventScroll: true })
-      const scroller = button.closest<HTMLElement>('[data-calendar-scroll]')
-      if (!scroller) return
-      const bounds = scroller.getBoundingClientRect()
-      const row = button.getBoundingClientRect()
-      if (row.left < bounds.left) scroller.scrollLeft -= bounds.left - row.left
-      else if (row.right > bounds.right)
-        scroller.scrollLeft += row.right - bounds.right
+      revealPickerTarget(button)
     }
     useLayoutEffect(() => {
       const target = pendingFocusRef.current
@@ -321,6 +323,10 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
           props.onBlurCapture?.(event)
         }}
         aria-invalid={isInvalid || undefined}
+        onMouseLeave={(event) => {
+          onDateHover?.()
+          props.onMouseLeave?.(event)
+        }}
         className={cn(
           'w-full min-w-0 rounded-[var(--ui-card-radius)] border border-border bg-card p-3 text-card-foreground',
           resolvedSize === 'default' && 'sm:p-4',
@@ -399,6 +405,7 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
         >
           <table
             role="grid"
+            aria-multiselectable={range ? true : undefined}
             aria-label={ariaLabel ?? `${label}，${monthLabel}`}
             className={cn(
               'w-full min-w-[336px] table-fixed border-separate border-spacing-0',
@@ -425,7 +432,43 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
                   {days.slice(week * 7, week * 7 + 7).map((day) => {
                     const unavailable = isUnavailable(day.iso)
                     const hidden = !showOutsideDays && !day.inMonth
-                    const selected = day.iso === selectedISO
+                    const edge =
+                      range && (day.iso === range[0] || day.iso === range[1])
+                    const inRange = Boolean(
+                      range?.[0] &&
+                      range?.[1] &&
+                      day.iso >= range[0] &&
+                      day.iso <= range[1],
+                    )
+                    const inPreview = Boolean(
+                      previewRange?.[0] &&
+                      previewRange?.[1] &&
+                      day.iso >= previewRange[0] &&
+                      day.iso <= previewRange[1],
+                    )
+                    const selected = range
+                      ? Boolean(edge || inRange)
+                      : day.iso === selectedISO
+                    const rangePart =
+                      range && day.iso === range[0] && day.iso === range[1]
+                        ? 'single'
+                        : range && day.iso === range[0]
+                          ? 'start'
+                          : range && day.iso === range[1]
+                            ? 'end'
+                            : inRange
+                              ? 'inside'
+                              : undefined
+                    const rangeDescription =
+                      rangePart === 'start'
+                        ? '范围开始'
+                        : rangePart === 'end'
+                          ? '范围结束'
+                          : rangePart === 'single'
+                            ? '范围开始和结束'
+                            : rangePart === 'inside'
+                              ? '范围内'
+                              : undefined
                     const description = getDateDescription?.(day.iso)
                     return (
                       <td
@@ -445,11 +488,17 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
                             }}
                             type="button"
                             data-calendar-date={day.iso}
-                            aria-label={
-                              description
-                                ? `${dateLabel.format(day.date)}，${description}`
-                                : dateLabel.format(day.date)
+                            data-calendar-range={rangePart}
+                            data-calendar-preview={
+                              inPreview && !edge ? '' : undefined
                             }
+                            aria-label={[
+                              dateLabel.format(day.date),
+                              rangeDescription,
+                              description,
+                            ]
+                              .filter(Boolean)
+                              .join('，')}
                             aria-current={
                               day.iso === todayISO ? 'date' : undefined
                             }
@@ -461,13 +510,24 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
                               day.iso === todayISO &&
                                 !selected &&
                                 'border-primary',
-                              selected && 'bg-primary text-primary-foreground',
+                              (range ? edge : selected) &&
+                                'bg-primary text-primary-foreground',
+                              inRange &&
+                                !edge &&
+                                'rounded-none bg-accent text-accent-foreground',
+                              inPreview &&
+                                !edge &&
+                                'border-primary border-dashed bg-accent text-accent-foreground',
                               !selected &&
                                 !unavailable &&
                                 'hover:bg-accent hover:text-accent-foreground',
                               classNames?.day,
                             )}
-                            onFocus={() => setActiveDate(day.iso)}
+                            onFocus={() => {
+                              setActiveDate(day.iso)
+                              onDateFocus?.(day.iso)
+                            }}
+                            onMouseEnter={() => onDateHover?.(day.iso)}
                             onKeyDown={(event) =>
                               handleDayKeyDown(event, day.date)
                             }

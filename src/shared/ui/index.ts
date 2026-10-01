@@ -236,6 +236,9 @@ export { DateRangePicker, TimeRangePicker } from './date-range-picker'
 export type {
   DateRange,
   DateRangePickerProps,
+  DateRangeEndpoint,
+  DateRangePreset,
+  DateRangePickerPart,
   TimeRange,
   TimeRangePickerProps,
 } from './date-range-picker'
