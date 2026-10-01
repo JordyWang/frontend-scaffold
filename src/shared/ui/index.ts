@@ -231,12 +231,17 @@ export type {
 } from './tree-select'
 export { Transfer } from './transfer'
 export type { TransferDirection, TransferItem, TransferProps } from './transfer'
-export { Statistic, Timeline } from './data-display'
+export { Statistic } from './data-display'
+export type { StatisticProps } from './data-display'
+export { Timeline } from './timeline'
 export type {
-  StatisticProps,
   TimelineItem,
   TimelineProps,
-} from './data-display'
+  TimelineMode,
+  TimelinePlacement,
+  TimelineOrientation,
+  TimelineLabelWidth,
+} from './timeline'
 export { Dropdown, FloatButton, Popconfirm, Popover, Tooltip } from './overlay'
 export { BackTop } from './back-top'
 export type { BackTopProps } from './back-top'

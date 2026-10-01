@@ -64,7 +64,8 @@
 | Avatar                          | `src`、`srcSet`、`alt`、`label`、`size`、`shape`、`icon`、`gap`、`onError`                                                                       | 头像保留单一可访问名称，失败后回退到图标或文字；长文字自动缩放，尺寸可响应断点                                              |
 | Descriptions                    | `items`、`column`、`bordered`、`layout`、`size`、`title`、`extra`、`colon`、`emptyText`、`classNames`                                            | `dl/dt/dd` 保持一份阅读顺序；响应式列数和跨度、整行剩余填充、统一尺寸、RTL 与空状态                                         |
 | AvatarGroup                     | `items`、`maxCount`、`size`、`shape`、`label`                                                                                                    | 重叠展示成员，溢出按钮支持键盘和触控打开公共 Popover 查看其余成员，布局跟随 RTL                                             |
-| Statistic / Timeline            | `Statistic(title, value, precision, prefix, suffix, locale, formatter, loading)`；`Timeline(items)`                                              | 数值按 ConfigProvider.locale 分组格式化，加载时提供可访问骨架；时间线使用有序列表和文字状态                                 |
+| Statistic                       | `title`、`value`、`precision`、`prefix`、`suffix`、`locale`、`formatter`、`loading`                                                              | 数值按 ConfigProvider.locale 分组格式化，加载时提供可访问骨架                                                               |
+| Timeline                        | `items`、`mode`、`orientation`、`reverse`、`variant`、`labelWidth`、`label`、`emptyText`、`classNames`                                           | 原生有序列表；两侧与交替布局、水平滚动、容器响应式、加载与文字状态、动态焦点恢复                                            |
 | Carousel                        | `items`、`index` / `defaultIndex`、`autoplay`、`dots`、`dotPlacement`、`effect`、`infinite`、`adaptiveHeight`、`ref`                             | 受控轮播、四向指示点、两种动效、键盘/手势切换、播放进度及隐藏内容焦点恢复                                                   |
 | Tree                            | `treeData`、`expandedKeys` / `defaultExpandedKeys`、`onExpand`、`selectedKey`、`onSelect`                                                        | 树只有一个 Tab 入口，方向键移动及展开/收起，Enter/空格选择；触控可点展开区                                                  |
 
@@ -167,6 +168,16 @@ Carousel 的 `items` 保持项目 ReactNode 数组 API；有状态的内容传�
 开启 `autoplay` 后，焦点、鼠标进入或触控会暂停轮转，并提供暂停/恢复按钮；系统启用减少动态效果时默认不自动轮播，用户明确恢复后才开始。若启用播放时焦点已经在内容内，保持暂停；文档隐藏时停止计时，恢复可见后从新的完整间隔开始。`interval` 默认 4000ms，正值至少 100ms，非有限或非正值回退到默认值。`dotProgress` 展示当前指示点的装饰性进度，暂停时停止动效；减少动画时不绘制进度动画。
 
 `label` 命名轮播区域，`emptyText` 定义空数据文案；单项数据不显示切换控制。`classNames` 提供 `root` / `viewport` / `slide` / `controls` / `arrow` / `dots` / `dot` / `status` / `rotation` 的 Tailwind 插槽。隐藏当前焦点所属内容、删除或禁用焦点所在的导航控件时，焦点恢复到轮播区域；外部焦点不被抢走。`/__ui` 展示两种动效、四向页码、有限循环、表单草稿、动态缩减、进度、RTL 深色、单项与空数据。
+
+`Timeline.items` 保留项目的 `title`（内容标题）、`children`（详情）和 `dot` API，新增 `label` 表示时间或另一侧辅助信息；不改变旧 `title` 的含义。有动态排序或局部状态时传稳定 `key`，`reverse` 实际倒置 DOM 阅读顺序而不修改输入数组，表单值与焦点不会因倒序重建。
+
+`mode` 为 `start`（默认）、`end` 或 `alternate`，单项 `placement` 可覆写逻辑侧；`orientation` 为 `vertical`（默认）或 `horizontal`。容器宽度不足 640px 时，所有布局回退为节点加单列内容，时间标签放在标题之前；基于容器宽度，不依赖视口宽度。宽容器内，竖向布局把时间标签与内容放在轴的两侧，交替或跨侧覆写时轴居中；水平布局以 subgrid 对齐节点和连接线，内容与标签位于轴上下两侧，单项至少 12rem，多项在列表内横向滚动。
+
+`labelWidth` 控制竖向单侧布局的标签列宽，默认为 `'28%'`；数字和 `px` 字符串为像素，也接受百分比字符串。实际标签列限制在 5rem 至容器的 40% 之间，交替布局使用两侧等宽。`variant` 为 `outlined`（默认）或 `filled`，节点使用项目语义颜色 `primary` / `success` / `warning` / `error` / `gray`；`loading` 提供旋转标记和 `aria-busy`，相邻连接线使用虚线，减少动态效果时停止旋转。`dot` 是装饰性标记，不放交互内容；`statusText` 可指定可访问状态文字，否则根据颜色和加载状态生成，不依赖颜色传达状态。
+
+`label` 命名时间轴区域，内部原生 `ol` 保持唯一阅读顺序；只有实际横向溢出时，列表才进入 Tab 顺序并关联方向键滚动说明；左右键按物理方向滚动，Home / End 到逻辑首尾，移动 WebKit 也由组件显式处理键盘滚动。内容按钮和输入保留原生键盘行为与触控。焦点所属内容被删除或禁用时恢复到首个可用操作，空数据时恢复到根容器；外部焦点不被抢走。`emptyText` 默认为“暂无记录”，空数组复用公共 Empty，单项不显示连接线。
+
+`classNames` 支持 `root` / `list` / `item` / `marker` / `dot` / `rail` / `label` / `title` / `content` 的 Tailwind 插槽，单项可传 `className` 和除 root / list 外的局部 `classNames`。原生属性、style 和焦点事件传给根容器，方向默认继承 ConfigProvider。`/__ui` 展示布局切换、倒序、标签宽度、长文本、自定义标记、加载/错误与内容操作、水平长列表、PC 窄容器、RTL 深色、单项和空数据。
 
 Menu 的受控展开 API 为 `expandedKeys`、`defaultExpandedKeys` 和 `onExpand`；多级菜单使用方向键展开、收起和移动焦点，禁用项不会被方向键选中。Menu 只有一个 Tab 入口，焦点菜单项通过 roving `tabIndex` 暴露。横向菜单的子菜单通过主题作用域内的 Portal 显示，避开卡片裁切边界；Escape 返回触发项，点击外部关闭。
 
