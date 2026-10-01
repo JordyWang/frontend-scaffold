@@ -1,5 +1,6 @@
 import {
   forwardRef,
+  useEffect,
   useId,
   useLayoutEffect,
   useRef,
@@ -31,6 +32,14 @@ const inputNumberSizeStyles = {
   large: 'min-h-12',
 } as const
 
+export type InputNumberFormatInfo = {
+  userTyping: boolean
+  input: string
+}
+export type InputNumberStepInfo = {
+  offset: number
+  type: 'up' | 'down'
+}
 export type InputNumberProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
   'type' | 'value' | 'defaultValue' | 'onChange' | 'size'
@@ -47,9 +56,16 @@ export type InputNumberProps = Omit<
   variant?: InputVariant
   status?: InputStatus
   onChange?: (value: number | undefined) => void
+  precision?: number
+  formatter?: (value: number | undefined, info: InputNumberFormatInfo) => string
+  parser?: (value: string) => number | undefined
+  controls?: boolean | { upIcon?: ReactNode; downIcon?: ReactNode }
+  keyboard?: boolean
+  changeOnWheel?: boolean
+  onStep?: (value: number, info: InputNumberStepInfo) => void
 }
 
-/** A numeric field that clamps committed values while keeping native key controls. */
+/** A numeric field with Ant Design compatible precision, formatting and step controls. */
 export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
   function InputNumber(allProps, ref) {
     const controlled = Object.prototype.hasOwnProperty.call(allProps, 'value')
@@ -65,6 +81,13 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
       invalid,
       variant = 'outlined',
       status = 'default',
+      precision,
+      formatter,
+      parser,
+      controls = true,
+      keyboard = true,
+      changeOnWheel = false,
+      onStep,
       'aria-invalid': ariaInvalid,
       className,
       disabled,
@@ -79,26 +102,76 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
       defaultValue === undefined ? '' : String(defaultValue),
     )
     const [editing, setEditing] = useState(false)
-    const displayed = editing
-      ? draft
-      : controlled
-        ? value === undefined
-          ? ''
-          : String(value)
-        : draft
+    const inputRef = useRef<HTMLInputElement>(null)
+    useEffect(() => {
+      if (controlled) return
+      const form = inputRef.current?.form
+      if (!form) return
+      const reset = () => {
+        setDraft(defaultValue === undefined ? '' : String(defaultValue))
+        setEditing(false)
+      }
+      form.addEventListener('reset', reset)
+      return () => form.removeEventListener('reset', reset)
+    }, [controlled, defaultValue])
+
+    function round(next: number) {
+      if (precision === undefined || !Number.isFinite(precision)) return next
+      const digits = Math.max(0, Math.floor(precision))
+      const factor = 10 ** digits
+      return Math.round((next + Number.EPSILON) * factor) / factor
+    }
+
+    function parse(raw: string) {
+      const parsed = parser ? parser(raw) : raw === '' ? undefined : Number(raw)
+      return parsed === undefined || !Number.isFinite(parsed)
+        ? undefined
+        : round(parsed)
+    }
+
+    function format(raw: string, userTyping: boolean) {
+      if (!formatter) return raw
+      const parsed = parse(raw)
+      return formatter(parsed, { userTyping, input: raw })
+    }
+
+    const current = controlled ? value : parse(draft)
+    const committed = current === undefined ? '' : String(current)
+    const displayed = editing ? draft : format(committed, false)
 
     function clamp(next: number) {
-      return Math.min(
-        max ?? Number.POSITIVE_INFINITY,
-        Math.max(min ?? Number.NEGATIVE_INFINITY, next),
+      return round(
+        Math.min(
+          max ?? Number.POSITIVE_INFINITY,
+          Math.max(min ?? Number.NEGATIVE_INFINITY, next),
+        ),
       )
+    }
+
+    function publish(next: number | undefined) {
+      const value = next === undefined ? undefined : clamp(next)
+      if (!controlled) setDraft(value === undefined ? '' : String(value))
+      setEditing(false)
+      onChange?.(value)
+      return value
+    }
+
+    function stepBy(direction: 1 | -1) {
+      const offset = Math.abs(step) || 1
+      const base = current ?? min ?? 0
+      const next = publish(base + direction * offset)
+      if (next !== undefined)
+        onStep?.(next, {
+          offset: direction * offset,
+          type: direction > 0 ? 'up' : 'down',
+        })
     }
 
     function handleChange(event: ChangeEvent<HTMLInputElement>) {
       const raw = event.currentTarget.value
-      setDraft(raw)
-      const parsed = raw === '' ? undefined : Number(raw)
-      if (parsed !== undefined && !Number.isFinite(parsed)) return
+      const nextDraft = formatter ? format(raw, true) : raw
+      setDraft(nextDraft)
+      const parsed = parse(raw)
       onChange?.(parsed)
     }
 
@@ -110,14 +183,12 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
 
     function handleBlur(event: React.FocusEvent<HTMLInputElement>) {
       const raw = event.currentTarget.value
-      const parsed = raw === '' ? undefined : Number(raw)
-      const next =
-        parsed === undefined || !Number.isFinite(parsed)
-          ? undefined
-          : clamp(parsed)
+      const parsed = parse(raw)
+      const next = parsed === undefined ? undefined : clamp(parsed)
       setEditing(false)
       if (!controlled) setDraft(next === undefined ? '' : String(next))
-      if (next !== parsed) onChange?.(next)
+      if (next !== parsed || (parsed === undefined && raw !== ''))
+        onChange?.(next)
       onBlur?.(event)
     }
 
@@ -139,13 +210,21 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
         )}
         <input
           {...props}
-          ref={ref}
-          type="number"
+          ref={(element) => {
+            inputRef.current = element
+            if (typeof ref === 'function') ref(element)
+            else if (ref) ref.current = element
+          }}
+          type={formatter || parser ? 'text' : 'number'}
+          role="spinbutton"
           className="min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-inherit outline-none"
           value={displayed}
           min={min}
           max={max}
           step={step}
+          aria-valuenow={current}
+          aria-valuemin={min}
+          aria-valuemax={max}
           disabled={disabled}
           aria-invalid={
             invalid || status === 'error' || ariaInvalid || undefined
@@ -153,7 +232,68 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
           onChange={handleChange}
           onFocus={handleFocus}
           onBlur={handleBlur}
+          onWheel={(event) => {
+            props.onWheel?.(event)
+            if (
+              !changeOnWheel ||
+              document.activeElement !== event.currentTarget
+            )
+              return
+            event.preventDefault()
+            stepBy(event.deltaY < 0 ? 1 : -1)
+          }}
+          onKeyDown={(event) => {
+            props.onKeyDown?.(event)
+            if (
+              keyboard &&
+              !event.defaultPrevented &&
+              (event.key === 'ArrowUp' || event.key === 'ArrowDown')
+            ) {
+              event.preventDefault()
+              stepBy(event.key === 'ArrowUp' ? 1 : -1)
+            }
+          }}
         />
+        {controls && (
+          <span className="flex h-full min-h-11 shrink-0 flex-col border-s border-input">
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-label={(props['aria-label'] ?? '数值') + '增加'}
+              disabled={
+                disabled ||
+                (max !== undefined && current !== undefined && current >= max)
+              }
+              className="flex min-h-5 w-8 flex-1 touch-manipulation items-center justify-center border-b border-input text-muted-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => stepBy(1)}
+            >
+              {typeof controls === 'object' ? (
+                (controls.upIcon ?? <span aria-hidden="true">+</span>)
+              ) : (
+                <span aria-hidden="true">+</span>
+              )}
+            </button>
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-label={(props['aria-label'] ?? '数值') + '减少'}
+              disabled={
+                disabled ||
+                (min !== undefined && current !== undefined && current <= min)
+              }
+              className="flex min-h-5 w-8 flex-1 touch-manipulation items-center justify-center text-muted-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => stepBy(-1)}
+            >
+              {typeof controls === 'object' ? (
+                (controls.downIcon ?? <span aria-hidden="true">−</span>)
+              ) : (
+                <span aria-hidden="true">−</span>
+              )}
+            </button>
+          </span>
+        )}
         {suffix && (
           <span className="leading-none text-muted-foreground">{suffix}</span>
         )}

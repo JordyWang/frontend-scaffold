@@ -701,6 +701,52 @@ describe('Ant Design-inspired shared components', () => {
     expect(onSliderChange).toHaveBeenCalledWith(7)
   })
 
+  it('supports precision, formatter/parser, step controls and native reset', async () => {
+    const onChange = vi.fn(),
+      onStep = vi.fn()
+    render(
+      <form aria-label="数字表单">
+        <InputNumber
+          aria-label="金额"
+          defaultValue={1.2}
+          min={0}
+          max={2}
+          step={0.1}
+          precision={2}
+          formatter={(value, info) =>
+            info.userTyping
+              ? info.input
+              : value === undefined
+                ? ''
+                : '$' + value.toFixed(2)
+          }
+          parser={(value) => Number(value.replace('$', ''))}
+          onChange={onChange}
+          onStep={onStep}
+          name="amount"
+        />
+      </form>,
+    )
+    const input = screen.getByRole('spinbutton', { name: '金额' })
+    expect(input).toHaveValue('$1.20')
+    fireEvent.focus(input)
+    fireEvent.change(input, { target: { value: '$1.35' } })
+    expect(input).toHaveValue('$1.35')
+    expect(onChange).toHaveBeenLastCalledWith(1.35)
+    fireEvent.keyDown(input, { key: 'ArrowUp' })
+    await waitFor(() => expect(input).toHaveValue('$1.45'))
+    expect(onStep).toHaveBeenLastCalledWith(1.45, {
+      offset: 0.1,
+      type: 'up',
+    })
+    fireEvent.click(screen.getByRole('button', { name: '金额增加' }))
+    await waitFor(() => expect(input).toHaveValue('$1.55'))
+    fireEvent.change(input, { target: { value: '$1.75' } })
+    fireEvent.blur(input)
+    fireEvent.reset(screen.getByRole('form', { name: '数字表单' }))
+    expect(input).toHaveValue('$1.20')
+  })
+
   it('shares field variants and statuses across native data controls', () => {
     render(
       <>

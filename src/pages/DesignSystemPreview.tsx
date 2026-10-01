@@ -185,6 +185,7 @@ export function DesignSystemPreview() {
   const [step, setStep] = useState(1)
   const [uncontrolledStepEvent, setUncontrolledStepEvent] = useState(0)
   const [quantity, setQuantity] = useState<number | undefined>(3)
+  const [amount, setAmount] = useState(12.5)
   const [volume, setVolume] = useState(42)
   const [controlledRating, setControlledRating] = useState<number | undefined>(
     3,
@@ -1917,6 +1918,29 @@ export function DesignSystemPreview() {
                   >
                     清空数量
                   </Button>
+                  <FormField
+                    label="格式化金额"
+                    description="精度、解析器和步进按钮共用数字值 API。"
+                    control={
+                      <InputNumber
+                        aria-label="格式化金额"
+                        value={amount}
+                        min={0}
+                        max={9999}
+                        step={0.5}
+                        precision={2}
+                        formatter={(value, info) =>
+                          info.userTyping
+                            ? info.input
+                            : value === undefined
+                              ? ''
+                              : '¥' + value.toFixed(2)
+                        }
+                        parser={(value) => Number(value.replace('¥', ''))}
+                        onChange={(next) => setAmount(next ?? 0)}
+                      />
+                    }
+                  />
                   <FormField
                     label="音量"
                     control={
