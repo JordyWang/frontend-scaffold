@@ -67,7 +67,7 @@
 | Statistic                       | `title`、`value`、`precision`、`prefix`、`suffix`、`locale`、`formatter`、`loading`                                                              | 数值按 ConfigProvider.locale 分组格式化，加载时提供可访问骨架                                                               |
 | Timeline                        | `items`、`mode`、`orientation`、`reverse`、`variant`、`labelWidth`、`label`、`emptyText`、`classNames`                                           | 原生有序列表；两侧与交替布局、水平滚动、容器响应式、加载与文字状态、动态焦点恢复                                            |
 | Carousel                        | `items`、`index` / `defaultIndex`、`autoplay`、`dots`、`dotPlacement`、`effect`、`infinite`、`adaptiveHeight`、`ref`                             | 受控轮播、四向指示点、两种动效、键盘/手势切换、播放进度及隐藏内容焦点恢复                                                   |
-| Tree                            | `treeData`、`expandedKeys` / `defaultExpandedKeys`、`onExpand`、`selectedKey`、`onSelect`                                                        | 树只有一个 Tab 入口，方向键移动及展开/收起，Enter/空格选择；触控可点展开区                                                  |
+| Tree                            | `treeData`、`expandedKeys`、`selectedKey` / `selectedKeys`、`checkedKeys`、`checkStrictly`、`multiple`、`classNames`                             | 选择和勾选独立；父子传导与半选、禁用边界、严格勾选、唯一 Tab 入口、RTL 键盘与空状态                                         |
 
 `Progress` 的 `type` 可选 `line`、`circle`、`dashboard`。`steps` 可传数字或 `{ count, gap? }`；`gap` 单位为 px，线性默认间距为 4px，圆环及仪表盘默认间距为 2px，最多渲染 100 段。圆环与仪表盘的 `strokeWidth` 沿用项目的像素单位。仪表盘 `gapDegree` 默认 75°、限制在 0–295°，`gapPlacement` 默认 `bottom`，`start` / `end` 跟随 ConfigProvider 的 LTR/RTL 方向。所有形态只暴露一个 `progressbar`，百分比文本由 `format` 控制。
 
@@ -155,7 +155,15 @@
 
 `Spinner` 和 `Spin` 共用小号 16px、默认 24px、大号 36px 的 Tailwind 指示器尺寸，并继承 `ConfigProvider.componentSize`。两者以可访问状态名称报告加载，系统启用减少动态效果时停止旋转。
 
-Tree 支持 `selectedKey` 受控选择和 `defaultSelectedKey` 非受控初始选择。受控展开或数据更新后若移除了当前聚焦节点，会把焦点移到最近仍可见的祖先节点；焦点已移出 Tree 时不会重新抢占焦点。`/__ui` 可切换受控展开状态验证这一行为。
+`Tree` 保留 `selectedKey` / `defaultSelectedKey` 和 `onSelect(key)` 的单选 API；数组契约使用 `selectedKeys` / `defaultSelectedKeys`、`onSelectionChange(keys, { node, selected })`，`multiple` 开启逐项追加或移除。选择与焦点独立，方向键只移动焦点；显式 `selectedKey={undefined}` 或 `selectedKeys={[]}` 表示受控空选择，单选模式最多显示第一个有效键。全局 `selectable` 和单项 `selectable={false}` 关闭节点选择，不影响展开和勾选。
+
+`checkable` 显示节点复选标记，`checkedKeys` / `defaultCheckedKeys` 与节点选择相互独立；`onCheck(keys, { node, checked, halfCheckedKeys })` 返回按树数据顺序排列的勾选键与半选键。默认父子关联，勾选父节点会选中可用后代，子节点全部勾选时父节点勾选，部分勾选时父节点半选。单项 `disabled`、`disableCheckbox` 和 `checkable={false}` 是勾选传导边界，父级操作不会改变该分支；边界下面的可用子节点仍可独立勾选。外部显式勾选的禁用节点保留自身状态，不传导。`checkStrictly` 关闭父子关联，可通过 `halfCheckedKeys` 显式提供严格模式下的半选状态；`disableCheckbox` 仅禁用勾选，仍可选择或展开节点，并提供可访问说明。
+
+展开使用 `expandedKeys` / `defaultExpandedKeys` 和 `onExpand(keys)`。`defaultExpandAll` 只在首次挂载时展开当前所有父节点；`defaultExpandParent` 默认开启，初始化时展开指定节点的可用祖先；`autoExpandParent` 可让受控展开键自动补齐祖先，关闭父节点时会从请求中移除对应后代键，避免被自动展开立即还原。全局 `disabled` 同步关闭展开、勾选和选择。非受控状态清理已删除的键，已勾选父节点新增的可用后代会跟随勾选。
+
+树保留原生 `tree` / `treeitem` / `group` 层级和一个 roving Tab 入口，层级、兄弟位置、选择及勾选状态通过 ARIA 暴露；复选标记是该树项的触控入口，不额外增加 Tab 停靠点。空格切换勾选，Enter 选择；未显示复选框的节点空格仍可选择。上下键浏览、Home / End 到首尾、左右键展开/返回父级并随 RTL 反向；字符输入在当前可见可用节点间查找，可连续输入或重复首字母循环。节点的交互内容保留原生操作。被删除、关闭或禁用的焦点节点恢复到最近可用祖先，其次首个可用节点，全部不可用或空数据时回到根容器；外部焦点不被抢走。
+
+`showLine` 显示按逻辑方向连接的分支线，`showIcon` 显示节点的装饰性 `icon`（缺省使用公共文件夹/文件图标），`switcherIcon({ node, expanded, direction })` 自定义展开图标。`blockNode` 默认开启以兼容原有整行标题，可关闭为内容宽度。长标题换行，深层缩进限制在容器的 25% 以内，触控入口至少 44px；展开图标的旋转尊重减少动画。`label` 命名树，`emptyText` 默认为“暂无节点”。`classNames` 支持 root、item、row、switcher、checkbox、icon、title、group，单项支持局部类名。`/__ui` 展示关联/严格勾选、多选/单选、禁用边界、长标题、窄容器、动态删除、RTL 深色、默认展开祖先和空数据。
 
 Carousel 的 `items` 保持项目 ReactNode 数组 API；有状态的内容传稳定 React `key`，每项只挂载一次，切换后保留表单值。非活动幻灯片使用 `inert` 和 `aria-hidden`，动效期间也不进入焦点与辅助技术阅读顺序。`index` / `defaultIndex` 使用从零开始的索引，越界值限制到当前范围，非有限值回到首项；非受控状态会清理数据缩减后的索引，受控状态不回写父值。
 

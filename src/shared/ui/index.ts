@@ -268,13 +268,19 @@ export type {
   CarouselDotPlacement,
   CarouselHandle,
 } from './carousel'
-export { Affix, Anchor, Menu, Tree } from './navigation-extended'
+export { Affix, Anchor, Menu } from './navigation-extended'
 export type {
   AffixProps,
   AnchorLink,
   AnchorProps,
   MenuItem,
   MenuProps,
+} from './navigation-extended'
+export { Tree } from './tree'
+export type {
   TreeNode,
   TreeProps,
-} from './navigation-extended'
+  TreeCheckInfo,
+  TreeSelectionInfo,
+  TreeSwitcherInfo,
+} from './tree'

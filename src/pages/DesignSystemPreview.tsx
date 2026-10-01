@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { CollapsePreview } from './CollapsePreview'
 import { CarouselPreview } from './CarouselPreview'
 import { TimelinePreview } from './TimelinePreview'
+import { TreePreview } from './TreePreview'
 import {
   Alert,
   Affix,
@@ -2029,6 +2030,7 @@ export function DesignSystemPreview() {
           <CollapsePreview />
           <CarouselPreview />
           <TimelinePreview />
+          <TreePreview />
           <Card className="col-span-full">
             <CardContent>
               <Stack gap="md">

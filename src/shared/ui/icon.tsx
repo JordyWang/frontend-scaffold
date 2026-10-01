@@ -15,6 +15,10 @@ const paths = {
     </>
   ),
   check: <path d="m4 10 4 4 8-8" />,
+  folder: (
+    <path d="M2 5a1 1 0 0 1 1-1h5l2 2h7a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1Z" />
+  ),
+  file: <path d="M4 2h7l5 5v11H4ZM11 2v5h5M7 11h6M7 14h6" />,
   close: <path d="M5 5l10 10M15 5 5 15" />,
   info: (
     <>
