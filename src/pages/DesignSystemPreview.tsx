@@ -13,6 +13,7 @@ import { DatePickerPreview } from './DatePickerPreview'
 import { DateRangePreview } from './DateRangePreview'
 import { MultiDatePreview } from './MultiDatePreview'
 import { DateUnitPreview } from './DateUnitPreview'
+import { DateUnitRangePreview } from './DateUnitRangePreview'
 import {
   Alert,
   Affix,
@@ -2054,6 +2055,7 @@ export function DesignSystemPreview() {
           <DateRangePreview />
           <MultiDatePreview />
           <DateUnitPreview />
+          <DateUnitRangePreview />
           <Card className="col-span-full">
             <CardContent>
               <Stack gap="md">

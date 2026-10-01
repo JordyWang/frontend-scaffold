@@ -12,19 +12,24 @@ import {
 } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { Button } from './button'
-import { Calendar } from './calendar'
+import { DatePickerPanel } from './date-picker-panel'
 import {
   resolveComponentSize,
   useConfig,
   type ControlSize,
 } from './config-context'
+import { addMonths, parseMonth, toMonth } from './date-picker-state'
 import {
-  addMonths,
-  dateStepMatches,
-  parseDate,
-  parseMonth,
-  toMonth,
-} from './date-picker-state'
+  parsePickerValue,
+  pickerBoundMonth,
+  pickerDefaultBounds,
+  pickerFormats,
+  pickerStepMatches,
+  pickerUnitNames,
+  pickerValueMonth,
+  type DatePickerUnit,
+  type DatePeriodUnit,
+} from './date-unit-state'
 import { Icon } from './icon'
 import type { InputStatus, InputVariant } from './input'
 import {
@@ -66,7 +71,7 @@ export type DateRangePickerPart =
   | 'presets'
   | 'footer'
   | 'error'
-export type DateRangePickerProps = {
+type DateRangePickerBaseProps = {
   value?: DateRange
   defaultValue?: DateRange
   onChange?: (value: DateRange) => void
@@ -97,7 +102,6 @@ export type DateRangePickerProps = {
   onClear?: () => void
   needConfirm?: boolean
   onOk?: (value: DateRange) => void
-  mode?: 'popup' | 'panel' | 'native'
   open?: boolean
   defaultOpen?: boolean
   onOpenChange?: (open: boolean) => void
@@ -113,6 +117,11 @@ export type DateRangePickerProps = {
   locale?: string
   renderDate?: (date: string) => ReactNode
   getDateDescription?: (date: string) => string | undefined
+  renderCell?: (value: string, picker: DatePickerUnit) => ReactNode
+  getCellDescription?: (
+    value: string,
+    picker: DatePickerUnit,
+  ) => string | undefined
   footer?: ReactNode
   separator?: ReactNode
   name?: string
@@ -131,6 +140,11 @@ export type DateRangePickerProps = {
   'aria-label'?: string
   'aria-labelledby'?: string
 }
+export type DateRangePickerProps = DateRangePickerBaseProps &
+  (
+    | { picker?: 'date'; mode?: 'popup' | 'panel' | 'native' }
+    | { picker: DatePeriodUnit; mode?: 'popup' | 'panel' }
+  )
 
 const asRange = (value?: DateRange): DateRange => [
   value?.[0] ?? '',
@@ -139,22 +153,23 @@ const asRange = (value?: DateRange): DateRange => [
 const equalRange = (left: DateRange, right: DateRange) =>
   left[0] === right[0] && left[1] === right[1]
 
-/** Pending calendar endpoints remain separate from the submitted ISO tuple. */
-export const DateRangePicker = forwardRef<
+/** Pending endpoints remain separate from the submitted unit-string tuple. */
+const DateRangePickerControl = forwardRef<
   HTMLInputElement,
   DateRangePickerProps
->(function DateRangePicker(allProps, ref) {
+>(function DateRangePickerControl(allProps, ref) {
   const controlled = Object.prototype.hasOwnProperty.call(allProps, 'value')
   const {
     value,
+    picker = 'date',
     defaultValue,
     onChange,
     onCalendarChange,
     onBlur,
     onFocus,
     label = '日期范围',
-    startLabel = '开始日期',
-    endLabel = '结束日期',
+    startLabel = '开始' + pickerUnitNames[picker],
+    endLabel = '结束' + pickerUnitNames[picker],
     min,
     max,
     step,
@@ -183,6 +198,8 @@ export const DateRangePicker = forwardRef<
     locale,
     renderDate,
     getDateDescription,
+    renderCell,
+    getCellDescription,
     footer,
     separator = '–',
     name,
@@ -193,7 +210,7 @@ export const DateRangePicker = forwardRef<
     variant = 'outlined',
     status = 'default',
     required = false,
-    placeholder = ['YYYY-MM-DD', 'YYYY-MM-DD'],
+    placeholder = [pickerFormats[picker], pickerFormats[picker]],
     className,
     classNames,
     'aria-describedby': ariaDescribedBy,
@@ -233,22 +250,26 @@ export const DateRangePicker = forwardRef<
   const [hovered, setHovered] = useState<string>()
   const focusRequested = useRef<DateRangeEndpoint | null>(null)
   const ownedFocus = useRef(false)
+  const wasOpen = useRef(false)
   const isDisabled = (part: 0 | 1) =>
     readOnly || (Array.isArray(disabled) ? disabled[part] : disabled)
   const inactive = isDisabled(0) && isDisabled(1)
   const isOpen = mode === 'popup' && !inactive && (open ?? internalOpen)
   const showing = mode === 'panel' || isOpen
   if (inactive && open === undefined && internalOpen) setInternalOpen(false)
-  const minDate = parseDate(min) ? min! : '0001-01-01'
-  const maxDate = parseDate(max) ? max! : '9999-12-31'
+  const bounds = pickerDefaultBounds(picker)
+  const minDate = parsePickerValue(min, picker) ? min! : bounds[0]
+  const maxDate = parsePickerValue(max, picker) ? max! : bounds[1]
+  const minMonth = pickerBoundMonth(minDate, picker, 0)
+  const maxMonth = pickerBoundMonth(maxDate, picker, 1)
   function selectable(date: string, part: 0 | 1, range: DateRange) {
     const other = part === 0 ? 1 : 0,
       from = range[other] || undefined
     return (
-      Boolean(parseDate(date)) &&
+      Boolean(parsePickerValue(date, picker)) &&
       date >= minDate &&
       date <= maxDate &&
-      dateStepMatches(date, parseDate(min) ? min! : '1970-01-01', step) &&
+      pickerStepMatches(date, picker, min, step) &&
       !(
         isDisabled(other) &&
         from &&
@@ -271,21 +292,23 @@ export const DateRangePicker = forwardRef<
   function monthFor(date?: string, useDefault = false) {
     const proposed = toMonth(
       (useDefault ? parseMonth(defaultPanelMonth) : undefined) ??
-        parseDate(date) ??
+        parseMonth(pickerValueMonth(date, picker)) ??
         parseMonth(defaultPanelMonth) ??
         new Date(),
     )
-    return proposed < minDate.slice(0, 7)
-      ? minDate.slice(0, 7)
-      : proposed > maxDate.slice(0, 7)
-        ? maxDate.slice(0, 7)
+    return proposed < minMonth
+      ? minMonth
+      : proposed > maxMonth
+        ? maxMonth
         : proposed
   }
   const [internalMonth, setInternalMonth] = useState(() =>
-    monthFor(current[index], true),
+    monthFor(current[index] || current[index === 0 ? 1 : 0], true),
   )
   const month = parseMonth(panelMonth) ? panelMonth! : internalMonth
-  const nextMonth = toMonth(addMonths(parseMonth(month)!, 1))
+  const panelSpan =
+    picker === 'date' || picker === 'week' ? 1 : picker === 'year' ? 120 : 12
+  const nextMonth = toMonth(addMonths(parseMonth(month)!, panelSpan))
   if (previous !== currentKey) {
     setPrevious(currentKey)
     setCandidate(current)
@@ -318,9 +341,15 @@ export const DateRangePicker = forwardRef<
     const elements = pickerFocusable(calendars)
     const target =
       elements.find(
-        (element) => element.dataset.calendarDate === candidate[index],
+        (element) =>
+          (element.dataset.calendarDate ?? element.dataset.pickerValue) ===
+          candidate[index],
       ) ??
-      elements.find((element) => element.hasAttribute('data-calendar-date')) ??
+      elements.find(
+        (element) =>
+          element.hasAttribute('data-calendar-date') ||
+          element.hasAttribute('data-picker-value'),
+      ) ??
       elements[0]
     if (target) revealPickerTarget(target)
   }
@@ -330,8 +359,12 @@ export const DateRangePicker = forwardRef<
     setEndpoint(part === 0 ? 'start' : 'end')
     if (!isOpen) {
       setCandidate(dirty && validRange(draft) ? draft : current)
-      if (panelMonth === undefined)
-        setInternalMonth(monthFor((dirty ? draft : current)[part], true))
+      if (panelMonth === undefined) {
+        const range = dirty ? draft : current
+        setInternalMonth(
+          monthFor(range[part] || range[part === 0 ? 1 : 0], true),
+        )
+      }
       focusRequested.current = focus ? (part === 0 ? 'start' : 'end') : null
       setOpen(true)
     } else if (focus) {
@@ -389,7 +422,7 @@ export const DateRangePicker = forwardRef<
     if (!dirty) return true
     const next = normalize(draft, lastEdited.current)
     if (!validRange(next)) {
-      setError('请输入可选的日期范围（YYYY-MM-DD）')
+      setError('请输入可选的日期范围（' + pickerFormats[picker] + '）')
       return false
     }
     if (needConfirm && !confirm && mode !== 'native') {
@@ -463,6 +496,16 @@ export const DateRangePicker = forwardRef<
       restoreFocus()
     }
   }
+  useLayoutEffect(() => {
+    if (wasOpen.current && !isOpen && needConfirm) {
+      setCandidate(current)
+      setDraft(current)
+      setDirty(false)
+      setHovered(undefined)
+      setError('')
+    }
+    wasOpen.current = isOpen
+  }, [isOpen, current, needConfirm])
   useLayoutEffect(() => {
     if (showing && focusRequested.current === endpoint) {
       focusRequested.current = null
@@ -639,9 +682,19 @@ export const DateRangePicker = forwardRef<
                   offset === 1 ? 'hidden min-w-0 @min-[660px]:block' : 'min-w-0'
                 }
               >
-                <Calendar
+                <DatePickerPanel
+                  picker={picker}
                   key={endpoint}
-                  label={label + (offset === 0 ? '月份' : '后续月份')}
+                  label={
+                    label +
+                    (picker === 'date'
+                      ? offset === 0
+                        ? '月份'
+                        : '后续月份'
+                      : offset === 0
+                        ? '面板'
+                        : '后续面板')
+                  }
                   value={candidate[index] || candidate[index === 0 ? 1 : 0]}
                   range={candidate}
                   previewRange={preview}
@@ -650,7 +703,7 @@ export const DateRangePicker = forwardRef<
                     changeMonth(
                       offset === 0
                         ? next
-                        : toMonth(addMonths(parseMonth(next)!, -1)),
+                        : toMonth(addMonths(parseMonth(next)!, -panelSpan)),
                     )
                   }
                   onChange={choose}
@@ -661,8 +714,16 @@ export const DateRangePicker = forwardRef<
                   showOutsideDays={false}
                   weekStartsOn={weekStartsOn}
                   locale={locale}
-                  renderDate={renderDate}
-                  getDateDescription={getDateDescription}
+                  renderDate={
+                    renderCell
+                      ? (value) => renderCell(value, picker)
+                      : renderDate
+                  }
+                  getDateDescription={
+                    getCellDescription
+                      ? (value) => getCellDescription(value, picker)
+                      : getDateDescription
+                  }
                   onDateHover={setHovered}
                   onDateFocus={setHovered}
                   classNames={{
@@ -677,7 +738,7 @@ export const DateRangePicker = forwardRef<
         )}
       </div>
       <p role="status" className="text-sm text-muted-foreground">
-        {index === 0 ? '请选择开始日期' : '请选择结束日期'}；
+        请选择{index === 0 ? startLabel : endLabel}；
         {candidate[0] || '未选开始'} → {candidate[1] || '未选结束'}
       </p>
       {(needConfirm || allowEmpty.some(Boolean) || footer) && (
@@ -728,6 +789,7 @@ export const DateRangePicker = forwardRef<
       aria-invalid={invalid}
       aria-required={required || undefined}
       data-status={status === 'default' ? undefined : status}
+      data-daterange-unit={picker}
       className={cn(
         'm-0 grid min-w-0 gap-2 border-0 p-0',
         className,
@@ -980,5 +1042,14 @@ export const DateRangePicker = forwardRef<
         </Portal>
       )}
     </fieldset>
+  )
+})
+
+export const DateRangePicker = forwardRef<
+  HTMLInputElement,
+  DateRangePickerProps
+>(function DateRangePicker(props, ref) {
+  return (
+    <DateRangePickerControl {...props} key={props.picker ?? 'date'} ref={ref} />
   )
 })

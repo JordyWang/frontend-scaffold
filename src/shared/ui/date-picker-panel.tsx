@@ -32,6 +32,8 @@ type PanelProps = Pick<
   | 'label'
   | 'value'
   | 'selectedDates'
+  | 'range'
+  | 'previewRange'
   | 'month'
   | 'onMonthChange'
   | 'onChange'
@@ -43,6 +45,9 @@ type PanelProps = Pick<
   | 'locale'
   | 'renderDate'
   | 'getDateDescription'
+  | 'onDateHover'
+  | 'onDateFocus'
+  | 'showOutsideDays'
   | 'classNames'
 > & { picker: DatePickerUnit }
 type View = DatePeriodUnit | 'decade'
@@ -75,6 +80,8 @@ const PeriodPanel = forwardRef<
     label = '日期',
     value = '',
     selectedDates,
+    range,
+    previewRange,
     month,
     onMonthChange,
     onChange,
@@ -85,6 +92,8 @@ const PeriodPanel = forwardRef<
     locale,
     renderDate,
     getDateDescription,
+    onDateHover,
+    onDateFocus,
     classNames,
   },
   ref,
@@ -402,6 +411,7 @@ const PeriodPanel = forwardRef<
         )
           owned.current = false
       }}
+      onMouseLeave={() => onDateHover?.()}
     >
       <div
         className={cn('flex min-w-0 items-center gap-1', classNames?.header)}
@@ -469,7 +479,9 @@ const PeriodPanel = forwardRef<
       <div
         role="grid"
         aria-label={label + '，' + title}
-        aria-multiselectable={final && selectedDates ? true : undefined}
+        aria-multiselectable={
+          final && (range || selectedDates) ? true : undefined
+        }
         className={cn('min-w-0 space-y-1', classNames?.grid)}
         data-picker-scroll
       >
@@ -487,8 +499,50 @@ const PeriodPanel = forwardRef<
             )}
           >
             {cells.slice(row * columns, (row + 1) * columns).map((cell) => {
+              const edge = final && Boolean(range?.includes(cell.value))
+              const inRange =
+                final &&
+                Boolean(
+                  range?.[0] &&
+                  range?.[1] &&
+                  cell.value >= range[0] &&
+                  cell.value <= range[1],
+                )
+              const inPreview =
+                final &&
+                Boolean(
+                  previewRange?.[0] &&
+                  previewRange?.[1] &&
+                  cell.value >= previewRange[0] &&
+                  cell.value <= previewRange[1],
+                )
               const selected =
-                final && (selectedDates ?? [value]).includes(cell.value)
+                final &&
+                (range
+                  ? edge || inRange
+                  : (selectedDates ?? [value]).includes(cell.value))
+              const rangePart =
+                !final || !range
+                  ? undefined
+                  : cell.value === range[0] && cell.value === range[1]
+                    ? 'single'
+                    : cell.value === range[0]
+                      ? 'start'
+                      : cell.value === range[1]
+                        ? 'end'
+                        : inRange
+                          ? 'inside'
+                          : undefined
+              const rangeDescription =
+                rangePart === 'single'
+                  ? '范围开始和结束'
+                  : rangePart === 'start'
+                    ? '范围开始'
+                    : rangePart === 'end'
+                      ? '范围结束'
+                      : rangePart === 'inside'
+                        ? '范围内'
+                        : undefined
               const blocked = unavailable(cell)
               const readable =
                 view === 'week'
@@ -515,23 +569,38 @@ const PeriodPanel = forwardRef<
                     }}
                     type="button"
                     data-picker-value={cell.value}
+                    data-picker-range={rangePart}
+                    data-picker-preview={inPreview && !edge ? '' : undefined}
                     tabIndex={cell.value === active ? 0 : -1}
                     disabled={blocked}
                     aria-label={[
                       readable,
-                      selected ? '已选择' : undefined,
+                      rangeDescription,
+                      !range && selected ? '已选择' : undefined,
                       final ? getDateDescription?.(cell.value) : undefined,
                     ]
                       .filter(Boolean)
                       .join('，')}
                     className={cn(
                       'flex min-h-11 w-full min-w-0 touch-manipulation items-center justify-center gap-1 rounded-[var(--ui-field-radius)] px-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40',
-                      selected
+                      (range ? edge : selected)
                         ? 'bg-primary font-semibold text-primary-foreground hover:bg-primary/90'
                         : 'hover:bg-accent',
+                      inRange &&
+                        !edge &&
+                        'rounded-none bg-accent text-accent-foreground',
+                      inPreview &&
+                        !edge &&
+                        'border border-dashed border-primary bg-accent text-accent-foreground',
                       view !== 'week' && 'min-h-16 flex-col',
                     )}
-                    onFocus={() => setCursor(cell.value)}
+                    onFocus={() => {
+                      setCursor(cell.value)
+                      if (final) onDateFocus?.(cell.value)
+                    }}
+                    onMouseEnter={() => {
+                      if (final) onDateHover?.(cell.value)
+                    }}
                     onKeyDown={(event) => handleKey(event, cell)}
                     onClick={() => select(cell)}
                   >
