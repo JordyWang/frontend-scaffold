@@ -57,6 +57,7 @@ export type CalendarProps = Omit<
   invalid?: boolean
   classNames?: Partial<Record<CalendarPart, string>>
   range?: [start: string, end: string]
+  selectedDates?: string[]
   previewRange?: [start: string, end: string]
   onDateHover?: (date?: string) => void
   onDateFocus?: (date: string) => void
@@ -103,6 +104,7 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
       className,
       classNames,
       range,
+      selectedDates,
       previewRange,
       onDateHover,
       onDateFocus,
@@ -405,7 +407,7 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
         >
           <table
             role="grid"
-            aria-multiselectable={range ? true : undefined}
+            aria-multiselectable={range || selectedDates ? true : undefined}
             aria-label={ariaLabel ?? `${label}，${monthLabel}`}
             className={cn(
               'w-full min-w-[336px] table-fixed border-separate border-spacing-0',
@@ -448,7 +450,9 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
                     )
                     const selected = range
                       ? Boolean(edge || inRange)
-                      : day.iso === selectedISO
+                      : selectedDates
+                        ? selectedDates.includes(day.iso)
+                        : day.iso === selectedISO
                     const rangePart =
                       range && day.iso === range[0] && day.iso === range[1]
                         ? 'single'
@@ -495,6 +499,7 @@ export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(
                             aria-label={[
                               dateLabel.format(day.date),
                               rangeDescription,
+                              selectedDates && selected ? '已选择' : undefined,
                               description,
                             ]
                               .filter(Boolean)

@@ -78,8 +78,14 @@ export function usePickerPosition(
     window.addEventListener('resize', update)
     window.visualViewport?.addEventListener('scroll', update)
     window.visualViewport?.addEventListener('resize', update)
+    let resizeFrame = 0
     const observer =
-      typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update)
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(() => {
+            cancelAnimationFrame(resizeFrame)
+            resizeFrame = requestAnimationFrame(update)
+          })
     observer?.observe(anchor)
     observer?.observe(panel)
     return () => {
@@ -88,6 +94,7 @@ export function usePickerPosition(
       window.visualViewport?.removeEventListener('scroll', update)
       window.visualViewport?.removeEventListener('resize', update)
       observer?.disconnect()
+      cancelAnimationFrame(resizeFrame)
     }
   }, [anchorRef, panelRef, open, placement, direction])
 }

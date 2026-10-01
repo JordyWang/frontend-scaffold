@@ -11,6 +11,7 @@ import { TreeSelectAsyncPreview } from './TreeSelectAsyncPreview'
 import { CascaderPreview } from './CascaderPreview'
 import { DatePickerPreview } from './DatePickerPreview'
 import { DateRangePreview } from './DateRangePreview'
+import { MultiDatePreview } from './MultiDatePreview'
 import {
   Alert,
   Affix,
@@ -2050,6 +2051,7 @@ export function DesignSystemPreview() {
           <CascaderPreview />
           <DatePickerPreview />
           <DateRangePreview />
+          <MultiDatePreview />
           <Card className="col-span-full">
             <CardContent>
               <Stack gap="md">

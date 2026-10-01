@@ -219,6 +219,7 @@ export type {
   TimePickerProps,
   UploadProps,
 } from './data-input'
+export type { SingleDatePickerProps } from './date-picker'
 export { Cascader } from './cascader'
 export type {
   CascaderOption,
@@ -233,6 +234,13 @@ export type {
   CascaderLoadChildren,
 } from './cascader'
 export { DateRangePicker, TimeRangePicker } from './date-range-picker'
+export { MultiDatePicker } from './multi-date-picker'
+export type {
+  DateMultiple,
+  MultiDatePickerProps,
+  MultiDatePickerPreset,
+  MultiDatePickerPart,
+} from './multi-date-picker'
 export type {
   DateRange,
   DateRangePickerProps,

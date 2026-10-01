@@ -24,6 +24,7 @@ import {
   toMonth,
 } from './date-picker-state'
 import { Icon } from './icon'
+import { MultiDatePicker, type MultiDatePickerProps } from './multi-date-picker'
 import type { InputStatus, InputVariant } from './input'
 import { useNativeFormReset } from './native-form-reset'
 import {
@@ -56,7 +57,7 @@ export type DatePickerPreset = {
   label: ReactNode
   value: string | (() => string)
 }
-export type DatePickerProps = Omit<
+export type SingleDatePickerProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
   | 'type'
   | 'value'
@@ -66,7 +67,9 @@ export type DatePickerProps = Omit<
   | 'size'
   | 'min'
   | 'max'
+  | 'multiple'
 > & {
+  multiple?: false
   value?: string
   defaultValue?: string
   min?: string
@@ -102,9 +105,11 @@ export type DatePickerProps = Omit<
   classNames?: Partial<Record<DatePickerPart, string>>
 }
 export type DatePickerPlacement = PickerPlacement
+export type DatePickerProps =
+  SingleDatePickerProps | (MultiDatePickerProps & { multiple: true })
 
 /** A project ISO date field with a shared calendar, independent browsing and optional confirmation. */
-export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
+const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
   function DatePicker(allProps, ref) {
     const controlled = Object.prototype.hasOwnProperty.call(allProps, 'value')
     const {
@@ -702,6 +707,17 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
           </Portal>
         )}
       </span>
+    )
+  },
+)
+
+/** The value type follows the explicit selection mode. */
+export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
+  function DatePicker(props, ref) {
+    return props.multiple ? (
+      <MultiDatePicker {...props} ref={ref} />
+    ) : (
+      <SingleDatePicker {...props} ref={ref} />
     )
   },
 )
