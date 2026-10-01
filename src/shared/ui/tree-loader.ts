@@ -229,24 +229,30 @@ export function useTreeLoader(options: LoaderOptions) {
     [cancel],
   )
 
-  const statuses = new Map<string, TreeLoadStatus>()
-  for (const [key, record] of records) {
-    const source = resolved.sources.get(key)
-    if (
-      record.version === options.loadVersion &&
-      source &&
-      acceptsChildren(source)
-    )
-      statuses.set(key, record.status)
-  }
-  const expandable = (node: TreeNode) =>
-    Boolean(node.children?.length) ||
-    Boolean(
-      options.loadChildren &&
-      node.isLeaf !== true &&
-      acceptsChildren(resolved.sources.get(node.key) ?? node) &&
-      statuses.get(node.key) !== 'loaded',
-    )
+  const statuses = useMemo(() => {
+    const statuses = new Map<string, TreeLoadStatus>()
+    for (const [key, record] of records) {
+      const source = resolved.sources.get(key)
+      if (
+        record.version === options.loadVersion &&
+        source &&
+        acceptsChildren(source)
+      )
+        statuses.set(key, record.status)
+    }
+    return statuses
+  }, [records, resolved.sources, options.loadVersion])
+  const expandable = useCallback(
+    (node: TreeNode) =>
+      Boolean(node.children?.length) ||
+      Boolean(
+        options.loadChildren &&
+        node.isLeaf !== true &&
+        acceptsChildren(resolved.sources.get(node.key) ?? node) &&
+        statuses.get(node.key) !== 'loaded',
+      ),
+    [options.loadChildren, resolved.sources, statuses],
+  )
 
   return { treeData: resolved.treeData, statuses, expandable, request, cancel }
 }

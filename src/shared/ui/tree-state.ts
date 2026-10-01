@@ -4,13 +4,21 @@ export type TreeEntry = {
   node: TreeNode
   parent?: string
   ancestors: string[]
+  position: number
+  setSize: number
 }
 
 export function indexTree(nodes: TreeNode[]) {
   const entries = new Map<string, TreeEntry>()
   function visit(children: TreeNode[], ancestors: string[]) {
-    for (const node of children) {
-      entries.set(node.key, { node, parent: ancestors.at(-1), ancestors })
+    for (const [position, node] of children.entries()) {
+      entries.set(node.key, {
+        node,
+        parent: ancestors.at(-1),
+        ancestors,
+        position,
+        setSize: children.length,
+      })
       visit(node.children ?? [], [...ancestors, node.key])
     }
   }

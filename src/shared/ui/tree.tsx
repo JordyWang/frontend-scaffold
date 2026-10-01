@@ -1,6 +1,7 @@
 import {
   useEffect,
   useId,
+  useImperativeHandle,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -9,6 +10,7 @@ import {
   type HTMLAttributes,
   type KeyboardEvent,
   type ReactNode,
+  type Ref,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { useConfig } from './config-context'
@@ -17,6 +19,7 @@ import { Icon } from './icon'
 import { Button } from './button'
 import { spinnerIndicatorStyles } from './tailwind-styles'
 import { useTreeLoader, type TreeLoadChildren } from './tree-loader'
+import { useTreeVirtualizer, type TreeScrollOptions } from './tree-virtualizer'
 import {
   checkBoundary,
   changeCheck,
@@ -38,6 +41,7 @@ type TreePart =
 export type TreeNode = {
   key: string
   title: ReactNode
+  textValue?: string
   children?: TreeNode[]
   isLeaf?: boolean
   disabled?: boolean
@@ -59,6 +63,11 @@ export type TreeSwitcherInfo = {
   expanded: boolean
   direction: 'ltr' | 'rtl'
 }
+export type TreeHandle = {
+  scrollTo: (options: TreeScrollOptions) => void
+  getNodePath: (key: string) => TreeNode[]
+}
+const emptyKeys: string[] = []
 export type TreeProps = Omit<
   HTMLAttributes<HTMLDivElement>,
   'children' | 'onSelect' | 'onLoad' | 'dir'
@@ -93,6 +102,11 @@ export type TreeProps = Omit<
   loadVersion?: string | number
   onLoad?: (node: TreeNode, children: TreeNode[]) => void
   onLoadError?: (error: unknown, node: TreeNode) => void
+  height?: number
+  virtual?: boolean
+  estimatedItemHeight?: number
+  overscan?: number
+  ref?: Ref<TreeHandle>
   label?: string
   emptyText?: string
   dir?: 'ltr' | 'rtl'
@@ -117,7 +131,7 @@ export function Tree(allProps: TreeProps) {
   const {
     treeData: sourceData,
     expandedKeys,
-    defaultExpandedKeys = [],
+    defaultExpandedKeys = emptyKeys,
     defaultExpandAll = false,
     defaultExpandParent = true,
     autoExpandParent = false,
@@ -132,8 +146,8 @@ export function Tree(allProps: TreeProps) {
     selectable = true,
     checkable = false,
     checkedKeys,
-    defaultCheckedKeys = [],
-    halfCheckedKeys = [],
+    defaultCheckedKeys = emptyKeys,
+    halfCheckedKeys = emptyKeys,
     checkStrictly = false,
     onCheck,
     disabled = false,
@@ -145,6 +159,11 @@ export function Tree(allProps: TreeProps) {
     loadVersion = 0,
     onLoad,
     onLoadError,
+    height,
+    virtual = true,
+    estimatedItemHeight = 44,
+    overscan = 3,
+    ref,
     label = '树形导航',
     emptyText = '暂无节点',
     dir,
@@ -152,6 +171,8 @@ export function Tree(allProps: TreeProps) {
     className,
     onFocusCapture,
     onBlurCapture,
+    onScroll,
+    style,
     ...props
   } = allProps
   const config = useConfig()
@@ -165,6 +186,7 @@ export function Tree(allProps: TreeProps) {
     onLoadError,
   })
   const treeData = loader.treeData
+  const { expandable } = loader
   const entries = useMemo(() => indexTree(treeData), [treeData])
   const [internalExpanded, setInternalExpanded] = useState(() =>
     defaultExpandAll
@@ -195,19 +217,27 @@ export function Tree(allProps: TreeProps) {
     .filter((key) => entries.has(key))
     .slice(0, multiple ? undefined : 1)
   const requestedExpanded = expandedKeys ?? internalExpanded
-  const expanded = (
-    autoExpandParent
-      ? expandAncestors(requestedExpanded, entries)
-      : requestedExpanded
-  ).filter((key) => {
-    const node = entries.get(key)?.node
-    return node && loader.expandable(node)
-  })
-  const checks = conductChecks(
-    checkedKeys ?? internalChecked,
-    entries,
-    checkStrictly,
-    halfCheckedKeys,
+  const expanded = useMemo(
+    () =>
+      (autoExpandParent
+        ? expandAncestors(requestedExpanded, entries)
+        : requestedExpanded
+      ).filter((key) => {
+        const node = entries.get(key)?.node
+        return node && expandable(node)
+      }),
+    [autoExpandParent, requestedExpanded, entries, expandable],
+  )
+  const expandedSet = useMemo(() => new Set(expanded), [expanded])
+  const checks = useMemo(
+    () =>
+      conductChecks(
+        checkedKeys ?? internalChecked,
+        entries,
+        checkStrictly,
+        halfCheckedKeys,
+      ),
+    [checkedKeys, internalChecked, entries, checkStrictly, halfCheckedKeys],
   )
   const id = useId()
   const rootRef = useRef<HTMLDivElement>(null)
@@ -219,6 +249,13 @@ export function Tree(allProps: TreeProps) {
   } | null>(null)
   const typeahead = useRef({ text: '', time: 0 })
   const activeLoads = useRef(new Set<string>())
+  const pendingFocus = useRef<string | undefined>(undefined)
+  const pendingScroll = useRef<TreeScrollOptions | null>(null)
+  const constrainedHeight =
+    height !== undefined && Number.isFinite(height) && height > 0
+      ? Math.max(44, height)
+      : undefined
+  const virtualEnabled = virtual && constrainedHeight !== undefined
 
   // Removed keys cannot silently reappear in uncontrolled state when data is reused.
   const prune = (keys: string[]) => keys.filter((key) => entries.has(key))
@@ -235,19 +272,80 @@ export function Tree(allProps: TreeProps) {
   )
     setInternalChecked(prune(internalChecked))
 
-  const visible = [...entries.values()].filter(({ ancestors }) =>
-    ancestors.every((key) => expanded.includes(key)),
+  const visible = useMemo(
+    () =>
+      [...entries.values()].filter(({ ancestors }) =>
+        ancestors.every((key) => expandedSet.has(key)),
+      ),
+    [entries, expandedSet],
   )
-  const available = visible.filter(({ node }) => !disabled && !node.disabled)
+  const visibleKeys = useMemo(
+    () => visible.map(({ node }) => node.key),
+    [visible],
+  )
+  const available = useMemo(
+    () => visible.filter(({ node }) => !disabled && !node.disabled),
+    [visible, disabled],
+  )
   const tabbableKey =
     [focusedKey, ...selected].find((key) =>
       available.some(({ node }) => node.key === key),
     ) ?? available[0]?.node.key
+  const windowing = useTreeVirtualizer({
+    keys: visibleKeys,
+    enabled: virtualEnabled,
+    height: constrainedHeight ?? 320,
+    estimate: estimatedItemHeight,
+    overscan,
+    keepKey: tabbableKey,
+    rootRef,
+    nodeRefs,
+  })
+
+  useLayoutEffect(() => {
+    const request = pendingScroll.current
+    if (request && !entries.has(request.key)) pendingScroll.current = null
+    else if (request && visibleKeys.includes(request.key)) {
+      pendingScroll.current = null
+      scrollToVisible(request)
+    }
+    const key = pendingFocus.current
+    const element = key ? nodeRefs.current.get(key) : undefined
+    if (element) {
+      pendingFocus.current = undefined
+      element.focus({ preventScroll: true })
+    } else if (key && !available.some(({ node }) => node.key === key))
+      pendingFocus.current = undefined
+  })
+
+  useImperativeHandle(ref, () => ({
+    scrollTo(options) {
+      const entry = entries.get(options.key)
+      if (!entry) return
+      if (visibleKeys.includes(options.key)) scrollToVisible(options)
+      else if (
+        options.autoExpand &&
+        !disabled &&
+        !entry.ancestors.some((key) => entries.get(key)?.node.disabled)
+      ) {
+        pendingScroll.current = options
+        const next = [...new Set([...expanded, ...entry.ancestors])]
+        if (expandedKeys === undefined) setInternalExpanded(next)
+        onExpand?.(next)
+      }
+    },
+    getNodePath(key) {
+      const entry = entries.get(key)
+      return entry
+        ? [...entry.ancestors, key].map((key) => entries.get(key)!.node)
+        : []
+    },
+  }))
 
   useLayoutEffect(() => {
     const activeKeys = new Set(
       available
-        .filter(({ node }) => expanded.includes(node.key))
+        .filter(({ node }) => expandedSet.has(node.key))
         .map(({ node }) => node.key),
     )
     for (const [key, status] of loader.statuses)
@@ -277,7 +375,7 @@ export function Tree(allProps: TreeProps) {
 
   useLayoutEffect(() => {
     const previous = focused.current
-    if (!previous || !rootRef.current) return
+    if (!previous || !rootRef.current || pendingFocus.current) return
     if (
       document.activeElement !== previous.node &&
       document.activeElement !== document.body
@@ -295,9 +393,8 @@ export function Tree(allProps: TreeProps) {
       .reverse()
       .find((key) => available.some(({ node }) => node.key === key))
     const fallback = current?.node.key ?? ancestor ?? available[0]?.node.key
-    ;(fallback ? nodeRefs.current.get(fallback) : rootRef.current)?.focus({
-      preventScroll: true,
-    })
+    if (fallback) focusNode(fallback)
+    else rootRef.current.focus({ preventScroll: true })
   })
 
   function toggle(key: string) {
@@ -340,8 +437,57 @@ export function Tree(allProps: TreeProps) {
   }
 
   function focusNode(key: string | undefined) {
-    if (key && available.some(({ node }) => node.key === key))
-      nodeRefs.current.get(key)?.focus()
+    if (!key || !available.some(({ node }) => node.key === key)) return
+    if (virtualEnabled) {
+      pendingFocus.current = key
+      setFocusedKey(key)
+      windowing.scrollTo({ key })
+    } else nodeRefs.current.get(key)?.focus()
+  }
+
+  function scrollToVisible(options: TreeScrollOptions) {
+    if (virtualEnabled) windowing.scrollTo(options)
+    else {
+      const element = nodeRefs.current.get(options.key)
+      const root = rootRef.current
+      if (element && root) {
+        const top =
+          element.getBoundingClientRect().top -
+          root.getBoundingClientRect().top +
+          root.scrollTop -
+          root.clientTop
+        const rowHeight =
+          element.querySelector('[data-ui-tree-row]')?.getBoundingClientRect()
+            .height ?? 44
+        const current = root.scrollTop
+        const offset = Number.isFinite(options.offset) ? options.offset! : 0
+        const align = options.align ?? 'auto'
+        const next =
+          align === 'start'
+            ? top
+            : align === 'center'
+              ? top - (root.clientHeight - rowHeight) / 2
+              : align === 'end'
+                ? top + rowHeight - root.clientHeight
+                : top < current
+                  ? top
+                  : top + rowHeight > current + root.clientHeight
+                    ? top + rowHeight - root.clientHeight
+                    : current
+        root.scrollTop = Math.max(0, next + offset)
+      }
+    }
+    if (
+      options.focus &&
+      available.some(({ node }) => node.key === options.key)
+    ) {
+      pendingFocus.current = options.key
+      setFocusedKey(options.key)
+      if (!virtualEnabled) {
+        pendingFocus.current = undefined
+        nodeRefs.current.get(options.key)?.focus({ preventScroll: true })
+      }
+    }
   }
 
   function handleKey(event: KeyboardEvent<HTMLLIElement>, node: TreeNode) {
@@ -415,12 +561,13 @@ export function Tree(allProps: TreeProps) {
       ]
       const match = candidates.find(({ node: candidate }) => {
         const title =
-          typeof candidate.title === 'string' ||
+          candidate.textValue ??
+          (typeof candidate.title === 'string' ||
           typeof candidate.title === 'number'
             ? String(candidate.title)
             : nodeRefs.current
                 .get(candidate.key)
-                ?.querySelector('[data-tree-label]')?.textContent
+                ?.querySelector('[data-tree-label]')?.textContent)
         return title?.trim().toLowerCase().startsWith(text)
       })
       if (match) {
@@ -431,281 +578,314 @@ export function Tree(allProps: TreeProps) {
   }
 
   function renderNodes(nodes: TreeNode[], level = 0): ReactNode {
-    return nodes.map((node, position) => {
-      const hasChildren = loader.expandable(node)
-      const loadStatus = loader.statuses.get(node.key)
-      const nodeName =
-        typeof node.title === 'string' || typeof node.title === 'number'
-          ? String(node.title)
-          : '子节点'
-      const isExpanded = expanded.includes(node.key)
-      const isDisabled = disabled || !!node.disabled
-      const isSelectable = selectable && node.selectable !== false
-      const isCheckable = checkable && node.checkable !== false
-      const isChecked = checks.checked.has(node.key)
-      const isMixed = checks.halfChecked.has(node.key)
-      const panelId = `${id}-${encodeURIComponent(node.key)}`
-      const part = (name: TreePart) =>
-        cn(classNames?.[name], node.classNames?.[name])
-      return (
-        <li
-          key={node.key}
-          role="treeitem"
-          ref={(element) => {
-            if (element) nodeRefs.current.set(node.key, element)
-            else nodeRefs.current.delete(node.key)
-          }}
-          className={cn(
-            'relative min-w-0 focus-visible:outline-none! focus-visible:[&>[data-ui-tree-row]>[data-tree-label]]:outline-[3px] focus-visible:[&>[data-ui-tree-row]>[data-tree-label]]:outline-offset-[-3px] focus-visible:[&>[data-ui-tree-row]>[data-tree-label]]:outline-ring',
-            part('item'),
-            node.className,
-          )}
-          data-ui-tree-item=""
-          style={{ '--ui-tree-level': level } as CSSProperties}
-          tabIndex={isDisabled ? -1 : node.key === tabbableKey ? 0 : -1}
-          aria-labelledby={`${panelId}-label`}
-          aria-selected={isSelectable ? selected.includes(node.key) : undefined}
-          aria-checked={
-            isCheckable
-              ? isChecked
-                ? true
-                : isMixed
-                  ? 'mixed'
-                  : false
-              : undefined
-          }
-          aria-expanded={hasChildren ? isExpanded : undefined}
-          aria-busy={loadStatus === 'loading' || undefined}
-          aria-describedby={
-            loadStatus === 'error' && isExpanded
-              ? `${panelId}-error`
-              : undefined
-          }
-          aria-description={
-            isCheckable && node.disableCheckbox
-              ? !isDisabled && isSelectable
-                ? '勾选已禁用，仍可选择节点'
-                : '勾选已禁用'
-              : undefined
-          }
-          aria-disabled={isDisabled || undefined}
-          aria-level={level + 1}
-          aria-posinset={position + 1}
-          aria-setsize={nodes.length}
-          aria-controls={hasChildren && isExpanded ? panelId : undefined}
-          onFocus={(event) => {
-            if (event.target === event.currentTarget) setFocusedKey(node.key)
-          }}
-          onClick={(event) => {
-            if (
-              !(event.target instanceof Element) ||
-              event.target.closest('[role="treeitem"]') !==
-                event.currentTarget ||
-              isDisabled
+    return nodes.map((node, position) =>
+      renderNode(node, position, nodes.length, level),
+    )
+  }
+  function renderNode(
+    node: TreeNode,
+    position: number,
+    setSize: number,
+    level: number,
+    top?: number,
+  ): ReactNode {
+    const hasChildren = loader.expandable(node)
+    const loadStatus = loader.statuses.get(node.key)
+    const nodeName =
+      typeof node.title === 'string' || typeof node.title === 'number'
+        ? String(node.title)
+        : '子节点'
+    const isExpanded = expandedSet.has(node.key)
+    const isDisabled = disabled || !!node.disabled
+    const isSelectable = selectable && node.selectable !== false
+    const isCheckable = checkable && node.checkable !== false
+    const isChecked = checks.checked.has(node.key)
+    const isMixed = checks.halfChecked.has(node.key)
+    const panelId = `${id}-${encodeURIComponent(node.key)}`
+    const part = (name: TreePart) =>
+      cn(classNames?.[name], node.classNames?.[name])
+    return (
+      <li
+        key={node.key}
+        role="treeitem"
+        ref={(element) => {
+          if (element) nodeRefs.current.set(node.key, element)
+          else nodeRefs.current.delete(node.key)
+        }}
+        className={cn(
+          'relative min-w-0 focus-visible:outline-none! focus-visible:[&>[data-ui-tree-row]>[data-tree-label]]:outline-[3px] focus-visible:[&>[data-ui-tree-row]>[data-tree-label]]:outline-offset-[-3px] focus-visible:[&>[data-ui-tree-row]>[data-tree-label]]:outline-ring',
+          part('item'),
+          node.className,
+          virtualEnabled && 'absolute inset-x-0',
+        )}
+        data-ui-tree-item=""
+        style={{ '--ui-tree-level': level, top } as CSSProperties}
+        tabIndex={isDisabled ? -1 : node.key === tabbableKey ? 0 : -1}
+        aria-labelledby={`${panelId}-label`}
+        aria-selected={isSelectable ? selected.includes(node.key) : undefined}
+        aria-checked={
+          isCheckable
+            ? isChecked
+              ? true
+              : isMixed
+                ? 'mixed'
+                : false
+            : undefined
+        }
+        aria-expanded={hasChildren ? isExpanded : undefined}
+        aria-busy={loadStatus === 'loading' || undefined}
+        aria-describedby={
+          loadStatus === 'error' && isExpanded ? `${panelId}-error` : undefined
+        }
+        aria-description={
+          isCheckable && node.disableCheckbox
+            ? !isDisabled && isSelectable
+              ? '勾选已禁用，仍可选择节点'
+              : '勾选已禁用'
+            : undefined
+        }
+        aria-disabled={isDisabled || undefined}
+        aria-level={level + 1}
+        aria-posinset={position + 1}
+        aria-setsize={setSize}
+        aria-controls={
+          !virtualEnabled && hasChildren && isExpanded ? panelId : undefined
+        }
+        onFocus={(event) => {
+          if (event.target === event.currentTarget) setFocusedKey(node.key)
+        }}
+        onClick={(event) => {
+          if (
+            !(event.target instanceof Element) ||
+            event.target.closest('[role="treeitem"]') !== event.currentTarget ||
+            isDisabled
+          )
+            return
+          if (
+            event.target.closest(
+              'button, a, input, select, textarea, [contenteditable="true"]',
             )
-              return
-            if (
-              event.target.closest(
-                'button, a, input, select, textarea, [contenteditable="true"]',
-              )
-            )
-              return
-            event.currentTarget.focus({ preventScroll: true })
-            if (event.target.closest('[data-tree-toggle]')) toggle(node.key)
-            else if (event.target.closest('[data-tree-checkbox]')) check(node)
-            else select(node)
-          }}
-          onKeyDown={(event) => handleKey(event, node)}
-        >
-          {showLine && level > 0 && (
+          )
+            return
+          event.currentTarget.focus({ preventScroll: true })
+          if (event.target.closest('[data-tree-toggle]')) toggle(node.key)
+          else if (event.target.closest('[data-tree-checkbox]')) check(node)
+          else select(node)
+        }}
+        onKeyDown={(event) => handleKey(event, node)}
+      >
+        {showLine && level > 0 && (
+          <span
+            aria-hidden="true"
+            data-ui-tree-line=""
+            className={cn(
+              'pointer-events-none absolute inset-y-0 start-[calc(min(calc(var(--ui-tree-level)*1.5rem),25%)-2px)] w-6 border-s border-border before:absolute before:start-0 before:top-[22px] before:w-6 before:border-t before:border-border',
+              position === setSize - 1 && 'bottom-auto h-[22px]',
+            )}
+          />
+        )}
+        {virtualEnabled &&
+          showLine &&
+          entries.get(node.key)?.ancestors.map((key, depth) => {
+            const ancestor = entries.get(key)!
+            return depth > 0 && ancestor.position < ancestor.setSize - 1 ? (
+              <span
+                key={key}
+                aria-hidden="true"
+                data-ui-tree-ancestor-line=""
+                className="pointer-events-none absolute inset-y-0 start-[calc(min(calc(var(--ui-tree-line-level)*1.5rem),25%)-2px)] border-s border-border"
+                style={{ '--ui-tree-line-level': depth } as CSSProperties}
+              />
+            ) : null
+          })}
+        {virtualEnabled &&
+          showLine &&
+          isExpanded &&
+          Boolean(node.children?.length) && (
             <span
               aria-hidden="true"
-              data-ui-tree-line=""
-              className={cn(
-                'pointer-events-none absolute inset-y-0 start-[calc(min(calc(var(--ui-tree-level)*1.5rem),25%)-2px)] w-6 border-s border-border before:absolute before:start-0 before:top-[22px] before:w-6 before:border-t before:border-border',
-                position === nodes.length - 1 && 'bottom-auto h-[22px]',
-              )}
+              data-ui-tree-parent-line=""
+              className="pointer-events-none absolute bottom-0 top-[22px] start-[calc(min(calc(var(--ui-tree-level)*1.5rem),25%)+22px)] border-s border-border"
             />
           )}
-          <div
-            data-ui-tree-row=""
+        <div
+          data-ui-tree-row=""
+          className={cn(
+            'group/treerow relative flex min-h-11 min-w-0 items-start ps-[min(calc(var(--ui-tree-level)*1.5rem),25%)]',
+            isDisabled && 'opacity-50',
+            part('row'),
+          )}
+        >
+          <span
             className={cn(
-              'group/treerow relative flex min-h-11 min-w-0 items-start ps-[min(calc(var(--ui-tree-level)*1.5rem),25%)]',
-              isDisabled && 'opacity-50',
-              part('row'),
+              'grid size-11 shrink-0 place-items-center text-muted-foreground',
+              hasChildren && !isDisabled
+                ? 'touch-manipulation cursor-pointer rounded-sm hover:bg-accent'
+                : 'cursor-default',
+              part('switcher'),
+            )}
+            data-tree-toggle={hasChildren ? '' : undefined}
+            aria-hidden="true"
+          >
+            {loadStatus === 'loading' ? (
+              <span
+                data-ui-tree-loading-indicator=""
+                className={cn(spinnerIndicatorStyles, 'size-4 border-2')}
+              />
+            ) : (
+              hasChildren &&
+              (switcherIcon ? (
+                switcherIcon({ node, expanded: isExpanded, direction })
+              ) : (
+                <Icon
+                  name={direction === 'rtl' ? 'arrowLeft' : 'arrowRight'}
+                  size={16}
+                  className={cn(
+                    'transition-transform duration-200 motion-reduce:transition-none',
+                    isExpanded &&
+                      (direction === 'rtl' ? '-rotate-90' : 'rotate-90'),
+                  )}
+                />
+              ))
+            )}
+          </span>
+          {isCheckable && (
+            <span
+              data-tree-checkbox=""
+              data-ui-checked={
+                isMixed && !isChecked ? 'mixed' : String(isChecked)
+              }
+              aria-hidden="true"
+              className={cn(
+                'grid size-11 shrink-0 place-items-center touch-manipulation',
+                node.disableCheckbox || isDisabled
+                  ? 'cursor-not-allowed opacity-50'
+                  : 'cursor-pointer',
+                part('checkbox'),
+              )}
+            >
+              <span
+                className={cn(
+                  'grid size-5 place-items-center rounded border-2',
+                  isChecked || isMixed
+                    ? 'border-primary bg-primary'
+                    : 'border-input bg-card',
+                )}
+              >
+                {isChecked ? (
+                  <span className="size-2.5 -translate-y-px rotate-45 border-b-2 border-r-2 border-primary-foreground" />
+                ) : isMixed ? (
+                  <span className="h-0.5 w-2.5 rounded bg-primary-foreground" />
+                ) : null}
+              </span>
+            </span>
+          )}
+          <span
+            id={`${panelId}-label`}
+            data-tree-label=""
+            className={cn(
+              'flex min-h-11 min-w-0 items-start gap-2 rounded-[var(--radius-sm)] px-2 py-2.5 text-start text-foreground [overflow-wrap:anywhere]',
+              blockNode && 'flex-1',
+              isDisabled
+                ? 'cursor-not-allowed'
+                : isSelectable
+                  ? 'cursor-pointer group-hover/treerow:bg-accent'
+                  : 'cursor-default',
+              selected.includes(node.key) &&
+                isSelectable &&
+                'bg-accent text-accent-foreground',
+              part('title'),
             )}
           >
-            <span
-              className={cn(
-                'grid size-11 shrink-0 place-items-center text-muted-foreground',
-                hasChildren && !isDisabled
-                  ? 'touch-manipulation cursor-pointer rounded-sm hover:bg-accent'
-                  : 'cursor-default',
-                part('switcher'),
-              )}
-              data-tree-toggle={hasChildren ? '' : undefined}
-              aria-hidden="true"
-            >
-              {loadStatus === 'loading' ? (
-                <span
-                  data-ui-tree-loading-indicator=""
-                  className={cn(spinnerIndicatorStyles, 'size-4 border-2')}
-                />
-              ) : (
-                hasChildren &&
-                (switcherIcon ? (
-                  switcherIcon({ node, expanded: isExpanded, direction })
-                ) : (
-                  <Icon
-                    name={direction === 'rtl' ? 'arrowLeft' : 'arrowRight'}
-                    size={16}
-                    className={cn(
-                      'transition-transform duration-200 motion-reduce:transition-none',
-                      isExpanded &&
-                        (direction === 'rtl' ? '-rotate-90' : 'rotate-90'),
-                    )}
-                  />
-                ))
-              )}
-            </span>
-            {isCheckable && (
+            {showIcon && (
               <span
-                data-tree-checkbox=""
-                data-ui-checked={
-                  isMixed && !isChecked ? 'mixed' : String(isChecked)
-                }
                 aria-hidden="true"
-                className={cn(
-                  'grid size-11 shrink-0 place-items-center touch-manipulation',
-                  node.disableCheckbox || isDisabled
-                    ? 'cursor-not-allowed opacity-50'
-                    : 'cursor-pointer',
-                  part('checkbox'),
-                )}
+                className={cn('mt-1 inline-flex shrink-0', part('icon'))}
               >
-                <span
-                  className={cn(
-                    'grid size-5 place-items-center rounded border-2',
-                    isChecked || isMixed
-                      ? 'border-primary bg-primary'
-                      : 'border-input bg-card',
-                  )}
-                >
-                  {isChecked ? (
-                    <span className="size-2.5 -translate-y-px rotate-45 border-b-2 border-r-2 border-primary-foreground" />
-                  ) : isMixed ? (
-                    <span className="h-0.5 w-2.5 rounded bg-primary-foreground" />
-                  ) : null}
-                </span>
+                {node.icon ?? (
+                  <Icon name={hasChildren ? 'folder' : 'file'} size={16} />
+                )}
               </span>
             )}
-            <span
-              id={`${panelId}-label`}
-              data-tree-label=""
+            {node.title}
+          </span>
+        </div>
+        {isExpanded &&
+          (loadStatus === 'loading' ||
+            loadStatus === 'error' ||
+            loadStatus === 'cancelled') && (
+            <div
               className={cn(
-                'flex min-h-11 min-w-0 items-start gap-2 rounded-[var(--radius-sm)] px-2 py-2.5 text-start text-foreground [overflow-wrap:anywhere]',
-                blockNode && 'flex-1',
-                isDisabled
-                  ? 'cursor-not-allowed'
-                  : isSelectable
-                    ? 'cursor-pointer group-hover/treerow:bg-accent'
-                    : 'cursor-default',
-                selected.includes(node.key) &&
-                  isSelectable &&
-                  'bg-accent text-accent-foreground',
-                part('title'),
+                'flex min-w-0 flex-wrap items-center gap-2 ps-[min(calc(var(--ui-tree-level)*1.5rem+2.75rem),25%)] pb-2 text-sm',
+                part(loadStatus === 'error' ? 'error' : 'loading'),
               )}
             >
-              {showIcon && (
-                <span
-                  aria-hidden="true"
-                  className={cn('mt-1 inline-flex shrink-0', part('icon'))}
-                >
-                  {node.icon ?? (
-                    <Icon name={hasChildren ? 'folder' : 'file'} size={16} />
-                  )}
-                </span>
+              {loadStatus !== 'error' ? (
+                <>
+                  <span
+                    role="status"
+                    aria-label={`${nodeName}加载状态`}
+                    className="text-muted-foreground"
+                  >
+                    {loadStatus === 'loading'
+                      ? '正在加载子节点…'
+                      : '加载已取消。'}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="small"
+                    disabled={isDisabled}
+                    onClick={() => {
+                      if (loadStatus === 'loading') {
+                        loader.cancel(node.key, true)
+                        toggle(node.key)
+                      } else void loader.request(node.key)
+                    }}
+                  >
+                    {loadStatus === 'loading' ? '取消加载' : '继续加载'}
+                    {nodeName}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <span
+                    id={`${panelId}-error`}
+                    role="alert"
+                    className="text-destructive"
+                  >
+                    子节点加载失败，请重试。
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="small"
+                    disabled={isDisabled}
+                    onClick={() => {
+                      void loader.request(node.key)
+                    }}
+                  >
+                    重试加载{nodeName}
+                  </Button>
+                </>
               )}
-              {node.title}
-            </span>
-          </div>
-          {isExpanded &&
-            (loadStatus === 'loading' ||
-              loadStatus === 'error' ||
-              loadStatus === 'cancelled') && (
-              <div
-                className={cn(
-                  'flex min-w-0 flex-wrap items-center gap-2 ps-[min(calc(var(--ui-tree-level)*1.5rem+2.75rem),25%)] pb-2 text-sm',
-                  part(loadStatus === 'error' ? 'error' : 'loading'),
-                )}
-              >
-                {loadStatus !== 'error' ? (
-                  <>
-                    <span
-                      role="status"
-                      aria-label={`${nodeName}加载状态`}
-                      className="text-muted-foreground"
-                    >
-                      {loadStatus === 'loading'
-                        ? '正在加载子节点…'
-                        : '加载已取消。'}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="small"
-                      disabled={isDisabled}
-                      onClick={() => {
-                        if (loadStatus === 'loading') {
-                          loader.cancel(node.key, true)
-                          toggle(node.key)
-                        } else void loader.request(node.key)
-                      }}
-                    >
-                      {loadStatus === 'loading' ? '取消加载' : '继续加载'}
-                      {nodeName}
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <span
-                      id={`${panelId}-error`}
-                      role="alert"
-                      className="text-destructive"
-                    >
-                      子节点加载失败，请重试。
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="small"
-                      disabled={isDisabled}
-                      onClick={() => {
-                        void loader.request(node.key)
-                      }}
-                    >
-                      重试加载{nodeName}
-                    </Button>
-                  </>
-                )}
-              </div>
-            )}
-          {hasChildren && isExpanded && (
-            <ul
-              id={panelId}
-              role="group"
-              className={cn(
-                'm-0 list-none p-0',
-                showLine &&
-                  Boolean(node.children?.length) &&
-                  'relative before:pointer-events-none before:absolute before:-top-[22px] before:start-[calc(min(calc(var(--ui-tree-level)*1.5rem),25%)+22px)] before:h-[22px] before:border-s before:border-border',
-                part('group'),
-              )}
-            >
-              {renderNodes(node.children ?? [], level + 1)}
-            </ul>
+            </div>
           )}
-        </li>
-      )
-    })
+        {!virtualEnabled && hasChildren && isExpanded && (
+          <ul
+            id={panelId}
+            role="group"
+            className={cn(
+              'm-0 list-none p-0',
+              showLine &&
+                Boolean(node.children?.length) &&
+                'relative before:pointer-events-none before:absolute before:-top-[22px] before:start-[calc(min(calc(var(--ui-tree-level)*1.5rem),25%)+22px)] before:h-[22px] before:border-s before:border-border',
+              part('group'),
+            )}
+          >
+            {renderNodes(node.children ?? [], level + 1)}
+          </ul>
+        )}
+      </li>
+    )
   }
 
   return (
@@ -719,11 +899,19 @@ export function Tree(allProps: TreeProps) {
       dir={direction}
       tabIndex={props.tabIndex ?? (available.length ? -1 : 0)}
       data-ui-tree=""
+      data-ui-tree-virtual={virtualEnabled || undefined}
+      style={{ ...style, height: constrainedHeight ?? style?.height }}
       className={cn(
         'min-w-0 w-full overflow-auto rounded-[var(--radius-md)] border border-border bg-card p-[var(--space-xs)] text-foreground focus-visible:outline-2 focus-visible:outline-ring',
         classNames?.root,
         className,
+        virtualEnabled &&
+          'touch-pan-y overflow-x-hidden overscroll-contain [overflow-anchor:none]',
       )}
+      onScroll={(event) => {
+        if (virtualEnabled) windowing.onScroll()
+        onScroll?.(event)
+      }}
       onFocusCapture={(event) => {
         const item = event.target.closest<HTMLElement>('[data-ui-tree-item]')
         const key = [...nodeRefs.current].find(
@@ -734,6 +922,7 @@ export function Tree(allProps: TreeProps) {
           ancestors: entries.get(key ?? '')?.ancestors ?? [],
           node: event.target,
         }
+        if (key) setFocusedKey(key)
         onFocusCapture?.(event)
       }}
       onBlurCapture={(event) => {
@@ -746,8 +935,27 @@ export function Tree(allProps: TreeProps) {
       }}
     >
       {treeData.length ? (
-        <ul role="none" className="m-0 list-none p-0">
-          {renderNodes(treeData)}
+        <ul
+          role="none"
+          className={cn(
+            'm-0 list-none p-0',
+            virtualEnabled && 'relative',
+            virtualEnabled && classNames?.group,
+          )}
+          style={virtualEnabled ? { height: windowing.totalHeight } : undefined}
+        >
+          {virtualEnabled
+            ? windowing.items.map((slot) => {
+                const entry = visible[slot.index]
+                return renderNode(
+                  entry.node,
+                  entry.position,
+                  entry.setSize,
+                  entry.ancestors.length,
+                  slot.start,
+                )
+              })
+            : renderNodes(treeData)}
         </ul>
       ) : (
         <Empty title={emptyText} size="small" />

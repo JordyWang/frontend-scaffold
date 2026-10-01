@@ -4,6 +4,7 @@ import { CarouselPreview } from './CarouselPreview'
 import { TimelinePreview } from './TimelinePreview'
 import { TreePreview } from './TreePreview'
 import { TreeAsyncPreview } from './TreeAsyncPreview'
+import { TreeVirtualPreview } from './TreeVirtualPreview'
 import {
   Alert,
   Affix,
@@ -2033,6 +2034,7 @@ export function DesignSystemPreview() {
           <TimelinePreview />
           <TreePreview />
           <TreeAsyncPreview />
+          <TreeVirtualPreview />
           <Card className="col-span-full">
             <CardContent>
               <Stack gap="md">
