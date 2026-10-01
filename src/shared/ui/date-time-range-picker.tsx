@@ -40,15 +40,18 @@ import { usePickerPreview } from './picker-preview'
 import { parseMonth, toISO, toMonth } from './date-picker-state'
 import {
   parseDateTime,
-  dateTimeSeconds,
+  nativeDateTimeInput,
+  dateTimeMilliseconds,
   dateTimeDisplay,
   dateTimeInput,
   dateTimeSelectable,
   type DateTimeConstraints,
 } from './date-time-picker-state'
 import {
-  parseTime,
-  timeString,
+  timeNow,
+  timeFormat,
+  defaultTimeStep,
+  inferTimePrecision,
   type TimePrecision,
   type TimeUnit,
 } from './time-picker-state'
@@ -92,6 +95,7 @@ export type DateTimeRangePickerProps = Omit<
   | 'disabledHours'
   | 'disabledMinutes'
   | 'disabledSeconds'
+  | 'disabledMilliseconds'
   | 'disabledTime'
 > & {
   value?: DateTimeRange
@@ -122,6 +126,13 @@ export type DateTimeRangePickerProps = Omit<
   disabledSeconds?: (
     hour: number,
     minute: number,
+    date: string,
+    info: DateTimeRangeInfo,
+  ) => number[]
+  disabledMilliseconds?: (
+    hour: number,
+    minute: number,
+    second: number,
     date: string,
     info: DateTimeRangeInfo,
   ) => number[]
@@ -197,7 +208,7 @@ const reversed = (range: DateTimeRange) =>
   Boolean(
     parseDateTime(range[0]) &&
     parseDateTime(range[1]) &&
-    dateTimeSeconds(range[0]) > dateTimeSeconds(range[1]),
+    dateTimeMilliseconds(range[0]) > dateTimeMilliseconds(range[1]),
   )
 
 const DateTimeRangePickerControl = forwardRef<
@@ -221,11 +232,13 @@ const DateTimeRangePickerControl = forwardRef<
     hourStep,
     minuteStep,
     secondStep,
+    millisecondStep,
     precision,
     disabledDate,
     disabledHours,
     disabledMinutes,
     disabledSeconds,
+    disabledMilliseconds,
     disabledTime,
     disabled = false,
     readOnly = false,
@@ -382,7 +395,7 @@ const DateTimeRangePickerControl = forwardRef<
         parseDateTime(info.from) &&
         part === 1 &&
         (!parseDateTime(min) ||
-          dateTimeSeconds(info.from!) > dateTimeSeconds(min!))
+          dateTimeMilliseconds(info.from!) > dateTimeMilliseconds(min!))
           ? info.from
           : min,
       max:
@@ -390,13 +403,14 @@ const DateTimeRangePickerControl = forwardRef<
         parseDateTime(info.from) &&
         part === 0 &&
         (!parseDateTime(max) ||
-          dateTimeSeconds(info.from!) < dateTimeSeconds(max!))
+          dateTimeMilliseconds(info.from!) < dateTimeMilliseconds(max!))
           ? info.from
           : max,
       step,
       hourStep,
       minuteStep,
       secondStep,
+      millisecondStep,
       disabledDate: disabledDate
         ? (date) => disabledDate(date, info)
         : undefined,
@@ -408,6 +422,10 @@ const DateTimeRangePickerControl = forwardRef<
         : undefined,
       disabledSeconds: disabledSeconds
         ? (hour, minute, date) => disabledSeconds(hour, minute, date, info)
+        : undefined,
+      disabledMilliseconds: disabledMilliseconds
+        ? (hour, minute, second, date) =>
+            disabledMilliseconds(hour, minute, second, date, info)
         : undefined,
       disabledTime: (time) =>
         Boolean(
@@ -533,11 +551,7 @@ const DateTimeRangePickerControl = forwardRef<
     if (!next || !validRange(next) || lockedChanged(next)) {
       setError(
         '请输入可选的日期时间范围（YYYY-MM-DD ' +
-          (use12Hours
-            ? 'hh:mm' + (precision === 'second' ? ':ss' : '') + ' AM/PM'
-            : precision === 'second'
-              ? 'HH:mm:ss'
-              : 'HH:mm') +
+          timeFormat(precision, use12Hours) +
           '）',
       )
       return false
@@ -860,17 +874,7 @@ const DateTimeRangePickerControl = forwardRef<
             disabled={isDisabled(index)}
             onClick={() => {
               const now = new Date(),
-                next =
-                  toISO(now) +
-                  'T' +
-                  timeString(
-                    [
-                      now.getHours(),
-                      now.getMinutes(),
-                      precision === 'second' ? now.getSeconds() : 0,
-                    ],
-                    precision,
-                  )
+                next = toISO(now) + 'T' + timeNow(now, precision)
               if (dateTimeSelectable(next, constraintsFor(index, candidate)))
                 choose(next)
               else setError('当前时间不可选，请选择其他时间')
@@ -1001,16 +1005,14 @@ const DateTimeRangePickerControl = forwardRef<
                   aria-describedby={description}
                   min={min}
                   max={max}
-                  step={step ?? (precision === 'minute' ? 60 : 1)}
+                  step={step ?? defaultTimeStep(precision)}
                   required={required && !allowEmpty[part]}
                   disabled={Array.isArray(disabled) ? disabled[part] : disabled}
                   readOnly={readOnly || (mode !== 'native' && inputReadOnly)}
                   autoComplete="off"
                   placeholder={
                     placeholder?.[part] ??
-                    'YYYY-MM-DD ' +
-                      (precision === 'second' ? 'HH:mm:ss' : 'HH:mm') +
-                      (use12Hours ? ' AM/PM' : '')
+                    'YYYY-MM-DD ' + timeFormat(precision, use12Hours)
                   }
                   value={displayed[part]}
                   data-picker-preview={
@@ -1041,17 +1043,8 @@ const DateTimeRangePickerControl = forwardRef<
                     if (mode === 'native') {
                       const next = asRange(current),
                         raw = event.currentTarget.value,
-                        parts = parseDateTime(raw.replace(/\.0+$/, ''))
-                      if (!raw) next[part] = ''
-                      else if (
-                        parts &&
-                        (precision === 'second' ||
-                          parseTime(parts.time)![2] === 0)
-                      )
-                        next[part] =
-                          parts.date +
-                          'T' +
-                          timeString(parseTime(parts.time)!, precision)
+                        parsed = raw ? nativeDateTimeInput(raw, precision) : ''
+                      if (parsed !== undefined) next[part] = parsed
                       else {
                         setError('日期时间不可选或精度不符，已恢复原值')
                         return
@@ -1228,16 +1221,16 @@ export const DateTimeRangePicker = forwardRef<
 >(function DateTimeRangePicker(props, ref) {
   const precision =
     props.precision ??
-    ([
-      ...(props.value ?? []),
-      ...(props.defaultValue ?? []),
-      ...(props.defaultOpenTime ?? []),
-      props.min,
-      props.max,
-    ].some((value) => value?.length === 19 || value?.length === 8) ||
-    Number(props.step) % 60 > 0
-      ? 'second'
-      : 'minute')
+    inferTimePrecision(
+      [
+        ...(props.value ?? []),
+        ...(props.defaultValue ?? []),
+        ...(props.defaultOpenTime ?? []),
+        props.min,
+        props.max,
+      ],
+      props.step,
+    )
   return (
     <DateTimeRangePickerControl
       {...props}

@@ -40,6 +40,7 @@ const names: Record<TimeUnit, string> = {
   hour: '小时',
   minute: '分钟',
   second: '秒',
+  millisecond: '毫秒',
   meridiem: '时段',
 }
 type Choice = { number: number; next?: string; text: string }
@@ -87,6 +88,7 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
       >(),
     )
     const previousLayout = useRef('')
+    const lastFocusedUnit = useRef<TimeUnit | undefined>(undefined)
     const owned = useRef(false),
       pending = useRef<string | undefined>(undefined)
     const [cursor, setCursor] = useState<Partial<Record<TimeUnit, number>>>({})
@@ -94,11 +96,14 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
     const columns = useMemo(() => {
       const base = parseTime(value) ??
         parseTime(defaultOpenValue) ??
-        parseTime(constraints.min) ?? [0, 0, 0]
+        parseTime(constraints.min) ?? [0, 0, 0, 0]
       const units: TimeUnit[] = [
         'hour',
         'minute',
-        ...(constraints.precision === 'second' ? ['second' as const] : []),
+        ...(constraints.precision !== 'minute' ? ['second' as const] : []),
+        ...(constraints.precision === 'millisecond'
+          ? ['millisecond' as const]
+          : []),
         ...(use12Hours ? ['meridiem' as const] : []),
       ]
       return units.map((unit) => {
@@ -109,7 +114,9 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
               : 24
             : unit === 'meridiem'
               ? 2
-              : 60
+              : unit === 'millisecond'
+                ? 1000
+                : 60
         const step = unitStep(
           unit === 'hour'
             ? constraints.hourStep
@@ -117,7 +124,9 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
               ? constraints.minuteStep
               : unit === 'second'
                 ? constraints.secondStep
-                : undefined,
+                : unit === 'millisecond'
+                  ? constraints.millisecondStep
+                  : undefined,
           unit === 'hour' ? 24 : count,
         )
         const choices: Choice[] = Array.from({ length: count }, (_, index) => {
@@ -132,7 +141,7 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
                 : '下午 PM'
               : String(
                   unit === 'hour' && use12Hours ? number % 12 || 12 : number,
-                ).padStart(2, '0')
+                ).padStart(unit === 'millisecond' ? 3 : 2, '0')
           return {
             number,
             text,
@@ -164,9 +173,11 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
             ? selected[1]
             : unit === 'second'
               ? selected[2]
-              : selected[0] < 12
-                ? 0
-                : 1
+              : unit === 'millisecond'
+                ? (selected[3] ?? 0)
+                : selected[0] < 12
+                  ? 0
+                  : 1
     const activeNumber = (unit: TimeUnit, choices: Choice[]) =>
       choices.find((choice) => choice.next && choice.number === cursor[unit])
         ?.number ??
@@ -344,9 +355,11 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
               ? parts[1]
               : unit === 'second'
                 ? parts[2]
-                : parts[0] < 12
-                  ? 0
-                  : 1
+                : unit === 'millisecond'
+                  ? (parts[3] ?? 0)
+                  : parts[0] < 12
+                    ? 0
+                    : 1
         const button =
           number === undefined
             ? undefined
@@ -428,11 +441,12 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
       ) {
         const column =
           columns.find(
-            ({ unit }) =>
+            ({ unit, choices }) =>
+              choices.some((choice) => choice.next) &&
               unit ===
-              (focused instanceof HTMLElement
-                ? focused.dataset.timeUnit
-                : undefined),
+                (focused instanceof HTMLElement
+                  ? (focused.dataset.timeUnit ?? lastFocusedUnit.current)
+                  : lastFocusedUnit.current),
           ) ??
           columns.find(({ choices }) => choices.some((choice) => choice.next))
         if (column) {
@@ -458,6 +472,7 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
           else if (ref) ref.current = element
         }}
         dir={direction}
+        data-picker-scroll
         onFocusCapture={() => {
           owned.current = true
         }}
@@ -473,10 +488,13 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
           )
             owned.current = false
         }}
-        className={cn('flex min-w-0 gap-2', classNames?.columns)}
+        className={cn(
+          'flex min-w-0 gap-2 overflow-x-auto overscroll-x-contain',
+          classNames?.columns,
+        )}
       >
         {columns.map(({ unit, choices }) => (
-          <div key={unit} className="min-w-0 flex-1 space-y-1">
+          <div key={unit} className="min-w-[54px] flex-1 space-y-1">
             <span
               aria-hidden="true"
               className="block text-center text-xs text-muted-foreground"
@@ -537,12 +555,13 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
                       : 'hover:bg-accent',
                     classNames?.option,
                   )}
-                  onFocus={() =>
+                  onFocus={() => {
+                    lastFocusedUnit.current = unit
                     setCursor((previous) => ({
                       ...previous,
                       [unit]: choice.number,
                     }))
-                  }
+                  }}
                   onKeyDown={(event) => handleKey(event, unit, choice.number)}
                   onPointerEnter={(event) => {
                     if (event.pointerType === 'mouse' && choice.next)

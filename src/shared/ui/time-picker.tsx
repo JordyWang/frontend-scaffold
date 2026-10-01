@@ -37,11 +37,14 @@ import {
 import { TimePickerPanel } from './time-picker-panel'
 import { usePickerPreview } from './picker-preview'
 import {
-  parseTime,
   timeDisplay,
   timeInput,
   timeSelectable,
-  timeString,
+  timeNow,
+  timeFormat,
+  defaultTimeStep,
+  inferTimePrecision,
+  nativeTimeInput,
   type TimeConstraints,
   type TimePrecision,
   type TimeUnit,
@@ -77,7 +80,7 @@ export type TimePickerProps = Omit<
   | 'max'
   | 'multiple'
 > &
-  Omit<TimeConstraints, 'precision'> & {
+  Omit<TimeConstraints, 'precision' | 'stepBaseMilliseconds'> & {
     value?: string
     defaultValue?: string
     precision?: TimePrecision
@@ -154,9 +157,11 @@ const TimePickerControl = forwardRef<
     hourStep,
     minuteStep,
     secondStep,
+    millisecondStep,
     disabledHours,
     disabledMinutes,
     disabledSeconds,
+    disabledMilliseconds,
     disabledTime,
     disabled = false,
     readOnly = false,
@@ -211,9 +216,11 @@ const TimePickerControl = forwardRef<
       hourStep,
       minuteStep,
       secondStep,
+      millisecondStep,
       disabledHours,
       disabledMinutes,
       disabledSeconds,
+      disabledMilliseconds,
       disabledTime,
     }),
     [
@@ -224,9 +231,11 @@ const TimePickerControl = forwardRef<
       hourStep,
       minuteStep,
       secondStep,
+      millisecondStep,
       disabledHours,
       disabledMinutes,
       disabledSeconds,
+      disabledMilliseconds,
       disabledTime,
     ],
   )
@@ -288,15 +297,7 @@ const TimePickerControl = forwardRef<
     if (!editing) return true
     const next = draft ? timeInput(draft, precision, use12Hours) : ''
     if (next === undefined || (next && !selectable(next))) {
-      setError(
-        '请输入可选时间（' +
-          (use12Hours
-            ? 'hh:mm' + (precision === 'second' ? ':ss' : '') + ' AM/PM'
-            : precision === 'second'
-              ? 'HH:mm:ss'
-              : 'HH:mm') +
-          '）',
-      )
+      setError('请输入可选时间（' + timeFormat(precision, use12Hours) + '）')
       return false
     }
     if (needConfirm && !confirm && mode !== 'native') {
@@ -498,14 +499,7 @@ const TimePickerControl = forwardRef<
             disabled={inactive}
             onClick={() => {
               const now = new Date(),
-                next = timeString(
-                  [
-                    now.getHours(),
-                    now.getMinutes(),
-                    precision === 'second' ? now.getSeconds() : 0,
-                  ],
-                  precision,
-                )
+                next = timeNow(now, precision)
               if (selectable(next)) choose(next)
               else setError('当前时间不可选，请选择其他时间')
             }}
@@ -581,14 +575,12 @@ const TimePickerControl = forwardRef<
           data-status={status === 'default' ? undefined : status}
           min={min}
           max={max}
-          step={step ?? (precision === 'minute' ? 60 : 1)}
+          step={step ?? defaultTimeStep(precision)}
           disabled={disabled}
           readOnly={readOnly || (mode !== 'native' && inputReadOnly)}
           autoComplete={inputProps.autoComplete ?? 'off'}
           placeholder={
-            inputProps.placeholder ??
-            (precision === 'second' ? 'HH:mm:ss' : 'HH:mm') +
-              (use12Hours ? ' AM/PM' : '')
+            inputProps.placeholder ?? timeFormat(precision, use12Hours)
           }
           value={mode === 'native' ? current : displayed}
           data-picker-preview={preview ? 'hover' : undefined}
@@ -615,8 +607,9 @@ const TimePickerControl = forwardRef<
             const next = event.currentTarget.value
             setError('')
             if (mode === 'native') {
-              const parts = parseTime(next)
-              publish(parts ? timeString(parts, precision) : '')
+              const parsed = next ? nativeTimeInput(next, precision) : ''
+              if (parsed === undefined || !publish(parsed))
+                setError('时间不可选或精度不符，已恢复原时间')
             } else {
               setDraft(next)
               setEditing(true)
@@ -752,15 +745,16 @@ export const TimePicker = forwardRef<HTMLInputElement, TimePickerProps>(
   function TimePicker(props, ref) {
     const precision =
       props.precision ??
-      ([
-        props.value,
-        props.defaultValue,
-        props.min,
-        props.max,
-        props.defaultOpenValue,
-      ].some((value) => value?.length === 8) || Number(props.step) % 60 > 0
-        ? 'second'
-        : 'minute')
+      inferTimePrecision(
+        [
+          props.value,
+          props.defaultValue,
+          props.min,
+          props.max,
+          props.defaultOpenValue,
+        ],
+        props.step,
+      )
     return (
       <TimePickerControl
         {...props}

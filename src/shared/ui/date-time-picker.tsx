@@ -42,11 +42,14 @@ import {
   dateTimeInput,
   dateTimeSelectable,
   parseDateTime,
+  nativeDateTimeInput,
   type DateTimeConstraints,
 } from './date-time-picker-state'
 import {
-  parseTime,
-  timeString,
+  timeNow,
+  timeFormat,
+  defaultTimeStep,
+  inferTimePrecision,
   type TimePrecision,
   type TimeUnit,
 } from './time-picker-state'
@@ -178,9 +181,11 @@ const DateTimePickerControl = forwardRef<
     hourStep,
     minuteStep,
     secondStep,
+    millisecondStep,
     disabledHours,
     disabledMinutes,
     disabledSeconds,
+    disabledMilliseconds,
     disabledTime,
     disabled = false,
     readOnly = false,
@@ -252,10 +257,12 @@ const DateTimePickerControl = forwardRef<
       hourStep,
       minuteStep,
       secondStep,
+      millisecondStep,
       disabledDate,
       disabledHours,
       disabledMinutes,
       disabledSeconds,
+      disabledMilliseconds,
       disabledTime,
     }),
     [
@@ -266,10 +273,12 @@ const DateTimePickerControl = forwardRef<
       hourStep,
       minuteStep,
       secondStep,
+      millisecondStep,
       disabledDate,
       disabledHours,
       disabledMinutes,
       disabledSeconds,
+      disabledMilliseconds,
       disabledTime,
     ],
   )
@@ -333,11 +342,7 @@ const DateTimePickerControl = forwardRef<
     if (next === undefined || (next && !selectable(next))) {
       setError(
         '请输入可选日期时间（YYYY-MM-DD ' +
-          (use12Hours
-            ? 'hh:mm' + (precision === 'second' ? ':ss' : '') + ' AM/PM'
-            : precision === 'second'
-              ? 'HH:mm:ss'
-              : 'HH:mm') +
+          timeFormat(precision, use12Hours) +
           '）',
       )
       return false
@@ -559,17 +564,7 @@ const DateTimePickerControl = forwardRef<
             disabled={inactive}
             onClick={() => {
               const now = new Date(),
-                next =
-                  toISO(now) +
-                  'T' +
-                  timeString(
-                    [
-                      now.getHours(),
-                      now.getMinutes(),
-                      precision === 'second' ? now.getSeconds() : 0,
-                    ],
-                    precision,
-                  )
+                next = toISO(now) + 'T' + timeNow(now, precision)
               if (selectable(next)) choose(next)
               else setError('当前日期时间不可选，请选择其他值')
             }}
@@ -669,15 +664,13 @@ const DateTimePickerControl = forwardRef<
           data-status={status === 'default' ? undefined : status}
           min={min}
           max={max}
-          step={step ?? (precision === 'minute' ? 60 : 1)}
+          step={step ?? defaultTimeStep(precision)}
           disabled={disabled}
           readOnly={readOnly || (mode !== 'native' && inputReadOnly)}
           autoComplete={inputProps.autoComplete ?? 'off'}
           placeholder={
             inputProps.placeholder ??
-            'YYYY-MM-DD ' +
-              (precision === 'second' ? 'HH:mm:ss' : 'HH:mm') +
-              (use12Hours ? ' AM/PM' : '')
+            'YYYY-MM-DD ' + timeFormat(precision, use12Hours)
           }
           value={mode === 'native' ? current : displayed}
           data-picker-preview={preview ? 'hover' : undefined}
@@ -704,15 +697,8 @@ const DateTimePickerControl = forwardRef<
             const next = event.currentTarget.value
             setError('')
             if (mode === 'native') {
-              const nativeParts = parseDateTime(next.replace(/\.0+$/, ''))
-              const time = nativeParts && parseTime(nativeParts.time)!
-              if (!next) publish('')
-              else if (
-                !nativeParts ||
-                !time ||
-                (precision === 'minute' && time[2] !== 0) ||
-                !publish(nativeParts.date + 'T' + timeString(time, precision))
-              )
+              const parsed = next ? nativeDateTimeInput(next, precision) : ''
+              if (parsed === undefined || !publish(parsed))
                 setError('日期时间不可选或精度不符，已恢复原值')
             } else {
               setDraft(next)
@@ -859,16 +845,16 @@ export const DateTimePicker = forwardRef<HTMLInputElement, DateTimePickerProps>(
   function DateTimePicker(props, ref) {
     const precision =
       props.precision ??
-      ([
-        props.value,
-        props.defaultValue,
-        props.min,
-        props.max,
-        props.defaultOpenTime,
-      ].some((value) => value?.length === 19 || value?.length === 8) ||
-      Number(props.step) % 60 > 0
-        ? 'second'
-        : 'minute')
+      inferTimePrecision(
+        [
+          props.value,
+          props.defaultValue,
+          props.min,
+          props.max,
+          props.defaultOpenTime,
+        ],
+        props.step,
+      )
     return (
       <DateTimePickerControl
         {...props}

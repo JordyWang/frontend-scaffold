@@ -3,12 +3,15 @@ import {
   parseTime,
   timeDisplay,
   timeInput,
-  timeSeconds,
+  timeMilliseconds,
+  timeLength,
+  nativeTimeInput,
+  nearestTime,
   timeSelectable,
   timeString,
-  unitStep,
   type TimeConstraints,
   type TimePrecision,
+  type TimeParts,
 } from './time-picker-state'
 
 export type DateTimeConstraints = Omit<
@@ -19,6 +22,8 @@ export type DateTimeConstraints = Omit<
   | 'disabledMinutes'
   | 'disabledSeconds'
   | 'disabledTime'
+  | 'disabledMilliseconds'
+  | 'stepBaseMilliseconds'
 > & {
   min?: string
   max?: string
@@ -28,29 +33,43 @@ export type DateTimeConstraints = Omit<
   disabledHours?: (date: string) => number[]
   disabledMinutes?: (hour: number, date: string) => number[]
   disabledSeconds?: (hour: number, minute: number, date: string) => number[]
+  disabledMilliseconds?: (
+    hour: number,
+    minute: number,
+    second: number,
+    date: string,
+  ) => number[]
   disabledTime?: (value: string) => boolean
 }
 export function parseDateTime(value?: string, precision?: TimePrecision) {
-  if (!value || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(value))
-    return undefined
+  if (!value || !/^\d{4}-\d{2}-\d{2}T/.test(value)) return undefined
   const date = value.slice(0, 10),
     time = value.slice(11)
   if (
     !parseDate(date) ||
     !parseTime(time) ||
-    (precision && time.length !== (precision === 'second' ? 8 : 5))
+    (precision && time.length !== timeLength(precision))
   )
     return undefined
   return { date, time }
 }
 /** Civil calendar arithmetic measures local fields without converting a user value to UTC. */
-export function dateTimeSeconds(value: string) {
+export function dateTimeMilliseconds(value: string) {
   const parts = parseDateTime(value)!
   const [year, month, day] = parts.date.split('-').map(Number)
   const ordinal = new Date(0)
   ordinal.setUTCFullYear(year, month - 1, day)
   ordinal.setUTCHours(0, 0, 0, 0)
-  return ordinal.getTime() / 1000 + timeSeconds(parseTime(parts.time)!)
+  return ordinal.getTime() + timeMilliseconds(parseTime(parts.time)!)
+}
+export const dateTimeSeconds = (value: string) =>
+  dateTimeMilliseconds(value) / 1000
+export function nativeDateTimeInput(value: string, precision: TimePrecision) {
+  if (value[10] !== 'T') return undefined
+  const date = value.slice(0, 10),
+    raw = value.slice(11)
+  const time = raw && nativeTimeInput(raw, precision)
+  return parseDate(date) && time ? date + 'T' + time : undefined
 }
 export function dateTimeDisplay(
   value: string,
@@ -86,7 +105,7 @@ export function dateTimeDateSelectable(
     !(
       min &&
       max &&
-      dateTimeSeconds(options.min!) > dateTimeSeconds(options.max!)
+      dateTimeMilliseconds(options.min!) > dateTimeMilliseconds(options.max!)
     ) &&
     !options.disabledDate?.(date)
   )
@@ -98,14 +117,11 @@ export function dateTimeTimeConstraints(
   const min = parseDateTime(options.min),
     max = parseDateTime(options.max)
   const dateAvailable = dateTimeDateSelectable(date, options)
-  const lower = min ? dateTimeSeconds(options.min!) : undefined
-  const upper = max ? dateTimeSeconds(options.max!) : undefined
-  const count = Number(
-    options.step ?? (options.precision === 'minute' ? 60 : 1),
-  )
+  const lower = min ? dateTimeMilliseconds(options.min!) : undefined
   const base = parseDateTime(options.stepBase)
-    ? dateTimeSeconds(options.stepBase!)
+    ? dateTimeMilliseconds(options.stepBase!)
     : (lower ?? 0)
+  const midnight = parseDate(date) ? dateTimeMilliseconds(date + 'T00:00') : 0
   return {
     precision: options.precision,
     min: min?.date === date ? min.time : undefined,
@@ -113,7 +129,9 @@ export function dateTimeTimeConstraints(
     hourStep: options.hourStep,
     minuteStep: options.minuteStep,
     secondStep: options.secondStep,
-    step: 'any',
+    millisecondStep: options.millisecondStep,
+    step: options.step,
+    stepBaseMilliseconds: base - midnight,
     disabledHours: options.disabledHours
       ? () => options.disabledHours!(date)
       : undefined,
@@ -123,25 +141,12 @@ export function dateTimeTimeConstraints(
     disabledSeconds: options.disabledSeconds
       ? (hour, minute) => options.disabledSeconds!(hour, minute, date)
       : undefined,
-    disabledTime: (time) => {
-      if (!dateAvailable) return true
-      const value = date + 'T' + time
-      const total = dateTimeSeconds(value)
-      if (
-        (lower !== undefined && total < lower) ||
-        (upper !== undefined && total > upper)
-      )
-        return true
-      const quotient = (total - base) / count
-      if (
-        options.step !== 'any' &&
-        Number.isFinite(count) &&
-        count > 0 &&
-        Math.abs(quotient - Math.round(quotient)) > 1e-8
-      )
-        return true
-      return Boolean(options.disabledTime?.(value))
-    },
+    disabledMilliseconds: options.disabledMilliseconds
+      ? (hour, minute, second) =>
+          options.disabledMilliseconds!(hour, minute, second, date)
+      : undefined,
+    disabledTime: (time) =>
+      !dateAvailable || Boolean(options.disabledTime?.(date + 'T' + time)),
   }
 }
 export function dateTimeSelectable(
@@ -162,36 +167,11 @@ export function dateTimeForDate(
 ) {
   if (!dateTimeDateSelectable(date, options)) return undefined
   const constraints = dateTimeTimeConstraints(date, options)
-  const base = parseTime(preferredTime) ?? [0, 0, 0]
+  const base: TimeParts = parseTime(preferredTime) ?? [0, 0, 0, 0]
   if (options.precision === 'minute') base[2] = 0
+  if (options.precision !== 'millisecond') base[3] = 0
   const direct = timeString(base, options.precision)
   if (timeSelectable(direct, constraints)) return date + 'T' + direct
-  let best: string | undefined,
-    closest = Infinity
-  for (let hour = 0; hour < 24; hour += unitStep(options.hourStep, 24)) {
-    if (options.disabledHours?.(date).includes(hour)) continue
-    for (
-      let minute = 0;
-      minute < 60;
-      minute += unitStep(options.minuteStep, 60)
-    ) {
-      if (options.disabledMinutes?.(hour, date).includes(minute)) continue
-      for (
-        let second = 0;
-        second < (options.precision === 'second' ? 60 : 1);
-        second += unitStep(options.secondStep, 60)
-      ) {
-        const distance = Math.abs(
-          timeSeconds([hour, minute, second]) - timeSeconds(base),
-        )
-        if (distance >= closest) continue
-        const time = timeString([hour, minute, second], options.precision)
-        if (timeSelectable(time, constraints)) {
-          best = date + 'T' + time
-          closest = distance
-        }
-      }
-    }
-  }
-  return best
+  const time = nearestTime(base, constraints)
+  return time ? date + 'T' + time : undefined
 }

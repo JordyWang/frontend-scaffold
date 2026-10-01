@@ -41,9 +41,13 @@ import {
   parseTime,
   timeDisplay,
   timeInput,
-  timeSeconds,
+  timeMilliseconds,
   timeSelectable,
-  timeString,
+  timeNow,
+  timeFormat,
+  defaultTimeStep,
+  inferTimePrecision,
+  nativeTimeInput,
   type TimeConstraints,
   type TimePrecision,
   type TimeUnit,
@@ -80,6 +84,8 @@ export type TimeRangePickerProps = Omit<
   | 'disabledHours'
   | 'disabledMinutes'
   | 'disabledSeconds'
+  | 'disabledMilliseconds'
+  | 'stepBaseMilliseconds'
   | 'disabledTime'
 > & {
   value?: TimeRange
@@ -105,6 +111,12 @@ export type TimeRangePickerProps = Omit<
   disabledSeconds?: (
     hour: number,
     minute: number,
+    info: TimeRangeInfo,
+  ) => number[]
+  disabledMilliseconds?: (
+    hour: number,
+    minute: number,
+    second: number,
     info: TimeRangeInfo,
   ) => number[]
   disabledTime?: (value: string, info: TimeRangeInfo) => boolean
@@ -164,7 +176,9 @@ const equalRange = (left: TimeRange, right: TimeRange) =>
 const reversed = (range: TimeRange) => {
   const start = parseTime(range[0]),
     end = parseTime(range[1])
-  return Boolean(start && end && timeSeconds(start) > timeSeconds(end))
+  return Boolean(
+    start && end && timeMilliseconds(start) > timeMilliseconds(end),
+  )
 }
 
 const TimeRangePickerControl = forwardRef<
@@ -188,10 +202,12 @@ const TimeRangePickerControl = forwardRef<
     hourStep,
     minuteStep,
     secondStep,
+    millisecondStep,
     precision,
     disabledHours,
     disabledMinutes,
     disabledSeconds,
+    disabledMilliseconds,
     disabledTime,
     disabled = false,
     readOnly = false,
@@ -313,12 +329,17 @@ const TimeRangePickerControl = forwardRef<
       hourStep,
       minuteStep,
       secondStep,
+      millisecondStep,
       disabledHours: disabledHours ? () => disabledHours(info) : undefined,
       disabledMinutes: disabledMinutes
         ? (hour) => disabledMinutes(hour, info)
         : undefined,
       disabledSeconds: disabledSeconds
         ? (hour, minute) => disabledSeconds(hour, minute, info)
+        : undefined,
+      disabledMilliseconds: disabledMilliseconds
+        ? (hour, minute, second) =>
+            disabledMilliseconds(hour, minute, second, info)
         : undefined,
       disabledTime: (time) =>
         Boolean(
@@ -434,13 +455,7 @@ const TimeRangePickerControl = forwardRef<
       next = parsed ? normalized(parsed, lastEdited.current, true) : undefined
     if (!next || !validRange(next) || lockedChanged(next)) {
       setError(
-        '请输入可选的时间范围（' +
-          (use12Hours
-            ? 'hh:mm' + (precision === 'second' ? ':ss' : '') + ' AM/PM'
-            : precision === 'second'
-              ? 'HH:mm:ss'
-              : 'HH:mm') +
-          '）',
+        '请输入可选的时间范围（' + timeFormat(precision, use12Hours) + '）',
       )
       return false
     }
@@ -732,14 +747,7 @@ const TimeRangePickerControl = forwardRef<
             disabled={isDisabled(index)}
             onClick={() => {
               const now = new Date(),
-                next = timeString(
-                  [
-                    now.getHours(),
-                    now.getMinutes(),
-                    precision === 'second' ? now.getSeconds() : 0,
-                  ],
-                  precision,
-                )
+                next = timeNow(now, precision)
               if (timeSelectable(next, constraintsFor(index, candidate)))
                 choose(next)
               else setError('当前时间不可选，请选择其他时间')
@@ -849,15 +857,13 @@ const TimeRangePickerControl = forwardRef<
                   aria-describedby={description}
                   min={min}
                   max={max}
-                  step={step ?? (precision === 'minute' ? 60 : 1)}
+                  step={step ?? defaultTimeStep(precision)}
                   required={required && !allowEmpty[part]}
                   disabled={Array.isArray(disabled) ? disabled[part] : disabled}
                   readOnly={readOnly || (mode !== 'native' && inputReadOnly)}
                   autoComplete="off"
                   placeholder={
-                    placeholder?.[part] ??
-                    (precision === 'second' ? 'HH:mm:ss' : 'HH:mm') +
-                      (use12Hours ? ' AM/PM' : '')
+                    placeholder?.[part] ?? timeFormat(precision, use12Hours)
                   }
                   value={displayed[part]}
                   data-picker-preview={
@@ -887,9 +893,15 @@ const TimeRangePickerControl = forwardRef<
                     lastEdited.current = part as 0 | 1
                     if (mode === 'native') {
                       const next = asRange(current),
-                        parts = parseTime(event.currentTarget.value)
-                      next[part] = parts ? timeString(parts, precision) : ''
-                      publish(normalized(next, part as 0 | 1))
+                        raw = event.currentTarget.value,
+                        parsed = raw ? nativeTimeInput(raw, precision) : ''
+                      if (parsed === undefined) {
+                        setError('时间不可选或精度不符，已恢复原范围')
+                        return
+                      }
+                      next[part] = parsed
+                      if (!publish(normalized(next, part as 0 | 1)))
+                        setError('时间范围不可选，已恢复原范围')
                     } else {
                       const next = asRange(draft)
                       next[part] = event.currentTarget.value
@@ -1060,15 +1072,16 @@ export const TimeRangePicker = forwardRef<
 >(function TimeRangePicker(props, ref) {
   const precision =
     props.precision ??
-    ([
-      ...(props.value ?? []),
-      ...(props.defaultValue ?? []),
-      ...(props.defaultOpenValue ?? []),
-      props.min,
-      props.max,
-    ].some((value) => value?.length === 8) || Number(props.step) % 60 > 0
-      ? 'second'
-      : 'minute')
+    inferTimePrecision(
+      [
+        ...(props.value ?? []),
+        ...(props.defaultValue ?? []),
+        ...(props.defaultOpenValue ?? []),
+        props.min,
+        props.max,
+      ],
+      props.step,
+    )
   return (
     <TimeRangePickerControl
       {...props}
