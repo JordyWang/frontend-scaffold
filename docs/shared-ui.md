@@ -147,13 +147,17 @@
 
 勾选模式默认父子关联，并遵守公共 Tree 的禁用和不可勾选边界；`checkStrictly` 让节点独立勾选，值仍为字符串数组。`checkedStrategy` 为 leaf（默认）、parent 或 all，决定勾选值的回填与 `onChange` 返回方式；严格模式始终返回所有独立勾选键。搜索只过滤显示，不改变完整树的父子关联、半选状态或已选兄弟节点。普通 `multiple` 同样保留被搜索过滤掉的选择。
 
-`maxCount` 限制实际选择数量：普通多选与严格勾选按选中节点计数，关联勾选按可勾选叶节点计数，父级或全部回填也遵守同一限制。计数向下取整且至少为 0，无效数值不启用限制；达到上限后仍可展开目录、浏览和取消选择，不能新增会超过限制的节点或分支。父级传入的超限值不被自动截断。`maxTagCount` 仅限制多选触发器展示的标签数，剩余数量以 +N 表示，不修改选择值。
+`maxCount` 限制实际选择数量：普通多选与严格勾选按选中节点计数，关联勾选按可勾选叶节点计数，父级或全部回填也遵守同一限制。未知受控值同样计入上限。计数向下取整且至少为 0，无效数值不启用限制；达到上限后仍可展开目录、浏览和取消选择，不能新增会超过限制的节点或分支。父级传入的超限值不被自动截断。`maxTagCount` 仅限制多选触发器展示的标签数，剩余数量以 +N 表示，不修改选择值。
+
+多选标签默认提供独立移除按钮，`removable={false}` 可隐藏这些入口；移除父级关联标签会取消该可勾选分支，独立选择与禁用边界仍保留。未知受控值也可请求移除。按钮是触发器的同级控件，避免嵌套交互元素，保留 44px 触控区域与明确名称；移除后聚焦触发器且不切换弹层开合。触发器上的 Backspace / Delete 移除最后一个回填值，Tab 按触发器、可见移除按钮、公共清除按钮的顺序移动，桌面及移动 WebKit 保持同一契约。
+
+`placement` 指定 topStart / topEnd / bottomStart / bottomEnd，默认 bottomStart，起止跟随 RTL。空间不足时翻转上下方向；`popupWidth` 可指定正数宽度，未指定时跟随触发器，实际宽度和位置限制在可视视口内并保留 8px 边距。位置同时跟随页面、容器和软键盘引起的可视视口变化，锚点完全移出视口时隐藏弹层。
 
 `expandedValues` / `defaultExpandedValues` 和 `onExpand` 管理展开，`treeDefaultExpandAll` 只负责初始化。搜索时临时展开匹配节点的祖先，清除搜索后恢复原展开状态；此时开合不改变持久展开键。`searchValue` / `defaultSearchValue`、`onSearch` 可控制搜索文本，`clearSearchOnSelect` 可在多选操作后请求清空搜索（默认保持搜索）。`onClear` 只在点击公共清除入口后报告一次，清除后的值为单选 undefined 或多选空数组。
 
 弹层复用 Tree 的可变高度窗口；`listHeight` 默认 256px，实际高度按视口和搜索区可用空间限制，`virtual={false}` 保留完整嵌套树。键盘支持方向键、Home / End、字符查找和可见焦点；Enter 或空格选择/勾选，Escape 关闭并恢复触发器焦点。Tab 从搜索进入树，反向 Tab 回到搜索或触发器，从树向前 Tab 关闭弹层并继续触发器之后的表单控件（包括清除入口）。打开时、跨窗口定位时不改变页面滚动；外部点击或焦点移出时关闭，不抢回外部焦点。
 
-`variant`、`status` 和 `size` 与其他输入控件统一，错误状态设置 `aria-invalid`，`prefix` / `suffixIcon` 提供非交互装饰。`showLine` / `showIcon` 复用 Tree 视觉，`emptyText` 配置无结果文案。`classNames` 提供 root / trigger / value / tag / prefix / suffix / clear / popup / search / tree / item / title / switcher / checkbox 的 Tailwind 插槽。`/__ui` 独立预览关联/严格勾选、三种回填、选择上限、标签折叠、受控空值、千节点窗口、四种外观、错误/警告、空结果与 RTL 深色。
+`variant`、`status` 和 `size` 与其他输入控件统一，错误状态设置 `aria-invalid`，`prefix` / `suffixIcon` 提供非交互装饰。`showLine` / `showIcon` 复用 Tree 视觉，`emptyText` 配置无结果文案。`classNames` 提供 root / trigger / value / tag / remove / prefix / suffix / clear / popup / search / tree / item / title / switcher / checkbox 的 Tailwind 插槽。`/__ui` 独立预览关联/严格勾选、三种回填、选择上限、标签折叠、逐项移除、四向弹出、受控空值、千节点窗口、四种外观、错误/警告、空结果与 RTL 深色。
 
 `Tabs` 在非受控模式下会在当前项被移除或禁用时显示第一个可用面板；原项重新可用后会恢复之前的选择。若键盘焦点停在被移除或禁用的标签上，焦点会转到当前可用标签。受控模式仍以传入的 `value` 为准。
 

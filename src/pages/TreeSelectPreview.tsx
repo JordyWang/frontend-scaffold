@@ -244,6 +244,40 @@ export function TreeSelectPreview() {
               ),
             )}
           </div>
+          <ConfigProvider direction={rtl ? 'rtl' : 'ltr'}>
+            <div className="grid min-w-0 gap-4 md:grid-cols-2">
+              {(
+                ['topStart', 'topEnd', 'bottomStart', 'bottomEnd'] as const
+              ).map((placement) => (
+                <FormField
+                  key={placement}
+                  label={placement + ' 弹出位置'}
+                  description="240px 弹层按逻辑起止对齐，空间不足时自动翻转并限制在视口内。"
+                  control={
+                    <TreeSelect
+                      label={placement + ' 弹出位置'}
+                      treeData={teams}
+                      placement={placement}
+                      popupWidth={240}
+                    />
+                  }
+                />
+              ))}
+              <FormField
+                label="只读多选标签"
+                description="保留全部标签，禁用逐项移除入口。"
+                control={
+                  <TreeSelect
+                    label="只读多选标签"
+                    treeData={teams}
+                    multiple
+                    defaultValue={['design', 'operations']}
+                    removable={false}
+                  />
+                }
+              />
+            </div>
+          </ConfigProvider>
         </section>
       </CardContent>
     </Card>

@@ -148,6 +148,138 @@ describe('TreeSelect', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('请选择团队')
   })
 
+  it('removes one plain value without opening, nesting buttons or losing focus', () => {
+    const onChange = vi.fn()
+    render(
+      <TreeSelect
+        treeData={treeData}
+        multiple
+        defaultValue={['design', 'operations']}
+        onChange={onChange}
+      />,
+    )
+    const trigger = screen.getByRole('combobox')
+    const remove = screen.getByRole('button', { name: '移除设计组' })
+    expect(trigger.contains(remove)).toBe(false)
+    fireEvent.click(remove)
+    expect(onChange).toHaveBeenCalledExactlyOnceWith(['operations'])
+    expect(trigger).toHaveFocus()
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    expect(
+      screen.queryByRole('button', { name: '移除设计组' }),
+    ).not.toBeInTheDocument()
+    fireEvent.keyDown(trigger, { key: 'Backspace' })
+    expect(onChange).toHaveBeenLastCalledWith([])
+    expect(trigger).toHaveFocus()
+  })
+
+  it.each(['parent', 'all'] as TreeSelectCheckedStrategy[])(
+    'removes a conducted branch through a %s tag and preserves a separate selection',
+    (strategy) => {
+      const onChange = vi.fn()
+      render(
+        <TreeSelect
+          treeData={treeData}
+          checkable
+          checkedStrategy={strategy}
+          defaultValue={['team', 'operations']}
+          onChange={onChange}
+        />,
+      )
+      fireEvent.click(
+        screen.getByRole('button', { name: '移除团队', exact: true }),
+      )
+      expect(onChange).toHaveBeenCalledExactlyOnceWith(['operations'])
+      expect(screen.getByRole('combobox')).toHaveTextContent('运营组')
+      expect(
+        screen.queryByRole('button', { name: '移除设计组' }),
+      ).not.toBeInTheDocument()
+    },
+  )
+
+  it('removes unknown controlled values and respects disabled and read-only tags', () => {
+    const onChange = vi.fn()
+    const { rerender } = render(
+      <TreeSelect
+        treeData={treeData}
+        checkable
+        value={['remote']}
+        onChange={onChange}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '移除remote' }))
+    expect(onChange).toHaveBeenCalledExactlyOnceWith([])
+    expect(screen.getByRole('combobox')).toHaveTextContent('remote')
+    rerender(
+      <TreeSelect
+        treeData={treeData}
+        multiple
+        defaultValue={['design']}
+        disabled
+      />,
+    )
+    expect(
+      screen.queryByRole('button', { name: '移除设计组' }),
+    ).not.toBeInTheDocument()
+    rerender(
+      <TreeSelect
+        treeData={treeData}
+        multiple
+        value={['design']}
+        removable={false}
+      />,
+    )
+    expect(
+      screen.queryByRole('button', { name: '移除设计组' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('uses logical popup alignment, flips constrained placement and caps its width', () => {
+    const { rerender } = render(
+      <TreeSelect treeData={treeData} placement="topEnd" popupWidth={200} />,
+    )
+    const trigger = screen.getByRole('combobox')
+    vi.spyOn(trigger, 'getBoundingClientRect').mockReturnValue({
+      top: 400,
+      bottom: 444,
+      left: 100,
+      right: 400,
+      width: 300,
+      height: 44,
+      x: 100,
+      y: 400,
+      toJSON: () => ({}),
+    })
+    fireEvent.click(trigger)
+    let popup = document.getElementById(trigger.id + '-popup')!
+    expect(popup).toHaveAttribute('data-placement', 'topEnd')
+    expect(popup).toHaveStyle({ width: '200px', left: '200px' })
+    fireEvent.keyDown(screen.getByRole('treeitem', { name: '团队' }), {
+      key: 'Escape',
+    })
+    rerender(
+      <ConfigProvider direction="rtl">
+        <TreeSelect treeData={treeData} placement="topEnd" popupWidth={200} />
+      </ConfigProvider>,
+    )
+    const rtlTrigger = screen.getByRole('combobox')
+    vi.spyOn(rtlTrigger, 'getBoundingClientRect').mockReturnValue({
+      top: 20,
+      bottom: 64,
+      left: 100,
+      right: 400,
+      width: 300,
+      height: 44,
+      x: 100,
+      y: 20,
+      toJSON: () => ({}),
+    })
+    fireEvent.click(rtlTrigger)
+    popup = document.getElementById(rtlTrigger.id + '-popup')!
+    expect(popup).toHaveAttribute('data-placement', 'bottomEnd')
+    expect(popup).toHaveStyle({ width: '200px', left: '100px' })
+  })
+
   it('keeps unresolved controlled checks in labels, counts and changes', () => {
     const onChange = vi.fn()
     render(

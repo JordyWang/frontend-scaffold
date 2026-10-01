@@ -49,11 +49,14 @@ export type TreeSelectOption = {
   icon?: ReactNode
 }
 export type TreeSelectValue = string | string[]
+export type TreeSelectPlacement =
+  'bottomStart' | 'bottomEnd' | 'topStart' | 'topEnd'
 export type TreeSelectPart =
   | 'root'
   | 'trigger'
   | 'value'
   | 'tag'
+  | 'remove'
   | 'prefix'
   | 'suffix'
   | 'clear'
@@ -79,6 +82,7 @@ export type TreeSelectProps = {
   checkedStrategy?: TreeSelectCheckedStrategy
   maxCount?: number
   maxTagCount?: number
+  removable?: boolean
   showSearch?: boolean
   searchValue?: string
   defaultSearchValue?: string
@@ -94,6 +98,8 @@ export type TreeSelectProps = {
   showIcon?: boolean
   listHeight?: number
   virtual?: boolean
+  placement?: TreeSelectPlacement
+  popupWidth?: number
   variant?: InputVariant
   status?: InputStatus
   prefix?: ReactNode
@@ -156,6 +162,7 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
       checkedStrategy = 'leaf',
       maxCount,
       maxTagCount,
+      removable = true,
       showSearch = false,
       searchValue,
       defaultSearchValue = '',
@@ -171,6 +178,8 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
       showIcon = false,
       listHeight = 256,
       virtual = true,
+      placement = 'bottomStart',
+      popupWidth,
       variant = 'outlined',
       status = 'default',
       prefix,
@@ -213,6 +222,7 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
     const [internalSearch, setInternalSearch] = useState(defaultSearchValue)
     const [feedback, setFeedback] = useState('')
     const [popupStyle, setPopupStyle] = useState<CSSProperties>()
+    const [actualPlacement, setActualPlacement] = useState(placement)
     const nodes = useMemo(() => treeSelectNodes(treeData), [treeData])
     const entries = useMemo(() => indexTree(nodes), [nodes])
     const [internalExpanded, setInternalExpanded] = useState(() =>
@@ -384,6 +394,33 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
         changeSelection([])
       else changeSelection(next)
     }
+    function removeValue(key: string) {
+      if (disabled) return
+      if (checkable && entries.has(key)) {
+        const node = entries.get(key)!.node
+        const next = checkBoundary(node)
+          ? new Set([...checks.checked].filter((value) => value !== key))
+          : changeCheck(key, checks.checked, entries, checkStrictly)
+        const result = conductChecks([...next], entries, checkStrictly)
+        changeSelection(
+          [
+            ...treeSelectCheckedValues(
+              result.checked,
+              entries,
+              checkedStrategy,
+              checkStrictly,
+            ),
+            ...unresolved,
+          ],
+          false,
+        )
+      } else
+        changeSelection(
+          selected.filter((value) => value !== key),
+          false,
+        )
+      triggerRef.current?.focus({ preventScroll: true })
+    }
     function focusTree(key = firstEnabled) {
       if (key) treeRef.current?.scrollTo({ key, focus: true })
       else
@@ -412,14 +449,39 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
         const bottomEdge = topEdge + (viewport?.height ?? window.innerHeight)
         const width = Math.max(
           0,
-          Math.min(anchor.width, rightEdge - leftEdge - 16),
+          Math.min(
+            popupWidth !== undefined &&
+              Number.isFinite(popupWidth) &&
+              popupWidth > 0
+              ? popupWidth
+              : anchor.width,
+            rightEdge - leftEdge - 16,
+          ),
         )
         const below = bottomEdge - anchor.bottom - 8
         const above = anchor.top - topEdge - 8
-        const openAbove = below < 220 && above > below
+        const preferredAbove = placement.startsWith('top')
+        const preferredSpace = preferredAbove ? above : below
+        const oppositeSpace = preferredAbove ? below : above
+        const desiredHeight = Math.min(
+          (Number.isFinite(listHeight) && listHeight > 0 ? listHeight : 256) +
+            (showSearch ? 56 : 8),
+          220,
+        )
+        const openAbove =
+          preferredSpace < desiredHeight && oppositeSpace > preferredSpace
+            ? !preferredAbove
+            : preferredAbove
         const height = Math.max(44, openAbove ? above : below)
+        const endAligned = placement.endsWith('End')
         const preferredLeft =
-          direction === 'rtl' ? anchor.right - width : anchor.left
+          (direction === 'rtl') !== endAligned
+            ? anchor.right - width
+            : anchor.left
+        setActualPlacement(
+          ((openAbove ? 'top' : 'bottom') +
+            (endAligned ? 'End' : 'Start')) as TreeSelectPlacement,
+        )
         setPopupStyle({
           position: 'fixed',
           left: Math.max(
@@ -457,7 +519,7 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
         window.visualViewport?.removeEventListener('resize', position)
         window.visualViewport?.removeEventListener('scroll', position)
       }
-    }, [isOpen, direction])
+    }, [isOpen, direction, placement, popupWidth, listHeight, showSearch])
 
     useLayoutEffect(() => {
       const before = previousOpen.current
@@ -496,12 +558,33 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
         ref={rootRef}
         dir={direction}
         className={cn(
-          'relative inline-flex w-full min-w-0',
+          'relative inline-flex w-full min-w-0 self-start',
           classNames?.root,
           className,
         )}
         onFocusCapture={(event) => {
           lastFocus.current = event.target
+        }}
+        onKeyDown={(event) => {
+          if (
+            event.key !== 'Tab' ||
+            event.defaultPrevented ||
+            !(event.target instanceof HTMLButtonElement) ||
+            !rootRef.current?.contains(event.target)
+          )
+            return
+          // Keep explicit composite controls reachable on mobile WebKit too.
+          const buttons = [
+            ...rootRef.current.querySelectorAll<HTMLButtonElement>(
+              'button:not(:disabled)',
+            ),
+          ]
+          const next =
+            buttons[buttons.indexOf(event.target) + (event.shiftKey ? -1 : 1)]
+          if (next) {
+            event.preventDefault()
+            next.focus({ preventScroll: true })
+          }
         }}
         onBlur={(event) => {
           if (
@@ -544,14 +627,22 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
             inputVariantStyles[variant],
             inputStatusStyles[status],
             inputSizeStyles[resolvedSize],
-            'flex cursor-pointer touch-manipulation items-center justify-between gap-2 text-start outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20',
+            'absolute inset-0 h-full cursor-pointer touch-manipulation text-start outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20',
             checkedValues.length === 0 && 'text-muted-foreground',
             allowClear && checkedValues.length > 0 && 'pe-16',
             classNames?.trigger,
           )}
           onClick={() => setOpenState(!isOpen)}
           onKeyDown={(event) => {
-            if (event.key === 'Escape' && isOpen) {
+            if (
+              isMultiple &&
+              removable &&
+              checkedValues.length &&
+              ['Backspace', 'Delete'].includes(event.key)
+            ) {
+              event.preventDefault()
+              removeValue(checkedValues.at(-1)!)
+            } else if (event.key === 'Escape' && isOpen) {
               event.preventDefault()
               setOpenState(false, true)
             } else if (
@@ -566,6 +657,30 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
             }
           }}
         >
+          <span id={valueId} className="sr-only">
+            {checkedValues.length
+              ? checkedValues.map((key) => (
+                  <span key={key}>{entries.get(key)?.node.title ?? key} </span>
+                ))
+              : placeholder}
+            {omitted > 0 && <> +{omitted}</>}
+            {limit !== undefined && (
+              <>
+                {' '}
+                {count}/{limit}
+              </>
+            )}
+          </span>
+        </button>
+        <span
+          className={cn(
+            'pointer-events-none relative flex min-h-[max(44px,var(--ui-control-height))] w-full min-w-0 items-center justify-between gap-2 border border-transparent px-3 py-2.5 text-start text-base leading-6 text-card-foreground',
+            inputSizeStyles[resolvedSize],
+            checkedValues.length === 0 && 'text-muted-foreground',
+            allowClear && checkedValues.length > 0 && 'pe-16',
+            disabled && 'opacity-[0.55]',
+          )}
+        >
           {prefix && (
             <span
               aria-hidden="true"
@@ -575,7 +690,6 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
             </span>
           )}
           <span
-            id={valueId}
             className={cn(
               'flex min-w-0 flex-1 flex-wrap items-center gap-1 overflow-hidden',
               classNames?.value,
@@ -587,13 +701,33 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
                   <span
                     key={key}
                     className={cn(
-                      'max-w-full overflow-hidden text-ellipsis whitespace-nowrap',
+                      'inline-flex max-w-full min-w-0 items-center gap-1',
                       isMultiple &&
                         'rounded-[var(--radius-sm)] bg-accent px-2 py-0.5 text-sm text-accent-foreground',
                       classNames?.tag,
                     )}
                   >
-                    {entries.get(key)?.node.title ?? key}
+                    <span
+                      aria-hidden="true"
+                      className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
+                    >
+                      {entries.get(key)?.node.title ?? key}
+                    </span>
+                    {isMultiple && removable && !disabled && (
+                      <button
+                        type="button"
+                        aria-label={
+                          '移除' + (entries.get(key)?.node.textValue ?? key)
+                        }
+                        className={cn(
+                          'pointer-events-auto inline-grid size-11 shrink-0 touch-manipulation place-items-center rounded-[var(--radius-sm)] text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring',
+                          classNames?.remove,
+                        )}
+                        onClick={() => removeValue(key)}
+                      >
+                        <Icon name="close" size={14} />
+                      </button>
+                    )}
                   </span>
                 ))}
                 {omitted > 0 && (
@@ -606,7 +740,7 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
                 )}
               </>
             ) : (
-              placeholder
+              <span aria-hidden="true">{placeholder}</span>
             )}
           </span>
           {limit !== undefined && (
@@ -625,7 +759,7 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
               <Icon name="arrowRight" size={16} className="rotate-90" />
             )}
           </span>
-        </button>
+        </span>
         {limit !== undefined && (
           <span id={limitId} className="sr-only">
             已选择 {count} 项，最多选择 {limit} 项
@@ -664,6 +798,7 @@ export const TreeSelect = forwardRef<HTMLButtonElement, TreeSelectProps>(
             <div
               ref={popupRef}
               id={popupId}
+              data-placement={actualPlacement}
               dir={direction}
               className={cn(
                 'z-[90] flex min-w-0 flex-col overflow-auto rounded-[var(--ui-menu-radius)] border border-border bg-card p-1 text-foreground shadow-[0_12px_30px_rgb(0_0_0_/_0.16)]',

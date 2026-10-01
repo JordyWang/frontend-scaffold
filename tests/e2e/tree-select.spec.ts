@@ -167,12 +167,117 @@ test('tree select tab order returns from its portal to the following form field'
     .getByRole('treeitem', { name: '产品团队', exact: true })
     .press('Tab')
   await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+  const remove = demo.getByRole('button', { name: '移除研发团队' })
+  await expect(remove).toBeFocused()
+  await remove.press('Tab')
   const clear = demo.getByRole('button', { name: '清除搜索后继续输入' })
   await expect(clear).toBeFocused()
   await clear.press('Tab')
   await expect(
     demo.getByRole('textbox', { name: '树选择后的输入' }),
   ).toBeFocused()
+})
+
+test('tree select tag removal is a separate 44px action that preserves conducted values and focus', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const mobile = testInfo.project.name.startsWith('mobile-')
+  const demo = page.getByRole('region', { name: '树选择完整预览' })
+  const trigger = demo.getByRole('combobox', { name: '折叠多选标签' })
+  const remove = demo
+    .getByRole('button', { name: '移除设计团队', exact: true })
+    .last()
+  await remove.scrollIntoViewIfNeeded()
+  const box = (await remove.boundingBox())!
+  expect(box.width).toBeGreaterThanOrEqual(44)
+  expect(box.height).toBeGreaterThanOrEqual(44)
+  expect(await trigger.locator('button').count()).toBe(0)
+  await activate(remove, mobile)
+  await expect(trigger).toBeFocused()
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+  await expect(trigger).toContainText('研发团队')
+  await expect(trigger).not.toContainText('设计团队')
+  await expect(trigger).toContainText('+1')
+  await activate(
+    demo.getByRole('button', { name: '回填父节点', exact: true }),
+    mobile,
+  )
+  const linked = demo.getByRole('combobox', { name: '关联勾选团队' })
+  await activate(linked, mobile)
+  const tree = page.getByRole('tree', { name: '关联勾选团队' })
+  await choose(
+    tree.getByRole('treeitem', { name: '研发团队', exact: true }),
+    mobile,
+  )
+  await tree
+    .getByRole('treeitem', { name: '产品团队', exact: true })
+    .press('Escape')
+  await activate(
+    demo.getByRole('button', { name: '移除产品团队', exact: true }),
+    mobile,
+  )
+  await expect(linked).toBeFocused()
+  await expect(demo.getByRole('status', { name: '关联团队值' })).toHaveText(
+    '[]',
+  )
+  await demo.screenshot({
+    path:
+      'output/playwright/tree-select-tags-' + testInfo.project.name + '.png',
+  })
+})
+
+test('tree select respects logical popup placements and viewport bounds in LTR and RTL', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const mobile = testInfo.project.name.startsWith('mobile-')
+  const demo = page.getByRole('region', { name: '树选择完整预览' })
+  for (const rtl of [false, true]) {
+    if (rtl)
+      await activate(
+        demo.getByRole('button', { name: '使用 RTL 树选择' }),
+        mobile,
+      )
+    for (const placement of [
+      'topStart',
+      'topEnd',
+      'bottomStart',
+      'bottomEnd',
+    ]) {
+      const trigger = demo.getByRole('combobox', {
+        name: placement + ' 弹出位置',
+      })
+      await trigger.evaluate((element) =>
+        element.scrollIntoView({ block: 'center' }),
+      )
+      await activate(trigger, mobile)
+      const tree = page.getByRole('tree', { name: placement + ' 弹出位置' })
+      const popup = tree.locator('../..')
+      await expect(tree).toBeVisible()
+      await expect(popup).toHaveAttribute('data-placement', placement)
+      const anchor = (await trigger.boundingBox())!
+      const box = (await popup.boundingBox())!
+      expect(Math.abs(box.width - 240)).toBeLessThan(2)
+      expect(box.x).toBeGreaterThanOrEqual(7)
+      expect(box.x + box.width).toBeLessThanOrEqual(
+        page.viewportSize()!.width - 7,
+      )
+      const alignRight = rtl !== placement.endsWith('End')
+      expect(
+        Math.abs(
+          alignRight
+            ? box.x + box.width - anchor.x - anchor.width
+            : box.x - anchor.x,
+        ),
+      ).toBeLessThan(2)
+      if (placement.startsWith('top'))
+        expect(box.y + box.height).toBeLessThanOrEqual(anchor.y)
+      else expect(box.y).toBeGreaterThanOrEqual(anchor.y + anchor.height)
+      await tree.getByRole('treeitem').first().press('Escape')
+      await expect(trigger).toBeFocused()
+    }
+  }
 })
 
 test('tree select virtual windows reach distant values and retain visible focus', async ({

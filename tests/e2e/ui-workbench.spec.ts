@@ -1103,7 +1103,7 @@ test('form preview validates and submits through the project contract', async ({
   const product = page
     .getByRole('tree', { name: '表单团队' })
     .getByRole('treeitem', { name: '产品团队' })
-  const expand = product.locator('[data-tree-select-toggle]')
+  const expand = product.locator('[data-tree-toggle]')
   const expandBox = await expand.boundingBox()
   expect(expandBox!.y).toBeGreaterThanOrEqual(0)
   expect(expandBox!.y + expandBox!.height).toBeLessThanOrEqual(

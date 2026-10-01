@@ -229,6 +229,7 @@ export type {
   TreeSelectProps,
   TreeSelectValue,
   TreeSelectPart,
+  TreeSelectPlacement,
 } from './tree-select'
 export type { TreeSelectCheckedStrategy } from './tree-select-state'
 export { Transfer } from './transfer'
