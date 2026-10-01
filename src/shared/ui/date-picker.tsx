@@ -11,18 +11,23 @@ import {
 } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { Button } from './button'
-import { Calendar } from './calendar'
+import { DatePickerPanel } from './date-picker-panel'
 import {
   resolveComponentSize,
   useConfig,
   type ControlSize,
 } from './config-context'
+import { parseMonth, toMonth } from './date-picker-state'
 import {
-  dateStepMatches,
-  parseDate,
-  parseMonth,
-  toMonth,
-} from './date-picker-state'
+  parsePickerValue,
+  pickerBoundMonth,
+  pickerDefaultBounds,
+  pickerFormats,
+  pickerStepMatches,
+  pickerValueMonth,
+  type DatePickerUnit,
+  type DatePeriodUnit,
+} from './date-unit-state'
 import { Icon } from './icon'
 import { MultiDatePicker, type MultiDatePickerProps } from './multi-date-picker'
 import type { InputStatus, InputVariant } from './input'
@@ -57,7 +62,7 @@ export type DatePickerPreset = {
   label: ReactNode
   value: string | (() => string)
 }
-export type SingleDatePickerProps = Omit<
+type SingleDatePickerBaseProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
   | 'type'
   | 'value'
@@ -81,7 +86,6 @@ export type SingleDatePickerProps = Omit<
   variant?: InputVariant
   status?: InputStatus
   label?: string
-  mode?: 'popup' | 'panel' | 'native'
   open?: boolean
   defaultOpen?: boolean
   onOpenChange?: (open: boolean) => void
@@ -100,10 +104,20 @@ export type SingleDatePickerProps = Omit<
   inputReadOnly?: boolean
   renderDate?: (date: string) => ReactNode
   getDateDescription?: (date: string) => string | undefined
+  renderCell?: (value: string, picker: DatePickerUnit) => ReactNode
+  getCellDescription?: (
+    value: string,
+    picker: DatePickerUnit,
+  ) => string | undefined
   footer?: ReactNode
   suffixIcon?: ReactNode
   classNames?: Partial<Record<DatePickerPart, string>>
 }
+export type SingleDatePickerProps = SingleDatePickerBaseProps &
+  (
+    | { picker?: 'date'; mode?: 'popup' | 'panel' | 'native' }
+    | { picker: DatePeriodUnit; mode?: 'popup' | 'panel' }
+  )
 export type DatePickerPlacement = PickerPlacement
 export type DatePickerProps =
   SingleDatePickerProps | (MultiDatePickerProps & { multiple: true })
@@ -114,6 +128,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
     const controlled = Object.prototype.hasOwnProperty.call(allProps, 'value')
     const {
       value,
+      picker = 'date',
       defaultValue = '',
       onChange,
       size,
@@ -139,6 +154,8 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
       inputReadOnly = false,
       renderDate,
       getDateDescription,
+      renderCell,
+      getCellDescription,
       footer,
       suffixIcon,
       classNames,
@@ -169,6 +186,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
     const calendarRef = useRef<HTMLDivElement>(null)
     const focusRequested = useRef(false)
     const ownedFocus = useRef(false)
+    const wasOpen = useRef(false)
     const [internal, setInternal] = useState(defaultValue)
     useNativeFormReset(inputRef, controlled, defaultValue, setInternal)
     const current = controlled ? (value ?? '') : internal
@@ -182,25 +200,30 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
     const isOpen = mode === 'popup' && !inactive && (open ?? internalOpen)
     if (inactive && open === undefined && internalOpen) setInternalOpen(false)
     const showingPanel = mode === 'panel' || isOpen
-    const minDate = parseDate(min) ? min! : '0001-01-01'
-    const maxDate = parseDate(max) ? max! : '9999-12-31'
+    const bounds = pickerDefaultBounds(picker)
+    const minDate = parsePickerValue(min, picker) ? min! : bounds[0]
+    const maxDate = parsePickerValue(max, picker) ? max! : bounds[1]
+    const minMonth = pickerBoundMonth(minDate, picker, 0)
+    const maxMonth = pickerBoundMonth(maxDate, picker, 1)
     function selectable(date: string) {
       return (
-        Boolean(parseDate(date)) &&
+        Boolean(parsePickerValue(date, picker)) &&
         date >= minDate &&
         date <= maxDate &&
-        dateStepMatches(date, parseDate(min) ? min! : '1970-01-01', step) &&
+        pickerStepMatches(date, picker, min, step) &&
         !disabledDate?.(date)
       )
     }
     function initialMonth(date: string) {
       const proposed = toMonth(
-        parseMonth(defaultPanelMonth) ?? parseDate(date) ?? new Date(),
+        parseMonth(defaultPanelMonth) ??
+          parseMonth(pickerValueMonth(date, picker)) ??
+          new Date(),
       )
-      return proposed < minDate.slice(0, 7)
-        ? minDate.slice(0, 7)
-        : proposed > maxDate.slice(0, 7)
-          ? maxDate.slice(0, 7)
+      return proposed < minMonth
+        ? minMonth
+        : proposed > maxMonth
+          ? maxMonth
           : proposed
     }
     const [internalMonth, setInternalMonth] = useState(() =>
@@ -236,7 +259,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
       const panel = calendarRef.current
       const target =
         panel?.querySelector<HTMLElement>(
-          '[data-calendar-date][tabindex="0"]',
+          '[data-calendar-date][tabindex="0"],[data-picker-value][tabindex="0"]',
         ) ?? (panel ? pickerFocusable(panel)[0] : undefined)
       if (target) revealPickerTarget(target)
     }
@@ -275,7 +298,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
     function finishInput(confirm = false) {
       if (!editing) return true
       if (draft && !selectable(draft)) {
-        setError('请输入可选日期（YYYY-MM-DD）')
+        setError('请输入可选日期（' + pickerFormats[picker] + '）')
         return false
       }
       if (needConfirm && !confirm) {
@@ -283,8 +306,8 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
         return true
       }
       const accepted = publish(draft)
-      if (accepted && draft && draft.slice(0, 7) !== month)
-        changeMonth(draft.slice(0, 7))
+      const nextMonth = pickerValueMonth(draft, picker)
+      if (accepted && nextMonth && nextMonth !== month) changeMonth(nextMonth)
       if (accepted && confirm && needConfirm) onOk?.(draft)
       return accepted
     }
@@ -328,6 +351,15 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
         restoreFocus()
       }
     }
+    useLayoutEffect(() => {
+      if (wasOpen.current && !isOpen && needConfirm) {
+        setCandidate(current)
+        setDraft(current)
+        setEditing(false)
+        setError('')
+      }
+      wasOpen.current = isOpen
+    }, [isOpen, current, needConfirm])
     useLayoutEffect(() => {
       if (isOpen && focusRequested.current) {
         focusRequested.current = false
@@ -420,7 +452,8 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
                     setError('快捷日期当前不可选，请选择其他日期')
                     return
                   }
-                  if (date.slice(0, 7) !== month) changeMonth(date.slice(0, 7))
+                  const nextMonth = pickerValueMonth(date, picker)!
+                  if (nextMonth !== month) changeMonth(nextMonth)
                   setError('')
                   choose(date)
                 }}
@@ -430,7 +463,8 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
             ))}
           </div>
         )}
-        <Calendar
+        <DatePickerPanel
+          picker={picker}
           key={isOpen ? 'open' : 'inline'}
           ref={calendarRef}
           label={label}
@@ -444,8 +478,14 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
           disabled={inactive}
           weekStartsOn={weekStartsOn}
           locale={locale}
-          renderDate={renderDate}
-          getDateDescription={getDateDescription}
+          renderDate={
+            renderCell ? (date) => renderCell(date, picker) : renderDate
+          }
+          getDateDescription={
+            getCellDescription
+              ? (date) => getCellDescription(date, picker)
+              : getDateDescription
+          }
           classNames={{
             root: 'border-0 p-0 sm:p-0 rounded-none',
             header: 'mb-2 px-1',
@@ -501,6 +541,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
       <span
         ref={rootRef}
         dir={direction}
+        data-datepicker-unit={picker}
         className={cn(
           'inline-flex w-full min-w-0 flex-col gap-2',
           classNames?.root,
@@ -553,7 +594,7 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
             disabled={disabled}
             readOnly={readOnly || (mode !== 'native' && inputReadOnly)}
             autoComplete={inputProps.autoComplete ?? 'off'}
-            placeholder={inputProps.placeholder ?? 'YYYY-MM-DD'}
+            placeholder={inputProps.placeholder ?? pickerFormats[picker]}
             className={cn(
               inputStyles,
               inputVariantStyles[variant],
@@ -715,9 +756,9 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
 export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
   function DatePicker(props, ref) {
     return props.multiple ? (
-      <MultiDatePicker {...props} ref={ref} />
+      <MultiDatePicker {...props} key={props.picker ?? 'date'} ref={ref} />
     ) : (
-      <SingleDatePicker {...props} ref={ref} />
+      <SingleDatePicker {...props} key={props.picker ?? 'date'} ref={ref} />
     )
   },
 )

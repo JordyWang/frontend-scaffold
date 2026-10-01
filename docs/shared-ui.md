@@ -13,10 +13,10 @@
 | FormField                       | `label?`、`control`、`description`、`error`、`required`、`id`                                                                                         | 自动连接标签、说明和错误；自带标签的控件省略 `label`                                                                        |
 | Form / FormItem                 | `initialValues`、`values`、`onValuesChange`、`onFinish`、`onFinishFailed`、`onFinishError`、`rules`、`valuePropName`、`emptyValue`、`trigger`         | 表单只协调值和校验；控件仍使用项目自己的 API，规则错误通过 FormField 的 `aria-describedby` 暴露                             |
 | InputNumber / Slider            | `value` / `defaultValue`、`min`、`max`、`step`、`onChange`、`label`                                                                                   | 使用原生 number/range 控件；数值提交时限制在范围内，键盘和触控由浏览器处理                                                  |
-| DatePicker                      | `value` / `defaultValue`、`onChange`、`mode`、`open` / `defaultOpen`、`panelMonth`、`needConfirm`、`presets`、`disabledDate`、`classNames`            | ISO 单日期；默认项目弹层，可选常驻面板或原生输入，确认前不提交；键盘、RTL、44px 网格和组合失焦                              |
+| DatePicker                      | `value` / `defaultValue`、`onChange`、`mode`、`open` / `defaultOpen`、`panelMonth`、`needConfirm`、`presets`、`disabledDate`、`classNames`            | 日期单位字符串；默认项目弹层，可选常驻面板或原生输入，确认前不提交；键盘、RTL、44px 网格和组合失焦                          |
 | TimePicker                      | 原生时间属性、`value`、`defaultValue`、`onChange`、`size`                                                                                             | 输出本地时间字符串；由浏览器提供键盘和触控选择器                                                                            |
 | DateRangePicker                 | `value` / `defaultValue`、`onChange`、`mode`、`onCalendarChange`、`needConfirm`、`presets`、`allowEmpty`、`disabledDate`                              | ISO 起止元组；默认项目双月面板，窄容器单月；独立端点、确认、开放区间、键盘与 44px 触控                                      |
-| MultiDatePicker                 | `value` / `defaultValue`、`onChange`、`order`、`needConfirm`、`maxCount`、`maxTagCount`、`renderTag`                                                  | ISO 日期数组；同 `DatePicker multiple`，跨月切换、临时选择、逐项删除、44px 触控                                             |
+| MultiDatePicker                 | `value` / `defaultValue`、`onChange`、`order`、`needConfirm`、`maxCount`、`maxTagCount`、`renderTag`                                                  | 日期单位数组；同 `DatePicker multiple`，跨月切换、临时选择、逐项删除、44px 触控                                             |
 | TimeRangePicker                 | `value` / `defaultValue`、`onChange`、`min`、`max`、`step`、`required`、`disabled`、`name`、`size`                                                    | 两个原生时间输入组成同日时间区间；可精确到秒，窄屏纵向排列                                                                  |
 | Calendar                        | `value` / `defaultValue`、`month` / `defaultMonth`、`onChange`、`onMonthChange`、`minDate`、`maxDate`、`disabledDate`、`renderDate`                   | 选中日期使用 `YYYY-MM-DD`，月份使用 `YYYY-MM`；网格支持方向键、Home/End、PageUp/PageDown；日期按钮至少 44px                 |
 | ColorPicker                     | `value` / `defaultValue`、`onChange`、`showText`、`size`、`label`、常用 `aria-*`                                                                      | 使用原生颜色控件，统一输出六位小写 hex；保留键盘、系统颜色面板和 44px 触控区域                                              |
@@ -131,7 +131,27 @@
 
 点击输入或图标打开，输入的 ArrowDown / Enter 进入网格；网格支持方向键、Home/End、PageUp/PageDown 与 Shift+PageUp/PageDown。日期选择、确定和 Escape 还输入焦点；面板首项 Shift+Tab 返回输入，末项 Tab 接回字段按钮及后续控件。`onBlur` 的事件来自根 span，只在离开输入、字段按钮和 Portal 面板组成的整个控件时调用；与 `Form validateOn="blur"` 配合不会在浏览日期时提前报错。`name` 在面板模式通过隐藏字段提交已确认值，临时值不进入 FormData；非受控原生 form reset 恢复初值且不发 `onChange`。项目 Form 的必填规则与 reset 沿用普通字符串控件契约。
 
-`weekStartsOn` 支持周一/周日，`locale` 默认继承 ConfigProvider。`renderDate` 只放非交互内容，额外说明通过 `getDateDescription` 同步给辅助技术；`footer` 和 `suffixIcon` 提供内容与装饰图标插槽。范围与多选通过下述项目 API 提供，其他日期单位和时间组合后续单独补齐。
+`weekStartsOn` 在日期网格中支持周一/周日，`locale` 默认继承 ConfigProvider。`renderDate` 只放非交互内容，额外说明通过 `getDateDescription` 同步给辅助技术；`footer` 和 `suffixIcon` 提供内容与装饰图标插槽。其他日期单位、范围与多选通过下述项目 API 提供，日期时间组合后续单独补齐。
+
+### 周、月、季度和年
+
+`DatePicker` 与 `MultiDatePicker` 的 `picker` 为 date（默认）/week/month/quarter/year。单选仍输出字符串，多选输出相同单位的字符串数组；所有确认、取消、受控空值、标签、表单和主题契约沿用日期模式。`mode="native"` 只适用于单日期，在类型层禁止与其他单位组合；其他单位提供统一的 popup 与 panel。
+
+| picker  | 值格式     | 示例       | step 单位 |
+| ------- | ---------- | ---------- | --------- |
+| date    | YYYY-MM-DD | 2024-02-29 | 日        |
+| week    | YYYY-Www   | 2020-W53   | 周        |
+| month   | YYYY-MM    | 2024-02    | 月        |
+| quarter | YYYY-Qn    | 2024-Q1    | 季度      |
+| year    | YYYY       | 2024       | 年        |
+
+周使用 ISO 8601 周历：周一开始，包含 1 月 4 日的周为第 1 周，周年由该周的周四确定。`2020-W53` 表示 2020-12-28 至 2021-01-03，`2021-W53` 不存在。周历不随 locale 或 `weekStartsOn` 改变，避免相同 API 值在不同语言下指向不同日期。面板按整周展示可触控行，读屏名称包含周年、周号和日期跨度。其他单位保留严格零填充格式、四位年份和有效季度；计算使用本地日历并按日序号处理周步长，避免时区或夏令时改变结果。
+
+`min` / `max`、预设、`disabledDate(value)` 与回调使用当前单位的值，限制整个单位，非日期模式不会逐日调用禁用函数。`step` 按上表单位计算，基准为有效 min 或包含 1970-01-01 的单位。外部无效值保留错误状态；手工输入必须完整、可选，拒绝后离焦恢复原值。单选普通模式选择后立即提交；确认模式的外部关闭也丢弃临时值。多选仍在完成或组合失焦时提交，确认模式需要明确确定。
+
+浏览状态仍使用 `panelMonth` 的 YYYY-MM：周显示这个月份中的周行，月和季度使用其年份，年使用其十年区间。标题可逐层进入月份、年份和十年网格，选择浏览单元格只改变视图；选择目标单位才修改临时或提交值。浏览当前单位的按钮只定位，不提交。方向键按视觉列数移动并跳过禁用项，RTL 反转左右；Home/End 定位本行，Ctrl+Home/End 定位当前网格首尾，PageUp/PageDown 翻月、年、十年或百年；周模式 Shift+PageUp/PageDown 翻年。导航受 min/max 约束，内部焦点滚动不移动页面；动态禁用焦点所在项时恢复到可用项。
+
+`renderCell(value, picker)` 和 `getCellDescription(value, picker)` 提供统一的非交互内容与无障碍说明，优先于原有 renderDate/getDateDescription，只用于目标单位的单元格。网格按钮至少 44px，常驻面板按自身容器收缩，`/__ui` 展示跨年周、禁用月份、确认季度、年份层级、多选、手工输入、240px 内嵌面板、表单校验/重置和 RTL 深色。切换 DatePicker 的 picker 会重建对应选择会话；调用方应同时传入新单位的 value/defaultValue，旧格式不被自动猜测或转换。各单位的范围选择仍需单独补齐。
 
 ### 日期多选
 

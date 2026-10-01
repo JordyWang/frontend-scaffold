@@ -220,6 +220,7 @@ export type {
   UploadProps,
 } from './data-input'
 export type { SingleDatePickerProps } from './date-picker'
+export type { DatePickerUnit, DatePeriodUnit } from './date-unit-state'
 export { Cascader } from './cascader'
 export type {
   CascaderOption,

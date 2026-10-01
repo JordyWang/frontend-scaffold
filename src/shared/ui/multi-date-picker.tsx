@@ -10,15 +10,20 @@ import {
 } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { Button } from './button'
-import { Calendar } from './calendar'
+import { DatePickerPanel } from './date-picker-panel'
 import { resolveComponentSize, useConfig } from './config-context'
 import type { DatePickerPart, SingleDatePickerProps } from './date-picker'
+import { parseMonth, toMonth } from './date-picker-state'
 import {
-  dateStepMatches,
-  parseDate,
-  parseMonth,
-  toMonth,
-} from './date-picker-state'
+  parsePickerValue,
+  pickerBoundMonth,
+  pickerDefaultBounds,
+  pickerFormats,
+  pickerUnitNames,
+  pickerStepMatches,
+  pickerValueMonth,
+  type DatePickerUnit,
+} from './date-unit-state'
 import { Icon } from './icon'
 import {
   focusAfterPicker,
@@ -53,8 +58,10 @@ export type MultiDatePickerProps = Omit<
   | 'presets'
   | 'classNames'
   | 'mode'
+  | 'picker'
 > & {
   multiple?: true
+  picker?: DatePickerUnit
   value?: DateMultiple
   defaultValue?: DateMultiple
   onChange?: (value: DateMultiple) => void
@@ -78,6 +85,7 @@ export const MultiDatePicker = forwardRef<
   const controlled = Object.prototype.hasOwnProperty.call(allProps, 'value')
   const {
     multiple = true,
+    picker = 'date',
     value,
     defaultValue = [],
     onChange,
@@ -89,7 +97,7 @@ export const MultiDatePicker = forwardRef<
     maxTagCount = 3,
     renderTag,
     mode = 'popup',
-    label = '多选日期',
+    label = '多选' + pickerUnitNames[picker],
     size,
     variant = 'outlined',
     status = 'default',
@@ -110,6 +118,8 @@ export const MultiDatePicker = forwardRef<
     inputReadOnly = false,
     renderDate,
     getDateDescription,
+    renderCell,
+    getCellDescription,
     footer,
     suffixIcon,
     classNames,
@@ -167,8 +177,11 @@ export const MultiDatePicker = forwardRef<
     setDraft('')
     setError('')
   }
-  const minDate = parseDate(min) ? min! : '0001-01-01',
-    maxDate = parseDate(max) ? max! : '9999-12-31'
+  const bounds = pickerDefaultBounds(picker)
+  const minDate = parsePickerValue(min, picker) ? min! : bounds[0],
+    maxDate = parsePickerValue(max, picker) ? max! : bounds[1]
+  const minMonth = pickerBoundMonth(minDate, picker, 0),
+    maxMonth = pickerBoundMonth(maxDate, picker, 1)
   const limit =
     maxCount !== undefined && Number.isFinite(maxCount)
       ? Math.max(0, Math.floor(maxCount))
@@ -178,10 +191,10 @@ export const MultiDatePicker = forwardRef<
     : Infinity
   function selectable(date: string) {
     return (
-      Boolean(parseDate(date)) &&
+      Boolean(parsePickerValue(date, picker)) &&
       date >= minDate &&
       date <= maxDate &&
-      dateStepMatches(date, parseDate(min) ? min! : '1970-01-01', step) &&
+      pickerStepMatches(date, picker, min, step) &&
       !disabledDate?.(date)
     )
   }
@@ -192,13 +205,15 @@ export const MultiDatePicker = forwardRef<
   function initialMonth(dates: string[]) {
     const proposed = toMonth(
       parseMonth(defaultPanelMonth) ??
-        dates.map(parseDate).find(Boolean) ??
+        dates
+          .map((date) => parseMonth(pickerValueMonth(date, picker)))
+          .find(Boolean) ??
         new Date(),
     )
-    return proposed < minDate.slice(0, 7)
-      ? minDate.slice(0, 7)
-      : proposed > maxDate.slice(0, 7)
-        ? maxDate.slice(0, 7)
+    return proposed < minMonth
+      ? minMonth
+      : proposed > maxMonth
+        ? maxMonth
         : proposed
   }
   const [internalMonth, setInternalMonth] = useState(() =>
@@ -226,7 +241,7 @@ export const MultiDatePicker = forwardRef<
     const calendar = calendarRef.current
     const target =
       calendar?.querySelector<HTMLElement>(
-        '[data-calendar-date][tabindex="0"]',
+        '[data-calendar-date][tabindex="0"],[data-picker-value][tabindex="0"]',
       ) ?? (calendar ? pickerFocusable(calendar)[0] : undefined)
     if (target) revealPickerTarget(target)
   }
@@ -278,12 +293,12 @@ export const MultiDatePicker = forwardRef<
     if (!draft.trim()) return base
     const date = draft.trim()
     if (!selectable(date)) {
-      setError('请输入可选日期（YYYY-MM-DD）')
+      setError('请输入可选日期（' + pickerFormats[picker] + '）')
       return undefined
     }
     const next = normalize([...base, date])
     if (next.length > limit) {
-      setError('最多选择 ' + limit + ' 个日期')
+      setError('最多选择 ' + limit + (picker === 'date' ? ' 个日期' : ' 项'))
       return undefined
     }
     return next
@@ -324,7 +339,7 @@ export const MultiDatePicker = forwardRef<
   function choose(date: string) {
     if (inactive || !selectable(date)) return
     if (!candidate.includes(date) && candidate.length >= limit) {
-      setError('最多选择 ' + limit + ' 个日期')
+      setError('最多选择 ' + limit + (picker === 'date' ? ' 个日期' : ' 项'))
       return
     }
     pending(
@@ -457,7 +472,10 @@ export const MultiDatePicker = forwardRef<
                 pending(dates)
                 if (dates.length)
                   changeMonth(
-                    dates.find((date) => selectable(date))!.slice(0, 7),
+                    pickerValueMonth(
+                      dates.find((date) => selectable(date)),
+                      picker,
+                    )!,
                   )
               }}
             >
@@ -466,7 +484,8 @@ export const MultiDatePicker = forwardRef<
           ))}
         </div>
       )}
-      <Calendar
+      <DatePickerPanel
+        picker={picker}
         ref={calendarRef}
         key={isOpen ? 'open' : 'inline'}
         label={label}
@@ -484,8 +503,14 @@ export const MultiDatePicker = forwardRef<
         disabled={inactive}
         weekStartsOn={weekStartsOn}
         locale={locale}
-        renderDate={renderDate}
-        getDateDescription={getDateDescription}
+        renderDate={
+          renderCell ? (date) => renderCell(date, picker) : renderDate
+        }
+        getDateDescription={
+          getCellDescription
+            ? (date) => getCellDescription(date, picker)
+            : getDateDescription
+        }
         classNames={{
           root: 'border-0 p-0 sm:p-0 rounded-none',
           header: 'mb-2 px-1',
@@ -494,7 +519,8 @@ export const MultiDatePicker = forwardRef<
         }}
       />
       <p role="status" className="text-sm text-muted-foreground">
-        已选 {candidate.length} 个日期
+        已选 {candidate.length}
+        {picker === 'date' ? ' 个日期' : ' 项'}
         {Number.isFinite(limit) ? '，最多 ' + limit + ' 个' : ''}
       </p>
       <div
@@ -529,6 +555,7 @@ export const MultiDatePicker = forwardRef<
       ref={rootRef}
       dir={direction}
       data-datepicker-multiple={multiple}
+      data-datepicker-unit={picker}
       className={cn('flex w-full min-w-0 flex-col gap-2', classNames?.root)}
       onFocusCapture={() => {
         ownedFocus.current = true
@@ -566,7 +593,9 @@ export const MultiDatePicker = forwardRef<
           autoComplete={inputProps.autoComplete ?? 'off'}
           placeholder={
             inputProps.placeholder ??
-            (inputReadOnly ? '选择多个日期' : 'YYYY-MM-DD，Enter 添加')
+            (inputReadOnly
+              ? '选择多个' + pickerUnitNames[picker]
+              : pickerFormats[picker] + '，Enter 添加')
           }
           disabled={disabled}
           readOnly={readOnly || inputReadOnly}
@@ -620,7 +649,7 @@ export const MultiDatePicker = forwardRef<
                   if (mode === 'popup' && !isOpen) {
                     setOpen(true)
                   }
-                  changeMonth(draft.trim().slice(0, 7))
+                  changeMonth(pickerValueMonth(draft.trim(), picker)!)
                   pending(dates)
                 }
               } else if (showing) finish()
@@ -689,7 +718,7 @@ export const MultiDatePicker = forwardRef<
               {!inactive && (
                 <button
                   type="button"
-                  aria-label={'移除日期 ' + date}
+                  aria-label={'移除' + pickerUnitNames[picker] + ' ' + date}
                   data-multi-remove={date}
                   className={cn(
                     'flex min-h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring',
@@ -712,8 +741,12 @@ export const MultiDatePicker = forwardRef<
                 onClick={() => setExpanded(!expanded)}
               >
                 {expanded
-                  ? '收起日期'
-                  : '另外 ' + (displayed.length - tagLimit) + ' 个日期'}
+                  ? picker === 'date'
+                    ? '收起日期'
+                    : '收起选择'
+                  : '另外 ' +
+                    (displayed.length - tagLimit) +
+                    (picker === 'date' ? ' 个日期' : ' 项')}
               </Button>
             </li>
           )}
@@ -725,7 +758,8 @@ export const MultiDatePicker = forwardRef<
         className={cn('text-sm text-muted-foreground', classNames?.summary)}
       >
         {showing && !equal(candidate, current) ? '待提交' : '已选'}{' '}
-        {displayed.length} 个日期
+        {displayed.length}
+        {picker === 'date' ? ' 个日期' : ' 项'}
       </span>
       {name && (
         <input
