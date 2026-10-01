@@ -139,7 +139,7 @@
 
 `ErrorState.onRetry` 接受同步或异步回调；等待期间重试按钮进入忙碌并禁用状态，失败后保留错误提示和再次重试入口。List、Listy、Table 共用这一约定。
 
-`Cascader` 保留项目 `CascaderOption { value, label, children?, disabled?, searchText? }` 与单路径 `string[]` 契约，默认 `mode="popup"` 使用列式浏览：点击或确认父节点只展开，不触发 `onChange`；确认叶节点一次返回完整路径，关闭并恢复触发器焦点。`changeOnSelect` 允许点击或确认父路径，方向键展开始终只浏览。`expandTrigger="hover"` 只响应鼠标悬停，H5 继续点击展开；`mode="panel"` 在页面内使用相同列式面板。上下键、Home / End 和字符查找在同列移动，左右展开与返回父级跟随 RTL。面板只有一个 Tab 入口，跨列与列内滚动不推动页面；行高至少 44px，窄屏横向滚动限制在面板。
+`Cascader` 保留项目 `CascaderOption { value, label, children?, disabled?, disableCheckbox?, isLeaf?, searchText? }` 与单路径 `string[]` 契约，默认 `mode="popup"` 使用列式浏览：点击或确认父节点只展开，不触发 `onChange`；确认叶节点一次返回完整路径，关闭并恢复触发器焦点。`changeOnSelect` 允许点击或确认父路径，方向键展开始终只浏览。`expandTrigger="hover"` 只响应鼠标悬停，H5 继续点击展开；`mode="panel"` 在页面内使用相同列式面板。上下键、Home / End 和字符查找在同列移动，左右展开与返回父级跟随 RTL。面板只有一个 Tab 入口，跨列与列内滚动不推动页面；行高至少 44px，窄屏横向滚动限制在面板。
 
 `showSearch` 查询任意祖先文本，结果展示完整路径，禁用祖先下的结果不可选择。复杂标签可提供 `searchText`；`filterOption(query, pathOptions)` 自定义过滤，`searchLimit` 默认 50。`searchValue` / `onSearch` 和 `open` / `onOpenChange` 支持受控使用，显式 `value={undefined}` 或 `searchValue={undefined}` 表示受控空值。弹层支持 Escape、正反向 Tab、外部关闭和 H5 触控：搜索 Tab 进入面板，面板 Shift+Tab 返回搜索，继续 Tab 回到触发器之后的表单操作。`ref` 提供 `focus()` / `blur()`。
 
@@ -151,7 +151,13 @@
 
 `showCheckedStrategy="parent"` 默认压缩为完整选中的父路径，`"leaf"` 回填叶路径；展示与 `onChange` 使用同一策略，受控传入的父路径仍会展开为对应叶节点。`disableCheckbox` 阻断自身与祖先的勾选传导，但保留目录浏览和后代的独立勾选；`disabled` 禁止自身及后代操作。外部传入的未知、已删除或不可勾选路径保留为标签，数据恢复后解析标签；其他勾选不会静默清除它们。不可勾选路径的标签不可移除，未知路径可以移除。
 
-多选标签位于触发器之外，独立移除按钮保持 44px 触控和 Tab 顺序，移除父标签取消其参与关联的分支；触发器 Backspace / Delete 删除最后可移除路径。`maxTagCount` 为非负数字，仅折叠展示；`maxTagPlaceholder(omittedPaths)` 自定义剩余项说明，`tagRender({ path, options, label, disabled })` 自定义非交互标签内容，`removeIcon` 自定义移除图标，语义插槽包括 `checkbox`、`tags`、`tag`、`tagLabel`、`tagRemove`、`tagOverflow`。`autoClearSearchValue` 默认选择后清空搜索并返回搜索入口，false 保留查询。多选字段配合 `FormItem.emptyValue={[]}`，hidden field 提交 JSON 多路径；`/__ui` 展示策略切换、长标签、折叠、动态数据、未知/禁用值、RTL 深色、面板和表单校验/重置。异步加载仍待补齐。
+多选标签位于触发器之外，独立移除按钮保持 44px 触控和 Tab 顺序，移除父标签取消其参与关联的分支；触发器 Backspace / Delete 删除最后可移除路径。`maxTagCount` 为非负数字，仅折叠展示；`maxTagPlaceholder(omittedPaths)` 自定义剩余项说明，`tagRender({ path, options, label, disabled })` 自定义非交互标签内容，`removeIcon` 自定义移除图标，语义插槽包括 `checkbox`、`tags`、`tag`、`tagLabel`、`tagRemove`、`tagOverflow`。`autoClearSearchValue` 默认选择后清空搜索并返回搜索入口，false 保留查询。多选字段配合 `FormItem.emptyValue={[]}`，hidden field 提交 JSON 多路径；`/__ui` 展示策略切换、长标签、折叠、动态数据、未知/禁用值、RTL 深色、面板和表单校验/重置。
+
+异步级联使用项目 `loadChildren(pathOptions, { signal }) => Promise<CascaderOption[]>`：只对显式 `isLeaf: false` 且尚无子项的目录发起请求，普通静态叶节点保持原有行为。完整路径映射为公共 Tree loader 的键，缓存、去重、取消、重试和版本刷新复用同一机制；返回项的 `value` 必须是非空字符串并在同层唯一，不同分支可重复。调用方不需要修改 `options`，显式提供的非空子项优先于缓存。`onLoad(pathOptions, children)` / `onLoadError(error, pathOptions)` 汇报结果，`loadVersion` 变化清理旧缓存。
+
+列式弹层和 Panel 为待加载子级显示独立反馈列：加载时 `aria-busy`、状态文本及 44px 取消按钮，取消后可继续，失败后可重试；`loadingIcon` 和 `classNames.loading` / `error` / `loadAction` 自定义显示。键盘展开目录后，响应到达时聚焦首个可用子项；Tab 可进入反馈按钮，Shift+Tab 回到目录，返回父级方向键跟随 RTL。焦点滚动仅限面板内部。关闭弹层、切换/返回路径、搜索、禁用、移除、卸载或版本变化都会中止失效请求，迟到响应和错误不回写、不触发回调，成功缓存跨弹层保留。空响应将目录解析成终点，可确认或勾选。
+
+异步搜索只查询已载入的完整叶路径，搜索本身不加载目录。未知单路径在子项到达后解析有效前缀与标签。未加载目录参与多选完整性判断，已有子项全部选中不会提前压缩成包含未知后代的父路径；直接勾选未加载目录不可用，显式父路径值保留整条分支的选择意图，加载后传导到子项。在 `leaf` 策略下，未解析的选择暂保留目录路径，待数据到达再解析。`mode="inline"` 同样可逐级加载并提供取消/重试，原生 `required` 在未解析目录或尚未选择末级时不通过。`/__ui` 同步嵌套、缓存、空目录、失败恢复、忽略取消的迟到响应、多选、原生分级、内嵌面板和 RTL 深色预览。
 
 `TreeSelect` 的左右方向键随 `ConfigProvider.direction` 调整展开和折叠方向，弹层在独立 Portal 容器中也保留 RTL。多选 `allowClear` 清空后关闭弹层并把焦点还给触发器。
 

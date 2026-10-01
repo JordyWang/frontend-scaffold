@@ -53,6 +53,15 @@ export function CascaderNative({
       {levels.map(({ choices, selected }, depth) => (
         <select
           key={depth}
+          ref={(element) => {
+            element?.setCustomValidity(
+              required &&
+                selected?.isLeaf === false &&
+                !selected.children?.length
+                ? '请选择完整路径'
+                : '',
+            )
+          }}
           id={depth === 0 ? id : undefined}
           className={cn(
             inputStyles,

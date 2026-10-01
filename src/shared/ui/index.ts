@@ -225,6 +225,7 @@ export type {
   CascaderMultipleProps,
   CascaderCheckedStrategy,
   CascaderTagRenderProps,
+  CascaderLoadChildren,
 } from './cascader'
 export { DateRangePicker, TimeRangePicker } from './date-range-picker'
 export type {

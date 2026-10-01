@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { CascaderMultiplePreview } from './CascaderMultiplePreview'
+import { CascaderAsyncPreview } from './CascaderAsyncPreview'
 import {
   Button,
   Card,
@@ -267,6 +268,7 @@ export function CascaderPreview() {
             )}
           </div>
           <CascaderMultiplePreview />
+          <CascaderAsyncPreview />
         </section>
       </CardContent>
     </Card>

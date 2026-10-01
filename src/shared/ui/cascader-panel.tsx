@@ -13,6 +13,8 @@ import { cn } from '@/shared/lib/utils'
 import { Icon } from './icon'
 import type { CascaderOption, CascaderPart } from './cascader'
 import type { cascaderChecks } from './cascader-checks'
+import type { CascaderLoader } from './cascader-loader'
+import { CascaderLoadFeedback } from './cascader-load-feedback'
 import {
   cascaderKey,
   cascaderLevels,
@@ -22,13 +24,19 @@ import {
   type CascaderEntry,
 } from './cascader-state'
 
-export type CascaderPanelHandle = { focus: () => void; blur: () => void }
+export type CascaderPanelHandle = {
+  focus: () => void
+  focusLoadAction: () => void
+  blur: () => void
+}
 export function CascaderPanel({
   options,
   navigation,
   onNavigate,
   selectedPath,
   onChoose,
+  loader,
+  loadingIcon,
   multiple,
   checks,
   onCheck,
@@ -59,6 +67,8 @@ export function CascaderPanel({
   onNavigate: (path: string[]) => void
   selectedPath: string[]
   onChoose: (entry: CascaderEntry, close: boolean) => void
+  loader: CascaderLoader
+  loadingIcon?: React.ReactNode
   multiple: boolean
   checks: ReturnType<typeof cascaderChecks>
   onCheck: (entry: CascaderEntry) => void
@@ -91,9 +101,15 @@ export function CascaderPanel({
   const itemRefs = useRef(new Map<string, HTMLLIElement>())
   const ownedFocus = useRef(false)
   const pending = useRef<string | undefined>(undefined)
+  const expanding = useRef<string | undefined>(undefined)
   const typeahead = useRef({ text: '', time: 0 })
   const entries = useMemo(() => indexCascader(options), [options])
   const levels = cascaderLevels(options, navigation)
+  const last = levels.at(-1)?.selected
+  const loadingEntry =
+    !query.trim() && last && loader.expandable(last) && !last.children?.length
+      ? entries.get(cascaderKey(navigation.slice(0, levels.length)))
+      : undefined
   const searching = Boolean(query.trim())
   const results = searching
     ? searchCascader(entries, query, changeOnSelect, filterOption, searchLimit)
@@ -136,11 +152,20 @@ export function CascaderPanel({
       column.scrollTop += row.bottom - bounds.bottom
     const root = rootRef.current!
     const viewport = root.getBoundingClientRect()
-    if (row.left < viewport.left) root.scrollLeft -= viewport.left - row.left
-    else if (row.right > viewport.right)
-      root.scrollLeft += row.right - viewport.right
+    const style = getComputedStyle(root)
+    const left = viewport.left + parseFloat(style.borderLeftWidth || '0')
+    const right = viewport.right - parseFloat(style.borderRightWidth || '0')
+    if (row.left < left) root.scrollLeft -= left - row.left
+    else if (row.right > right) root.scrollLeft += row.right - right
   }
   useImperativeHandle(ref, () => ({
+    focusLoadAction() {
+      const element = rootRef.current?.querySelector<HTMLElement>(
+        '[data-cascader-load-action]',
+      )
+      element?.focus({ preventScroll: true })
+      if (element?.parentElement) reveal(element.parentElement)
+    },
     focus() {
       const element = activeKey
         ? itemRefs.current.get(activeKey)
@@ -164,6 +189,7 @@ export function CascaderPanel({
         (ownedFocus.current &&
           (document.activeElement === document.body ||
             (rootRef.current?.contains(document.activeElement) &&
+              document.activeElement?.hasAttribute('data-cascader-path') &&
               document.activeElement?.getAttribute('data-cascader-path') !==
                 activeKey))))
     ) {
@@ -177,6 +203,29 @@ export function CascaderPanel({
         rootRef.current?.contains(document.activeElement))
     )
       rootRef.current?.focus({ preventScroll: true })
+  })
+  useLayoutEffect(() => {
+    const key = expanding.current
+    if (!key) return
+    const entry = entries.get(key)
+    if (
+      !entry ||
+      !entry.path.every((value, depth) => navigation[depth] === value) ||
+      searching
+    ) {
+      expanding.current = undefined
+      return
+    }
+    const child = entry.option.children?.find((option) => !option.disabled)
+    if (
+      child &&
+      ownedFocus.current &&
+      (document.activeElement === document.body ||
+        rootRef.current?.contains(document.activeElement))
+    ) {
+      expanding.current = undefined
+      focus(entries.get(cascaderKey([...entry.path, child.value])))
+    } else if (!loader.expandable(entry.option)) expanding.current = undefined
   })
   useLayoutEffect(() => {
     if (autoFocus)
@@ -200,13 +249,30 @@ export function CascaderPanel({
 
   function enter(entry: CascaderEntry, keyboard: boolean, select: boolean) {
     if (disabled || entry.disabled) return
-    const branch = Boolean(entry.option.children?.length)
+    const branch = loader.expandable(entry.option)
     if (!searching && branch) {
       onNavigate(entry.path)
       if (keyboard) {
-        const child = entry.option.children!.find((option) => !option.disabled)
+        const child = entry.option.children?.find((option) => !option.disabled)
         if (child) focus(entries.get(cascaderKey([...entry.path, child.value])))
-      } else focus(entry)
+        else {
+          expanding.current = cascaderKey(entry.path)
+          if (
+            ['error', 'cancelled'].includes(
+              loader.statuses.get(cascaderKey(entry.path)) ?? '',
+            )
+          )
+            void loader.request(cascaderKey(entry.path))
+        }
+      } else {
+        focus(entry)
+        if (
+          ['error', 'cancelled'].includes(
+            loader.statuses.get(cascaderKey(entry.path)) ?? '',
+          )
+        )
+          void loader.request(cascaderKey(entry.path))
+      }
       if (select && changeOnSelect && !multiple) onChoose(entry, false)
     } else if (select) {
       if (multiple) check(entry)
@@ -218,6 +284,7 @@ export function CascaderPanel({
       disabled ||
       entry.disabled ||
       entry.option.disableCheckbox ||
+      checks.pendingTargets.has(cascaderKey(entry.path)) ||
       !checks.targets.get(cascaderKey(entry.path))?.size
     )
       return
@@ -361,9 +428,10 @@ export function CascaderPanel({
                 disabled ||
                 entry.disabled ||
                 Boolean(entry.option.disableCheckbox) ||
+                checks.pendingTargets.has(key) ||
                 !checks.targets.get(key)?.size
-              const branch =
-                !searching && Boolean(entry.option.children?.length)
+              const branch = !searching && loader.expandable(entry.option)
+              const loading = loader.statuses.get(key) === 'loading'
               return (
                 <li
                   key={key}
@@ -388,6 +456,7 @@ export function CascaderPanel({
                       : selected
                   }
                   aria-checked={multiple ? checked : undefined}
+                  aria-busy={loading || undefined}
                   aria-expanded={branch ? expanded : undefined}
                   aria-disabled={disabled || entry.disabled || undefined}
                   aria-description={
@@ -482,14 +551,22 @@ export function CascaderPanel({
                         classNames?.expandIcon,
                       )}
                     >
-                      {expandIcon ?? (
-                        <Icon
-                          name={
-                            direction === 'rtl' ? 'arrowLeft' : 'arrowRight'
-                          }
-                          size={16}
-                        />
-                      )}
+                      {loading
+                        ? (loadingIcon ?? (
+                            <Icon
+                              name="reset"
+                              size={16}
+                              className="animate-spin motion-reduce:animate-none"
+                            />
+                          ))
+                        : (expandIcon ?? (
+                            <Icon
+                              name={
+                                direction === 'rtl' ? 'arrowLeft' : 'arrowRight'
+                              }
+                              size={16}
+                            />
+                          ))}
                     </span>
                   )}
                 </li>
@@ -497,6 +574,24 @@ export function CascaderPanel({
             })}
           </ul>
         ))
+      )}
+      {loadingEntry && (
+        <CascaderLoadFeedback
+          entry={loadingEntry}
+          loader={loader}
+          loadingIcon={loadingIcon}
+          classNames={classNames}
+          disabled={disabled}
+          className="h-full w-[var(--ui-cascader-column-width)] max-w-full shrink-0 overflow-y-auto"
+          onRequest={() => {
+            expanding.current = cascaderKey(loadingEntry.path)
+          }}
+          onReturn={() => {
+            onNavigate(loadingEntry.path.slice(0, -1))
+            focus(loadingEntry)
+          }}
+          returnKey={direction === 'rtl' ? 'ArrowRight' : 'ArrowLeft'}
+        />
       )}
     </div>
   )

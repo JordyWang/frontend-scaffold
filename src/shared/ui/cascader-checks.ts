@@ -9,6 +9,7 @@ export function cascaderChecks(
   paths: string[][],
 ) {
   const targets = new Map<string, Set<string>>()
+  const pendingTargets = new Set<string>()
   function collect(entry: CascaderEntry): Set<string> {
     const key = cascaderKey(entry.path)
     const result = new Set<string>()
@@ -27,8 +28,10 @@ export function cascaderChecks(
       !entry.option.children?.length &&
       !entry.disabled &&
       !entry.option.disableCheckbox
-    )
+    ) {
       result.add(key)
+      if (entry.option.isLeaf === false) pendingTargets.add(key)
+    }
     return result
   }
   for (const entry of entries.values())
@@ -104,5 +107,5 @@ export function cascaderChecks(
     for (const leaf of targets.get(key) ?? []) next.delete(leaf)
     return values(next, strategy).filter((value) => cascaderKey(value) !== key)
   }
-  return { leaves, targets, state, toggle, remove, values }
+  return { leaves, targets, pendingTargets, state, toggle, remove, values }
 }

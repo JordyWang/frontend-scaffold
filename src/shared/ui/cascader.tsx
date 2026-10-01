@@ -37,6 +37,8 @@ import {
 } from './cascader-state'
 import { cascaderChecks, type CascaderCheckedStrategy } from './cascader-checks'
 import { CascaderTags } from './cascader-tags'
+import { useCascaderLoader } from './cascader-loader'
+import { CascaderLoadFeedback } from './cascader-load-feedback'
 
 export type CascaderOption = {
   value: string
@@ -45,7 +47,12 @@ export type CascaderOption = {
   children?: CascaderOption[]
   disabled?: boolean
   disableCheckbox?: boolean
+  isLeaf?: boolean
 }
+export type CascaderLoadChildren = (
+  path: CascaderOption[],
+  options: { signal: AbortSignal },
+) => Promise<CascaderOption[]>
 export type CascaderPlacement =
   'bottomStart' | 'bottomEnd' | 'topStart' | 'topEnd'
 export type CascaderPart =
@@ -69,6 +76,9 @@ export type CascaderPart =
   | 'tagLabel'
   | 'tagRemove'
   | 'tagOverflow'
+  | 'loading'
+  | 'error'
+  | 'loadAction'
 export type CascaderHandle = { focus: () => void; blur: () => void }
 export type CascaderTagRenderProps = {
   path: string[]
@@ -79,6 +89,11 @@ export type CascaderTagRenderProps = {
 export type { CascaderCheckedStrategy }
 type CascaderBaseProps = {
   options: CascaderOption[]
+  loadChildren?: CascaderLoadChildren
+  loadVersion?: string | number
+  onLoad?: (path: CascaderOption[], children: CascaderOption[]) => void
+  onLoadError?: (error: unknown, path: CascaderOption[]) => void
+  loadingIcon?: ReactNode
   changeOnSelect?: boolean
   expandTrigger?: 'click' | 'hover'
   open?: boolean
@@ -168,7 +183,12 @@ function focusAfter(trigger: HTMLElement, popup: HTMLElement | null) {
 /** Project path values with a column browser; native inline fields remain available for forms. */
 export function Cascader(allProps: CascaderProps) {
   const {
-    options,
+    options: sourceOptions,
+    loadChildren,
+    loadVersion = 0,
+    onLoad,
+    onLoadError,
+    loadingIcon,
     value,
     defaultValue = [],
     multiple = false,
@@ -238,6 +258,15 @@ export function Cascader(allProps: CascaderProps) {
   const [internal, setInternal] = useState<string[] | string[][]>(defaultValue)
   const [internalOpen, setInternalOpen] = useState(defaultOpen)
   const [internalSearch, setInternalSearch] = useState(defaultSearchValue)
+  const loader = useCascaderLoader({
+    options: sourceOptions,
+    loadChildren,
+    loadVersion,
+    disabled,
+    onLoad,
+    onLoadError,
+  })
+  const options = loader.options
   const controlled = Object.prototype.hasOwnProperty.call(allProps, 'value')
   const searchControlled = Object.prototype.hasOwnProperty.call(
     allProps,
@@ -283,8 +312,57 @@ export function Cascader(allProps: CascaderProps) {
         ),
       )
     : height
-  const columns = cascaderLevels(options, navigation).length
+  const browseLevels = cascaderLevels(
+    options,
+    mode === 'inline' ? validPath : navigation,
+  )
+  const browseLast = browseLevels.at(-1)?.selected
+  const loadingEntry =
+    browseLast && loader.expandable(browseLast) && !browseLast.children?.length
+      ? entries.get(
+          cascaderKey(
+            (mode === 'inline' ? validPath : navigation).slice(
+              0,
+              browseLevels.length,
+            ),
+          ),
+        )
+      : undefined
+  const columns = browseLevels.length + Number(Boolean(loadingEntry))
   if (disabled && open === undefined && internalOpen) setInternalOpen(false)
+  useLayoutEffect(() => {
+    const visible = !disabled && (mode !== 'popup' || isOpen) && !search.trim()
+    const browsePath =
+      mode === 'inline' ? validPath : validCascaderPath(options, navigation)
+    const active = new Set(
+      browsePath.map((_, depth) => cascaderKey(browsePath.slice(0, depth + 1))),
+    )
+    for (const [key, state] of loader.statuses)
+      if (state === 'loading' && (!visible || !active.has(key)))
+        loader.cancel(key)
+    if (visible)
+      for (const key of active) {
+        const entry = entries.get(key)
+        if (
+          entry &&
+          !entry.disabled &&
+          loader.expandable(entry.option) &&
+          !entry.option.children?.length &&
+          loader.statuses.get(key) === undefined
+        )
+          void loader.request(key)
+      }
+  }, [
+    loader,
+    options,
+    entries,
+    navigation,
+    validPath,
+    isOpen,
+    mode,
+    disabled,
+    search,
+  ])
 
   function setSearch(next: string) {
     if (!searchControlled) setInternalSearch(next)
@@ -473,6 +551,8 @@ export function Cascader(allProps: CascaderProps) {
       onNavigate={setNavigation}
       selectedPath={validPath}
       onChoose={(entry, close) => changePath(entry.path, close)}
+      loader={loader}
+      loadingIcon={loadingIcon}
       multiple={multiple}
       checks={checks}
       onCheck={(entry) => {
@@ -550,22 +630,33 @@ export function Cascader(allProps: CascaderProps) {
       }}
     >
       {mode === 'inline' ? (
-        <CascaderNative
-          options={options}
-          path={path}
-          onChange={(next) => changePath(next)}
-          label={ariaLabel ?? label}
-          id={triggerId}
-          required={required}
-          ariaDescribedBy={ariaDescribedBy}
-          ariaInvalid={ariaInvalid}
-          ariaLabelledBy={ariaLabelledBy}
-          disabled={disabled}
-          size={resolvedSize}
-          variant={variant}
-          status={status}
-          classNames={classNames}
-        />
+        <>
+          <CascaderNative
+            options={options}
+            path={path}
+            onChange={(next) => changePath(next)}
+            label={ariaLabel ?? label}
+            id={triggerId}
+            required={required}
+            ariaDescribedBy={ariaDescribedBy}
+            ariaInvalid={ariaInvalid}
+            ariaLabelledBy={ariaLabelledBy}
+            disabled={disabled}
+            size={resolvedSize}
+            variant={variant}
+            status={status}
+            classNames={classNames}
+          />
+          {loadingEntry && (
+            <CascaderLoadFeedback
+              entry={loadingEntry}
+              loader={loader}
+              loadingIcon={loadingIcon}
+              classNames={classNames}
+              disabled={disabled}
+            />
+          )}
+        </>
       ) : mode === 'panel' ? (
         <>
           {searchBox}
@@ -755,7 +846,25 @@ export function Cascader(allProps: CascaderProps) {
                 setOpen(false, true)
               } else if (event.key === 'Tab') {
                 const inSearch = event.target === searchRef.current
+                const action = popupRef.current?.querySelector<HTMLElement>(
+                  '[data-cascader-load-action]',
+                )
                 if (inSearch && !event.shiftKey) {
+                  event.preventDefault()
+                  panelRef.current?.focus()
+                  return
+                }
+                if (
+                  !inSearch &&
+                  !event.shiftKey &&
+                  action &&
+                  event.target !== action
+                ) {
+                  event.preventDefault()
+                  panelRef.current?.focusLoadAction()
+                  return
+                }
+                if (event.shiftKey && event.target === action) {
                   event.preventDefault()
                   panelRef.current?.focus()
                   return

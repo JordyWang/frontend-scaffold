@@ -69,7 +69,8 @@ export function searchCascader(
   return [...entries.values()]
     .filter(
       (entry) =>
-        (changeOnSelect || !entry.option.children?.length) &&
+        (changeOnSelect ||
+          (!entry.option.children?.length && entry.option.isLeaf !== false)) &&
         (filter
           ? filter(query, entry.options)
           : entry.options.some((option) =>
