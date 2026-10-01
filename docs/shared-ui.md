@@ -12,7 +12,8 @@
 | InputOTP                        | `length`、`value` / `defaultValue`、`onChange`、`onComplete`、`label`、`inputMode`、`mask`、`disabled`、`invalid`、`name`                             | 分格输入一次性验证码；支持粘贴、方向键和删除，默认数字键盘，单格触控区域至少 44px                                           |
 | FormField                       | `label?`、`control`、`description`、`error`、`required`、`id`                                                                                         | 自动连接标签、说明和错误；自带标签的控件省略 `label`                                                                        |
 | Form / FormItem                 | `initialValues`、`values`、`onValuesChange`、`onFinish`、`onFinishFailed`、`onFinishError`、`rules`、`valuePropName`、`emptyValue`、`trigger`         | 表单只协调值和校验；控件仍使用项目自己的 API，规则错误通过 FormField 的 `aria-describedby` 暴露                             |
-| InputNumber / Slider            | `value` / `defaultValue`、`min`、`max`、`step`、`onChange`、`label`                                                                                   | 使用原生 number/range 控件；数值提交时限制在范围内，键盘和触控由浏览器处理                                                  |
+| InputNumber                     | `value` / `defaultValue`、`min`、`max`、`step`、`onChange`、`label`                                                                                   | 原生数字输入；数字草稿、边界、格式与步进由项目统一处理                                                                      |
+| Slider                          | `value` / `defaultValue`、`range`、`marks`、`step`、`orientation`、`reverse`、`draggableTrack`、`onChange`、`onChangeComplete`                        | 原生 range 承载值与可访问性，项目处理轨道、键盘和触控；支持单值与有序多点数组                                               |
 | DatePicker                      | `value` / `defaultValue`、`onChange`、`mode`、`open` / `defaultOpen`、`panelMonth`、`needConfirm`、`presets`、`disabledDate`、`classNames`            | 日期单位字符串；默认项目弹层，可选常驻面板或原生输入，确认前不提交；键盘、RTL、44px 网格和组合失焦                          |
 | TimePicker                      | `value` / `defaultValue`、`onChange`、`mode`、`precision`、`use12Hours`、`needConfirm`、单位步长、禁用回调、`presets`、`classNames`                   | 24 小时本地时间字符串；默认项目时间列面板，可选常驻/原生模式；确认、键盘、RTL 与 44px 触控                                  |
 | DateRangePicker                 | `value` / `defaultValue`、`picker`、`onChange`、`mode`、`onCalendarChange`、`needConfirm`、`presets`、`allowEmpty`、`disabledDate`                    | 日期单位起止元组；默认项目双面板，窄容器单面板；独立端点、确认、开放区间、键盘与 44px 触控                                  |
@@ -126,6 +127,22 @@
 `InputNumber`、`DatePicker`、`TimePicker`、`DateRangePicker`、`TimeRangePicker` 和 `AutoComplete` 同样支持 `variant` 与 `status`；错误状态通过 `aria-invalid` 传递；日期与时间的单选和范围默认使用项目面板，也提供显式原生适配。
 
 `InputNumber` 输入期间保留原始数字草稿，`onChange` 会收到当前数值或清空时的 `undefined`；失焦时再按 `min` / `max` 限制数值，并在修正后再次调用 `onChange`。受控用法可传入 `value={undefined}` 表示空值，并在 `onChange` 中同步更新。`precision` 在提交和步进时限制小数位；`formatter(value, { userTyping, input })` 与 `parser(text)` 负责展示和规范值转换；`controls` 默认横向显示两个至少 44×44px 的步进按钮，也可传入上下图标，`keyboard` 控制上下方向键，`changeOnWheel` 显式开启聚焦时滚轮步进，`onStep(value, { offset, type })` 报告步进结果。原生 form reset 恢复 `defaultValue`，无效草稿不会绕过边界约束。
+
+## Slider
+
+`Slider` 保留单值 `number`，`range` 模式使用有序 `number[]`，至少显示两个滑块。`value` / `defaultValue` 和对应回调按单值/范围区分类型；`draggableTrack` 是范围模式的独立开关。非法数值、上下界和步长会归一化，值按步长、标记及 `min` / `max` 吸附；移动单个滑块不越过相邻点。显式 `value={undefined}` 为受控下界值，范围的短数组显示两个下界点；归一化不会触发变更回调。
+
+`marks` 使用 `{ value, label, className? }[]`，标签为非交互内容；重复值保留最后的标签，越界与非有限标记被忽略。`step={null}` 只允许标记及两个边界值，普通步长同时允许离散标记。标记按钮可以点选，无法越过禁用节点的标记不可操作。`dots` 显示步长圆点，密集刻度最多采样约 500 个步长圆点；采样不改变可选择的值。`included={false}` 显示独立点位并隐藏填充轨道。
+
+`orientation` 默认水平，可设为 `vertical`；`reverse` 反向坐标，水平坐标同时跟随 ConfigProvider.direction。左右键跟随水平视觉方向，垂直上下键跟随垂直视觉方向；Home / End 到达当前相邻边界，PageUp / PageDown 浏览十个可选点。`keyboard={false}` 禁用数值按键并保留 Tab。每个滑块与标记按钮至少 44×44px，两个端点有独立名称；`handleLabels` 覆写端点后缀。移除或禁用持有焦点的滑块时恢复到可用点，全部不可用时聚焦命名组；外部焦点保持。
+
+`disabled` 可整体禁用，也可用布尔数组固定部分滑块。固定点构成其他滑块的边界；存在固定点时停用整段拖动。`draggableTrack` 在显示填充轨道时整体平移区间，保持点间距离并遵守步长/标记及边界。`onChange` 报告实时值，松开指针、数值键或结束键盘焦点会话后，`onChangeComplete` 对有变化的会话报告一次。指针取消保留已报告的实时值并取消完成回调；外部值、范围结构或配置更新会终止失效会话。
+
+`tooltip` 默认在悬停、焦点和拖动时显示当前值，支持 `open`、`formatter(value, index)` 与四向 `placement`；`false` 或 `formatter: null` 隐藏提示。文本格式同步给默认 `aria-valuetext`，显式原生属性可以覆写。提示复用公共 Tooltip 的 Portal、定位和主题，自动提示可用 Escape 关闭。`status` 提供错误/警告，错误传递 `aria-invalid`；`size` 缩放可见圆点，触控区域保持 44px，并可继承全局尺寸。`className` / `style` 作用于根容器，`classNames` 支持 root、rail、track、thumb、dot、mark 的 Tailwind 类。
+
+`ref` 指向第一个原生范围输入，保留 `focus()` / `blur()`、标签、焦点和键盘事件。单值 `name` 按原生数值字符串提交，范围以一个 JSON 数组字段提交；部分禁用的范围保留完整数组，整体禁用时不提交。非受控原生 form reset 恢复默认值并尊重取消的重置事件，不触发值回调，也支持外部 `form` 关联；项目 `FormItem` 默认通过 `onChange` 连接，数组值使用 `emptyValue={[]}`。`/__ui` 提供单值、范围、多点、禁用点、离散刻度、方向、只读、表单和 240px RTL 深色预览。
+
+公共 `Tooltip` 同时支持 `open` / `onOpenChange`；未控制开合时继续使用默认悬停、聚焦、触控和 Escape 行为。
 
 ## 日期与时间的公共 format
 

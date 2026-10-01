@@ -302,66 +302,8 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
   },
 )
 
-export type SliderProps = Omit<
-  InputHTMLAttributes<HTMLInputElement>,
-  'type' | 'value' | 'defaultValue' | 'onChange'
-> & {
-  value?: number
-  defaultValue?: number
-  min?: number
-  max?: number
-  step?: number
-  onChange?: (value: number) => void
-  label?: string
-}
-
-export const Slider = forwardRef<HTMLInputElement, SliderProps>(function Slider(
-  {
-    value,
-    defaultValue = 0,
-    min = 0,
-    max = 100,
-    step = 1,
-    onChange,
-    label = '数值',
-    className,
-    ...props
-  },
-  ref,
-) {
-  const [internal, setInternal] = useState(defaultValue)
-  const safeMin = Number.isFinite(min) ? min : 0
-  const safeMax = Number.isFinite(max) ? Math.max(safeMin, max) : safeMin
-  const safeStep = Number.isFinite(step) && step > 0 ? step : 1
-  const rawCurrent = value ?? internal
-  const current = Number.isFinite(rawCurrent)
-    ? Math.min(safeMax, Math.max(safeMin, rawCurrent))
-    : safeMin
-  return (
-    <input
-      {...props}
-      ref={ref}
-      type="range"
-      className={cn(
-        'w-full min-h-11 cursor-pointer touch-manipulation accent-primary disabled:cursor-not-allowed disabled:opacity-[0.55]',
-        className,
-      )}
-      aria-label={props['aria-label'] ?? label}
-      value={current}
-      min={safeMin}
-      max={safeMax}
-      step={safeStep}
-      onChange={(event) => {
-        const next = Math.min(
-          safeMax,
-          Math.max(safeMin, Number(event.currentTarget.value)),
-        )
-        if (value === undefined) setInternal(next)
-        onChange?.(next)
-      }}
-    />
-  )
-})
+export { Slider } from './slider'
+export type { SliderProps } from './slider'
 
 export { TimePicker } from './time-picker'
 export type { TimePickerProps } from './time-picker'

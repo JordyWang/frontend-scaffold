@@ -133,6 +133,15 @@ export { Rate } from './rate'
 export type { RateProps } from './rate'
 export { ColorPicker } from './color-picker'
 export type { ColorPickerProps } from './color-picker'
+export { Slider } from './slider'
+export type {
+  SliderProps,
+  SingleSliderProps,
+  RangeSliderProps,
+  SliderMark,
+  SliderPart,
+  SliderTooltip,
+} from './slider'
 export { Calendar } from './calendar'
 export type { CalendarProps, CalendarPart } from './calendar'
 export { Tag, Badge, Skeleton } from './display'
@@ -208,7 +217,6 @@ export {
   AutoComplete,
   DatePicker,
   InputNumber,
-  Slider,
   TimePicker,
   Upload,
 } from './data-input'
@@ -224,7 +232,6 @@ export type {
   InputNumberFormatInfo,
   InputNumberProps,
   InputNumberStepInfo,
-  SliderProps,
   TimePickerProps,
   UploadProps,
 } from './data-input'

@@ -396,6 +396,8 @@ export type TooltipProps = {
   children: TriggerElement
   placement?: 'top' | 'bottom' | 'left' | 'right'
   className?: string
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 /** Optional contextual help that also appears when its trigger receives focus. */
@@ -404,10 +406,20 @@ export function Tooltip({
   children,
   placement = 'top',
   className,
+  open: controlledOpen,
+  onOpenChange,
 }: TooltipProps) {
   const { direction } = useConfig()
   const id = useId()
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(false)
+  const open = controlledOpen ?? internalOpen
+  const setOpen = useCallback(
+    (next: boolean) => {
+      if (controlledOpen === undefined) setInternalOpen(next)
+      onOpenChange?.(next)
+    },
+    [controlledOpen, onOpenChange],
+  )
   const rootRef = useRef<HTMLSpanElement>(null)
   const tooltipRef = useRef<HTMLSpanElement>(null)
   useFloatingPosition(rootRef, tooltipRef, open, placement)
@@ -425,7 +437,7 @@ export function Tooltip({
       document.removeEventListener('pointerdown', onPointerDown)
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [open])
+  }, [open, setOpen])
   const describedBy = [children.props['aria-describedby'], id]
     .filter(Boolean)
     .join(' ')

@@ -22,6 +22,7 @@ import { TimeInteractionPreview } from './TimeInteractionPreview'
 import { DateInputPreview } from './DateInputPreview'
 import { MillisecondTimePreview } from './MillisecondTimePreview'
 import { PickerFormatPreview } from './PickerFormatPreview'
+import { SliderPreview } from './SliderPreview'
 import {
   Alert,
   Affix,
@@ -2137,6 +2138,7 @@ export function DesignSystemPreview() {
           <DateInputPreview />
           <MillisecondTimePreview />
           <PickerFormatPreview />
+          <SliderPreview />
           <Card className="col-span-full">
             <CardContent>
               <Stack gap="md">
