@@ -222,6 +222,16 @@ export type {
 export type { SingleDatePickerProps } from './date-picker'
 export type { TimePickerPart, TimePickerPreset } from './time-picker'
 export type { TimePrecision, TimeUnit } from './time-picker-state'
+export { DateTimePicker } from './date-time-picker'
+export type {
+  DateTimePickerProps,
+  DateTimePickerPart,
+  DateTimePickerPreset,
+} from './date-time-picker'
+export type {
+  DatePickerDateTimeProps,
+  DatePickerTimeOptions,
+} from './date-picker'
 export type { DatePickerUnit, DatePeriodUnit } from './date-unit-state'
 export { Cascader } from './cascader'
 export type {

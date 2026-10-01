@@ -12,6 +12,7 @@ import {
 import { cn } from '@/shared/lib/utils'
 import { Button } from './button'
 import { DatePickerPanel } from './date-picker-panel'
+import { DateTimePicker, type DateTimePickerProps } from './date-time-picker'
 import {
   resolveComponentSize,
   useConfig,
@@ -75,6 +76,7 @@ type SingleDatePickerBaseProps = Omit<
   | 'multiple'
 > & {
   multiple?: false
+  showTime?: false
   value?: string
   defaultValue?: string
   min?: string
@@ -119,8 +121,31 @@ export type SingleDatePickerProps = SingleDatePickerBaseProps &
     | { picker: DatePeriodUnit; mode?: 'popup' | 'panel' }
   )
 export type DatePickerPlacement = PickerPlacement
+export type DatePickerTimeOptions = Pick<
+  DateTimePickerProps,
+  | 'precision'
+  | 'use12Hours'
+  | 'hourStep'
+  | 'minuteStep'
+  | 'secondStep'
+  | 'defaultOpenTime'
+  | 'hideDisabledOptions'
+  | 'disabledHours'
+  | 'disabledMinutes'
+  | 'disabledSeconds'
+  | 'disabledTime'
+  | 'renderCell'
+  | 'getCellDescription'
+>
+export type DatePickerDateTimeProps = DateTimePickerProps & {
+  multiple?: false
+  picker?: 'date'
+  showTime: true | DatePickerTimeOptions
+}
 export type DatePickerProps =
-  SingleDatePickerProps | (MultiDatePickerProps & { multiple: true })
+  | SingleDatePickerProps
+  | (MultiDatePickerProps & { multiple: true; showTime?: false })
+  | DatePickerDateTimeProps
 
 /** A project ISO date field with a shared calendar, independent browsing and optional confirmation. */
 const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
@@ -755,10 +780,32 @@ const SingleDatePicker = forwardRef<HTMLInputElement, SingleDatePickerProps>(
 /** The value type follows the explicit selection mode. */
 export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
   function DatePicker(props, ref) {
-    return props.multiple ? (
-      <MultiDatePicker {...props} key={props.picker ?? 'date'} ref={ref} />
+    if (props.showTime) {
+      const { showTime, picker, multiple, ...dateTimeProps } = props
+      void picker
+      void multiple
+      return (
+        <DateTimePicker
+          {...dateTimeProps}
+          {...(typeof showTime === 'object' ? showTime : {})}
+          ref={ref}
+        />
+      )
+    }
+    const { showTime, ...dateProps } = props
+    void showTime
+    return dateProps.multiple ? (
+      <MultiDatePicker
+        {...dateProps}
+        key={dateProps.picker ?? 'date'}
+        ref={ref}
+      />
     ) : (
-      <SingleDatePicker {...props} key={props.picker ?? 'date'} ref={ref} />
+      <SingleDatePicker
+        {...dateProps}
+        key={dateProps.picker ?? 'date'}
+        ref={ref}
+      />
     )
   },
 )

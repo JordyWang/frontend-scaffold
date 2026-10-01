@@ -29,6 +29,7 @@ type TimePanelProps = {
   hideDisabledOptions?: boolean
   renderCell?: (value: number, unit: TimeUnit) => ReactNode
   getCellDescription?: (value: number, unit: TimeUnit) => string | undefined
+  onFocusUnavailable?: () => void
   classNames?: Partial<Record<'columns' | 'column' | 'option', string>>
 }
 const names: Record<TimeUnit, string> = {
@@ -52,6 +53,7 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
       hideDisabledOptions,
       renderCell,
       getCellDescription,
+      onFocusUnavailable,
       classNames,
     },
     ref,
@@ -251,11 +253,13 @@ export const TimePickerPanel = forwardRef<HTMLDivElement, TimePanelProps>(
         if (column) {
           const number = activeNumber(column.unit, column.choices)
           if (number !== undefined) focus(column.unit, number)
+          else if (onFocusUnavailable) onFocusUnavailable()
           else
             rootRef.current?.parentElement
               ?.querySelector<HTMLButtonElement>('button:not(:disabled)')
               ?.focus({ preventScroll: true })
-        } else
+        } else if (onFocusUnavailable) onFocusUnavailable()
+        else
           rootRef.current?.parentElement
             ?.querySelector<HTMLButtonElement>('button:not(:disabled)')
             ?.focus({ preventScroll: true })

@@ -16,6 +16,7 @@ import { DateUnitPreview } from './DateUnitPreview'
 import { DateUnitRangePreview } from './DateUnitRangePreview'
 import { TimePickerPreview } from './TimePickerPreview'
 import { TimeRangePreview } from './TimeRangePreview'
+import { DateTimePreview } from './DateTimePreview'
 import {
   Alert,
   Affix,
@@ -2063,6 +2064,7 @@ export function DesignSystemPreview() {
           <DateUnitRangePreview />
           <TimePickerPreview />
           <TimeRangePreview />
+          <DateTimePreview />
           <Card className="col-span-full">
             <CardContent>
               <Stack gap="md">
