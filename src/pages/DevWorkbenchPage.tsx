@@ -36,6 +36,7 @@ import {
   CardHeader,
   CardTitle,
   Checkbox,
+  Collapse,
   Dialog,
   Empty,
   FormField,
@@ -123,9 +124,31 @@ const fileRules = {
 
 const previewGroups = [
   {
-    label: '组件与样式',
+    label: '设计系统补充组件',
     items: [
-      { id: 'design-system', label: '设计系统补充组件' },
+      { id: 'design-system', label: '总览' },
+      { id: 'ds-base', label: '按钮与卡片' },
+      { id: 'ds-layout', label: '布局与分隔' },
+      { id: 'ds-input', label: '输入与表单' },
+      { id: 'ds-calendar', label: '日历' },
+      { id: 'ds-display', label: '展示与加载' },
+      { id: 'ds-feedback', label: '反馈与弹层' },
+      { id: 'ds-navigation', label: '导航与结果' },
+      { id: 'ds-collapse', label: '折叠面板' },
+      { id: 'ds-carousel', label: '轮播' },
+      { id: 'ds-timeline', label: '时间轴' },
+      { id: 'ds-tree', label: '树与级联' },
+      { id: 'ds-date', label: '日期与时间' },
+      { id: 'ds-slider', label: '滑块与颜色' },
+      { id: 'ds-typography', label: '文字与标签页' },
+      { id: 'ds-utilities', label: '扩展展示' },
+      { id: 'ds-rtl', label: 'RTL 控件' },
+      { id: 'ds-theme', label: '局部主题' },
+    ],
+  },
+  {
+    label: '其他组件示例',
+    items: [
       { id: 'basic', label: '基础展示与输入' },
       { id: 'feedback', label: '交互与反馈' },
       { id: 'data', label: '导航与数据' },
@@ -223,12 +246,24 @@ export function DevWorkbenchPage() {
   useEffect(() => {
     const links = navigationGroups.flatMap((group) => group.links)
     function updateActiveSection() {
-      const current = links
-        .filter((link) => {
-          const target = document.getElementById(link.href.slice(1))
-          return target && target.getBoundingClientRect().top <= 25
-        })
-        .at(-1)
+      const targets = links.map((link) => ({
+        href: link.href,
+        top: document
+          .getElementById(link.href.slice(1))
+          ?.getBoundingClientRect().top,
+      }))
+      const requested = targets.find(
+        (target) =>
+          target.href === window.location.hash &&
+          target.top !== undefined &&
+          target.top >= 0 &&
+          target.top <= 25,
+      )
+      const current =
+        requested ??
+        targets
+          .filter((target) => target.top !== undefined && target.top <= 25)
+          .at(-1)
       setActiveHref(current?.href ?? links[0]?.href ?? '')
     }
     updateActiveSection()
@@ -239,6 +274,23 @@ export function DevWorkbenchPage() {
       window.removeEventListener('hashchange', updateActiveSection)
     }
   }, [navigationGroups])
+
+  useEffect(() => {
+    const container = document.getElementById('workbench-navigation-scroll')
+    if (!(container instanceof HTMLDivElement) || window.innerWidth < 1024)
+      return
+    const active = container.querySelector<HTMLAnchorElement>(
+      'a[aria-current="location"]',
+    )
+    if (!active) return
+    const viewport = container.getBoundingClientRect()
+    const link = active.getBoundingClientRect()
+    if (link.top < viewport.top + 12) {
+      container.scrollTop += link.top - viewport.top - 12
+    } else if (link.bottom > viewport.bottom - 12) {
+      container.scrollTop += link.bottom - viewport.bottom + 12
+    }
+  }, [activeHref])
 
   async function retryData() {
     await new Promise<void>((resolve) => window.setTimeout(resolve, 1400))
@@ -310,7 +362,10 @@ export function DevWorkbenchPage() {
         <div className="grid min-w-0 gap-8 lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-10">
           <aside className="min-w-0" aria-label="预览目录">
             <Card className="lg:sticky lg:top-6">
-              <CardContent className="space-y-5 py-5 lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto">
+              <CardContent
+                id="workbench-navigation-scroll"
+                className="space-y-5 py-5 lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto"
+              >
                 <div>
                   <p className="text-sm font-semibold">浏览目录</p>
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -323,13 +378,54 @@ export function DevWorkbenchPage() {
                       <p className="mb-1 px-3 text-xs font-semibold tracking-wide text-muted-foreground">
                         {group.label}
                       </p>
-                      <Anchor
-                        label={`${group.label}导航`}
-                        links={group.links}
-                        activeHref={activeHref}
-                        onChange={setActiveHref}
-                        className="min-w-0 grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 [&_a]:px-2 [&_a]:text-sm"
-                      />
+                      {group.label === '设计系统补充组件' ? (
+                        <>
+                          <div className="lg:hidden">
+                            <Anchor
+                              label="设计系统总览导航"
+                              links={group.links.slice(0, 1)}
+                              activeHref={activeHref}
+                              onChange={setActiveHref}
+                              className="[&_a]:px-2 [&_a]:text-sm"
+                            />
+                            <Collapse
+                              label="设计系统子目录"
+                              size="small"
+                              ghost
+                              items={[
+                                {
+                                  key: 'details',
+                                  label: '展开细分目录',
+                                  children: (
+                                    <Anchor
+                                      label="设计系统细分导航"
+                                      links={group.links.slice(1)}
+                                      activeHref={activeHref}
+                                      onChange={setActiveHref}
+                                      className="min-w-0 grid-cols-2 gap-1 border-s-0 sm:grid-cols-3 [&_a]:px-2 [&_a]:text-sm"
+                                    />
+                                  ),
+                                },
+                              ]}
+                            />
+                          </div>
+                          <Anchor
+                            label="设计系统细分导航"
+                            links={group.links}
+                            activeHref={activeHref}
+                            onChange={setActiveHref}
+                            className="hidden min-w-0 lg:grid [&_a]:px-2 [&_a]:text-sm"
+                          />
+                        </>
+                      ) : (
+                        <Anchor
+                          label={`${group.label}导航`}
+                          links={group.links}
+                          activeHref={activeHref}
+                          onChange={setActiveHref}
+                          className="min-w-0 grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 [&_a]:px-2 [&_a]:text-sm"
+                        />
+                      )}
                     </div>
                   ))}
                 </div>

@@ -46,7 +46,7 @@ export function TypographyPreview() {
     return '异步取得的完整任务说明'
   }, [])
   return (
-    <Card className="col-span-full">
+    <Card id="ds-typography" className="col-span-full scroll-mt-6">
       <CardHeader>
         <CardTitle>文字交互与省略</CardTitle>
       </CardHeader>

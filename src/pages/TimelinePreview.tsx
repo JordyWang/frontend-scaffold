@@ -86,7 +86,7 @@ export function TimelinePreview() {
   }))
 
   return (
-    <Card className="col-span-full">
+    <Card id="ds-timeline" className="col-span-full scroll-mt-6">
       <CardContent>
         <section aria-label="时间轴状态预览" className="space-y-4">
           <Typography as="h3" variant="title">

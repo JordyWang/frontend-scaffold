@@ -24,7 +24,7 @@ export function DatePickerPreview() {
   const [open, setOpen] = useState(false)
   const [result, setResult] = useState('尚未提交')
   return (
-    <Card className="col-span-full">
+    <Card id="ds-date" className="col-span-full scroll-mt-6">
       <CardHeader>
         <CardTitle>日期选择面板</CardTitle>
       </CardHeader>

@@ -60,7 +60,7 @@ export function CarouselPreview() {
   ].slice(0, itemCount)
 
   return (
-    <Card className="col-span-full">
+    <Card id="ds-carousel" className="col-span-full scroll-mt-6">
       <CardContent>
         <section aria-label="轮播状态预览" className="space-y-4">
           <Typography as="h3" variant="title">

@@ -45,7 +45,7 @@ export function SliderPreview() {
   const [minimumNodes, setMinimumNodes] = useState(0)
   const [editLocked, setEditLocked] = useState(false)
   return (
-    <Card className="col-span-full">
+    <Card id="ds-slider" className="col-span-full scroll-mt-6">
       <CardHeader>
         <CardTitle>滑块范围与刻度</CardTitle>
       </CardHeader>

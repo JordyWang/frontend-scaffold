@@ -361,6 +361,8 @@ export function DesignSystemPreview() {
         <div ref={setRtlPopupContainer} data-ui-rtl-popup-root="" />
         <Grid minItemWidth="17rem" gap="lg">
           <Card
+            id="ds-base"
+            className="scroll-mt-6"
             title="按钮扩展"
             extra={<Typography variant="caption">AntD 风格</Typography>}
           >
@@ -431,7 +433,7 @@ export function DesignSystemPreview() {
               </p>
             </CardContent>
           </Card>
-          <Card>
+          <Card id="ds-layout" className="scroll-mt-6">
             <CardContent>
               <Stack gap="md">
                 <Typography as="h3" variant="title">
@@ -609,7 +611,7 @@ export function DesignSystemPreview() {
               </Stack>
             </CardContent>
           </Card>
-          <Card>
+          <Card id="ds-input" className="scroll-mt-6">
             <CardContent>
               <Stack gap="sm">
                 <Typography as="h3" variant="title">
@@ -1008,7 +1010,7 @@ export function DesignSystemPreview() {
               </Stack>
             </CardContent>
           </Card>
-          <Card>
+          <Card id="ds-calendar" className="scroll-mt-6">
             <CardContent>
               <Stack gap="md">
                 <Typography as="h3" variant="title">
@@ -1037,7 +1039,7 @@ export function DesignSystemPreview() {
               </Stack>
             </CardContent>
           </Card>
-          <Card>
+          <Card id="ds-display" className="scroll-mt-6">
             <CardContent>
               <Stack gap="md">
                 <Typography as="h3" variant="title">
@@ -1159,7 +1161,7 @@ export function DesignSystemPreview() {
               </Stack>
             </CardContent>
           </Card>
-          <Card>
+          <Card id="ds-feedback" className="scroll-mt-6">
             <CardContent>
               <Stack gap="sm">
                 <Typography as="h3" variant="title">
@@ -1713,7 +1715,7 @@ export function DesignSystemPreview() {
               </Stack>
             </CardContent>
           </Card>
-          <Card className="col-span-full">
+          <Card id="ds-navigation" className="col-span-full scroll-mt-6">
             <CardContent>
               <Stack gap="md">
                 <Typography as="h3" variant="title">
@@ -2384,7 +2386,7 @@ export function DesignSystemPreview() {
           <ColorPickerGradientPreview />
           <TypographyPreview />
           <TabsPreview />
-          <Card className="col-span-full">
+          <Card id="ds-utilities" className="col-span-full scroll-mt-6">
             <CardContent>
               <Stack gap="md">
                 <Stack direction="row" wrap align="center" justify="between">
@@ -2763,7 +2765,7 @@ export function DesignSystemPreview() {
               </Stack>
             </CardContent>
           </Card>
-          <Card className="col-span-full">
+          <Card id="ds-rtl" className="col-span-full scroll-mt-6">
             <CardContent>
               <Stack gap="md">
                 <Typography as="h3" variant="title">
@@ -2959,6 +2961,7 @@ export function DesignSystemPreview() {
         <Icon name="home" />
       </FloatButton>
       <ThemeScope
+        id="ds-theme"
         role="group"
         aria-label="局部品牌主题预览"
         mode={mode === 'light' ? 'dark' : 'light'}
@@ -2977,7 +2980,7 @@ export function DesignSystemPreview() {
             menu: { radius: '0.75rem' },
           },
         }}
-        className="rounded-xl border border-border p-4"
+        className="scroll-mt-6 rounded-xl border border-border p-4"
       >
         <Stack direction="row" align="center" wrap gap="sm">
           <Typography as="span" variant="caption">
