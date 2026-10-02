@@ -3804,6 +3804,33 @@ test('overlay components keep focus, touch and safe-area behavior', async ({
     await page.getByRole('button', { name: '取消' }).click()
   }
   await expect(page.getByRole('dialog', { name: '确认删除？' })).toHaveCount(0)
+  const controlledConfirm = preview.getByRole('button', { name: '受控确认' })
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await controlledConfirm.tap()
+  } else {
+    await controlledConfirm.focus()
+    await controlledConfirm.press('Enter')
+  }
+  await expect(
+    page.getByRole('dialog', { name: '提交受控任务？' }),
+  ).toBeVisible()
+  await expect(preview.getByTestId('controlled-confirm-status')).toHaveText(
+    '受控确认已打开',
+  )
+  const submitControlled = page.getByRole('button', { name: '提交任务' })
+  const submitBox = await submitControlled.boundingBox()
+  expect(submitBox!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await submitControlled.tap()
+  } else {
+    await submitControlled.press('Enter')
+  }
+  await expect(
+    page.getByRole('dialog', { name: '提交受控任务？' }),
+  ).toHaveCount(0)
+  await expect(preview.getByTestId('controlled-confirm-status')).toHaveText(
+    '受控确认已关闭',
+  )
   const floatButton = preview.getByRole('button', { name: '浮动反馈' })
   await expect(floatButton).toBeVisible()
   const floatBox = await floatButton.boundingBox()

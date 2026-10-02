@@ -141,6 +141,7 @@ type TriggerElement = ReactElement<{
   'aria-controls'?: string
   'aria-haspopup'?: string
   'aria-describedby'?: string
+  disabled?: boolean
   'data-ui-tooltip-trigger'?: string
   'data-ui-dropdown-trigger'?: string
   'data-ui-popover-trigger'?: string
@@ -679,8 +680,15 @@ export type PopconfirmProps = {
   title: ReactNode
   description?: ReactNode
   children: TriggerElement
+  open?: boolean
+  defaultOpen?: boolean
+  onOpenChange?: (open: boolean) => void
+  disabled?: boolean
   okText?: string
   cancelText?: string
+  showCancel?: boolean
+  okButtonProps?: Omit<ButtonProps, 'children' | 'onClick'>
+  cancelButtonProps?: Omit<ButtonProps, 'children' | 'onClick'>
   onConfirm?: () => void | Promise<void>
   onCancel?: () => void
 }
@@ -690,13 +698,28 @@ export function Popconfirm({
   title,
   description,
   children,
+  open: controlledOpen,
+  defaultOpen = false,
+  onOpenChange,
+  disabled = false,
   okText = '确定',
   cancelText = '取消',
+  showCancel = true,
+  okButtonProps,
+  cancelButtonProps,
   onConfirm,
   onCancel,
 }: PopconfirmProps) {
-  const [open, setOpen] = useState(false)
+  const [internalOpen, setInternalOpen] = useState(defaultOpen)
   const [loading, setLoading] = useState(false)
+  const open = controlledOpen ?? internalOpen
+  const setOpen = useCallback(
+    (next: boolean) => {
+      if (controlledOpen === undefined) setInternalOpen(next)
+      onOpenChange?.(next)
+    },
+    [controlledOpen, onOpenChange],
+  )
   return (
     <Dialog
       title={title}
@@ -704,23 +727,29 @@ export function Popconfirm({
       open={open}
       onOpenChange={setOpen}
       trigger={cloneElement(children, {
+        disabled: disabled || children.props.disabled,
         onClick: (event) => {
+          if (disabled) return
           if (!callHandler(children.props.onClick, event)) return
           setOpen(true)
         },
       })}
       footer={
         <>
+          {showCancel && (
+            <Button
+              {...cancelButtonProps}
+              variant={cancelButtonProps?.variant ?? 'outline'}
+              onClick={() => {
+                onCancel?.()
+                setOpen(false)
+              }}
+            >
+              {cancelText}
+            </Button>
+          )}
           <Button
-            variant="outline"
-            onClick={() => {
-              onCancel?.()
-              setOpen(false)
-            }}
-          >
-            {cancelText}
-          </Button>
-          <Button
+            {...okButtonProps}
             loading={loading}
             onClick={async () => {
               setLoading(true)

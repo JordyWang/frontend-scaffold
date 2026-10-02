@@ -33,7 +33,7 @@
 | MultiSelect                     | `options`、`value` / `defaultValue`、`onValueChange`、`showSearch`、`allowClear`、`disabled`、`name`、`required`、`size`                               | 项目多选值为 `string[]`；弹层列表支持过滤、方向键、Enter/空格、Escape 和 H5 触控                                            |
 | Dialog / Modal / Sheet / Drawer | `title`、`description`、`trigger`、`children`、`footer`、`open` / `defaultOpen`、`onOpenChange`                                                        | `Modal`/`Drawer` 是项目 API 的 AntD 语义别名；焦点、Escape、背景滚动和 H5 底部面板由内部统一处理                            |
 | Dropdown / Tooltip / Popover    | `Dropdown(items, trigger)`；`Tooltip(title, children)`；`Popover(content, children, title?, label?, placement?)`                                       | 菜单支持 Enter、空格、上下方向键和 Escape；气泡内控件接续触发器的 Tab 顺序，提示用于可选信息，必要信息直接展示              |
-| Popconfirm / FloatButton        | `Popconfirm(title, description, onConfirm, onCancel)`；`FloatButton(label, position, shape)`                                                           | 确认操作复用 Dialog 焦点管理；浮动按钮保留安全区和 44px 触控尺寸                                                            |
+| Popconfirm / FloatButton        | `Popconfirm(title, description, open, defaultOpen, onOpenChange, disabled, showCancel, onConfirm, onCancel)`；`FloatButton(label, position, shape)`    | 确认操作复用 Dialog 焦点管理，支持受控开合和异步确认；浮动按钮保留安全区和 44px 触控尺寸                                    |
 | Toast                           | `ToastProvider`、`toast({ title, description?, variant?, duration? })`、`dismissToast(id?)`                                                            | 应用根部已有 Provider；`variant` 为 default / success / warning / error；系统深色和 H5 安全区由 Provider 处理               |
 | Tabs                            | `items`、`value` / `defaultValue`、`onValueChange`、`variant`、`size`、`placement`、增删回调、面板生命周期                                             | 卡片与标签增删、逻辑位置、容器响应式、面板保留/销毁、键盘与触控；详见 Tabs 契约                                             |
 | Pagination                      | `page`、`pageSize`、`total`、`onPageChange`、`mode`、`loading`、`disabled`                                                                             | `mode` 为 pages / load-more；页码从 1 开始；禁用时同步锁定页码、条数与跳页；窄屏区域独立滚动                                |
@@ -77,6 +77,8 @@
 `Breadcrumb.maxItems` 至少保留 3 项：第一项、尾部若干项和当前页；中间路径以 44px 折叠按钮代替。`expanded` / `defaultExpanded` / `onExpandedChange` 控制展开状态，受控值须由调用方接受。展开时隐藏项保持原来的链接、按钮或禁用语义，折叠按钮保留焦点并提供 `aria-expanded` 与所控制路径的关联。长路径在 `__ui` 中提供键盘、触控和 RTL 预览。
 
 `Tag` 默认是静态标签。`selectable` 提供带 `aria-pressed` 的选择按钮，`selected` / `defaultSelected` 与 `onSelectedChange` 管理选择状态；`closable` 提供独立关闭按钮，`open` / `defaultOpen` 与 `onOpenChange` 管理可见性。关闭先调用 `onClose(event)`，可通过 `event.preventDefault()` 取消；`closeLabel` 和 `closeIcon` 可定制关闭按钮。`disabled` 禁用选择和关闭操作。按钮均不提交外层表单，触控目标至少 44px；关闭后优先将焦点移到同组下一可操作项，其次移到上一项。受控值须由调用方更新。
+
+`Popconfirm` 通过 `open` / `defaultOpen` / `onOpenChange` 管理确认层，`disabled` 阻止触发，`showCancel` 可隐藏取消按钮；`okButtonProps` 和 `cancelButtonProps` 只覆写按钮外观与原生属性。确认回调支持 Promise，等待期间确认按钮保持 loading，成功后请求关闭；受控模式需由调用方接受关闭请求。取消始终调用 `onCancel` 后请求关闭，Dialog 的 Escape、关闭按钮和焦点恢复保持一致。
 
 `Badge.count` 接受非负有限数字或短字符串；数字零默认隐藏，`showZero` 可保留零，`dot` 显示圆点。数值超过 `max` 时只截断可见文本，可访问名称仍使用完整数值；`size` 为 default / small，`offset` 的两个数字分别沿逻辑末端向外、沿块方向向下偏移像素。`status` 支持 default / success / processing / warning / error，可配 `text`，圆点始终有可访问的状态名称；指定状态时优先展示状态点。`Badge.Ribbon` 的 `text`、`tone` 和 `placement` 控制卡片角标，start / end 随 RTL 方向变化。`label` 可覆写徽标的可访问名称；附着于控件时，业务入口本身仍需有名称。
 

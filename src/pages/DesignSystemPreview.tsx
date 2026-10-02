@@ -224,6 +224,9 @@ export function DesignSystemPreview() {
   const [bannerAlertOpen, setBannerAlertOpen] = useState(true)
   const [bannerAlertStatus, setBannerAlertStatus] =
     useState('Banner 提示可关闭')
+  const [controlledConfirmOpen, setControlledConfirmOpen] = useState(false)
+  const [controlledConfirmStatus, setControlledConfirmStatus] =
+    useState('受控确认已关闭')
   const [city, setCity] = useState('')
   const [selectedCity, setSelectedCity] = useState('尚未选择城市')
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
@@ -1614,6 +1617,26 @@ export function DesignSystemPreview() {
                   >
                     <Button variant="destructive">确认操作</Button>
                   </Popconfirm>
+                  <Popconfirm
+                    title="提交受控任务？"
+                    description="调用方决定何时关闭确认框。"
+                    open={controlledConfirmOpen}
+                    showCancel={false}
+                    okText="提交任务"
+                    onOpenChange={(next) => {
+                      setControlledConfirmOpen(next)
+                      setControlledConfirmStatus(
+                        next ? '受控确认已打开' : '受控确认已关闭',
+                      )
+                    }}
+                    onConfirm={() => {
+                      toast({ title: '受控任务已提交', variant: 'success' })
+                      setControlledConfirmOpen(false)
+                      setControlledConfirmStatus('受控确认已关闭')
+                    }}
+                  >
+                    <Button variant="outline">受控确认</Button>
+                  </Popconfirm>
                   <Button
                     variant="outline"
                     onClick={() =>
@@ -1626,6 +1649,13 @@ export function DesignSystemPreview() {
                     通知示例
                   </Button>
                 </Stack>
+                <p
+                  role="status"
+                  data-testid="controlled-confirm-status"
+                  className="m-0 text-sm text-muted-foreground"
+                >
+                  {controlledConfirmStatus}
+                </p>
                 <TooltipPreview />
               </Stack>
             </CardContent>
