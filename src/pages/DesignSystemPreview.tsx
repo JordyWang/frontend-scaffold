@@ -2974,6 +2974,12 @@ export function DesignSystemPreview() {
                       >
                         <Button variant="outline">打开 RTL 气泡</Button>
                       </Popover>
+                      <Tooltip
+                        title="起始边与文字方向一致。"
+                        placement="top-start"
+                      >
+                        <Button variant="outline">打开 RTL 提示</Button>
+                      </Tooltip>
                     </div>
                     <Table
                       caption="RTL 数据表"

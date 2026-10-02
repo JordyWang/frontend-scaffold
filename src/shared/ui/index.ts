@@ -356,6 +356,7 @@ export type {
   PopconfirmProps,
   PopoverPlacement,
   PopoverProps,
+  TooltipPlacement,
   TooltipProps,
 } from './overlay'
 export type { FloatButtonPosition } from './float-button-styles'

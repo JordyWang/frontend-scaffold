@@ -254,7 +254,7 @@ editable-card 提供 `onAdd()` 和 `onRemove(value)` 请求；items 始终由调
 
 `ref` 指向第一个原生范围输入，保留 `focus()` / `blur()`、标签、焦点和键盘事件。单值 `name` 按原生数值字符串提交，范围以一个 JSON 数组字段提交；部分禁用的范围保留完整数组，整体禁用时不提交。非受控原生 form reset 恢复默认值并尊重取消的重置事件，不触发值回调，也支持外部 `form` 关联；项目 `FormItem` 默认通过 `onChange` 连接，数组值使用 `emptyValue={[]}`。`/__ui` 提供单值、范围、多点、禁用点、离散刻度、方向、只读、表单和 240px RTL 深色预览。
 
-公共 `Tooltip` 支持 `open` / `defaultOpen` / `onOpenChange`、`disabled`、`mouseEnterDelay` / `mouseLeaveDelay`。延迟单位为秒，只影响悬停；键盘聚焦与触控立即显示，Escape、失焦或外部触控关闭。空 `title` 与禁用状态不挂载提示，也不添加 `aria-describedby`；子控件阻止默认焦点或指针事件时尊重其决定。
+公共 `Tooltip` 支持 `open` / `defaultOpen` / `onOpenChange`、`disabled`、`mouseEnterDelay` / `mouseLeaveDelay`。延迟单位为秒，只影响悬停；键盘聚焦与触控立即显示，Escape、失焦或外部触控关闭。`placement` 使用 `TooltipPlacement` 的上下左右及 `-start` / `-end` 共 12 种位置，靠近视口边缘时翻转并限制在可见范围；上下方向的起止对齐跟随 LTR/RTL。空 `title` 与禁用状态不挂载提示，也不添加 `aria-describedby`；子控件阻止默认焦点或指针事件时尊重其决定。
 
 ## 日期与时间的公共 format
 

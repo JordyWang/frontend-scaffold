@@ -506,10 +506,12 @@ export function Dropdown({
   )
 }
 
+export type TooltipPlacement = FloatingPlacement
+
 export type TooltipProps = {
   title: ReactNode
   children: TriggerElement
-  placement?: 'top' | 'bottom' | 'left' | 'right'
+  placement?: TooltipPlacement
   className?: string
   open?: boolean
   defaultOpen?: boolean
@@ -575,7 +577,7 @@ export function Tooltip({
   }, [cancelHoverTimer, enabled])
   const rootRef = useRef<HTMLSpanElement>(null)
   const tooltipRef = useRef<HTMLSpanElement>(null)
-  useFloatingPosition(rootRef, tooltipRef, open, placement)
+  useFloatingPosition(rootRef, tooltipRef, open, placement, direction)
   useEffect(() => {
     if (!open) return
     const onPointerDown = (event: PointerEvent) => {
