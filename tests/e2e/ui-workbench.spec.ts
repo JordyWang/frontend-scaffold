@@ -4162,6 +4162,8 @@ test('overlay triggers preserve keyboard activation and tab order', async ({
   const popoverTrigger = page.getByRole('button', { name: '查看说明' })
   await page.keyboard.press('Tab')
   await expect(page.getByRole('menu', { name: '菜单' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '打开筛选菜单' })).toBeFocused()
+  await page.keyboard.press('Tab')
   await expect(popoverTrigger).toBeFocused()
   await page.keyboard.press('Enter')
   const popover = page.getByRole('dialog', { name: '补充说明' })

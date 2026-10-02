@@ -40,7 +40,18 @@ const floatingPanelStyles =
   'invisible fixed z-[70] max-h-[calc(100dvh-1rem)] min-w-48 max-w-[min(22rem,calc(100vw-1rem))] overflow-auto border border-border bg-card text-card-foreground shadow-[0_12px_30px_rgb(0_0_0_/_0.16)]'
 
 type FloatingPlacement =
-  'bottom-start' | 'bottom-end' | 'top' | 'bottom' | 'left' | 'right'
+  | 'top'
+  | 'top-start'
+  | 'top-end'
+  | 'bottom'
+  | 'bottom-start'
+  | 'bottom-end'
+  | 'left'
+  | 'left-start'
+  | 'left-end'
+  | 'right'
+  | 'right-start'
+  | 'right-end'
 
 function useFloatingPosition(
   anchorRef: { current: HTMLElement | null },
@@ -75,40 +86,50 @@ function useFloatingPosition(
       let left: number
       let top: number
 
-      if (placement === 'bottom-start' || placement === 'bottom-end') {
-        const alignLeft =
-          (placement === 'bottom-start') !== (direction === 'rtl')
-        left = alignLeft ? anchorRect.left : anchorRect.right - panelRect.width
-        const roomBelow = viewportHeight - anchorRect.bottom - margin
-        const roomAbove = anchorRect.top - margin
-        top =
-          roomBelow >= panelRect.height || roomBelow >= roomAbove
-            ? anchorRect.bottom + gap
-            : anchorRect.top - panelRect.height - gap
-      } else if (placement === 'top' || placement === 'bottom') {
-        left = anchorRect.left + (anchorRect.width - panelRect.width) / 2
+      const [side, alignment] = placement.split('-') as [
+        'top' | 'bottom' | 'left' | 'right',
+        'start' | 'end' | undefined,
+      ]
+      let actualSide: 'top' | 'bottom' | 'left' | 'right'
+      if (side === 'top' || side === 'bottom') {
+        left =
+          alignment === undefined
+            ? anchorRect.left + (anchorRect.width - panelRect.width) / 2
+            : (alignment === 'start') === (direction === 'ltr')
+              ? anchorRect.left
+              : anchorRect.right - panelRect.width
         const roomBelow = viewportHeight - anchorRect.bottom - margin
         const roomAbove = anchorRect.top - margin
         const placeBelow =
-          placement === 'bottom'
+          side === 'bottom'
             ? roomBelow >= panelRect.height || roomBelow >= roomAbove
             : roomAbove < panelRect.height && roomBelow > roomAbove
+        actualSide = placeBelow ? 'bottom' : 'top'
         top = placeBelow
           ? anchorRect.bottom + gap
           : anchorRect.top - panelRect.height - gap
       } else {
-        top = anchorRect.top + (anchorRect.height - panelRect.height) / 2
+        top =
+          alignment === 'start'
+            ? anchorRect.top
+            : alignment === 'end'
+              ? anchorRect.bottom - panelRect.height
+              : anchorRect.top + (anchorRect.height - panelRect.height) / 2
         const roomLeft = anchorRect.left - margin
         const roomRight = viewportWidth - anchorRect.right - margin
         const placeRight =
-          placement === 'right'
+          side === 'right'
             ? roomRight >= panelRect.width || roomRight >= roomLeft
             : roomLeft < panelRect.width && roomRight > roomLeft
+        actualSide = placeRight ? 'right' : 'left'
         left = placeRight
           ? anchorRect.right + gap
           : anchorRect.left - panelRect.width - gap
       }
 
+      panel.dataset.uiFloatingPlacement = alignment
+        ? `${actualSide}-${alignment}`
+        : actualSide
       panel.style.left = `${Math.max(margin, Math.min(left, viewportWidth - panelRect.width - margin))}px`
       panel.style.top = `${Math.max(margin, Math.min(top, viewportHeight - panelRect.height - margin))}px`
       panel.style.visibility = 'visible'
@@ -626,6 +647,8 @@ export function Tooltip({
   )
 }
 
+export type PopoverPlacement = FloatingPlacement
+
 export type PopoverProps = {
   title?: ReactNode
   label?: string
@@ -634,7 +657,8 @@ export type PopoverProps = {
   open?: boolean
   defaultOpen?: boolean
   onOpenChange?: (open: boolean) => void
-  placement?: 'bottom-start' | 'bottom-end'
+  placement?: PopoverPlacement
+  trigger?: 'click' | 'hover' | 'focus'
   className?: string
 }
 
@@ -648,6 +672,7 @@ export function Popover({
   defaultOpen = false,
   onOpenChange,
   placement = 'bottom-start',
+  trigger: triggerMode = 'click',
   className,
 }: PopoverProps) {
   const { direction } = useConfig()
@@ -655,16 +680,37 @@ export function Popover({
   const isOpen = open ?? internalOpen
   const rootRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const skipNextFocusOpen = useRef(false)
   const id = useId()
   const titleId = `${id}-title`
   useFloatingPosition(rootRef, panelRef, isOpen, placement, direction)
   const setOpen = useCallback(
     (next: boolean) => {
+      if (next === isOpen) return
       if (open === undefined) setInternalOpen(next)
       onOpenChange?.(next)
     },
-    [onOpenChange, open],
+    [isOpen, onOpenChange, open],
   )
+  const clearCloseTimer = useCallback(() => {
+    if (closeTimer.current === null) return
+    clearTimeout(closeTimer.current)
+    closeTimer.current = null
+  }, [])
+  const scheduleHoverClose = () => {
+    if (triggerMode !== 'hover') return
+    clearCloseTimer()
+    closeTimer.current = setTimeout(() => {
+      const active = document.activeElement
+      if (
+        !rootRef.current?.contains(active) &&
+        !panelRef.current?.contains(active)
+      )
+        setOpen(false)
+    }, 100)
+  }
+  useEffect(() => clearCloseTimer, [clearCloseTimer])
   useEffect(() => {
     if (!isOpen) return
     const onPointerDown = (event: PointerEvent) => {
@@ -672,16 +718,23 @@ export function Popover({
       if (
         !rootRef.current?.contains(target) &&
         !panelRef.current?.contains(target)
-      )
+      ) {
+        clearCloseTimer()
         setOpen(false)
+      }
     }
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
+        clearCloseTimer()
         setOpen(false)
-        rootRef.current
-          ?.querySelector<HTMLElement>('[data-ui-popover-trigger]')
-          ?.focus()
+        const trigger = rootRef.current?.querySelector<HTMLElement>(
+          '[data-ui-popover-trigger]',
+        )
+        if (trigger && document.activeElement !== trigger) {
+          skipNextFocusOpen.current = true
+          trigger.focus()
+        }
       }
     }
     document.addEventListener('pointerdown', onPointerDown)
@@ -690,23 +743,55 @@ export function Popover({
       document.removeEventListener('pointerdown', onPointerDown)
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [isOpen, setOpen])
-  const handleTriggerClick = (event: MouseEvent) => {
-    if (!callHandler(children.props.onClick, event)) return
-    setOpen(!isOpen)
-  }
+  }, [clearCloseTimer, isOpen, setOpen])
   const trigger = cloneElement(children, {
     'aria-expanded': isOpen,
     'aria-controls': isOpen ? id : undefined,
     'aria-haspopup': 'dialog',
     'data-ui-popover-trigger': '',
-    onClick: handleTriggerClick,
   })
   return (
     <div
       ref={rootRef}
       dir={direction}
       className={cn('relative inline-flex max-w-full', className)}
+      onClick={(event) => {
+        if (event.defaultPrevented || !(event.target instanceof Element)) return
+        const clickedTrigger = event.target.closest('[data-ui-popover-trigger]')
+        if (!clickedTrigger || !event.currentTarget.contains(clickedTrigger))
+          return
+        clearCloseTimer()
+        setOpen(triggerMode === 'click' ? !isOpen : true)
+      }}
+      onPointerEnter={(event) => {
+        if (triggerMode !== 'hover' || event.pointerType === 'touch') return
+        clearCloseTimer()
+        setOpen(true)
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType === 'mouse' || event.pointerType === 'pen')
+          scheduleHoverClose()
+      }}
+      onFocus={() => {
+        if (skipNextFocusOpen.current) {
+          skipNextFocusOpen.current = false
+          return
+        }
+        if (triggerMode === 'click') return
+        clearCloseTimer()
+        setOpen(true)
+      }}
+      onBlur={(event) => {
+        if (triggerMode === 'click') return
+        const next = event.relatedTarget
+        if (
+          next instanceof Node &&
+          (rootRef.current?.contains(next) || panelRef.current?.contains(next))
+        )
+          return
+        if (triggerMode === 'hover') scheduleHoverClose()
+        else setOpen(false)
+      }}
       onKeyDown={(event) => {
         if (event.defaultPrevented || event.key !== 'Tab' || !isOpen) return
         if (event.shiftKey) {
@@ -732,6 +817,25 @@ export function Popover({
             dir={direction}
             aria-label={title ? undefined : label}
             aria-labelledby={title ? titleId : undefined}
+            onPointerEnter={() => clearCloseTimer()}
+            onPointerLeave={(event) => {
+              if (event.pointerType === 'mouse' || event.pointerType === 'pen')
+                scheduleHoverClose()
+            }}
+            onFocus={() => clearCloseTimer()}
+            onBlur={(event) => {
+              event.stopPropagation()
+              if (triggerMode === 'click') return
+              const next = event.relatedTarget
+              if (
+                next instanceof Node &&
+                (rootRef.current?.contains(next) ||
+                  panelRef.current?.contains(next))
+              )
+                return
+              if (triggerMode === 'hover') scheduleHoverClose()
+              else setOpen(false)
+            }}
             onKeyDown={(event) => {
               if (event.key !== 'Tab') return
               const focusable = getFocusable(event.currentTarget)

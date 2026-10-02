@@ -80,6 +80,8 @@
 
 `Popconfirm` 通过 `open` / `defaultOpen` / `onOpenChange` 管理确认层，`disabled` 阻止触发，`showCancel` 可隐藏取消按钮；`okButtonProps` 和 `cancelButtonProps` 只覆写按钮外观与原生属性。确认回调支持 Promise，等待期间确认按钮保持 loading，成功后请求关闭；受控模式需由调用方接受关闭请求。取消始终调用 `onCancel` 后请求关闭，Dialog 的 Escape、关闭按钮和焦点恢复保持一致。
 
+`Popover.trigger` 默认为 `click`，也可设为 `hover` 或 `focus`；后两种模式仍可轻触触发器打开，避免在 H5 依赖悬停。`placement` 使用项目的 `PopoverPlacement`：`top`、`bottom`、`left`、`right` 及各自的 `-start` / `-end` 变体，共 12 种，靠近视口边缘时自动翻转并限制在可见区域。`open` / `defaultOpen` / `onOpenChange` 管理受控或内部状态。焦点可在触发器和 Portal 内容间移动；Escape 关闭并返回触发器，点击外部关闭，悬停模式在离开后短暂延迟关闭。
+
 `Dropdown.items` 支持普通项、`{ type: 'divider' }` 和带 `children` 的 `group`；`selectionMode` 为 `none` / `single` / `multiple`，选择值通过 `selectedKeys` / `defaultSelectedKeys` 与 `onSelectionChange` 管理。多选默认保持菜单打开，可用 `closeOnSelect` 覆写；选中项使用 `menuitemradio` 或 `menuitemcheckbox` 语义，禁用项不进入方向键序列。分组标题、分隔线和菜单项均不破坏 Portal、RTL、键盘与 44px 触控约定。
 
 `Badge.count` 接受非负有限数字或短字符串；数字零默认隐藏，`showZero` 可保留零，`dot` 显示圆点。数值超过 `max` 时只截断可见文本，可访问名称仍使用完整数值；`size` 为 default / small，`offset` 的两个数字分别沿逻辑末端向外、沿块方向向下偏移像素。`status` 支持 default / success / processing / warning / error，可配 `text`，圆点始终有可访问的状态名称；指定状态时优先展示状态点。`Badge.Ribbon` 的 `text`、`tone` 和 `placement` 控制卡片角标，start / end 随 RTL 方向变化。`label` 可覆写徽标的可访问名称；附着于控件时，业务入口本身仍需有名称。

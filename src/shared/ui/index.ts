@@ -354,6 +354,7 @@ export type {
   FloatButtonLinkProps,
   FloatButtonProps,
   PopconfirmProps,
+  PopoverPlacement,
   PopoverProps,
   TooltipProps,
 } from './overlay'

@@ -118,8 +118,24 @@ import {
   notification,
   toast,
   type DateRange,
+  type PopoverPlacement,
   type TimeRange,
 } from '@/shared/ui'
+
+const popoverPlacements: PopoverPlacement[] = [
+  'top',
+  'top-start',
+  'top-end',
+  'bottom',
+  'bottom-start',
+  'bottom-end',
+  'left',
+  'left-start',
+  'left-end',
+  'right',
+  'right-start',
+  'right-end',
+]
 
 const teamTreeData = [
   {
@@ -228,6 +244,9 @@ export function DesignSystemPreview() {
   const [controlledConfirmOpen, setControlledConfirmOpen] = useState(false)
   const [controlledConfirmStatus, setControlledConfirmStatus] =
     useState('受控确认已关闭')
+  const [controlledPopoverOpen, setControlledPopoverOpen] = useState(false)
+  const [popoverPlacement, setPopoverPlacement] =
+    useState<PopoverPlacement>('bottom-start')
   const [dropdownSelection, setDropdownSelection] = useState<string[]>(['all'])
   const [dropdownSelectionStatus, setDropdownSelectionStatus] =
     useState('已选择：全部')
@@ -1712,6 +1731,83 @@ export function DesignSystemPreview() {
                   {controlledConfirmStatus}
                 </p>
                 <TooltipPreview />
+                <div
+                  role="group"
+                  aria-label="Popover 触发与位置预览"
+                  className="grid gap-3"
+                >
+                  <p className="m-0 text-sm text-muted-foreground">
+                    悬停、聚焦或轻触可查看补充内容，Escape 返回触发按钮。
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Popover
+                      title="悬停气泡"
+                      content={
+                        <Button variant="outline">悬停气泡内操作</Button>
+                      }
+                      trigger="hover"
+                      placement="top-end"
+                    >
+                      <Button variant="outline">悬停查看气泡</Button>
+                    </Popover>
+                    <Popover
+                      title="聚焦气泡"
+                      content={
+                        <Button variant="outline">聚焦气泡内操作</Button>
+                      }
+                      trigger="focus"
+                      placement="right-start"
+                    >
+                      <Button variant="outline">聚焦查看气泡</Button>
+                    </Popover>
+                    <Popover
+                      title="受控气泡"
+                      content="开合由外部状态控制。"
+                      open={controlledPopoverOpen}
+                      onOpenChange={setControlledPopoverOpen}
+                      placement="left-end"
+                    >
+                      <Button variant="outline">切换受控气泡</Button>
+                    </Popover>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setControlledPopoverOpen(true)}
+                    >
+                      外部打开气泡
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setControlledPopoverOpen(false)}
+                    >
+                      外部关闭气泡
+                    </Button>
+                    <Select
+                      label="气泡位置"
+                      aria-label="气泡位置"
+                      value={popoverPlacement}
+                      onValueChange={(next) =>
+                        setPopoverPlacement(next as PopoverPlacement)
+                      }
+                      options={popoverPlacements.map((value) => ({
+                        value,
+                        label: value,
+                      }))}
+                    />
+                    <Popover
+                      title="位置气泡"
+                      content={`当前请求位置：${popoverPlacement}`}
+                      placement={popoverPlacement}
+                    >
+                      <Button variant="outline">查看位置气泡</Button>
+                    </Popover>
+                  </div>
+                  <p
+                    role="status"
+                    className="m-0 text-sm text-muted-foreground"
+                  >
+                    受控气泡：{controlledPopoverOpen ? '已打开' : '已关闭'}
+                  </p>
+                </div>
               </Stack>
             </CardContent>
           </Card>
