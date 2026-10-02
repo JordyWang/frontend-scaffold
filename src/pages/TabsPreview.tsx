@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { cloneElement, useRef, useState } from 'react'
 import {
   Button,
   Card,
@@ -12,6 +12,7 @@ import {
   Tabs,
   Typography,
   type TabItem,
+  type TabsBarItemRender,
   type TabsProps,
 } from '@/shared/ui'
 
@@ -125,6 +126,124 @@ function DeferredTabs() {
         当前 {value} · 请求{' '}
         {pending ? pending.kind + ':' + pending.value : '无'} · 待选择{' '}
         {nextValue ?? '无'}
+      </p>
+    </section>
+  )
+}
+
+function SortableTabsDemo() {
+  const [items, setItems] = useState<TabItem[]>([
+    { value: 'overview', label: '概览', content: '概览内容' },
+    {
+      value: 'draft-a',
+      label: '草稿甲',
+      content: <DraftPanel title="草稿甲" />,
+    },
+    {
+      value: 'draft-b',
+      label: '草稿乙',
+      content: <DraftPanel title="草稿乙" />,
+    },
+  ])
+  const [selected, setSelected] = useState('draft-a')
+  const dragging = useRef<string | null>(null)
+  const selectionBeforeDrag = useRef<string | null>(null)
+
+  const move = (source: string, target: string) => {
+    if (source === target) return
+    const sourceIndex = items.findIndex((item) => item.value === source)
+    const targetIndex = items.findIndex((item) => item.value === target)
+    if (sourceIndex < 0 || targetIndex < 0) return
+    const next = [...items]
+    const [moved] = next.splice(sourceIndex, 1)
+    next.splice(targetIndex, 0, moved)
+    setItems(next)
+  }
+  const moveSelected = (offset: -1 | 1) => {
+    const index = items.findIndex((item) => item.value === selected)
+    const target = items[index + offset]
+    if (target) move(selected, target.value)
+  }
+  const renderTabBarItem: TabsBarItemRender = (item, defaultItem) =>
+    cloneElement(defaultItem, {
+      draggable: true,
+      onPointerDownCapture: () => {
+        selectionBeforeDrag.current = selected
+      },
+      onPointerUpCapture: () => {
+        if (!dragging.current) selectionBeforeDrag.current = null
+      },
+      onDragStart: (event) => {
+        if (
+          event.target instanceof HTMLElement &&
+          event.target.closest('button:not([role="tab"])')
+        ) {
+          event.preventDefault()
+          return
+        }
+        dragging.current = item.value
+        selectionBeforeDrag.current ??= selected
+        event.dataTransfer.effectAllowed = 'move'
+        event.dataTransfer.setData('text/plain', item.value)
+      },
+      onDragOver: (event) => {
+        if (dragging.current && dragging.current !== item.value)
+          event.preventDefault()
+      },
+      onDrop: (event) => {
+        event.preventDefault()
+        const source = dragging.current
+        dragging.current = null
+        if (source) move(source, item.value)
+      },
+      onDragEnd: () => {
+        dragging.current = null
+        if (selectionBeforeDrag.current !== null)
+          setSelected(selectionBeforeDrag.current)
+        selectionBeforeDrag.current = null
+      },
+    })
+
+  const index = items.findIndex((item) => item.value === selected)
+  return (
+    <section aria-label="标签拖拽组合预览" className="min-w-0 space-y-3">
+      <Typography as="h3" variant="title">
+        外部排序组合
+      </Typography>
+      <Typography tone="muted">
+        桌面可拖动标签标题；键盘和手机可选中标签后使用前移、后移按钮。排序数据由示例维护。
+      </Typography>
+      <Tabs
+        label="可排序标签"
+        variant="editable-card"
+        addable={false}
+        items={items}
+        value={selected}
+        onValueChange={setSelected}
+        renderTabBarItem={renderTabBarItem}
+      />
+      <div
+        role="group"
+        aria-label="标签排序操作"
+        className="flex flex-wrap gap-2"
+      >
+        <Button
+          variant="outline"
+          disabled={index <= 0}
+          onClick={() => moveSelected(-1)}
+        >
+          前移当前标签
+        </Button>
+        <Button
+          variant="outline"
+          disabled={index < 0 || index >= items.length - 1}
+          onClick={() => moveSelected(1)}
+        >
+          后移当前标签
+        </Button>
+      </div>
+      <p role="status" className="m-0 text-sm text-muted-foreground">
+        当前：{selected}；顺序：{items.map((item) => item.value).join(' → ')}
       </p>
     </section>
   )
@@ -361,6 +480,7 @@ export function TabsPreview() {
             </div>
           </section>
           <DeferredTabs />
+          <SortableTabsDemo />
           <ConfigProvider
             direction="rtl"
             componentSize="small"

@@ -1,5 +1,6 @@
 import * as TabsPrimitive from '@radix-ui/react-tabs'
 import {
+  Fragment,
   useCallback,
   forwardRef,
   isValidElement,
@@ -62,6 +63,10 @@ export type TabsMoreOptions = {
     info: { restTabs: TabItem[]; onClose: () => void },
   ) => ReactElement
 }
+export type TabsBarItemRender = (
+  item: TabItem,
+  defaultItem: ReactElement<HTMLAttributes<HTMLDivElement>>,
+) => ReactElement
 export type TabsProps = Omit<HTMLAttributes<HTMLDivElement>, 'onChange'> & {
   items: TabItem[]
   value?: string
@@ -84,6 +89,7 @@ export type TabsProps = Omit<HTMLAttributes<HTMLDivElement>, 'onChange'> & {
   centered?: boolean
   tabBarExtraContent?: ReactNode | { start?: ReactNode; end?: ReactNode }
   more?: TabsMoreOptions | false
+  renderTabBarItem?: TabsBarItemRender
   classNames?: Partial<Record<TabsPart, string>>
   className?: string
   label?: string
@@ -132,6 +138,7 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>(function Tabs(
     centered = false,
     tabBarExtraContent,
     more,
+    renderTabBarItem,
     classNames,
     className,
     label = '内容分组',
@@ -722,7 +729,7 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>(function Tabs(
               (typeof item.label === 'string' || typeof item.label === 'number'
                 ? String(item.label)
                 : item.value)
-            return (
+            const defaultItem = (
               <div
                 key={item.value}
                 ref={(node) => {
@@ -881,6 +888,13 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>(function Tabs(
                   />
                 )}
               </div>
+            )
+            return renderTabBarItem ? (
+              <Fragment key={item.value}>
+                {renderTabBarItem(item, defaultItem)}
+              </Fragment>
+            ) : (
+              defaultItem
             )
           })}
           {editable && addable && (

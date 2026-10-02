@@ -33,9 +33,13 @@ test('editable cards close independently, select accepted additions and emit one
     .getByRole('button', { name: '关闭草稿 1', exact: true })
     .boundingBox())!
   const listBox = (await list.boundingBox())!
+  // WebKit rounds fractional scroll offsets, leaving up to about 1.5 CSS px.
+  const edgeTolerance = 2
   for (const box of [tabBox, closeBox]) {
-    expect(box.x).toBeGreaterThanOrEqual(listBox.x - 1)
-    expect(box.x + box.width).toBeLessThanOrEqual(listBox.x + listBox.width + 1)
+    expect(box.x).toBeGreaterThanOrEqual(listBox.x - edgeTolerance)
+    expect(box.x + box.width).toBeLessThanOrEqual(
+      listBox.x + listBox.width + edgeTolerance,
+    )
   }
   expect(
     await list

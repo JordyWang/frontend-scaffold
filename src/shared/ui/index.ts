@@ -70,6 +70,7 @@ export { toast, dismissToast, message, notification } from './toast'
 export type { MessageContent, NotificationOptions, ToastOptions } from './toast'
 export { Tabs } from './tabs'
 export type {
+  TabsBarItemRender,
   TabsProps,
   TabItem,
   TabsPart,

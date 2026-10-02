@@ -154,6 +154,8 @@
 
 默认启用更多标签入口，只有标签实际超出滚动区域时显示；传 `more={false}` 可关闭。`more` 可配置 `label`、`icon`、`searchable`、`searchPlaceholder` 和 `popupRender(menu, { restTabs, onClose })`。入口使用 Portal 和视觉视窗定位，打开后搜索框或首个标签获得焦点；输入搜索、方向键、Home/End、Enter、Escape 和 Tab 均有明确行为，选择后恢复到对应标签。菜单中的 disabled 标签不可选，RTL 与 H5 触控沿用项目方向、焦点和 44px 约定。
 
+`renderTabBarItem(item, defaultItem)` 是外部排序库或原生拖放的组合入口。返回增强后的默认标签项，保留其 ref、`data-tabs-item`、tab/关闭按钮、Tailwind 类和焦点语义；可用 `cloneElement` 附加拖放事件，或用保持原节点可见尺寸的组件包裹。Tabs 不在拖放时自行改写 `items`，调用方按稳定的 `value` 更新数组顺序；需要为键盘和 H5 提供等效的前移/后移操作。`/__ui` 展示桌面拖动、键盘及触控按钮排序，并在移动非当前标签后保留原选择和面板草稿。
+
 ### 标签增删
 
 editable-card 提供 `onAdd()` 和 `onRemove(value)` 请求；items 始终由调用方维护。只有调用方实际插入/删除对应项后才执行选择与焦点交接；回调返回 false 可明确拒绝请求，void 表示等待数据更新。新增后请求选择第一个新出现且可用的标签；关闭当前项后优先选择之前的可用项，没有则选择之后的可用项。关闭非当前项保持原选择；关闭最后一项调用 `onValueChange('')`，展示 emptyTitle（默认“暂无可用标签页”）。受控 value 等待调用方接受更新，新增受控项的焦点同样等待实际选择；异步更新期间若用户已离开组件，不抢回外部焦点。
