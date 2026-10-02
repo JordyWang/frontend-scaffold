@@ -13,6 +13,10 @@ export type BreadcrumbProps = {
   items: BreadcrumbItem[]
   separator?: ReactNode
   label?: string
+  maxItems?: number
+  expanded?: boolean
+  defaultExpanded?: boolean
+  onExpandedChange?: (expanded: boolean) => void
   className?: string
 }
 
@@ -20,15 +24,34 @@ const breadcrumbItemStyles =
   'inline-flex min-h-11 max-w-full items-center rounded-[var(--radius-sm)] px-2 py-2 leading-[1.4] text-inherit no-underline'
 
 const breadcrumbActionStyles =
-  'touch-manipulation cursor-pointer border-0 bg-transparent hover:bg-accent hover:text-accent-foreground'
+  'touch-manipulation cursor-pointer border-0 bg-transparent outline-none hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
 /** A semantic breadcrumb trail with touch-sized links and a named landmark. */
 export function Breadcrumb({
   items,
   separator = '/',
   label = '面包屑导航',
+  maxItems,
+  expanded,
+  defaultExpanded = false,
+  onExpandedChange,
   className,
 }: BreadcrumbProps) {
+  const [internalExpanded, setInternalExpanded] = useState(defaultExpanded)
+  const isExpanded = expanded ?? internalExpanded
+  const id = useId()
+  const visibleCount =
+    maxItems !== undefined && Number.isFinite(maxItems)
+      ? Math.max(3, Math.floor(maxItems))
+      : items.length
+  const hasOverflow = items.length > visibleCount
+  const hiddenEnd = items.length - visibleCount + 1
+  const hiddenCount = hasOverflow ? hiddenEnd - 1 : 0
+  const hiddenIds = Array.from(
+    { length: hiddenCount },
+    (_, index) => `${id}-hidden-${index + 1}`,
+  )
+
   return (
     <nav
       aria-label={label}
@@ -38,8 +61,17 @@ export function Breadcrumb({
         {items.map((item, index) => {
           const current = index === items.length - 1
           const key = item.key ?? String(index)
+          const isMiddle = hasOverflow && index > 0 && index < hiddenEnd
           return (
-            <li key={key} className="inline-flex min-w-0 items-center gap-1">
+            <li
+              key={key}
+              id={isMiddle ? `${id}-hidden-${index}` : undefined}
+              hidden={isMiddle && !isExpanded}
+              className={cn(
+                'inline-flex min-w-0 items-center gap-1',
+                isMiddle && !isExpanded && 'hidden',
+              )}
+            >
               {current ? (
                 <span
                   aria-current="page"
@@ -82,6 +114,38 @@ export function Breadcrumb({
                   aria-hidden="true"
                 >
                   {separator}
+                </span>
+              )}
+              {index === 0 && hasOverflow && (
+                <span className="inline-flex min-w-0 items-center gap-1">
+                  <button
+                    type="button"
+                    aria-expanded={isExpanded}
+                    aria-controls={hiddenIds.join(' ')}
+                    aria-label={
+                      isExpanded
+                        ? '收起中间路径'
+                        : `展开完整路径，隐藏 ${hiddenCount} 项`
+                    }
+                    className={cn(
+                      breadcrumbItemStyles,
+                      breadcrumbActionStyles,
+                      'min-w-11 justify-center',
+                    )}
+                    onClick={() => {
+                      if (expanded === undefined)
+                        setInternalExpanded(!isExpanded)
+                      onExpandedChange?.(!isExpanded)
+                    }}
+                  >
+                    {isExpanded ? '收起' : '…'}
+                  </button>
+                  <span
+                    className="select-none text-muted-foreground"
+                    aria-hidden="true"
+                  >
+                    {separator}
+                  </span>
                 </span>
               )}
             </li>

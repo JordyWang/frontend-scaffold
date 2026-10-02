@@ -112,6 +112,82 @@ describe('Ant Design-inspired shared components', () => {
     expect(onClick).toHaveBeenCalledTimes(2)
   })
 
+  it('collapses long breadcrumb paths while keeping hidden items accessible on expansion', () => {
+    const onClick = vi.fn()
+    const onExpandedChange = vi.fn()
+    render(
+      <Breadcrumb
+        maxItems={3}
+        onExpandedChange={onExpandedChange}
+        items={[
+          { title: '首页', href: '#home' },
+          { title: '项目', href: '#projects' },
+          { title: '详情', onClick },
+          { title: '版本', disabled: true },
+          { title: '记录', href: '#record' },
+          { title: '当前页' },
+        ]}
+      />,
+    )
+    const expand = screen.getByRole('button', {
+      name: '展开完整路径，隐藏 3 项',
+    })
+    expect(expand).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('link', { name: '项目' })).toBeNull()
+    expect(screen.getByRole('link', { name: '记录' })).toBeInTheDocument()
+    const controlledIds = expand.getAttribute('aria-controls')?.split(' ')
+    expect(controlledIds).toHaveLength(3)
+    for (const id of controlledIds ?? [])
+      expect(document.getElementById(id)).toHaveAttribute('hidden')
+
+    expand.focus()
+    fireEvent.click(expand)
+    expect(onExpandedChange).toHaveBeenCalledWith(true)
+    expect(expand).toHaveFocus()
+    expect(expand).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('link', { name: '项目' })).toHaveAttribute(
+      'href',
+      '#projects',
+    )
+    fireEvent.click(screen.getByRole('button', { name: '详情' }))
+    expect(onClick).toHaveBeenCalledOnce()
+    expect(screen.getByText('版本')).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(screen.getByRole('button', { name: '收起中间路径' }))
+    expect(onExpandedChange).toHaveBeenLastCalledWith(false)
+    expect(screen.queryByRole('link', { name: '项目' })).toBeNull()
+  })
+
+  it('lets the caller accept or reject breadcrumb expansion', () => {
+    const onExpandedChange = vi.fn()
+    const items = [
+      { title: '根', href: '#root' },
+      { title: '一层', href: '#one' },
+      { title: '二层', href: '#two' },
+      { title: '三层', href: '#three' },
+      { title: '当前' },
+    ]
+    const { rerender } = render(
+      <Breadcrumb
+        items={items}
+        maxItems={3}
+        expanded={false}
+        onExpandedChange={onExpandedChange}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: /展开完整路径/ }))
+    expect(onExpandedChange).toHaveBeenCalledWith(true)
+    expect(screen.queryByRole('link', { name: '一层' })).toBeNull()
+    rerender(
+      <Breadcrumb
+        items={items}
+        maxItems={3}
+        expanded
+        onExpandedChange={onExpandedChange}
+      />,
+    )
+    expect(screen.getByRole('link', { name: '一层' })).toBeInTheDocument()
+  })
+
   it('pauses carousel rotation when focus enters and resumes on request', () => {
     vi.useFakeTimers()
     try {

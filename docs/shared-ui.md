@@ -49,7 +49,7 @@
 | Masonry                         | `items`、`columns`、`gap`、`onLayoutChange`                                                                                                            | 按最短列排布不同高度内容；按容器宽度响应列数，内容或图片尺寸变化后重新测量                                                  |
 | Layout                          | `Layout`、`Layout.Header`、`Layout.Sider`、`Layout.Content`、`Layout.Footer`；Sider 支持断点与受控折叠                                                 | 页面结构使用语义元素；窄屏侧栏借助 Sheet 处理焦点、Escape 和背景滚动                                                        |
 | Space                           | `direction`、`size`、`align`、`wrap`、`split`                                                                                                          | 默认水平排列；支持数字间距和窄屏换行，分隔符为装饰性内容                                                                    |
-| Breadcrumb / Steps              | `Breadcrumb(items, separator, label)`；`Steps(items, current, status, direction, onChange)`                                                            | 使用 `nav`/`ol` 语义；步骤支持键盘激活和当前步骤标记，窄屏可横向滚动                                                        |
+| Breadcrumb / Steps              | `Breadcrumb(items, separator, label, maxItems, expanded)`；`Steps(items, current, status, direction, onChange)`                                        | 使用 `nav`/`ol` 语义；长路径可折叠；步骤支持键盘激活和当前步骤标记，窄屏可横向滚动                                          |
 | Menu / Anchor / Affix           | `Menu(items, selectedKeys, mode, onSelect)`；`Anchor(links, activeHref)`；`Affix(offsetTop?, offsetBottom?, target?, onChange?)`                       | 菜单支持方向键；页内导航使用原生锚点；Affix 按目标滚动容器固定，保留占位空间，支持顶部/底部偏移和状态回调                   |
 | Checkbox / Radio / Switch       | 原生 input 属性、`label`、`size`、`invalid`；`RadioGroup(options, value, onValueChange, required)`                                                     | 原生键盘行为和表单提交；标签提供 44px 触控区域                                                                              |
 | Segmented                       | `options`、`value` / `defaultValue`、`onChange`、`size`、`block`、`disabled`                                                                           | 原生单选控件；显式 `value={undefined}` 可清空，非受控选项失效时回退到可用项；支持方向键和窄屏横向滚动                       |
@@ -73,6 +73,8 @@
 | Timeline                        | `items`、`mode`、`orientation`、`reverse`、`variant`、`labelWidth`、`label`、`emptyText`、`classNames`                                                 | 原生有序列表；两侧与交替布局、水平滚动、容器响应式、加载与文字状态、动态焦点恢复                                            |
 | Carousel                        | `items`、`index` / `defaultIndex`、`autoplay`、`dots`、`dotPlacement`、`effect`、`infinite`、`adaptiveHeight`、`ref`                                   | 受控轮播、四向指示点、两种动效、键盘/手势切换、播放进度及隐藏内容焦点恢复                                                   |
 | Tree                            | `treeData`、`expandedKeys`、`selectedKey` / `selectedKeys`、`checkedKeys`、`multiple`、`loadChildren`、`classNames`                                    | 选择和勾选独立；父子传导与半选、禁用边界、异步加载与取消/重试、唯一 Tab 入口、RTL 键盘与空状态                              |
+
+`Breadcrumb.maxItems` 至少保留 3 项：第一项、尾部若干项和当前页；中间路径以 44px 折叠按钮代替。`expanded` / `defaultExpanded` / `onExpandedChange` 控制展开状态，受控值须由调用方接受。展开时隐藏项保持原来的链接、按钮或禁用语义，折叠按钮保留焦点并提供 `aria-expanded` 与所控制路径的关联。长路径在 `__ui` 中提供键盘、触控和 RTL 预览。
 
 `Alert` 的 `description`、`action` 可放入补充内容与操作；`showIcon`、`icon` 和 `closeIcon` 控制装饰图标。`closable` 开启关闭按钮，`closeLabel` 为其命名。`open` / `defaultOpen` 控制可见性，关闭操作先调用 `onOpenChange(false)` 和 `onDismiss(event)`；实际关闭后调用 `afterClose()`。受控状态由调用方接受关闭请求，未接受时提示继续显示。
 

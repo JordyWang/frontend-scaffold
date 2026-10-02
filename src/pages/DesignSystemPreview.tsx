@@ -237,6 +237,7 @@ export function DesignSystemPreview() {
   const [treeExpanded, setTreeExpanded] = useState(['components'])
   const [carouselAutoplay, setCarouselAutoplay] = useState(false)
   const [menuExpanded, setMenuExpanded] = useState<string[]>([])
+  const [breadcrumbStatus, setBreadcrumbStatus] = useState('路径已折叠')
   const [affixStatus, setAffixStatus] = useState('未固定')
   const [affixBottomStatus, setAffixBottomStatus] = useState('未固定')
   const [transferDisabled, setTransferDisabled] = useState(false)
@@ -1636,6 +1637,57 @@ export function DesignSystemPreview() {
                     { title: '当前页' },
                   ]}
                 />
+                <div
+                  className="grid min-w-0 gap-2 rounded-[var(--radius-md)] border border-border p-3"
+                  data-breadcrumb-preview
+                >
+                  <Typography as="span" variant="caption">
+                    长路径与折叠状态
+                  </Typography>
+                  <Breadcrumb
+                    label="长路径导航"
+                    maxItems={3}
+                    onExpandedChange={(next) =>
+                      setBreadcrumbStatus(next ? '路径已展开' : '路径已折叠')
+                    }
+                    items={[
+                      { key: 'home', title: '工作台', href: '#' },
+                      {
+                        key: 'projects',
+                        title: '项目列表',
+                        href: '#preview-result',
+                      },
+                      {
+                        key: 'project',
+                        title: '项目 A',
+                        onClick: () => setBreadcrumbStatus('已打开项目 A'),
+                      },
+                      { key: 'history', title: '历史版本', disabled: true },
+                      {
+                        key: 'record',
+                        title: '记录 B',
+                        href: '#preview-timeline',
+                      },
+                      { key: 'current', title: '当前详情' },
+                    ]}
+                  />
+                  <span role="status" className="text-sm text-muted-foreground">
+                    {breadcrumbStatus}
+                  </span>
+                  <ConfigProvider direction="rtl">
+                    <Breadcrumb
+                      label="RTL 长路径导航"
+                      maxItems={3}
+                      items={[
+                        { title: '起点', href: '#' },
+                        { title: '资料夹', href: '#' },
+                        { title: '二级资料夹', href: '#' },
+                        { title: '三级资料夹', href: '#' },
+                        { title: '当前条目' },
+                      ]}
+                    />
+                  </ConfigProvider>
+                </div>
                 <div
                   className="grid gap-2 rounded-[var(--radius-md)] border border-border bg-muted/30 p-3"
                   data-affix-preview
