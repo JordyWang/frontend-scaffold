@@ -13,6 +13,21 @@ const longText =
   '组件库统一文字、复制和编辑操作。长内容按容器宽度省略，展开后可以完整阅读，复制始终保留完整内容。'.repeat(
     5,
   )
+function StatefulNote() {
+  const [count, setCount] = useState(0)
+  return (
+    <a
+      href="#typography-details"
+      className="text-primary underline"
+      onClick={(event) => {
+        event.preventDefault()
+        setCount((value) => value + 1)
+      }}
+    >
+      已阅读 {count} 次
+    </a>
+  )
+}
 export function TypographyPreview() {
   const [value, setValue] = useState('可以编辑的项目说明')
   const [editing, setEditing] = useState(false)
@@ -21,6 +36,8 @@ export function TypographyPreview() {
   const [expanded, setExpanded] = useState(false)
   const [short, setShort] = useState(false)
   const [wide, setWide] = useState(false)
+  const [suffixRows, setSuffixRows] = useState(2)
+  const [suffixWide, setSuffixWide] = useState(false)
   const copyAttempt = useRef(0)
   const requestText = useCallback(async () => {
     const attempt = ++copyAttempt.current
@@ -185,6 +202,125 @@ export function TypographyPreview() {
               <Typography tone="danger">错误：提交失败。</Typography>
             </div>
           </div>
+          <section aria-label="行内后缀预览" className="min-w-0 space-y-3">
+            <Typography as="h3" variant="title">
+              末行后缀与文件名中间省略
+            </Typography>
+            <Typography tone="muted">
+              后缀留在最后一行，展开后接回完整正文；较长后缀可以换行。
+            </Typography>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setSuffixRows(suffixRows === 2 ? 3 : 2)}
+              >
+                {suffixRows === 2 ? '后缀改为三行' : '后缀恢复两行'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setSuffixWide(!suffixWide)}
+              >
+                {suffixWide ? '收窄后缀容器' : '放宽后缀容器'}
+              </Button>
+            </div>
+            <div
+              role="group"
+              aria-label="后缀尺寸预览"
+              className={
+                suffixWide
+                  ? 'w-full min-w-0 space-y-4'
+                  : 'w-60 max-w-full min-w-0 space-y-4'
+              }
+            >
+              <Typography
+                label="单行文件名"
+                copyable
+                ellipsis={{
+                  rows: 1,
+                  suffix: '_最终版.mp4',
+                  expandable: 'collapsible',
+                  tooltip: true,
+                }}
+              >
+                年度项目成果与产品使用说明视频_abcdefghijklmnopqrstuvwxyz_0123456789
+              </Typography>
+              <Typography
+                label="多行摘要"
+                copyable
+                ellipsis={{
+                  rows: suffixRows,
+                  suffix: '（完整报告）',
+                  expandable: 'collapsible',
+                }}
+                classNames={{ content: 'rounded-md border border-border p-2' }}
+              >
+                {longText}
+              </Typography>
+              <Typography
+                label="简短文件名"
+                ellipsis={{ suffix: '.mp4', expandable: 'collapsible' }}
+              >
+                预览
+              </Typography>
+              <Typography
+                label="长后缀"
+                copyable
+                ellipsis={{
+                  rows: 2,
+                  suffix:
+                    '_完整保存的超长文件后缀_abcdefghijklmnopqrstuvwxyz_0123456789.mp4',
+                  expandable: 'collapsible',
+                }}
+              >
+                {longText}
+              </Typography>
+              <Typography
+                label="有状态后缀"
+                copyable
+                ellipsis={{
+                  rows: 2,
+                  suffix: '（查看原文）',
+                  expandable: 'collapsible',
+                }}
+              >
+                <StatefulNote />
+                {longText}
+              </Typography>
+            </div>
+          </section>
+          <section aria-label="原生文档表格预览" className="min-w-0 space-y-3">
+            <Typography as="h3" variant="title">
+              文档表格
+            </Typography>
+            <div className="w-60 max-w-full min-w-0">
+              <Typography as="div" label="文档规则">
+                <table className="min-w-[36rem]">
+                  <caption>文字约定</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">能力</th>
+                      <th scope="col" className="bg-accent text-center">
+                        操作
+                      </th>
+                      <th scope="col">说明</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <th scope="row">复制</th>
+                      <td>按钮 / 键盘</td>
+                      <td>复制完整正文与后缀</td>
+                    </tr>
+                    <tr>
+                      <th scope="row">编辑</th>
+                      <td>Enter / Escape</td>
+                      <td>保存或取消草稿</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </Typography>
+            </div>
+          </section>
           <ConfigProvider
             direction="rtl"
             componentSize="small"
@@ -203,6 +339,34 @@ export function TypographyPreview() {
                 ellipsis={{ rows: 2, expandable: 'collapsible' }}
               >
                 {longText}
+              </Typography>
+              <Typography
+                label="RTL 文件名"
+                copyable
+                ellipsis={{
+                  rows: 2,
+                  suffix: '_النسخة_النهائية.mp4',
+                  expandable: 'collapsible',
+                }}
+              >
+                {'تقرير المشروع ومراجعة الملفات والنتائج '.repeat(6)}
+              </Typography>
+              <Typography as="div" label="RTL 文档">
+                <table className="min-w-96">
+                  <caption>RTL 文档</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">الحالة</th>
+                      <th scope="col">الوصف</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <th scope="row">جاهز</th>
+                      <td>يمكن عرض المحتوى الكامل</td>
+                    </tr>
+                  </tbody>
+                </table>
               </Typography>
             </div>
           </ConfigProvider>

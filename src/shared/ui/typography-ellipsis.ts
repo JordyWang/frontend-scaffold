@@ -33,7 +33,10 @@ export function useTypographyOverflow(
   source: unknown,
   onEllipsis?: (overflow: boolean) => void,
 ) {
-  const [overflow, setOverflow] = useState(false)
+  const [layout, setLayout] = useState({
+    overflow: false,
+    tailHeight: 0,
+  })
   const callback = useRef(onEllipsis)
   const reported = useRef<boolean | null>(null)
   useLayoutEffect(() => {
@@ -51,6 +54,20 @@ export function useTypographyOverflow(
       if (disposed || !element.isConnected) return
       const width = element.getBoundingClientRect().width
       if (!width) return
+      const styles = getComputedStyle(element)
+      const lineHeight =
+        parseFloat(styles.lineHeight) ||
+        (parseFloat(styles.fontSize) || 16) * 1.5
+      const paddingFields = [
+        'paddingTop',
+        'paddingBottom',
+        'borderTopWidth',
+        'borderBottomWidth',
+      ] as const
+      const blockPadding = paddingFields.reduce(
+        (sum, property) => sum + (parseFloat(styles[property]) || 0),
+        0,
+      )
       const probe = element.cloneNode(true) as HTMLElement
       probe.removeAttribute('id')
       probe.setAttribute('aria-hidden', 'true')
@@ -59,6 +76,34 @@ export function useTypographyOverflow(
         child.removeAttribute('id')
         child.removeAttribute('name')
       }
+      for (const decoration of probe.querySelectorAll<HTMLElement>(
+        '[data-typography-tail],[data-typography-tail-spacer]',
+      ))
+        decoration.style.display = 'none'
+      const suffix = probe.querySelector<HTMLElement>(
+        '[data-typography-suffix-source]',
+      )
+      if (suffix) {
+        suffix.classList.remove('sr-only')
+        Object.assign(suffix.style, {
+          display: 'inline',
+          position: 'static',
+          width: 'auto',
+          height: 'auto',
+          margin: '0',
+          clip: 'auto',
+          overflow: 'visible',
+          whiteSpace: 'pre-wrap',
+        })
+      }
+      const flow = probe.querySelector<HTMLElement>('[data-typography-layout]')
+      if (flow)
+        Object.assign(flow.style, {
+          display: 'block',
+          maxHeight: 'none',
+          webkitLineClamp: 'unset',
+          overflow: 'visible',
+        })
       Object.assign(probe.style, {
         position: 'absolute',
         visibility: 'hidden',
@@ -66,16 +111,23 @@ export function useTypographyOverflow(
         width: `${width}px`,
         maxWidth: 'none',
         height: 'auto',
-        maxHeight: 'none',
-        display: '-webkit-box',
-        webkitBoxOrient: 'vertical',
-        webkitLineClamp: String(rows),
+        maxHeight: `${rows * lineHeight + blockPadding}px`,
+        display: 'block',
+        webkitLineClamp: 'unset',
         overflow: 'hidden',
       })
       element.parentElement?.append(probe)
       const next = probe.scrollHeight > probe.clientHeight + 1
       probe.remove()
-      setOverflow(next)
+      const tailHeight =
+        element
+          .querySelector<HTMLElement>('[data-typography-tail]')
+          ?.getBoundingClientRect().height ?? 0
+      setLayout((previous) =>
+        previous.overflow === next && previous.tailHeight === tailHeight
+          ? previous
+          : { overflow: next, tailHeight },
+      )
       if (reported.current !== next) {
         reported.current = next
         callback.current?.(next)
@@ -109,5 +161,8 @@ export function useTypographyOverflow(
       document.fonts?.removeEventListener?.('loadingdone', measure)
     }
   }, [content, enabled, rows, source])
-  return enabled && overflow
+  return {
+    overflow: enabled && layout.overflow,
+    tailHeight: layout.tailHeight,
+  }
 }

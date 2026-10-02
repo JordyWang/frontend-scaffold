@@ -514,11 +514,11 @@ describe('Typography container ellipsis', () => {
     )
     act(() => screen.getByRole('link').focus())
     expect(expand).toHaveBeenCalledExactlyOnceWith(true)
-    expect(document.querySelector('[data-typography-content]')).not.toHaveClass(
+    expect(document.querySelector('[data-typography-layout]')).not.toHaveClass(
       'line-clamp-(--typography-rows)',
     )
     act(() => screen.getByRole('button', { name: '外部' }).focus())
-    expect(document.querySelector('[data-typography-content]')).toHaveClass(
+    expect(document.querySelector('[data-typography-layout]')).toHaveClass(
       'line-clamp-(--typography-rows)',
     )
     expect(screen.getByRole('button', { name: '展开文本' })).toBeVisible()
@@ -543,7 +543,7 @@ describe('Typography container ellipsis', () => {
       'aria-expanded',
       'true',
     )
-    expect(document.querySelector('[data-typography-content]')).not.toHaveClass(
+    expect(document.querySelector('[data-typography-layout]')).not.toHaveClass(
       'line-clamp-(--typography-rows)',
     )
     fireEvent.click(screen.getByRole('button', { name: '收起文本' }))
@@ -577,7 +577,7 @@ describe('Typography container ellipsis', () => {
       </Typography>,
     )
     expect(screen.queryByRole('button')).toBeNull()
-    expect(document.querySelector('[data-typography-content]')).not.toHaveClass(
+    expect(document.querySelector('[data-typography-layout]')).not.toHaveClass(
       'line-clamp-(--typography-rows)',
     )
   })
@@ -655,5 +655,285 @@ describe('Typography changing action availability', () => {
       </>,
     )
     expect(outside).toHaveFocus()
+  })
+})
+
+describe('Typography inline suffix and document tables', () => {
+  it('copies the complete rich body and suffix without decorative dots or duplicated suffix text', async () => {
+    overflowGeometry()
+    const write = clipboard()
+    const { container } = render(
+      <Typography copyable ellipsis={{ rows: 2, suffix: '_最终版.mp4' }}>
+        视频 <strong>预览</strong>
+      </Typography>,
+    )
+    expect(container.querySelector('[data-typography-tail]')).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    )
+    expect(
+      container.querySelector('[data-typography-suffix-source]'),
+    ).toHaveClass('sr-only')
+    expect(container.querySelector('[data-typography-body]')).toHaveTextContent(
+      '视频 预览',
+    )
+    fireEvent.click(screen.getByRole('button', { name: '复制文本' }))
+    await waitFor(() =>
+      expect(write).toHaveBeenCalledExactlyOnceWith('视频 预览_最终版.mp4'),
+    )
+  })
+  it('copies default HTML with an escaped suffix and keeps explicit copy text exact', async () => {
+    overflowGeometry()
+    const copied = vi.fn(),
+      write = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('navigator', { clipboard: { write } })
+    vi.stubGlobal(
+      'ClipboardItem',
+      class {
+        constructor(public data: Record<string, Blob>) {}
+      },
+    )
+    const { rerender } = render(
+      <Typography
+        copyable={{ format: 'text/html', onCopy: copied }}
+        ellipsis={{ suffix: '<&>"\'.mp4' }}
+      >
+        视频 <strong>预览</strong>
+      </Typography>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '复制文本' }))
+    await waitFor(() =>
+      expect(copied).toHaveBeenCalledExactlyOnceWith(
+        '视频 <strong>预览</strong>&lt;&amp;&gt;&quot;&#39;.mp4',
+      ),
+    )
+    expect(write.mock.calls[0][0][0].data['text/html'].type).toBe('text/html')
+    rerender(
+      <Typography
+        copyable={{
+          format: 'text/html',
+          text: '<em>自定义</em>',
+          onCopy: copied,
+        }}
+        ellipsis={{ suffix: '.mp4' }}
+      >
+        ignored
+      </Typography>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '复制文本' }))
+    await waitFor(() =>
+      expect(copied).toHaveBeenLastCalledWith('<em>自定义</em>'),
+    )
+  })
+  it('invalidates an asynchronous copy when only the preserved suffix changes', async () => {
+    const write = clipboard(),
+      task = deferred<string>(),
+      copied = vi.fn()
+    const options = { text: () => task.promise, onCopy: copied }
+    const { rerender } = render(
+      <Typography copyable={options} ellipsis={{ suffix: '.mp4' }}>
+        原文
+      </Typography>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '复制文本' }))
+    rerender(
+      <Typography copyable={options} ellipsis={{ suffix: '.webm' }}>
+        原文
+      </Typography>,
+    )
+    await act(async () => task.resolve('旧值'))
+    expect(write).not.toHaveBeenCalled()
+    expect(copied).not.toHaveBeenCalled()
+    expect(screen.queryByRole('status')).toBeNull()
+  })
+  it('keeps a rich component mounted through suffix, row and expansion changes', async () => {
+    const resize = overflowGeometry(),
+      mount = vi.fn(),
+      write = clipboard()
+    function Content() {
+      useEffect(mount, [])
+      const [count, setCount] = useState(0)
+      return (
+        <a
+          href="#details"
+          onClick={(event) => {
+            event.preventDefault()
+            setCount((value) => value + 1)
+          }}
+        >
+          阅读 {count} 次
+        </a>
+      )
+    }
+    const child = <Content />
+    const { rerender, container } = render(
+      <Typography
+        copyable
+        ellipsis={{ rows: 1, suffix: '.mp4', expandable: 'collapsible' }}
+      >
+        {child}
+      </Typography>,
+    )
+    const link = screen.getByRole('link')
+    fireEvent.click(link)
+    fireEvent.click(screen.getByRole('button', { name: '展开文本' }))
+    expect(
+      container.querySelector('[data-typography-suffix-source]'),
+    ).not.toHaveClass('sr-only')
+    rerender(
+      <Typography
+        copyable
+        ellipsis={{ rows: 3, suffix: '.webm', expandable: 'collapsible' }}
+      >
+        {child}
+      </Typography>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '收起文本' }))
+    expect(screen.getByRole('link')).toBe(link)
+    expect(link).toHaveTextContent('阅读 1 次')
+    expect(mount).toHaveBeenCalledTimes(1)
+    resize(40)
+    expect(
+      container.querySelector('[data-typography-suffix-source]'),
+    ).not.toHaveClass('sr-only')
+    fireEvent.click(screen.getByRole('button', { name: '复制文本' }))
+    await waitFor(() =>
+      expect(write).toHaveBeenCalledExactlyOnceWith('阅读 1 次.webm'),
+    )
+  })
+  it('wraps native tables through fragments and native containers while preserving semantics, refs and cell components', () => {
+    const ref = createRef<HTMLTableElement>(),
+      clicked = vi.fn(),
+      mount = vi.fn()
+    function Cell() {
+      useEffect(mount, [])
+      const [count, setCount] = useState(0)
+      return (
+        <td>
+          <button onClick={() => setCount(count + 1)}>次数 {count}</button>
+        </td>
+      )
+    }
+    const content = (
+      <>
+        <section>
+          <table ref={ref} id="rules" className="min-w-96" onClick={clicked}>
+            <caption>文档规则</caption>
+            <thead>
+              <tr>
+                <th scope="col" className="text-center">
+                  操作
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <Cell />
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      </>
+    )
+    const { rerender } = render(
+      <Typography
+        as="div"
+        classNames={{ table: 'custom-table', tableWrapper: 'custom-wrapper' }}
+      >
+        {content}
+      </Typography>,
+    )
+    const table = screen.getByRole('table', { name: '文档规则' })
+    const region = screen.getByRole('region', { name: '文档规则表格滚动区域' })
+    expect(ref.current).toBe(table)
+    expect(table).toHaveAttribute('id', 'rules')
+    expect(table).toHaveClass('border-collapse', 'custom-table', 'min-w-96')
+    expect(region).toHaveClass('overflow-x-auto', 'custom-wrapper')
+    expect(region).toHaveAttribute('tabindex', '0')
+    expect(screen.getByRole('columnheader')).toHaveAttribute('scope', 'col')
+    expect(screen.getByRole('columnheader')).toHaveClass('text-center')
+    fireEvent.click(screen.getByRole('button', { name: '次数 0' }))
+    expect(clicked).toHaveBeenCalledTimes(1)
+    rerender(
+      <Typography as="div" classNames={{ table: 'new-table' }}>
+        {content}
+      </Typography>,
+    )
+    expect(screen.getByRole('table')).toBe(table)
+    expect(screen.getByRole('button')).toHaveTextContent('次数 1')
+    expect(mount).toHaveBeenCalledTimes(1)
+  })
+  it('labels multiple captionless table regions and leaves custom components opaque', () => {
+    const invoked = vi.fn()
+    function Custom() {
+      invoked()
+      return <span>自定义块</span>
+    }
+    render(
+      <Typography as="div" label="说明">
+        <table>
+          <tbody>
+            <tr>
+              <td>第一表</td>
+            </tr>
+          </tbody>
+        </table>
+        <table>
+          <tbody>
+            <tr>
+              <td>第二表</td>
+            </tr>
+          </tbody>
+        </table>
+        <Custom />
+      </Typography>,
+    )
+    expect(
+      screen.getAllByRole('region', { name: '说明表格滚动区域' }),
+    ).toHaveLength(2)
+    expect(screen.getAllByRole('table')).toHaveLength(2)
+    expect(invoked).toHaveBeenCalledTimes(1)
+    expect(screen.getByText('自定义块')).toBeVisible()
+  })
+  it('scrolls the table wrapper with horizontal keys without intercepting cell controls or nonoverflowing regions', () => {
+    render(
+      <Typography as="div">
+        <table>
+          <tbody>
+            <tr>
+              <td>
+                <button>单元格操作</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </Typography>,
+    )
+    const region = screen.getByRole('region')
+    Object.defineProperties(region, {
+      scrollWidth: { configurable: true, value: 600 },
+      clientWidth: { value: 240 },
+    })
+    fireEvent.keyDown(region, { key: 'ArrowRight' })
+    expect(region.scrollLeft).toBe(44)
+    fireEvent.keyDown(screen.getByRole('button'), { key: 'ArrowRight' })
+    expect(region.scrollLeft).toBe(44)
+    fireEvent.keyDown(region, { key: 'End', ctrlKey: true })
+    expect(region.scrollLeft).toBe(44)
+    fireEvent.keyDown(region, { key: 'End' })
+    expect(region.scrollLeft).toBe(360)
+    fireEvent.keyDown(region, { key: 'Home' })
+    expect(region.scrollLeft).toBe(0)
+    vi.spyOn(window, 'getComputedStyle').mockReturnValue({
+      direction: 'rtl',
+    } as CSSStyleDeclaration)
+    fireEvent.keyDown(region, { key: 'End' })
+    expect(region.scrollLeft).toBe(-360)
+    fireEvent.keyDown(region, { key: 'Home' })
+    fireEvent.keyDown(region, { key: 'ArrowLeft' })
+    expect(region.scrollLeft).toBe(-44)
+    Object.defineProperty(region, 'scrollWidth', { value: 240 })
+    fireEvent.keyDown(region, { key: 'ArrowRight' })
+    expect(region.scrollLeft).toBe(-44)
   })
 })

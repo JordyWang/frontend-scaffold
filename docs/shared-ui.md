@@ -130,11 +130,11 @@
 
 ## Typography
 
-保留项目 `as` / `variant` / `tone` API，元素支持 span、p、div 和 h1–h6；标题层级独立于字体外观，ref 指向根 HTML 元素。`tone` 支持 default、muted、danger、success、warning；`strong` / `italic` 使用语义标签，`underline` / `strike` 可组合，`code` / `keyboard` / `mark` 保留项目主题。`disabled` 保留可读文字并禁止复制/编辑/展开操作。富文本块内容请使用 `as="div"`，其内部布局与表格可通过 Tailwind 类自行定义。
+保留项目 `as` / `variant` / `tone` API，元素支持 span、p、div 和 h1–h6；标题层级独立于字体外观，ref 指向根 HTML 元素。`tone` 支持 default、muted、danger、success、warning；`strong` / `italic` 使用语义标签，`underline` / `strike` 可组合，`code` / `keyboard` / `mark` 保留项目主题。`disabled` 保留可读文字并禁止复制/编辑/展开操作。富文本块内容与文档表格请使用 `as="div"`。
 
 ### 复制
 
-`copyable` 为布尔值或 `TypographyCopyOptions`。默认复制完整正文与 `ellipsis.suffix`，省略、装饰和操作按钮不改变复制值；富文本复制来自正文 DOM 的 textContent。`text` 可指定字符串，或返回字符串/Promise 的函数；`format` 为 text/plain（默认）或 text/html，HTML 默认来自正文 DOM，也可显式指定内容。HTML 使用 ClipboardItem，浏览器不支持时显示失败。
+`copyable` 为布尔值或 `TypographyCopyOptions`。默认复制完整正文与 `ellipsis.suffix`，省略、装饰和操作按钮不改变复制值；富文本复制来自正文 DOM 的 textContent。`text` 可指定字符串，或返回字符串/Promise 的函数；`format` 为 text/plain（默认）或 text/html，HTML 默认来自正文 DOM，后缀按文字转义后追加；显式 `text` 原样复制，不自动追加后缀。HTML 使用 ClipboardItem，浏览器不支持时显示失败。
 
 复制期间使用 `aria-busy` / `aria-disabled` 和可见“正在复制”反馈，同一请求不会重复发起。失败提供可见错误，原按钮可重试；成功调用 `onCopy(text)` 并展示两秒成功反馈，失败调用 `onError(error)`。正文、后缀、复制来源/格式、禁用、移除操作和卸载使旧请求失效，迟到响应不写入新状态；异步取值尚未完成时失效则不再写剪贴板。已交给浏览器的剪贴板写入不能撤销，只忽略其过期反馈。
 
@@ -152,11 +152,15 @@
 
 ### 省略、操作与触控
 
-`ellipsis` 为布尔值或 `TypographyEllipsisOptions`，默认一行；rows 限制为至少一行整数。通过 Tailwind line-clamp 和实际正文 DOM 测量判断溢出，ResizeObserver、字体载入和窗口变化重新检查；MutationObserver 覆盖富文本子组件自行改字或样式但框尺寸未变的情况。不挂载第二棵 React 富文本树。`onEllipsis(boolean)` 只报告溢出状态变化。
+`ellipsis` 为布尔值或 `TypographyEllipsisOptions`，默认一行；rows 限制为至少一行整数。通过 Tailwind line-clamp / 行高裁切和实际正文 DOM 测量判断溢出，ResizeObserver、字体载入和窗口变化重新检查；MutationObserver 覆盖富文本子组件自行改字或样式但框尺寸未变的情况。不挂载第二棵 React 富文本树。`onEllipsis(boolean)` 只报告溢出状态变化。
 
-`expandable={true}` 为一次展开，`'collapsible'` 支持展开/收起；`expanded` / `defaultExpanded` / `onExpandedChange` 采用项目受控约定。只有实际溢出时显示操作，ARIA 关联正文和展开状态；`symbol` 为节点或 `(expanded) => ReactNode`。`suffix` 在正文后单独保留完整行，始终可读且加入默认复制值；这是项目后缀布局，不在被截断的末行插入后缀。`tooltip` 为 true 或自定义内容，复用公共 Portal Tooltip，省略正文可通过 Tab 聚焦查看提示。推荐用展开查看大量文字。
+`expandable={true}` 为一次展开，`'collapsible'` 支持展开/收起；`expanded` / `defaultExpanded` / `onExpandedChange` 采用项目受控约定。只有实际溢出时显示操作，ARIA 关联正文和展开状态；`symbol` 为节点或 `(expanded) => ReactNode`。`suffix` 保留在省略末行的逻辑末端，为“省略号 + 后缀”预留宽度；无溢出或展开后接回正文。传入去掉尾段的正文和对应 `suffix`（如 `_最终版.mp4`）可保留文件名尾部，形成中间省略；不要在正文重复传入该尾段。后缀宽于容器时完整换行，实际高度可超过 rows，不裁掉后缀或撑宽页面。装饰后缀不进入读屏顺序，原始正文和尾段保持完整阅读、复制与富文本组件状态。`tooltip` 为 true 或自定义内容，默认提示包含完整正文与后缀，复用公共 Portal Tooltip，省略正文可通过 Tab 聚焦查看提示。推荐用展开查看大量文字。
 
-富文本保持一份实际 DOM 和组件状态，链接等后代取得焦点时自动显示完整正文。受控展开尚未接受时暂时显示正文，离开根区域后恢复调用方要求的状态，避免焦点停在被裁切的内容上。`actions.placement` 可为 start/end（默认），操作栏在正文前/后独立排列，不消耗省略行宽。`classNames` 提供 root、content、actions、action、textarea、suffix、feedback 语义部位，全部使用 Tailwind 与主题 Token。
+富文本保持一份实际 DOM 和组件状态，链接等后代取得焦点时自动显示完整正文。受控展开尚未接受时暂时显示正文，离开根区域后恢复调用方要求的状态，避免焦点停在被裁切的内容上。`actions.placement` 可为 start/end（默认），操作栏在正文前/后独立排列，不消耗省略行宽。`classNames` 提供 root、content、actions、action、textarea、suffix、feedback、table、tableWrapper 语义部位，全部使用 Tailwind 与主题 Token。
+
+### 原生文档表格
+
+通过 children 传入的原生 `<table>` 自动获得表头背景、边框、单元格间距与 caption 样式，支持 Fragment 和原生容器嵌套。table、caption、th/td 的原属性、ref、事件和子组件状态保持不变；表头/单元格自身的 Tailwind 类可覆盖默认样式。外层滚动区域由 caption 文字或 Typography.label 命名，可通过 Tab 聚焦、左右方向键滚动，Home/End 定位逻辑起止；单元格内控件和带修饰键的操作不被截获。较宽表格只在自身容器内横向滚动。可用 table 的 `min-w-*` 设置业务需要的最小宽度，`classNames.table` / `tableWrapper` 自定义表格与滚动区域。自定义 React 组件作为独立边界保留，不主动调用它来递归处理其内部创建的表格。
 
 按钮/文字编辑入口至少 44×44px，编辑字号至少 16px，操作蓝色从主色与文字色混合以保持可读对比。`/__ui` 独立展示受控编辑、复制等待/失败/重试、长度限制、富文本、动态容器、后缀、格式/状态与 240px RTL 深色。
 

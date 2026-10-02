@@ -15,6 +15,7 @@ import { cn } from '@/shared/lib/utils'
 import { Icon } from './icon'
 import { Tooltip, type TooltipProps } from './overlay'
 import { Textarea } from './textarea'
+import { typographyDocument, typographyHtmlText } from './typography-document'
 import {
   typographyRows,
   typographyText,
@@ -42,7 +43,15 @@ const actionStyles =
   'inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center gap-1 rounded-md px-2 text-base font-normal text-[color-mix(in_srgb,var(--primary)_80%,var(--foreground))] hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-disabled:opacity-50 disabled:text-muted-foreground disabled:cursor-not-allowed'
 
 export type TypographyPart =
-  'root' | 'content' | 'actions' | 'action' | 'textarea' | 'suffix' | 'feedback'
+  | 'root'
+  | 'content'
+  | 'actions'
+  | 'action'
+  | 'textarea'
+  | 'suffix'
+  | 'feedback'
+  | 'table'
+  | 'tableWrapper'
 export type TypographyCopyOptions = {
   text?: string | (() => string | Promise<string>)
   format?: TypographyCopyFormat
@@ -150,6 +159,7 @@ export const Typography = forwardRef<HTMLElement, TypographyProps>(
         : children
     const root = useRef<HTMLElement>(null)
     const content = useRef<HTMLElement>(null)
+    const body = useRef<HTMLElement>(null)
     const textarea = useRef<HTMLTextAreaElement>(null)
     const editor = useRef<HTMLSpanElement>(null)
     const editButton = useRef<HTMLButtonElement>(null)
@@ -184,13 +194,14 @@ export const Typography = forwardRef<HTMLElement, TypographyProps>(
     const [focusReveal, setFocusReveal] = useState(false)
     const expanded = (clamp.expanded ?? internalExpanded) || focusReveal
     const rows = typographyRows(clamp.rows)
-    const overflow = useTypographyOverflow(
+    const overflowLayout = useTypographyOverflow(
       content,
       Boolean(ellipsis) && !editing,
       rows,
       displayed,
       clamp.onEllipsis,
     )
+    const overflow = overflowLayout.overflow
     const clipped = Boolean(ellipsis) && overflow && !expanded && !editing
     const [copyState, setCopyState] = useState<
       'idle' | 'pending' | 'done' | 'error'
@@ -243,7 +254,7 @@ export const Typography = forwardRef<HTMLElement, TypographyProps>(
     function fullText() {
       return typeof displayed === 'string' || typeof displayed === 'number'
         ? String(displayed)
-        : (content.current?.textContent ?? typographyText(displayed))
+        : (body.current?.textContent ?? typographyText(displayed))
     }
     useLayoutEffect(() => {
       const opened = editing && !previousEditing.current
@@ -424,8 +435,9 @@ export const Typography = forwardRef<HTMLElement, TypographyProps>(
             ? await copy.text()
             : (copy.text ??
               (copy.format === 'text/html'
-                ? (content.current?.innerHTML ?? '')
-                : fullText()) + (clamp.suffix ?? ''))
+                ? (body.current?.innerHTML ?? '') +
+                  typographyHtmlText(clamp.suffix ?? '')
+                : fullText() + (clamp.suffix ?? '')))
         if (!valid()) return
         if (typeof text !== 'string') throw new Error('复制内容必须是字符串')
         await writeTypographyClipboard(text, copy.format ?? 'text/plain')
@@ -544,7 +556,7 @@ export const Typography = forwardRef<HTMLElement, TypographyProps>(
           ? 'underline'
           : strike && 'line-through',
     )
-    let styled = displayed
+    let styled = typographyDocument(displayed, label, classNames)
     if (strong) styled = <strong>{styled}</strong>
     if (italic) styled = <em>{styled}</em>
     if (mark)
@@ -575,12 +587,82 @@ export const Typography = forwardRef<HTMLElement, TypographyProps>(
       className: cn(
         'min-w-0 whitespace-pre-wrap wrap-anywhere',
         (ellipsis || copyable || editable) && 'block',
-        ellipsis && !expanded && 'line-clamp-(--typography-rows)',
         richStyles,
         classNames?.content,
       ),
-      style: { '--typography-rows': rows } as CSSProperties,
-      children: styled,
+      style: {
+        '--typography-rows': rows,
+        '--typography-tail-height': overflowLayout.tailHeight
+          ? `${overflowLayout.tailHeight}px`
+          : undefined,
+      } as CSSProperties,
+      // Clip inside the content padding so the next line cannot bleed into it.
+      children: createElement(as === 'div' ? 'div' : 'span', {
+        'data-typography-layout': '',
+        className: cn(
+          'block min-w-0 max-w-full',
+          ellipsis &&
+            !expanded &&
+            !clamp.suffix &&
+            'line-clamp-(--typography-rows) max-h-[calc(var(--typography-rows)*1lh)]',
+          ellipsis &&
+            !expanded &&
+            clamp.suffix &&
+            'overflow-hidden max-h-[calc((var(--typography-rows)-1)*1lh+var(--typography-tail-height,1lh))]',
+        ),
+        children: (
+          <>
+            {clamp.suffix && (
+              <>
+                <span
+                  key="tail-spacer"
+                  aria-hidden="true"
+                  data-typography-tail-spacer=""
+                  className={cn(
+                    'float-end w-0 h-[calc((var(--typography-rows)-1)*1lh)]',
+                    !clipped && 'hidden',
+                  )}
+                />
+                <span
+                  key="tail"
+                  aria-hidden="true"
+                  data-typography-tail=""
+                  className={cn(
+                    'float-end clear-both w-max max-w-full whitespace-pre-wrap wrap-anywhere',
+                    !clipped && 'hidden',
+                  )}
+                >
+                  <bdi dir="auto">
+                    …<span className={classNames?.suffix}>{clamp.suffix}</span>
+                  </bdi>
+                </span>
+              </>
+            )}
+            {createElement(as === 'div' ? 'div' : 'span', {
+              key: 'body',
+              ref: (element: HTMLElement | null) => {
+                body.current = element
+              },
+              'data-typography-body': '',
+              className: 'inline',
+              children: styled,
+            })}
+            {clamp.suffix && (
+              <span
+                key="suffix"
+                data-typography-suffix-source=""
+                className={cn(
+                  'whitespace-pre-wrap wrap-anywhere',
+                  clipped && 'sr-only',
+                  classNames?.suffix,
+                )}
+              >
+                {clamp.suffix}
+              </span>
+            )}
+          </>
+        ),
+      }),
       onFocusCapture: (event: React.FocusEvent<HTMLElement>) => {
         if (clipped && event.target !== event.currentTarget) {
           setFocusReveal(true)
@@ -593,7 +675,11 @@ export const Typography = forwardRef<HTMLElement, TypographyProps>(
       ellipsis && clamp.tooltip ? (
         <Tooltip
           open={clipped ? undefined : false}
-          title={clamp.tooltip === true ? fullText() : clamp.tooltip}
+          title={
+            clamp.tooltip === true
+              ? fullText() + (clamp.suffix ?? '')
+              : clamp.tooltip
+          }
         >
           {contentElement}
         </Tooltip>
@@ -708,16 +794,6 @@ export const Typography = forwardRef<HTMLElement, TypographyProps>(
         ) : (
           visibleContent
         )}
-        {clamp.suffix && (
-          <span
-            className={cn(
-              'block whitespace-pre-wrap wrap-anywhere',
-              classNames?.suffix,
-            )}
-          >
-            {clamp.suffix}
-          </span>
-        )}
         {actions?.placement !== 'start' && actionBar}
         {copyState !== 'idle' && (
           <span
@@ -770,6 +846,7 @@ export const Typography = forwardRef<HTMLElement, TypographyProps>(
         disabled && 'text-muted-foreground',
         interactive && 'relative min-w-0 max-w-full',
         interactive && as === 'span' && 'inline-block align-baseline',
+        as === 'div' && 'min-w-0 max-w-full',
         !interactive && richStyles,
         classNames?.root,
         className,

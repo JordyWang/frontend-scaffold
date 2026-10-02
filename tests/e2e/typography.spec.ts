@@ -9,6 +9,63 @@ async function copiedText(page: Page, project: string) {
     ? page.evaluate(() => document.documentElement.dataset.copiedText)
     : page.evaluate(() => navigator.clipboard.readText())
 }
+async function suffixLayout(content: Locator) {
+  return content.evaluate((node) => {
+    const content = node as HTMLElement
+    const tail = content.querySelector<HTMLElement>('[data-typography-tail]')!
+    const body = content.querySelector<HTMLElement>('[data-typography-body]')!
+    const flow = content.querySelector<HTMLElement>('[data-typography-layout]')!
+    const rect = content.getBoundingClientRect()
+    const tailRect = tail.getBoundingClientRect()
+    const style = getComputedStyle(content)
+    const insetTop =
+      parseFloat(style.paddingTop) + parseFloat(style.borderTopWidth)
+    const insetBottom =
+      parseFloat(style.paddingBottom) + parseFloat(style.borderBottomWidth)
+    const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT)
+    let text: Node | null
+    let visibleCharacters = 0,
+      overlaps = 0
+    while ((text = walker.nextNode())) {
+      for (let index = 0; index < (text.textContent?.length ?? 0); index++) {
+        const range = document.createRange()
+        range.setStart(text, index)
+        range.setEnd(text, index + 1)
+        for (const glyph of range.getClientRects()) {
+          if (glyph.width < 0.1 || glyph.top >= rect.bottom - insetBottom - 1)
+            continue
+          visibleCharacters++
+          if (
+            glyph.bottom > tailRect.top + 1 &&
+            glyph.top < tailRect.bottom - 1 &&
+            glyph.right > tailRect.left + 1 &&
+            glyph.left < tailRect.right - 1
+          )
+            overlaps++
+        }
+      }
+    }
+    return {
+      rowOffset:
+        (tailRect.top - rect.top - insetTop) / parseFloat(style.lineHeight),
+      lineHeight: parseFloat(style.lineHeight),
+      tailHeight: tailRect.height,
+      contentHeight: rect.height,
+      clipHeight: flow.getBoundingClientRect().height,
+      blockPadding: insetTop + insetBottom,
+      tailFits:
+        tailRect.left >= rect.left - 1 &&
+        tailRect.right <= rect.right + 1 &&
+        tailRect.bottom <= rect.bottom - insetBottom + 1,
+      logicalEndGap:
+        style.direction === 'rtl'
+          ? tailRect.left - rect.left
+          : rect.right - tailRect.right,
+      visibleCharacters,
+      overlaps,
+    }
+  })
+}
 test.beforeEach(async ({ page, context }, info) => {
   if (info.project.name === 'mobile-webkit') {
     // Isolated browser seam: WebKit's native clipboard permission is not automated.
@@ -181,7 +238,7 @@ test('typography measures container overflow and preserves rich links through ex
   const group = region.getByRole('group', { name: '文字容器预览', exact: true })
   let action = group.getByRole('button', { name: '展开任务描述', exact: true })
   await expect(action).toHaveAttribute('aria-expanded', 'false')
-  const text = group.locator('[data-typography-content]')
+  const text = group.locator('[data-typography-layout]')
   expect(
     await text.evaluate((node) => node.scrollHeight > node.clientHeight),
   ).toBe(true)
@@ -248,6 +305,272 @@ test('typography RTL dark previews keep 44px targets, bounded editor height and 
   await rtl.screenshot({
     path: 'output/playwright/typography-rtl-' + info.project.name + '.png',
   })
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
+})
+
+test('typography suffix occupies the actual final row without overlapping text across sizes and RTL', async ({
+  page,
+}, info) => {
+  const mobile = info.project.name.startsWith('mobile-')
+  const preview = page.getByRole('region', {
+    name: '行内后缀预览',
+    exact: true,
+  })
+  const group = preview.getByRole('group', {
+    name: '后缀尺寸预览',
+    exact: true,
+  })
+  for (const [label, rows] of [
+    ['单行文件名', 1],
+    ['多行摘要', 2],
+  ] as const) {
+    const action = group.getByRole('button', {
+      name: '展开' + label,
+      exact: true,
+    })
+    await expect(action).toBeVisible()
+    const content = page.locator(
+      '#' + (await action.getAttribute('aria-controls')),
+    )
+    const layout = await suffixLayout(content)
+    expect(layout.rowOffset).toBeCloseTo(rows - 1, 1)
+    expect(layout.overlaps).toBe(0)
+    expect(layout.visibleCharacters).toBeGreaterThan(0)
+    expect(layout.tailFits).toBe(true)
+    expect(layout.contentHeight).toBeCloseTo(
+      rows * layout.lineHeight + layout.blockPadding,
+      0,
+    )
+    expect(layout.clipHeight).toBeCloseTo(rows * layout.lineHeight, 0)
+    await expect(content.locator('[data-typography-layout]')).toHaveCSS(
+      'overflow',
+      'hidden',
+    )
+    await activate(action, mobile)
+    await expect(content.locator('[data-typography-tail]')).toBeHidden()
+    await expect(
+      content.locator('[data-typography-suffix-source]'),
+    ).not.toHaveClass(/sr-only/)
+    expect(
+      await content.evaluate(
+        (node) => node.scrollHeight <= node.clientHeight + 1,
+      ),
+    ).toBe(true)
+    await activate(
+      group.getByRole('button', { name: '收起' + label, exact: true }),
+      mobile,
+    )
+  }
+  await activate(preview.getByRole('button', { name: '后缀改为三行' }), mobile)
+  const action = group.getByRole('button', {
+    name: '展开多行摘要',
+    exact: true,
+  })
+  const content = page.locator(
+    '#' + (await action.getAttribute('aria-controls')),
+  )
+  await expect
+    .poll(async () => (await suffixLayout(content)).rowOffset)
+    .toBeCloseTo(2, 1)
+  await activate(preview.getByRole('button', { name: '放宽后缀容器' }), mobile)
+  await expect
+    .poll(async () => (await suffixLayout(content)).rowOffset)
+    .toBeCloseTo(2, 1)
+  expect((await suffixLayout(content)).overlaps).toBe(0)
+  const rtl = page.getByRole('group', {
+    name: '窄容器 RTL 文字预览',
+    exact: true,
+  })
+  const rtlAction = rtl.getByRole('button', {
+    name: '展开RTL 文件名',
+    exact: true,
+  })
+  const rtlContent = page.locator(
+    '#' + (await rtlAction.getAttribute('aria-controls')),
+  )
+  const rtlLayout = await suffixLayout(rtlContent)
+  expect(rtlLayout.rowOffset).toBeCloseTo(1, 1)
+  expect(rtlLayout.logicalEndGap).toBeCloseTo(0, 0)
+  expect(rtlLayout.overlaps).toBe(0)
+  expect(rtlLayout.tailFits).toBe(true)
+  await activate(preview.getByRole('button', { name: '收窄后缀容器' }), mobile)
+  await preview.getByRole('button', { name: '后缀恢复两行' }).focus()
+  await group.screenshot({
+    path: 'output/playwright/typography-suffix-' + info.project.name + '.png',
+  })
+  await rtl.screenshot({
+    path:
+      'output/playwright/typography-rtl-suffix-' + info.project.name + '.png',
+  })
+})
+
+test('typography keeps short suffix inline, preserves oversized suffix and copies rich child state once', async ({
+  page,
+}, info) => {
+  const mobile = info.project.name.startsWith('mobile-')
+  const preview = page.getByRole('region', {
+    name: '行内后缀预览',
+    exact: true,
+  })
+  const group = preview.getByRole('group', {
+    name: '后缀尺寸预览',
+    exact: true,
+  })
+  const short = group.locator('[data-typography]').filter({
+    has: page.locator('[data-typography-body]').filter({ hasText: /^预览$/ }),
+  })
+  await expect(short).toHaveCount(1)
+  await expect(short.locator('[data-typography-tail]')).toBeHidden()
+  const body = (await short.locator('[data-typography-body]').boundingBox())!
+  const suffix = (await short
+    .locator('[data-typography-suffix-source]')
+    .boundingBox())!
+  expect(suffix.y).toBeCloseTo(body.y, 0)
+  expect(suffix.x).toBeCloseTo(body.x + body.width, 0)
+  await expect(
+    group.getByRole('button', { name: '展开简短文件名' }),
+  ).toHaveCount(0)
+  const longAction = group.getByRole('button', {
+    name: '展开长后缀',
+    exact: true,
+  })
+  const longContent = page.locator(
+    '#' + (await longAction.getAttribute('aria-controls')),
+  )
+  const longLayout = await suffixLayout(longContent)
+  expect(longLayout.tailHeight).toBeGreaterThan(longLayout.lineHeight)
+  expect(longLayout.tailFits).toBe(true)
+  expect(longLayout.overlaps).toBe(0)
+  expect(
+    await longContent
+      .locator('[data-typography-tail]')
+      .evaluate((node) => node.scrollWidth <= node.clientWidth + 1),
+  ).toBe(true)
+  await activate(group.getByRole('button', { name: '复制长后缀' }), mobile)
+  expect(await copiedText(page, info.project.name)).toBe(
+    '组件库统一文字、复制和编辑操作。长内容按容器宽度省略，展开后可以完整阅读，复制始终保留完整内容。'.repeat(
+      5,
+    ) + '_完整保存的超长文件后缀_abcdefghijklmnopqrstuvwxyz_0123456789.mp4',
+  )
+  const rich = group.getByRole('link', { name: /^已阅读 \d+ 次$/ })
+  await rich.focus()
+  await activate(rich, mobile)
+  await expect(rich).toHaveText('已阅读 1 次')
+  await preview.getByRole('button', { name: '放宽后缀容器' }).focus()
+  await activate(group.getByRole('button', { name: '收起有状态后缀' }), mobile)
+  await activate(group.getByRole('button', { name: '展开有状态后缀' }), mobile)
+  await expect(rich).toHaveText('已阅读 1 次')
+  await activate(group.getByRole('button', { name: '复制有状态后缀' }), mobile)
+  const copied = await copiedText(page, info.project.name)
+  expect(copied).toMatch(/^已阅读 1 次/)
+  expect(copied).toMatch(/（查看原文）$/)
+  expect(copied).not.toContain('…')
+  await preview.getByRole('button', { name: '放宽后缀容器' }).focus()
+  await group.screenshot({
+    path:
+      'output/playwright/typography-long-suffix-' + info.project.name + '.png',
+  })
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
+})
+
+test('typography native table preserves caption, cell overrides and independent keyboard and touch scrolling', async ({
+  page,
+}, info) => {
+  const preview = page.getByRole('region', {
+    name: '原生文档表格预览',
+    exact: true,
+  })
+  const region = preview.getByRole('region', {
+    name: '文字约定表格滚动区域',
+    exact: true,
+  })
+  const table = region.getByRole('table', { name: '文字约定' })
+  await expect(table).toBeVisible()
+  await expect(table.getByRole('rowheader', { name: '复制' })).toHaveAttribute(
+    'scope',
+    'row',
+  )
+  const normal = table.getByRole('columnheader', { name: '能力' })
+  const custom = table.getByRole('columnheader', { name: '操作' })
+  await expect(normal).toHaveCSS('border-top-width', '1px')
+  await expect(normal).toHaveCSS('padding-left', '12px')
+  await expect(custom).toHaveCSS('text-align', 'center')
+  expect(
+    await normal.evaluate((node) => getComputedStyle(node).backgroundColor),
+  ).not.toBe(
+    await custom.evaluate((node) => getComputedStyle(node).backgroundColor),
+  )
+  expect(
+    await region.evaluate((node) => node.scrollWidth > node.clientWidth),
+  ).toBe(true)
+  await region.focus()
+  await region.press('ArrowRight')
+  await expect
+    .poll(() => region.evaluate((node) => node.scrollLeft))
+    .toBeGreaterThan(0)
+  await expect(region).toBeFocused()
+  await region.evaluate((node) => {
+    node.scrollLeft = 0
+  })
+  if (info.project.name === 'mobile-chromium') {
+    const box = (await region.boundingBox())!
+    const session = await page.context().newCDPSession(page)
+    const y = box.y + box.height * 0.65
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ x: box.x + box.width * 0.8, y }],
+    })
+    for (let step = 1; step <= 8; step++)
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ x: box.x + box.width * (0.8 - step * 0.075), y }],
+      })
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [],
+    })
+    await session.detach()
+    await expect
+      .poll(() => region.evaluate((node) => node.scrollLeft))
+      .toBeGreaterThan(0)
+  }
+  await region.evaluate((node) => {
+    node.scrollLeft = 0
+  })
+  await page.getByRole('button', { name: '放宽后缀容器' }).focus()
+  await preview.screenshot({
+    path: 'output/playwright/typography-table-' + info.project.name + '.png',
+  })
+  const rtl = page.getByRole('region', {
+    name: 'RTL 文档表格滚动区域',
+    exact: true,
+  })
+  await expect(rtl.getByRole('columnheader', { name: 'الحالة' })).toHaveCSS(
+    'text-align',
+    'start',
+  )
+  await rtl.focus()
+  await rtl.press('ArrowLeft')
+  await expect
+    .poll(() => rtl.evaluate((node) => node.scrollLeft))
+    .toBeLessThan(0)
+  await expect(rtl).toBeFocused()
+  await rtl.press('End')
+  expect(await rtl.evaluate((node) => node.scrollLeft)).toBeLessThan(-100)
+  await rtl.press('Home')
+  await expect(rtl).toHaveJSProperty('scrollLeft', 0)
   expect(
     await page.evaluate(
       () =>
