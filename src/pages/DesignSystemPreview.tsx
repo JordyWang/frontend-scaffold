@@ -227,6 +227,9 @@ export function DesignSystemPreview() {
   const [controlledConfirmOpen, setControlledConfirmOpen] = useState(false)
   const [controlledConfirmStatus, setControlledConfirmStatus] =
     useState('受控确认已关闭')
+  const [dropdownSelection, setDropdownSelection] = useState<string[]>(['all'])
+  const [dropdownSelectionStatus, setDropdownSelectionStatus] =
+    useState('已选择：全部')
   const [city, setCity] = useState('')
   const [selectedCity, setSelectedCity] = useState('尚未选择城市')
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
@@ -1586,6 +1589,42 @@ export function DesignSystemPreview() {
                       { key: 'delete', label: '删除内容', danger: true },
                     ]}
                   />
+                  <Dropdown
+                    label="筛选菜单"
+                    trigger={<Button variant="outline">打开筛选菜单</Button>}
+                    selectionMode="multiple"
+                    selectedKeys={dropdownSelection}
+                    closeOnSelect={false}
+                    onSelectionChange={(next) => {
+                      setDropdownSelection(next)
+                      setDropdownSelectionStatus(
+                        next.length
+                          ? `已选择：${next.join('、')}`
+                          : '未选择筛选项',
+                      )
+                    }}
+                    items={[
+                      {
+                        type: 'group',
+                        key: 'scope',
+                        label: '范围',
+                        children: [
+                          { key: 'all', label: '全部' },
+                          { key: 'mine', label: '我的项目' },
+                        ],
+                      },
+                      { type: 'divider', key: 'divider' },
+                      {
+                        type: 'group',
+                        key: 'state',
+                        label: '状态',
+                        children: [
+                          { key: 'active', label: '进行中' },
+                          { key: 'archived', label: '已归档', disabled: true },
+                        ],
+                      },
+                    ]}
+                  />
                   <Popover
                     title="补充说明"
                     content={
@@ -1649,6 +1688,13 @@ export function DesignSystemPreview() {
                     通知示例
                   </Button>
                 </Stack>
+                <p
+                  role="status"
+                  data-testid="dropdown-selection-status"
+                  className="m-0 text-sm text-muted-foreground"
+                >
+                  {dropdownSelectionStatus}
+                </p>
                 <p
                   role="status"
                   data-testid="controlled-confirm-status"

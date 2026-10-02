@@ -347,6 +347,7 @@ export type {
   FloatButtonGroupProps,
 } from './float-button-group'
 export type {
+  DropdownActionItem,
   DropdownItem,
   DropdownProps,
   FloatButtonButtonProps,

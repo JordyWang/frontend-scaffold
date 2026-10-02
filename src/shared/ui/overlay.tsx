@@ -195,13 +195,24 @@ function focusAdjacentToTrigger(
   else trigger.focus()
 }
 
-export type DropdownItem = {
+export type DropdownActionItem = {
+  type?: 'item'
   key: string
   label: ReactNode
   disabled?: boolean
   danger?: boolean
   onSelect?: () => void
 }
+
+export type DropdownItem =
+  | DropdownActionItem
+  | { type: 'divider'; key: string }
+  | {
+      type: 'group'
+      key: string
+      label: ReactNode
+      children: DropdownActionItem[]
+    }
 
 export type DropdownProps = {
   items: DropdownItem[]
@@ -212,6 +223,11 @@ export type DropdownProps = {
   placement?: 'bottom-start' | 'bottom-end'
   label?: string
   className?: string
+  selectionMode?: 'none' | 'single' | 'multiple'
+  selectedKeys?: readonly string[]
+  defaultSelectedKeys?: readonly string[]
+  onSelectionChange?: (keys: string[]) => void
+  closeOnSelect?: boolean
 }
 
 /** A keyboard navigable menu that stays inside the nearest theme scope. */
@@ -224,15 +240,25 @@ export function Dropdown({
   placement = 'bottom-start',
   label = '菜单',
   className,
+  selectionMode = 'none',
+  selectedKeys,
+  defaultSelectedKeys = [],
+  onSelectionChange,
+  closeOnSelect,
 }: DropdownProps) {
   const { direction } = useConfig()
   const [internalOpen, setInternalOpen] = useState(defaultOpen)
+  const [internalSelectedKeys, setInternalSelectedKeys] = useState<string[]>(
+    () => [...defaultSelectedKeys],
+  )
+  const currentSelectedKeys = selectedKeys ?? internalSelectedKeys
   const isOpen = open ?? internalOpen
   const rootRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const [focusLastOnOpen, setFocusLastOnOpen] = useState(false)
   const triggerId = useId()
   const menuId = `${triggerId}-menu`
+  const groupId = `${menuId}-group`
   useFloatingPosition(rootRef, menuRef, isOpen, placement, direction)
 
   const setOpen = useCallback(
@@ -246,12 +272,16 @@ export function Dropdown({
   useEffect(() => {
     if (!isOpen) return
     const options = menuRef.current?.querySelectorAll<HTMLButtonElement>(
-      'button:not(:disabled)',
+      '[data-ui-dropdown-action]:not(:disabled)',
     )
     const initialFocus = focusLastOnOpen
       ? options?.[options.length - 1]
       : options?.[0]
     initialFocus?.focus()
+  }, [focusLastOnOpen, isOpen])
+
+  useEffect(() => {
+    if (!isOpen) return
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node
       if (
@@ -282,7 +312,7 @@ export function Dropdown({
       }
       const options = [
         ...menuRef.current.querySelectorAll<HTMLButtonElement>(
-          'button:not(:disabled)',
+          '[data-ui-dropdown-action]:not(:disabled)',
         ),
       ]
       if (!options.length) return
@@ -309,7 +339,64 @@ export function Dropdown({
       document.removeEventListener('pointerdown', onPointerDown)
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [focusLastOnOpen, isOpen, setOpen])
+  }, [isOpen, setOpen])
+
+  const handleItemSelect = (item: DropdownActionItem) => {
+    item.onSelect?.()
+    if (selectionMode !== 'none') {
+      const next =
+        selectionMode === 'single'
+          ? [item.key]
+          : currentSelectedKeys.includes(item.key)
+            ? currentSelectedKeys.filter((key) => key !== item.key)
+            : [...currentSelectedKeys, item.key]
+      if (selectedKeys === undefined) setInternalSelectedKeys(next)
+      onSelectionChange?.(next)
+    }
+    if (closeOnSelect ?? selectionMode !== 'multiple') {
+      setOpen(false)
+      rootRef.current
+        ?.querySelector<HTMLElement>('[data-ui-dropdown-trigger]')
+        ?.focus()
+    }
+  }
+
+  const renderAction = (item: DropdownActionItem) => {
+    const selected = currentSelectedKeys.includes(item.key)
+    return (
+      <button
+        key={item.key}
+        type="button"
+        role={
+          selectionMode === 'single'
+            ? 'menuitemradio'
+            : selectionMode === 'multiple'
+              ? 'menuitemcheckbox'
+              : 'menuitem'
+        }
+        aria-checked={selectionMode !== 'none' ? selected : undefined}
+        data-ui-dropdown-action=""
+        data-ui-dropdown-key={item.key}
+        className={cn(
+          'flex w-full min-h-11 touch-manipulation cursor-pointer items-center justify-between gap-2 rounded-[var(--radius-sm)] border-0 bg-transparent px-3 py-2.5 text-start text-inherit hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50',
+          item.danger &&
+            'text-destructive hover:text-destructive focus-visible:text-destructive',
+          selected &&
+            selectionMode !== 'none' &&
+            'bg-accent text-accent-foreground',
+        )}
+        disabled={item.disabled}
+        onClick={() => handleItemSelect(item)}
+      >
+        <span className="min-w-0 break-words">{item.label}</span>
+        {selected && selectionMode !== 'none' && (
+          <span aria-hidden="true" className="shrink-0 text-primary">
+            ✓
+          </span>
+        )}
+      </button>
+    )
+  }
 
   const handleTriggerClick = (event: MouseEvent) => {
     if (!callHandler(trigger.props.onClick, event)) return
@@ -358,33 +445,39 @@ export function Dropdown({
             role="menu"
             dir={direction}
             aria-label={label}
+            aria-multiselectable={
+              selectionMode === 'multiple' ? true : undefined
+            }
             className={cn(
               floatingPanelStyles,
               'rounded-[var(--ui-menu-radius)] p-[var(--space-xs)]',
             )}
           >
-            {items.map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                role="menuitem"
-                className={cn(
-                  'flex w-full min-h-11 touch-manipulation cursor-pointer items-center rounded-[var(--radius-sm)] border-0 bg-transparent px-3 py-2.5 text-start text-inherit hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50',
-                  item.danger &&
-                    'text-destructive hover:text-destructive focus-visible:text-destructive',
-                )}
-                disabled={item.disabled}
-                onClick={() => {
-                  item.onSelect?.()
-                  setOpen(false)
-                  rootRef.current
-                    ?.querySelector<HTMLElement>('[data-ui-dropdown-trigger]')
-                    ?.focus()
-                }}
-              >
-                {item.label}
-              </button>
-            ))}
+            {items.map((item, index) => {
+              if (item.type === 'divider')
+                return (
+                  <div
+                    key={item.key}
+                    role="separator"
+                    className="my-1 border-t border-border"
+                  />
+                )
+              if (item.type === 'group') {
+                const headingId = `${groupId}-${index}`
+                return (
+                  <div key={item.key} role="group" aria-labelledby={headingId}>
+                    <div
+                      id={headingId}
+                      className="px-3 py-1 text-xs font-semibold text-muted-foreground"
+                    >
+                      {item.label}
+                    </div>
+                    {item.children.map(renderAction)}
+                  </div>
+                )
+              }
+              return renderAction(item)
+            })}
           </div>
         </Portal>
       )}

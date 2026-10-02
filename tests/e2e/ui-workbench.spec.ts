@@ -182,6 +182,51 @@ test('Tooltip delays hover and keeps focus and H5 touch behavior', async ({
   ).toBe(true)
 })
 
+test('Dropdown grouped filters preserve multiple selection on desktop and H5', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  await page.setViewportSize({ width: 360, height: 844 })
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const trigger = preview.getByRole('button', { name: '打开筛选菜单' })
+  const triggerBox = await trigger.boundingBox()
+  expect(triggerBox!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await trigger.tap()
+  else {
+    await trigger.focus()
+    await trigger.press('Enter')
+  }
+  const menu = page.getByRole('menu', { name: '筛选菜单' })
+  await expect(menu).toHaveAttribute('aria-multiselectable', 'true')
+  const mine = menu.getByRole('menuitemcheckbox', { name: '我的项目' })
+  const all = menu.getByRole('menuitemcheckbox', { name: '全部' })
+  const archived = menu.getByRole('menuitemcheckbox', { name: '已归档' })
+  await expect(all).toHaveAttribute('aria-checked', 'true')
+  await expect(archived).toBeDisabled()
+  for (const action of [mine, all]) {
+    const box = await action.boundingBox()
+    expect(box!.height).toBeGreaterThanOrEqual(44)
+  }
+  if (testInfo.project.name.startsWith('mobile-')) await mine.tap()
+  else await mine.click()
+  await expect(mine).toHaveAttribute('aria-checked', 'true')
+  await expect(preview.getByTestId('dropdown-selection-status')).toHaveText(
+    '已选择：all、mine',
+  )
+  await expect(menu).toBeVisible()
+  if (testInfo.project.name.startsWith('mobile-')) await all.tap()
+  else await all.click()
+  await expect(all).toHaveAttribute('aria-checked', 'false')
+  await expect(preview.getByTestId('dropdown-selection-status')).toHaveText(
+    '已选择：mine',
+  )
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+})
+
 test('page shell keeps safe padding and the skip link is keyboard reachable', async ({
   page,
 }, testInfo) => {
