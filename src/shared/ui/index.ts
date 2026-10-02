@@ -164,7 +164,8 @@ export type {
 } from './slider'
 export { Calendar } from './calendar'
 export type { CalendarProps, CalendarPart } from './calendar'
-export { Tag, Badge, Skeleton } from './display'
+export { Tag, Skeleton } from './display'
+export { Badge, BadgeRibbon } from './badge'
 export { Image, ImagePreviewGroup } from './image'
 export type {
   ImageProps,
@@ -172,12 +173,8 @@ export type {
   ImagePreviewItem,
   ImagePreviewGroupProps,
 } from './image'
-export type {
-  TagProps,
-  BadgeProps,
-  SkeletonProps,
-  SkeletonParagraph,
-} from './display'
+export type { TagProps, SkeletonProps, SkeletonParagraph } from './display'
+export type { BadgeProps, BadgeRibbonProps, BadgeStatus } from './badge'
 export { Alert } from './alert'
 export type { AlertProps } from './alert'
 export { Spinner } from './spinner'

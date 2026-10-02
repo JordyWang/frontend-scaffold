@@ -25,7 +25,7 @@ import {
 } from './button-styles'
 import { useConfig } from './config-context'
 import { Dialog } from './dialog'
-import { Badge, type BadgeProps } from './display'
+import { Badge, type BadgeProps } from './badge'
 import {
   floatButtonControlStyles,
   floatButtonPositionStyles,

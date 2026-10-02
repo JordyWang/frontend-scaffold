@@ -231,6 +231,73 @@ describe('display and feedback semantics', () => {
       </Badge>,
     )
     expect(screen.getByText('99+')).toHaveAttribute('aria-label', '120 条通知')
+    expect(
+      screen.getByRole('status', { name: '120 条通知' }),
+    ).toHaveTextContent('99+')
+  })
+
+  it('hides numeric zero by default and preserves explicit zero and dot states', () => {
+    render(
+      <>
+        <Badge count={0}>
+          <button type="button">消息</button>
+        </Badge>
+        <Badge count={0} showZero label="零条消息" />
+        <Badge count={0} dot label="零条提醒" />
+        <Badge count={0} dot showZero label="零条提醒但保留圆点" />
+      </>,
+    )
+    expect(
+      screen.getByRole('button', { name: '消息' }).parentElement,
+    ).toHaveAttribute('data-ui-badge')
+    expect(
+      screen
+        .getByRole('button', { name: '消息' })
+        .parentElement?.querySelector('[data-ui-badge-tone]'),
+    ).toBeNull()
+    expect(screen.getByText('0')).toHaveAttribute('aria-label', '零条消息')
+    expect(screen.queryByLabelText('零条提醒')).toBeNull()
+    expect(screen.getByLabelText('零条提醒但保留圆点')).toBeEmptyDOMElement()
+  })
+
+  it('supports string counts, small size and logical placement offsets', () => {
+    render(
+      <>
+        <Badge count="NEW" size="small" />
+        <Badge count={12} max={9} offset={[4, 6]}>
+          <button type="button">通知入口</button>
+        </Badge>
+      </>,
+    )
+    expect(screen.getByText('NEW')).toHaveAttribute(
+      'data-ui-badge-size',
+      'small',
+    )
+    const capped = screen.getByText('9+')
+    expect(capped).toHaveAttribute('aria-label', '12 条通知')
+    expect(capped).toHaveStyle({ insetInlineEnd: '-4px', top: '6px' })
+  })
+
+  it('names status indicators and renders a themed ribbon', () => {
+    render(
+      <>
+        <Badge status="processing" text="上传中" />
+        <Badge status="error" />
+        <Badge.Ribbon text="推荐" tone="warning" placement="start">
+          <div>项目卡片</div>
+        </Badge.Ribbon>
+      </>,
+    )
+    expect(screen.getByText('上传中')).toBeVisible()
+    expect(screen.getByRole('img', { name: '进行中' })).toHaveClass(
+      'motion-reduce:after:animate-none',
+    )
+    expect(screen.getByRole('img', { name: '错误状态' })).toBeVisible()
+    expect(screen.getByText('推荐')).toHaveAttribute(
+      'data-ui-badge-ribbon',
+      'start',
+    )
+    expect(screen.getByText('项目卡片')).toBeVisible()
   })
 
   it('keeps standalone badge counts and labels in the document flow', () => {

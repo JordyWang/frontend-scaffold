@@ -54,7 +54,7 @@
 | Checkbox / Radio / Switch       | 原生 input 属性、`label`、`size`、`invalid`；`RadioGroup(options, value, onValueChange, required)`                                                     | 原生键盘行为和表单提交；标签提供 44px 触控区域                                                                              |
 | Segmented                       | `options`、`value` / `defaultValue`、`onChange`、`size`、`block`、`disabled`                                                                           | 原生单选控件；显式 `value={undefined}` 可清空，非受控选项失效时回退到可用项；支持方向键和窄屏横向滚动                       |
 | Rate                            | `count`、`value` / `defaultValue`、`onChange`、`allowClear`、`character`、`tooltips`、`disabled`                                                       | 原生单选控件；显式 `value={undefined}` 保持受控空值；支持方向键、清除和 44px 触控区域                                       |
-| Tag / Badge                     | `Tag(tone, selectable, selected, onSelectedChange, closable, open, onOpenChange, onClose)`；`Badge(count, max, dot, label)`                            | Tag 选择和关闭使用独立按钮及 44px 触控区域；Badge 可独立占位，也可附着于控件并跟随 RTL 逻辑末端                             |
+| Tag / Badge                     | `Tag(tone, selectable, closable)`；`Badge(count, showZero, status)`；`Badge.Ribbon`                                                                    | Tag 操作使用 44px 触控区域；Badge 支持数量、状态点和角标，位置跟随 RTL 逻辑方向                                             |
 | Image / Skeleton                | 原生 img 属性、必填 `alt`、`fallback`、`preview`；`Skeleton(shape, width, height, label, loading, active, avatar, title, paragraph, round)`            | 图片支持放大预览和加载失败反馈；骨架屏有状态标签，内容形态支持头像、标题、段落及加载结束后展示真实内容                      |
 | ImagePreviewGroup               | `items`、`current` / `defaultCurrent`、`onCurrentChange`、`open` / `defaultOpen`、`onOpenChange`、`label`、缩放配置                                    | 项目相册以图片数组表示，缩略图与预览地址可不同；键盘切换、触控工具栏和关闭后的焦点恢复共用图片预览实现                      |
 | Alert / Spinner                 | `Alert(title, tone, banner, open, onOpenChange)`；`Spinner(label, size)`                                                                               | 错误与警告用 alert，其他状态用 status；可控关闭与 Banner 支持 44px 操作区域；加载状态有可访问名称                           |
@@ -77,6 +77,8 @@
 `Breadcrumb.maxItems` 至少保留 3 项：第一项、尾部若干项和当前页；中间路径以 44px 折叠按钮代替。`expanded` / `defaultExpanded` / `onExpandedChange` 控制展开状态，受控值须由调用方接受。展开时隐藏项保持原来的链接、按钮或禁用语义，折叠按钮保留焦点并提供 `aria-expanded` 与所控制路径的关联。长路径在 `__ui` 中提供键盘、触控和 RTL 预览。
 
 `Tag` 默认是静态标签。`selectable` 提供带 `aria-pressed` 的选择按钮，`selected` / `defaultSelected` 与 `onSelectedChange` 管理选择状态；`closable` 提供独立关闭按钮，`open` / `defaultOpen` 与 `onOpenChange` 管理可见性。关闭先调用 `onClose(event)`，可通过 `event.preventDefault()` 取消；`closeLabel` 和 `closeIcon` 可定制关闭按钮。`disabled` 禁用选择和关闭操作。按钮均不提交外层表单，触控目标至少 44px；关闭后优先将焦点移到同组下一可操作项，其次移到上一项。受控值须由调用方更新。
+
+`Badge.count` 接受非负有限数字或短字符串；数字零默认隐藏，`showZero` 可保留零，`dot` 显示圆点。数值超过 `max` 时只截断可见文本，可访问名称仍使用完整数值；`size` 为 default / small，`offset` 的两个数字分别沿逻辑末端向外、沿块方向向下偏移像素。`status` 支持 default / success / processing / warning / error，可配 `text`，圆点始终有可访问的状态名称；指定状态时优先展示状态点。`Badge.Ribbon` 的 `text`、`tone` 和 `placement` 控制卡片角标，start / end 随 RTL 方向变化。`label` 可覆写徽标的可访问名称；附着于控件时，业务入口本身仍需有名称。
 
 `Alert` 的 `description`、`action` 可放入补充内容与操作；`showIcon`、`icon` 和 `closeIcon` 控制装饰图标。`closable` 开启关闭按钮，`closeLabel` 为其命名。`open` / `defaultOpen` 控制可见性，关闭操作先调用 `onOpenChange(false)` 和 `onDismiss(event)`；实际关闭后调用 `afterClose()`。受控状态由调用方接受关闭请求，未接受时提示继续显示。
 

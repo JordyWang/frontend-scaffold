@@ -21,13 +21,6 @@ const tagToneStyles = {
     'border-[var(--ui-color-error)] bg-[var(--ui-map-error-bg)] text-[var(--ui-color-error)]',
 } as const
 
-const badgeToneStyles = {
-  default: 'bg-primary text-primary-foreground',
-  success: 'bg-[var(--ui-seed-success)] text-[var(--ui-map-success-text)]',
-  warning: 'bg-[var(--ui-seed-warning)] text-[var(--ui-map-warning-text)]',
-  error: 'bg-[var(--ui-seed-error)] text-[var(--ui-map-error-text)]',
-} as const
-
 export type TagProps = HTMLAttributes<HTMLSpanElement> & {
   tone?: Tone
   selectable?: boolean
@@ -165,63 +158,6 @@ export function Tag({
         >
           {closeIcon ?? <CloseIcon />}
         </button>
-      )}
-    </span>
-  )
-}
-
-export type BadgeProps = {
-  count?: number
-  max?: number
-  dot?: boolean
-  tone?: Tone
-  children?: ReactNode
-  label?: string
-  className?: string
-}
-export function Badge({
-  count,
-  max = 99,
-  dot = false,
-  tone = 'default',
-  children,
-  label,
-  className,
-}: BadgeProps) {
-  const hasAnchor =
-    children !== undefined && children !== null && children !== false
-  const text = dot
-    ? ''
-    : count === undefined
-      ? hasAnchor
-        ? ''
-        : (label ?? '')
-      : count > max
-        ? `${max}+`
-        : String(count)
-  return (
-    <span
-      data-ui-badge=""
-      className={cn('relative inline-flex w-fit', className)}
-    >
-      {children}
-      {(dot || count !== undefined || label) && (
-        <span
-          data-ui-badge-tone={tone}
-          className={cn(
-            'grid h-5 min-w-5 place-items-center rounded-full px-[0.2rem] text-xs font-bold leading-none',
-            hasAnchor &&
-              'absolute end-0 top-0 translate-x-[40%] -translate-y-[40%] rtl:-translate-x-[40%]',
-            badgeToneStyles[tone],
-            dot && 'size-2.5 min-w-0 p-0',
-          )}
-          aria-label={
-            label ?? (count === undefined ? undefined : `${count} 条通知`)
-          }
-          aria-hidden={!label && count === undefined ? true : undefined}
-        >
-          {text}
-        </span>
       )}
     </span>
   )

@@ -78,6 +78,63 @@ test('Tag selection and dismissal work with keyboard and H5 touch', async ({
   ).toBe(true)
 })
 
+test('Badge exposes zero, overflow, status and RTL ribbon states', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  await page.setViewportSize({ width: 360, height: 844 })
+  const group = page.getByRole('group', { name: '徽标状态' })
+  const message = group.getByRole('button', { name: '消息', exact: true })
+  const countBadge = message.locator('..').locator('[data-ui-badge-tone]')
+  const zero = group.getByLabel('0 条消息')
+  const setTwelve = group.getByRole('button', { name: '设为 12' })
+  const setZero = group.getByRole('button', { name: '设为 0' })
+
+  await expect(countBadge).toHaveCount(0)
+  await expect(zero).toHaveText('0')
+  await expect(group.getByText('NEW')).toHaveAttribute(
+    'data-ui-badge-size',
+    'small',
+  )
+  await expect(group.getByRole('img', { name: '进行中' })).toBeVisible()
+  await expect(group.getByRole('img', { name: '错误状态' })).toBeVisible()
+  if (testInfo.project.name.startsWith('mobile-')) await setTwelve.tap()
+  else {
+    await setTwelve.focus()
+    await setTwelve.press('Enter')
+  }
+  await expect(countBadge).toHaveText('9+')
+  await expect(countBadge).toHaveAttribute('aria-label', '12 条通知')
+  await expect(group.getByLabel('12 条消息')).toHaveText('12')
+
+  const rtl = group.getByRole('group', { name: 'RTL 角标' })
+  const rtlButton = rtl.getByRole('button', { name: 'RTL 偏移' })
+  const rtlBadge = rtlButton.locator('..').locator('[data-ui-badge-tone]')
+  const rtlButtonBox = (await rtlButton.boundingBox())!
+  const rtlBadgeBox = (await rtlBadge.boundingBox())!
+  expect(rtlBadgeBox.x).toBeLessThan(rtlButtonBox.x)
+  const ribbon = rtl.locator('[data-ui-badge-ribbon="start"]')
+  const card = rtl.getByText('RTL 卡片角标')
+  const ribbonBox = (await ribbon.boundingBox())!
+  const cardBox = (await card.boundingBox())!
+  expect(ribbonBox.x + ribbonBox.width).toBeGreaterThan(
+    cardBox.x + cardBox.width / 2,
+  )
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+
+  if (testInfo.project.name.startsWith('mobile-')) await setZero.tap()
+  else {
+    await setZero.focus()
+    await setZero.press('Space')
+  }
+  await expect(countBadge).toHaveCount(0)
+  await expect(zero).toHaveText('0')
+})
+
 test('page shell keeps safe padding and the skip link is keyboard reachable', async ({
   page,
 }, testInfo) => {
