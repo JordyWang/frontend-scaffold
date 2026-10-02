@@ -29,6 +29,7 @@ import { TypographyPreview } from './TypographyPreview'
 import { TabsPreview } from './TabsPreview'
 import { TagPreview } from './TagPreview'
 import { BadgePreview } from './BadgePreview'
+import { TooltipPreview } from './TooltipPreview'
 import {
   Alert,
   Affix,
@@ -1625,6 +1626,7 @@ export function DesignSystemPreview() {
                     通知示例
                   </Button>
                 </Stack>
+                <TooltipPreview />
               </Stack>
             </CardContent>
           </Card>

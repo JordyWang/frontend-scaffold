@@ -135,6 +135,53 @@ test('Badge exposes zero, overflow, status and RTL ribbon states', async ({
   await expect(zero).toHaveText('0')
 })
 
+test('Tooltip delays hover and keeps focus and H5 touch behavior', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  await page.setViewportSize({ width: 360, height: 844 })
+  const group = page.getByRole('group', { name: '提示状态' })
+  const delayed = group.getByRole('button', { name: '延迟提示' })
+  const empty = group.getByRole('button', { name: '空内容提示' })
+  const disabled = group.getByRole('button', { name: '禁用提示' })
+  const controlled = group.getByRole('button', { name: '受控提示' })
+  const tooltip = page.getByRole('tooltip')
+
+  if (testInfo.project.name.startsWith('mobile-')) {
+    const box = await delayed.boundingBox()
+    expect(box!.width).toBeGreaterThanOrEqual(44)
+    expect(box!.height).toBeGreaterThanOrEqual(44)
+    await delayed.tap()
+    await expect(tooltip).toBeVisible()
+    await empty.tap()
+  } else {
+    await delayed.hover()
+    await page.waitForTimeout(100)
+    await expect(tooltip).toHaveCount(0)
+    await expect(tooltip).toBeVisible()
+    await empty.hover()
+    await page.waitForTimeout(50)
+    await expect(tooltip).toBeVisible()
+    await empty.focus()
+  }
+  await expect(tooltip).toHaveCount(0)
+  await expect(empty).not.toHaveAttribute('aria-describedby')
+  await disabled.focus()
+  await expect(tooltip).toHaveCount(0)
+
+  await controlled.focus()
+  await expect(tooltip).toHaveText('由外部管理的提示')
+  await expect(group.getByRole('status')).toHaveText('受控提示已打开')
+  await page.keyboard.press('Escape')
+  await expect(tooltip).toHaveCount(0)
+  await expect(group.getByRole('status')).toHaveText('受控提示已关闭')
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+})
+
 test('page shell keeps safe padding and the skip link is keyboard reachable', async ({
   page,
 }, testInfo) => {

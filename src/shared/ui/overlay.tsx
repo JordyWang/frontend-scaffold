@@ -397,7 +397,11 @@ export type TooltipProps = {
   placement?: 'top' | 'bottom' | 'left' | 'right'
   className?: string
   open?: boolean
+  defaultOpen?: boolean
   onOpenChange?: (open: boolean) => void
+  disabled?: boolean
+  mouseEnterDelay?: number
+  mouseLeaveDelay?: number
 }
 
 /** Optional contextual help that also appears when its trigger receives focus. */
@@ -407,29 +411,69 @@ export function Tooltip({
   placement = 'top',
   className,
   open: controlledOpen,
+  defaultOpen = false,
   onOpenChange,
+  disabled = false,
+  mouseEnterDelay = 0,
+  mouseLeaveDelay = 0,
 }: TooltipProps) {
   const { direction } = useConfig()
   const id = useId()
-  const [internalOpen, setInternalOpen] = useState(false)
-  const open = controlledOpen ?? internalOpen
+  const [internalOpen, setInternalOpen] = useState(defaultOpen)
+  const enabled =
+    !disabled &&
+    title !== null &&
+    title !== undefined &&
+    title !== false &&
+    title !== ''
+  const [previousEnabled, setPreviousEnabled] = useState(enabled)
+  if (previousEnabled !== enabled) {
+    setPreviousEnabled(enabled)
+    if (!enabled && controlledOpen === undefined) setInternalOpen(false)
+  }
+  const open = enabled && (controlledOpen ?? internalOpen)
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const cancelHoverTimer = useCallback(() => {
+    if (hoverTimer.current === null) return
+    clearTimeout(hoverTimer.current)
+    hoverTimer.current = null
+  }, [])
   const setOpen = useCallback(
     (next: boolean) => {
+      if (!enabled || next === open) return
       if (controlledOpen === undefined) setInternalOpen(next)
       onOpenChange?.(next)
     },
-    [controlledOpen, onOpenChange],
+    [controlledOpen, enabled, onOpenChange, open],
   )
+  const scheduleHover = (next: boolean, delay: number) => {
+    cancelHoverTimer()
+    if (!enabled) return
+    const milliseconds =
+      Number.isFinite(delay) && delay > 0 ? Math.min(delay, 60) * 1000 : 0
+    if (milliseconds === 0) setOpen(next)
+    else hoverTimer.current = setTimeout(() => setOpen(next), milliseconds)
+  }
+  useEffect(() => cancelHoverTimer, [cancelHoverTimer])
+  useEffect(() => {
+    if (!enabled) cancelHoverTimer()
+  }, [cancelHoverTimer, enabled])
   const rootRef = useRef<HTMLSpanElement>(null)
   const tooltipRef = useRef<HTMLSpanElement>(null)
   useFloatingPosition(rootRef, tooltipRef, open, placement)
   useEffect(() => {
     if (!open) return
     const onPointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
+      if (!rootRef.current?.contains(event.target as Node)) {
+        cancelHoverTimer()
+        setOpen(false)
+      }
     }
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
+      if (event.key === 'Escape') {
+        cancelHoverTimer()
+        setOpen(false)
+      }
     }
     document.addEventListener('pointerdown', onPointerDown)
     document.addEventListener('keydown', onKeyDown)
@@ -437,35 +481,38 @@ export function Tooltip({
       document.removeEventListener('pointerdown', onPointerDown)
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [open, setOpen])
+  }, [cancelHoverTimer, open, setOpen])
   const describedBy = [children.props['aria-describedby'], id]
     .filter(Boolean)
     .join(' ')
   const trigger = cloneElement(children, {
     'aria-describedby': open ? describedBy : children.props['aria-describedby'],
     'data-ui-tooltip-trigger': '',
-    onFocus: (event) => {
-      children.props.onFocus?.(event)
-      setOpen(true)
-    },
-    onBlur: (event) => {
-      children.props.onBlur?.(event)
-      setOpen(false)
-    },
-    onPointerDown: (event) => {
-      children.props.onPointerDown?.(event)
-      // Pointer down is the reliable activation signal on touch browsers;
-      // opening for mouse down as well keeps the control usable before hover
-      // styles are applied and does not change the focus/hover close rules.
-      setOpen(true)
-    },
   })
   return (
     <span
       ref={rootRef}
       className={cn('relative inline-flex max-w-full', className)}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      onFocus={(event) => {
+        if (event.defaultPrevented) return
+        cancelHoverTimer()
+        setOpen(true)
+      }}
+      onBlur={(event) => {
+        if (event.defaultPrevented) return
+        cancelHoverTimer()
+        setOpen(false)
+      }}
+      onPointerDown={(event) => {
+        if (event.defaultPrevented) return
+        cancelHoverTimer()
+        setOpen(true)
+      }}
+      onMouseEnter={() => scheduleHover(true, mouseEnterDelay)}
+      onMouseLeave={() => {
+        if (rootRef.current?.contains(document.activeElement)) return
+        scheduleHover(false, mouseLeaveDelay)
+      }}
     >
       {trigger}
       {open && (
