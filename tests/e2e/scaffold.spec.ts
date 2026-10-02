@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 test('mock mode loads local JSON on desktop and mobile', async ({ page }) => {
   await page.goto('/')
   await expect(
-    page.getByRole('heading', { name: '前端脚手架已就绪' }),
+    page.getByRole('heading', { name: '用现有组件，构建一致的界面' }),
   ).toBeVisible()
 
   await page.getByRole('link', { name: '打开开发预览' }).click()

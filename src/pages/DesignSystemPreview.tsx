@@ -278,9 +278,15 @@ export function DesignSystemPreview() {
   }, [fullscreenLoading])
 
   return (
-    <section className="space-y-4" aria-label="设计系统补充组件">
-      <div>
-        <h2 className="text-xl font-semibold">设计系统补充组件</h2>
+    <section
+      id="design-system"
+      className="scroll-mt-6 space-y-5"
+      aria-label="设计系统补充组件"
+    >
+      <div className="border-b border-border pb-4">
+        <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
+          设计系统补充组件
+        </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           浅色、深色、紧凑和局部主题；原生表单控件支持键盘与触控。
         </p>

@@ -1,11 +1,7 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router'
-import {
-  pageShellStyles,
-  skipLinkStyles,
-  textLinkStyles,
-} from '@/shared/ui/tailwind-styles'
+import { pageShellStyles, skipLinkStyles } from '@/shared/ui/tailwind-styles'
 import { apiGet } from '@/shared/api/request'
 import {
   FileDropzone,
@@ -31,6 +27,7 @@ import { AudioPlayer } from '@/capabilities/audio'
 import { MockWorkflowDemo } from './MockWorkflowDemo'
 import { DesignSystemPreview } from './DesignSystemPreview'
 import {
+  Anchor,
   Button,
   Card,
   CardContent,
@@ -42,6 +39,7 @@ import {
   Dialog,
   Empty,
   FormField,
+  Icon,
   Input,
   List,
   Pagination,
@@ -49,6 +47,7 @@ import {
   Sheet,
   Table,
   Tabs,
+  Tag,
   Textarea,
   toast,
 } from '@/shared/ui'
@@ -122,19 +121,53 @@ const fileRules = {
   maxMediaDurationSeconds: 120,
 }
 
+const previewGroups = [
+  {
+    label: '组件与样式',
+    items: [
+      { id: 'design-system', label: '设计系统补充组件' },
+      { id: 'basic', label: '基础展示与输入' },
+      { id: 'feedback', label: '交互与反馈' },
+      { id: 'data', label: '导航与数据' },
+    ],
+  },
+  {
+    label: '业务能力',
+    items: [
+      { id: 'files', label: '文件能力' },
+      { id: 'ai-task', label: 'AI 任务能力' },
+      { id: 'ai-chat', label: 'AI 对话能力' },
+      { id: 'video', label: '视频能力' },
+      { id: 'audio', label: '音频能力' },
+      { id: 'workflow', label: '完整 Mock 示例流程', mockOnly: true },
+    ],
+  },
+  {
+    label: '开发资源',
+    items: [
+      { id: 'tokens', label: '设计变量' },
+      { id: 'fixtures', label: 'JSON Mock' },
+    ],
+  },
+] as const
+
 function DemoSection({
+  id,
   title,
   note,
   children,
 }: {
+  id: string
   title: string
   note?: string
   children: ReactNode
 }) {
   return (
-    <section className="space-y-4" aria-label={title}>
-      <div>
-        <h2 className="text-xl font-semibold">{title}</h2>
+    <section id={id} className="scroll-mt-6 space-y-5" aria-label={title}>
+      <div className="border-b border-border pb-4">
+        <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
+          {title}
+        </h2>
         {note && <p className="mt-1 text-sm text-muted-foreground">{note}</p>}
       </div>
       {children}
@@ -175,6 +208,37 @@ export function DevWorkbenchPage() {
     storageKey: 'dev-workbench-ai-task',
   })
   const visibleRows = dataState === 'filled' ? rows : []
+  const navigationGroups = useMemo(
+    () =>
+      previewGroups.map((group) => ({
+        label: group.label,
+        links: group.items
+          .filter((item) => !('mockOnly' in item) || isMock)
+          .map((item) => ({ href: `#${item.id}`, title: item.label })),
+      })),
+    [isMock],
+  )
+  const [activeHref, setActiveHref] = useState('#design-system')
+
+  useEffect(() => {
+    const links = navigationGroups.flatMap((group) => group.links)
+    function updateActiveSection() {
+      const current = links
+        .filter((link) => {
+          const target = document.getElementById(link.href.slice(1))
+          return target && target.getBoundingClientRect().top <= 25
+        })
+        .at(-1)
+      setActiveHref(current?.href ?? links[0]?.href ?? '')
+    }
+    updateActiveSection()
+    window.addEventListener('scroll', updateActiveSection, { passive: true })
+    window.addEventListener('hashchange', updateActiveSection)
+    return () => {
+      window.removeEventListener('scroll', updateActiveSection)
+      window.removeEventListener('hashchange', updateActiveSection)
+    }
+  }, [navigationGroups])
 
   async function retryData() {
     await new Promise<void>((resolve) => window.setTimeout(resolve, 1400))
@@ -201,852 +265,957 @@ export function DevWorkbenchPage() {
       <a className={skipLinkStyles} href="#main">
         跳到主要内容
       </a>
-      <main
-        id="main"
-        className={`${pageShellStyles} space-y-12 py-10 sm:py-16`}
-      >
-        <header className="space-y-3">
-          <Link
-            className={`${textLinkStyles} inline-flex min-h-11 items-center`}
-            to="/"
-          >
-            返回首页
-          </Link>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            组件预览
-          </h1>
-          <p className="max-w-2xl leading-7 text-muted-foreground">
-            检查默认、禁用、加载、错误、空数据和小屏布局。可用
-            Tab、方向键、Enter、Space 与 Escape 验证键盘操作。
-          </p>
+      <main id="main" className={`${pageShellStyles} py-6 sm:py-10`}>
+        <header className="mb-8 space-y-6 sm:mb-10">
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 font-semibold text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"
+              to="/"
+            >
+              <Icon name="home" size={18} />
+              Front UI
+            </Link>
+            <Tag tone={isMock ? 'success' : 'default'}>
+              {isMock ? 'Mock 预览' : '真实接口模式'}
+            </Tag>
+          </div>
+          <Card className="border-primary/20 bg-card">
+            <CardContent className="grid gap-6 py-8 sm:py-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+              <div className="max-w-3xl space-y-4">
+                <p className="text-sm font-semibold tracking-widest text-primary uppercase">
+                  Component workbench
+                </p>
+                <h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">
+                  组件预览
+                </h1>
+                <p className="max-w-2xl leading-7 text-muted-foreground">
+                  在同一个工作台查看组件、业务能力和设计变量。每个示例保留可操作状态，方便检查桌面与手机布局。
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Tag>组件状态</Tag>
+                  <Tag>PC / H5</Tag>
+                  <Tag>键盘与触控</Tag>
+                </div>
+              </div>
+              <a
+                className="inline-flex min-h-11 w-fit items-center gap-2 rounded-[var(--ui-button-radius)] bg-primary px-5 py-2.5 font-semibold text-primary-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                href="#design-system"
+              >
+                浏览组件 <Icon name="arrowRight" size={18} />
+              </a>
+            </CardContent>
+          </Card>
         </header>
 
-        <DesignSystemPreview />
-
-        <DemoSection
-          title="基础展示与输入"
-          note="Button、Input、Textarea、FormField、Card、Empty"
-        >
-          <div className="flex flex-wrap gap-3">
-            <Button
-              onClick={() => toast({ title: '操作已完成', variant: 'success' })}
-            >
-              主要操作
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => toast({ title: '次要操作已点击' })}
-            >
-              次要操作
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => toast({ title: '描边按钮已点击' })}
-            >
-              描边按钮
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => toast({ title: '轻量按钮已点击' })}
-            >
-              轻量按钮
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => toast({ title: '危险操作示例', variant: 'error' })}
-            >
-              危险操作
-            </Button>
-            <Button loading>提交中</Button>
-            <Button disabled>不可用</Button>
-            <Button size="small" variant="outline">
-              紧凑尺寸
-            </Button>
-            <Button size="icon" variant="outline" aria-label="图标按钮示例">
-              <svg
-                aria-hidden="true"
-                width="20"
-                height="20"
-                viewBox="0 0 20 20"
-                fill="none"
-              >
-                <path
-                  d="M10 4v12M4 10h12"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </Button>
-          </div>
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>表单状态</CardTitle>
-                <CardDescription>
-                  标签、说明和错误信息靠近输入控件
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <FormField
-                  label="名称"
-                  required
-                  description="输入至少两个字符。"
-                  error={name.length === 1 ? '名称至少需要两个字符' : undefined}
-                  control={
-                    <Input
-                      value={name}
-                      onChange={(event) => setName(event.target.value)}
-                      placeholder="请输入名称"
-                    />
-                  }
-                />
-                <FormField
-                  label="补充说明"
-                  control={
-                    <Textarea
-                      value={note}
-                      onChange={(event) => setNote(event.target.value)}
-                      placeholder="请输入补充说明"
-                    />
-                  }
-                />
-                <FormField
-                  label="禁用输入"
-                  control={<Input disabled value="不可编辑" readOnly />}
-                />
-                <FormField
-                  label="紧凑输入"
-                  control={<Input size="small" placeholder="紧凑尺寸" />}
-                />
-                <FormField
-                  label="错误文本域"
-                  error="请检查输入内容"
-                  control={<Textarea size="small" defaultValue="错误示例" />}
-                />
-              </CardContent>
-              <CardFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setName('')
-                    setNote('')
-                  }}
-                >
-                  清空
-                </Button>
-              </CardFooter>
-            </Card>
-            <Empty
-              title="暂无内容"
-              description="创建内容后将在这里显示。"
-              action={
-                <Button
-                  variant="outline"
-                  onClick={() => toast({ title: '创建内容示例' })}
-                >
-                  创建内容
-                </Button>
-              }
-            />
-          </div>
-        </DemoSection>
-
-        <DemoSection title="交互与反馈" note="Select、Dialog、Sheet、Toast">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>选择与错误</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <FormField
-                  label="分类"
-                  required
-                  error={category === 'error' ? '请选择有效分类' : undefined}
-                  control={
-                    <Select
-                      value={category}
-                      onValueChange={setCategory}
-                      options={[
-                        { value: 'design', label: '设计' },
-                        { value: 'code', label: '开发' },
-                        { value: 'error', label: '错误示例' },
-                        { value: 'disabled', label: '不可用', disabled: true },
-                      ]}
-                    />
-                  }
-                />
-                <FormField
-                  label="禁用选择"
-                  control={
-                    <Select
-                      disabled
-                      options={[{ value: 'a', label: '选项' }]}
-                    />
-                  }
-                />
-                <FormField
-                  label="紧凑选择"
-                  control={
-                    <Select
-                      size="small"
-                      options={[{ value: 'a', label: '选项 A' }]}
-                    />
-                  }
-                />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>弹层与提示</CardTitle>
-                <CardDescription>在窄屏查看底部面板和安全区域</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-wrap gap-3">
-                <Dialog
-                  title="确认操作"
-                  description="按 Escape 或关闭按钮可退出。"
-                  open={dialogOpen}
-                  onOpenChange={setDialogOpen}
-                  trigger={<Button variant="outline">打开对话框</Button>}
-                  footer={
-                    <Button
-                      onClick={() => {
-                        setDialogOpen(false)
-                        toast({ title: '已确认', variant: 'success' })
-                      }}
-                    >
-                      确认
-                    </Button>
-                  }
-                >
-                  <p>焦点会留在对话框内，关闭后返回触发按钮。</p>
-                  <Input
-                    aria-label="对话框内输入"
-                    placeholder="试试输入"
-                    className="mt-4"
-                  />
-                </Dialog>
-                <Sheet
-                  title="详情面板"
-                  description="小屏显示为底部面板。"
-                  trigger={<Button variant="outline">打开面板</Button>}
-                >
-                  <p>面板内容可以滚动，底部留出安全区域。</p>
-                  <Input
-                    aria-label="面板内输入"
-                    placeholder="试试输入"
-                    className="mt-4"
-                  />
-                </Sheet>
-                <Button
-                  variant="secondary"
-                  onClick={() =>
-                    toast({ title: '信息提示', description: '这是普通状态。' })
-                  }
-                >
-                  普通提示
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    toast({
-                      title: '需要注意',
-                      description: '这是警告状态。',
-                      variant: 'warning',
-                    })
-                  }
-                >
-                  警告提示
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() =>
-                    toast({
-                      title: '操作失败',
-                      description: '请重试。',
-                      variant: 'error',
-                    })
-                  }
-                >
-                  错误提示
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </DemoSection>
-
-        <DemoSection
-          title="导航与数据"
-          note="Tabs、Pagination、List、基础 Table"
-        >
-          <Tabs
-            label="预览分组"
-            items={[
-              {
-                value: 'overview',
-                label: '总览',
-                content: <p>使用左右方向键切换分组。</p>,
-              },
-              {
-                value: 'details',
-                label: '详细内容',
-                content: <p>当前为第二个分组。</p>,
-              },
-              {
-                value: 'disabled',
-                label: '不可用',
-                content: null,
-                disabled: true,
-              },
-            ]}
-          />
-          <div className="grid gap-3">
-            <Button
-              variant="outline"
-              className="justify-self-start"
-              aria-pressed={!showDynamicTab}
-              onClick={() => setShowDynamicTab((current) => !current)}
-            >
-              {showDynamicTab ? '隐藏详细分组' : '显示详细分组'}
-            </Button>
-            <Tabs
-              label="动态预览分组"
-              defaultValue="details"
-              items={[
-                {
-                  value: 'overview',
-                  label: '动态总览',
-                  content: <p>动态分组的基础内容。</p>,
-                },
-                ...(showDynamicTab
-                  ? [
-                      {
-                        value: 'details',
-                        label: '动态详情',
-                        content: <p>动态分组的详细内容。</p>,
-                      },
-                    ]
-                  : []),
-              ]}
-            />
-          </div>
-          <Tabs
-            label="垂直预览分组"
-            orientation="vertical"
-            className="max-w-xl rounded-lg border border-border p-3"
-            items={[
-              {
-                value: 'summary',
-                label: '概览',
-                content: <p>使用上下方向键或触控切换垂直分组。</p>,
-              },
-              {
-                value: 'detail',
-                label: '细节',
-                content: <p>窄屏仍保留左侧选项与右侧内容。</p>,
-              },
-              {
-                value: 'disabled',
-                label: '不可用',
-                content: null,
-                disabled: true,
-              },
-            ]}
-          />
-          <div
-            className="flex flex-wrap gap-3"
-            role="group"
-            aria-label="数据状态"
-          >
-            <Button
-              variant={dataState === 'filled' ? 'primary' : 'outline'}
-              onClick={() => setDataState('filled')}
-            >
-              有数据
-            </Button>
-            <Button
-              variant={dataState === 'empty' ? 'primary' : 'outline'}
-              onClick={() => setDataState('empty')}
-            >
-              空数据
-            </Button>
-            <Button
-              variant={dataState === 'loading' ? 'primary' : 'outline'}
-              onClick={() => setDataState('loading')}
-            >
-              加载中
-            </Button>
-            <Button
-              variant={dataState === 'error' ? 'primary' : 'outline'}
-              onClick={() => setDataState('error')}
-            >
-              错误
-            </Button>
-            <Checkbox
-              label="模拟重试失败"
-              checked={retryShouldFail}
-              onChange={(event) =>
-                setRetryShouldFail(event.currentTarget.checked)
-              }
-            />
-          </div>
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div className="space-y-3">
-              <h3 className="font-semibold">List</h3>
-              <List
-                items={visibleRows}
-                getKey={(row) => row.id}
-                renderItem={(row) => (
-                  <div className="flex justify-between gap-4">
-                    <span>{row.name}</span>
-                    <span className="text-muted-foreground">{row.status}</span>
-                  </div>
-                )}
-                loading={dataState === 'loading'}
-                error={dataState === 'error' ? '示例列表加载失败' : undefined}
-                onRetry={retryData}
-                label="示例任务"
-              />
-            </div>
-            <div className="space-y-3">
-              <h3 className="font-semibold">Table</h3>
-              <Table
-                caption="示例任务表"
-                rows={visibleRows}
-                getRowKey={(row) => row.id}
-                loading={dataState === 'loading'}
-                error={dataState === 'error' ? '示例表格加载失败' : undefined}
-                onRetry={retryData}
-                columns={[
-                  {
-                    key: 'name',
-                    header: '任务',
-                    render: (row) => row.name,
-                    sorter: (left, right) =>
-                      left.name.localeCompare(right.name, 'zh-CN'),
-                  },
-                  {
-                    key: 'status',
-                    header: '状态',
-                    render: (row) => row.status,
-                    filterOptions: [
-                      {
-                        value: 'done',
-                        label: '已完成',
-                        matches: (row) => row.status === '已完成',
-                      },
-                      {
-                        value: 'active',
-                        label: '进行中',
-                        matches: (row) => row.status === '进行中',
-                      },
-                      {
-                        value: 'todo',
-                        label: '待开始',
-                        matches: (row) => row.status === '待开始',
-                      },
-                      {
-                        value: 'archived',
-                        label: '已归档',
-                        matches: (row) => row.status === '已归档',
-                      },
-                    ],
-                  },
-                  {
-                    key: 'owner',
-                    header: '负责人',
-                    render: (row) => row.owner,
-                  },
-                ]}
-                selection={{
-                  defaultSelectedKeys: ['2'],
-                  disabled: (row) => row.id === '3',
-                  getLabel: (row) => row.name,
-                }}
-                expandable={{
-                  getLabel: (row) => row.name,
-                  expandedRowRender: (row) => (
-                    <p className="m-0 text-sm text-muted-foreground">
-                      {row.name}：负责人为{row.owner}，当前状态为{row.status}。
-                    </p>
-                  ),
-                }}
-                renderMobileRow={(row) => (
-                  <div className="space-y-1">
-                    <strong>{row.name}</strong>
-                    <p className="text-sm text-muted-foreground">
-                      {row.status} · {row.owner}
-                    </p>
-                  </div>
-                )}
-              />
-            </div>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="min-w-0 space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="font-semibold">页码模式</p>
-                <Button
-                  variant="outline"
-                  size="small"
-                  onClick={() => setPaginationDisabled((value) => !value)}
-                >
-                  {paginationDisabled ? '启用分页' : '禁用分页'}
-                </Button>
-              </div>
-              <Pagination
-                page={page}
-                pageSize={paginationPageSize}
-                total={135}
-                disabled={paginationDisabled}
-                onPageChange={setPage}
-                onPageSizeChange={(size, nextPage) => {
-                  setPaginationPageSize(size)
-                  setPage(nextPage)
-                }}
-                showQuickJumper
-                showTotal
-              />
-              <p className="text-xs text-muted-foreground">
-                页码之间的省略号可跨 5 页；可使用键盘或触控操作。
-              </p>
-            </div>
-            <div className="space-y-2">
-              <p className="font-semibold">加载更多模式</p>
-              <Pagination
-                page={loadMorePage}
-                pageSize={3}
-                total={12}
-                onPageChange={setLoadMorePage}
-                mode="load-more"
-              />
-            </div>
-          </div>
-        </DemoSection>
-
-        <DemoSection
-          title="文件能力"
-          note="选择、拖放、校验、预览、上传进度与取消"
-        >
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>选择文件</CardTitle>
-                <CardDescription>
-                  图片、视频或音频，最多 10 MB；图片不超过 4096 ×
-                  4096，音视频不超过 120 秒。
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <FilePicker
-                  rules={fileRules}
-                  onFiles={onFiles}
-                  onRejected={onRejected}
-                />
-                <FileDropzone
-                  rules={fileRules}
-                  onFiles={onFiles}
-                  onRejected={onRejected}
-                />
-                {fileIssues.length > 0 && (
-                  <ul
-                    role="alert"
-                    className="space-y-1 text-sm text-destructive"
-                  >
-                    {fileIssues.map((issue) => (
-                      <li key={issue}>{issue}</li>
-                    ))}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>预览与上传</CardTitle>
-                <CardDescription>
-                  演示使用本地模拟进度，真实上传可接入 XHR 适配器。
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {selectedFile ? (
-                  <FilePreview
-                    file={selectedFile}
-                    onRemove={() => {
-                      upload.reset()
-                      setSelectedFile(null)
-                    }}
-                  />
-                ) : (
-                  <Empty title="尚未选择文件" />
-                )}
-                <Button
-                  disabled={!selectedFile || upload.status === 'uploading'}
-                  onClick={() =>
-                    selectedFile && void upload.start(selectedFile)
-                  }
-                >
-                  开始上传
-                </Button>
-                <UploadProgress
-                  status={upload.status}
-                  progress={upload.progress}
-                  error={upload.error}
-                  onCancel={upload.cancel}
-                  onRetry={
-                    selectedFile
-                      ? () => void upload.start(selectedFile)
-                      : undefined
-                  }
-                />
-              </CardContent>
-            </Card>
-          </div>
-        </DemoSection>
-
-        <DemoSection
-          title="AI 任务能力"
-          note="任务状态机、轮询、进度、取消、失败和重试"
-        >
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>提交任务</CardTitle>
-                <CardDescription>
-                  Mock 客户端从 JSON fixture
-                  初始化；输入“失败”可演示失败与重试。
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <PromptInput
-                  onSubmit={(prompt) => void aiTask.submit({ prompt })}
-                  loading={aiTask.phase === 'submitting'}
-                  disabled={aiTask.isBusy && aiTask.phase !== 'submitting'}
-                />
-                <div className="grid gap-[var(--space-sm)] rounded-[var(--radius-md)] border border-border bg-muted p-[var(--space-md)]">
-                  <p className="font-medium">Mock 状态样例</p>
-                  {aiClient.fixtures.map((fixture) => (
-                    <div key={fixture.id} className="grid gap-2 text-sm">
-                      <div className="flex items-center justify-between gap-3">
-                        <code>{fixture.id}</code>
-                        <TaskStatus
-                          task={{
-                            id: fixture.id,
-                            input: { prompt: '' },
-                            status: fixture.status as
-                              'queued' | 'running' | 'completed',
-                            progress: fixture.progress,
-                          }}
-                        />
-                      </div>
-                      {fixture.status === 'running' && (
-                        <TaskProgress
-                          task={{
-                            id: fixture.id,
-                            input: { prompt: '' },
-                            status: 'running',
-                            progress: fixture.progress,
-                          }}
-                        />
-                      )}
+        <div className="grid min-w-0 gap-8 lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-10">
+          <aside className="min-w-0" aria-label="预览目录">
+            <Card className="lg:sticky lg:top-6">
+              <CardContent className="space-y-5 py-5 lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto">
+                <div>
+                  <p className="text-sm font-semibold">浏览目录</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    选择分类，跳转到对应示例
+                  </p>
+                </div>
+                <div className="grid gap-5">
+                  {navigationGroups.map((group) => (
+                    <div key={group.label}>
+                      <p className="mb-1 px-3 text-xs font-semibold tracking-wide text-muted-foreground">
+                        {group.label}
+                      </p>
+                      <Anchor
+                        label={`${group.label}导航`}
+                        links={group.links}
+                        activeHref={activeHref}
+                        onChange={setActiveHref}
+                        className="min-w-0 grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 [&_a]:px-2 [&_a]:text-sm"
+                      />
                     </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>任务状态</CardTitle>
-                <CardDescription>
-                  业务页面只消费任务状态，不直接处理轮询细节。
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between gap-3">
-                  <span>当前状态</span>
-                  <TaskStatus task={aiTask.task} />
-                </div>
-                <TaskProgress task={aiTask.task} />
-                {aiTask.message && (
-                  <p
-                    role="alert"
-                    className="text-sm leading-normal text-destructive"
-                  >
-                    {aiTask.message}
-                  </p>
-                )}
-                {aiTask.task?.error && (
-                  <p
-                    role="alert"
-                    className="text-sm leading-normal text-destructive"
-                  >
-                    {aiTask.task.error}
-                  </p>
-                )}
-                {aiTask.task?.result && (
-                  <div className="grid gap-[var(--space-sm)] rounded-[var(--radius-md)] border border-border bg-accent p-[var(--space-md)] text-accent-foreground">
-                    <p className="m-0 font-semibold">
-                      {aiTask.task.result.title}
-                    </p>
-                    <p className="m-0 leading-normal">
-                      {aiTask.task.result.summary}
-                    </p>
-                  </div>
-                )}
-                <TaskActions
-                  state={aiTask}
-                  onCancel={() => void aiTask.cancel()}
-                  onRetry={() => void aiTask.retry()}
-                />
-              </CardContent>
-            </Card>
-          </div>
-        </DemoSection>
+          </aside>
 
-        <DemoSection
-          title="AI 对话能力"
-          note="会话列表、欢迎态、快捷提示、思考中、流式输出、取消、失败和重试"
-        >
-          <AiChatWorkbench client={aiChatClient} />
-        </DemoSection>
+          <div className="min-w-0 space-y-12 pb-12 sm:space-y-16">
+            <DesignSystemPreview />
 
-        <DemoSection
-          title="视频能力"
-          note="播放、暂停、跳转、音量、全屏、字幕和媒体错误"
-        >
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(16rem,1fr)]">
-            <Card>
-              <CardHeader>
-                <CardTitle>视频播放器</CardTitle>
-                <CardDescription>
-                  使用浏览器原生 video，控制栏按钮和进度条支持键盘与触控。
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <VideoPlayer source={demoVideoSource} title="视频能力示例" />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>海报与错误状态</CardTitle>
-                <CardDescription>
-                  资源不存在时显示可重试的媒体错误，海报可独立复用。
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <VideoPoster src="/mock/media/poster.svg" alt="示例视频封面" />
+            <DemoSection
+              id="basic"
+              title="基础展示与输入"
+              note="Button、Input、Textarea、FormField、Card、Empty"
+            >
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  onClick={() =>
+                    toast({ title: '操作已完成', variant: 'success' })
+                  }
+                >
+                  主要操作
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => toast({ title: '次要操作已点击' })}
+                >
+                  次要操作
+                </Button>
                 <Button
                   variant="outline"
-                  onClick={() => setShowVideoError((visible) => !visible)}
+                  onClick={() => toast({ title: '描边按钮已点击' })}
                 >
-                  {showVideoError ? '隐藏媒体错误' : '演示媒体错误'}
+                  描边按钮
                 </Button>
-                {showVideoError && (
-                  <VideoPlayer
-                    source={brokenVideoSource}
-                    title="错误视频示例"
-                  />
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </DemoSection>
-
-        <DemoSection title="音频能力" note="播放、暂停、跳转、音量和媒体错误">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>音频播放器</CardTitle>
-                <CardDescription>
-                  本地 WAV 样例；支持键盘和触控操作。
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AudioPlayer
-                  source={{ src: '/mock/media/sample.wav', type: 'audio/wav' }}
-                  title="音频能力示例"
-                />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>错误状态</CardTitle>
-                <CardDescription>资源加载失败时可重试。</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
                 <Button
-                  variant="outline"
-                  onClick={() => setShowAudioError((visible) => !visible)}
+                  variant="ghost"
+                  onClick={() => toast({ title: '轻量按钮已点击' })}
                 >
-                  {showAudioError ? '隐藏音频错误' : '演示音频错误'}
+                  轻量按钮
                 </Button>
-                {showAudioError && (
-                  <AudioPlayer
-                    source={{
-                      src: '/mock/media/not-found.wav',
-                      type: 'audio/wav',
-                    }}
-                    title="错误音频示例"
-                  />
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </DemoSection>
-
-        {isMock && (
-          <DemoSection
-            title="完整 Mock 示例流程"
-            note="文件选择 → 上传 → AI 任务 → 状态轮询 → 媒体预览；包含取消、失败与重试"
-          >
-            <MockWorkflowDemo />
-          </DemoSection>
-        )}
-
-        <DemoSection title="设计变量">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {swatches.map((swatch) => (
-              <div
-                key={swatch.variable}
-                className="rounded-lg border border-border bg-card p-3"
-              >
-                <div
-                  aria-hidden="true"
-                  className="h-16 rounded-md border border-border"
-                  style={{ backgroundColor: `var(--${swatch.variable})` }}
-                />
-                <p className="mt-3 text-sm font-medium">{swatch.name}</p>
-                <code className="text-xs text-muted-foreground">
-                  --{swatch.variable}
-                </code>
+                <Button
+                  variant="destructive"
+                  onClick={() =>
+                    toast({ title: '危险操作示例', variant: 'error' })
+                  }
+                >
+                  危险操作
+                </Button>
+                <Button loading>提交中</Button>
+                <Button disabled>不可用</Button>
+                <Button size="small" variant="outline">
+                  紧凑尺寸
+                </Button>
+                <Button size="icon" variant="outline" aria-label="图标按钮示例">
+                  <svg
+                    aria-hidden="true"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                  >
+                    <path
+                      d="M10 4v12M4 10h12"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </Button>
               </div>
-            ))}
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>表单状态</CardTitle>
+                    <CardDescription>
+                      标签、说明和错误信息靠近输入控件
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <FormField
+                      label="名称"
+                      required
+                      description="输入至少两个字符。"
+                      error={
+                        name.length === 1 ? '名称至少需要两个字符' : undefined
+                      }
+                      control={
+                        <Input
+                          value={name}
+                          onChange={(event) => setName(event.target.value)}
+                          placeholder="请输入名称"
+                        />
+                      }
+                    />
+                    <FormField
+                      label="补充说明"
+                      control={
+                        <Textarea
+                          value={note}
+                          onChange={(event) => setNote(event.target.value)}
+                          placeholder="请输入补充说明"
+                        />
+                      }
+                    />
+                    <FormField
+                      label="禁用输入"
+                      control={<Input disabled value="不可编辑" readOnly />}
+                    />
+                    <FormField
+                      label="紧凑输入"
+                      control={<Input size="small" placeholder="紧凑尺寸" />}
+                    />
+                    <FormField
+                      label="错误文本域"
+                      error="请检查输入内容"
+                      control={
+                        <Textarea size="small" defaultValue="错误示例" />
+                      }
+                    />
+                  </CardContent>
+                  <CardFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setName('')
+                        setNote('')
+                      }}
+                    >
+                      清空
+                    </Button>
+                  </CardFooter>
+                </Card>
+                <Empty
+                  title="暂无内容"
+                  description="创建内容后将在这里显示。"
+                  action={
+                    <Button
+                      variant="outline"
+                      onClick={() => toast({ title: '创建内容示例' })}
+                    >
+                      创建内容
+                    </Button>
+                  }
+                />
+              </div>
+            </DemoSection>
+
+            <DemoSection
+              id="feedback"
+              title="交互与反馈"
+              note="Select、Dialog、Sheet、Toast"
+            >
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>选择与错误</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <FormField
+                      label="分类"
+                      required
+                      error={
+                        category === 'error' ? '请选择有效分类' : undefined
+                      }
+                      control={
+                        <Select
+                          value={category}
+                          onValueChange={setCategory}
+                          options={[
+                            { value: 'design', label: '设计' },
+                            { value: 'code', label: '开发' },
+                            { value: 'error', label: '错误示例' },
+                            {
+                              value: 'disabled',
+                              label: '不可用',
+                              disabled: true,
+                            },
+                          ]}
+                        />
+                      }
+                    />
+                    <FormField
+                      label="禁用选择"
+                      control={
+                        <Select
+                          disabled
+                          options={[{ value: 'a', label: '选项' }]}
+                        />
+                      }
+                    />
+                    <FormField
+                      label="紧凑选择"
+                      control={
+                        <Select
+                          size="small"
+                          options={[{ value: 'a', label: '选项 A' }]}
+                        />
+                      }
+                    />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>弹层与提示</CardTitle>
+                    <CardDescription>
+                      在窄屏查看底部面板和安全区域
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-wrap gap-3">
+                    <Dialog
+                      title="确认操作"
+                      description="按 Escape 或关闭按钮可退出。"
+                      open={dialogOpen}
+                      onOpenChange={setDialogOpen}
+                      trigger={<Button variant="outline">打开对话框</Button>}
+                      footer={
+                        <Button
+                          onClick={() => {
+                            setDialogOpen(false)
+                            toast({ title: '已确认', variant: 'success' })
+                          }}
+                        >
+                          确认
+                        </Button>
+                      }
+                    >
+                      <p>焦点会留在对话框内，关闭后返回触发按钮。</p>
+                      <Input
+                        aria-label="对话框内输入"
+                        placeholder="试试输入"
+                        className="mt-4"
+                      />
+                    </Dialog>
+                    <Sheet
+                      title="详情面板"
+                      description="小屏显示为底部面板。"
+                      trigger={<Button variant="outline">打开面板</Button>}
+                    >
+                      <p>面板内容可以滚动，底部留出安全区域。</p>
+                      <Input
+                        aria-label="面板内输入"
+                        placeholder="试试输入"
+                        className="mt-4"
+                      />
+                    </Sheet>
+                    <Button
+                      variant="secondary"
+                      onClick={() =>
+                        toast({
+                          title: '信息提示',
+                          description: '这是普通状态。',
+                        })
+                      }
+                    >
+                      普通提示
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        toast({
+                          title: '需要注意',
+                          description: '这是警告状态。',
+                          variant: 'warning',
+                        })
+                      }
+                    >
+                      警告提示
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() =>
+                        toast({
+                          title: '操作失败',
+                          description: '请重试。',
+                          variant: 'error',
+                        })
+                      }
+                    >
+                      错误提示
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </DemoSection>
+
+            <DemoSection
+              id="data"
+              title="导航与数据"
+              note="Tabs、Pagination、List、基础 Table"
+            >
+              <Tabs
+                label="预览分组"
+                items={[
+                  {
+                    value: 'overview',
+                    label: '总览',
+                    content: <p>使用左右方向键切换分组。</p>,
+                  },
+                  {
+                    value: 'details',
+                    label: '详细内容',
+                    content: <p>当前为第二个分组。</p>,
+                  },
+                  {
+                    value: 'disabled',
+                    label: '不可用',
+                    content: null,
+                    disabled: true,
+                  },
+                ]}
+              />
+              <div className="grid gap-3">
+                <Button
+                  variant="outline"
+                  className="justify-self-start"
+                  aria-pressed={!showDynamicTab}
+                  onClick={() => setShowDynamicTab((current) => !current)}
+                >
+                  {showDynamicTab ? '隐藏详细分组' : '显示详细分组'}
+                </Button>
+                <Tabs
+                  label="动态预览分组"
+                  defaultValue="details"
+                  items={[
+                    {
+                      value: 'overview',
+                      label: '动态总览',
+                      content: <p>动态分组的基础内容。</p>,
+                    },
+                    ...(showDynamicTab
+                      ? [
+                          {
+                            value: 'details',
+                            label: '动态详情',
+                            content: <p>动态分组的详细内容。</p>,
+                          },
+                        ]
+                      : []),
+                  ]}
+                />
+              </div>
+              <Tabs
+                label="垂直预览分组"
+                orientation="vertical"
+                className="max-w-xl rounded-lg border border-border p-3"
+                items={[
+                  {
+                    value: 'summary',
+                    label: '概览',
+                    content: <p>使用上下方向键或触控切换垂直分组。</p>,
+                  },
+                  {
+                    value: 'detail',
+                    label: '细节',
+                    content: <p>窄屏仍保留左侧选项与右侧内容。</p>,
+                  },
+                  {
+                    value: 'disabled',
+                    label: '不可用',
+                    content: null,
+                    disabled: true,
+                  },
+                ]}
+              />
+              <div
+                className="flex flex-wrap gap-3"
+                role="group"
+                aria-label="数据状态"
+              >
+                <Button
+                  variant={dataState === 'filled' ? 'primary' : 'outline'}
+                  onClick={() => setDataState('filled')}
+                >
+                  有数据
+                </Button>
+                <Button
+                  variant={dataState === 'empty' ? 'primary' : 'outline'}
+                  onClick={() => setDataState('empty')}
+                >
+                  空数据
+                </Button>
+                <Button
+                  variant={dataState === 'loading' ? 'primary' : 'outline'}
+                  onClick={() => setDataState('loading')}
+                >
+                  加载中
+                </Button>
+                <Button
+                  variant={dataState === 'error' ? 'primary' : 'outline'}
+                  onClick={() => setDataState('error')}
+                >
+                  错误
+                </Button>
+                <Checkbox
+                  label="模拟重试失败"
+                  checked={retryShouldFail}
+                  onChange={(event) =>
+                    setRetryShouldFail(event.currentTarget.checked)
+                  }
+                />
+              </div>
+              <div className="grid gap-6 lg:grid-cols-2">
+                <div className="space-y-3">
+                  <h3 className="font-semibold">List</h3>
+                  <List
+                    items={visibleRows}
+                    getKey={(row) => row.id}
+                    renderItem={(row) => (
+                      <div className="flex justify-between gap-4">
+                        <span>{row.name}</span>
+                        <span className="text-muted-foreground">
+                          {row.status}
+                        </span>
+                      </div>
+                    )}
+                    loading={dataState === 'loading'}
+                    error={
+                      dataState === 'error' ? '示例列表加载失败' : undefined
+                    }
+                    onRetry={retryData}
+                    label="示例任务"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <h3 className="font-semibold">Table</h3>
+                  <Table
+                    caption="示例任务表"
+                    rows={visibleRows}
+                    getRowKey={(row) => row.id}
+                    loading={dataState === 'loading'}
+                    error={
+                      dataState === 'error' ? '示例表格加载失败' : undefined
+                    }
+                    onRetry={retryData}
+                    columns={[
+                      {
+                        key: 'name',
+                        header: '任务',
+                        render: (row) => row.name,
+                        sorter: (left, right) =>
+                          left.name.localeCompare(right.name, 'zh-CN'),
+                      },
+                      {
+                        key: 'status',
+                        header: '状态',
+                        render: (row) => row.status,
+                        filterOptions: [
+                          {
+                            value: 'done',
+                            label: '已完成',
+                            matches: (row) => row.status === '已完成',
+                          },
+                          {
+                            value: 'active',
+                            label: '进行中',
+                            matches: (row) => row.status === '进行中',
+                          },
+                          {
+                            value: 'todo',
+                            label: '待开始',
+                            matches: (row) => row.status === '待开始',
+                          },
+                          {
+                            value: 'archived',
+                            label: '已归档',
+                            matches: (row) => row.status === '已归档',
+                          },
+                        ],
+                      },
+                      {
+                        key: 'owner',
+                        header: '负责人',
+                        render: (row) => row.owner,
+                      },
+                    ]}
+                    selection={{
+                      defaultSelectedKeys: ['2'],
+                      disabled: (row) => row.id === '3',
+                      getLabel: (row) => row.name,
+                    }}
+                    expandable={{
+                      getLabel: (row) => row.name,
+                      expandedRowRender: (row) => (
+                        <p className="m-0 text-sm text-muted-foreground">
+                          {row.name}：负责人为{row.owner}，当前状态为
+                          {row.status}。
+                        </p>
+                      ),
+                    }}
+                    renderMobileRow={(row) => (
+                      <div className="space-y-1">
+                        <strong>{row.name}</strong>
+                        <p className="text-sm text-muted-foreground">
+                          {row.status} · {row.owner}
+                        </p>
+                      </div>
+                    )}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="min-w-0 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-semibold">页码模式</p>
+                    <Button
+                      variant="outline"
+                      size="small"
+                      onClick={() => setPaginationDisabled((value) => !value)}
+                    >
+                      {paginationDisabled ? '启用分页' : '禁用分页'}
+                    </Button>
+                  </div>
+                  <Pagination
+                    page={page}
+                    pageSize={paginationPageSize}
+                    total={135}
+                    disabled={paginationDisabled}
+                    onPageChange={setPage}
+                    onPageSizeChange={(size, nextPage) => {
+                      setPaginationPageSize(size)
+                      setPage(nextPage)
+                    }}
+                    showQuickJumper
+                    showTotal
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    页码之间的省略号可跨 5 页；可使用键盘或触控操作。
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <p className="font-semibold">加载更多模式</p>
+                  <Pagination
+                    page={loadMorePage}
+                    pageSize={3}
+                    total={12}
+                    onPageChange={setLoadMorePage}
+                    mode="load-more"
+                  />
+                </div>
+              </div>
+            </DemoSection>
+
+            <DemoSection
+              id="files"
+              title="文件能力"
+              note="选择、拖放、校验、预览、上传进度与取消"
+            >
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>选择文件</CardTitle>
+                    <CardDescription>
+                      图片、视频或音频，最多 10 MB；图片不超过 4096 ×
+                      4096，音视频不超过 120 秒。
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <FilePicker
+                      rules={fileRules}
+                      onFiles={onFiles}
+                      onRejected={onRejected}
+                    />
+                    <FileDropzone
+                      rules={fileRules}
+                      onFiles={onFiles}
+                      onRejected={onRejected}
+                    />
+                    {fileIssues.length > 0 && (
+                      <ul
+                        role="alert"
+                        className="space-y-1 text-sm text-destructive"
+                      >
+                        {fileIssues.map((issue) => (
+                          <li key={issue}>{issue}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>预览与上传</CardTitle>
+                    <CardDescription>
+                      演示使用本地模拟进度，真实上传可接入 XHR 适配器。
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {selectedFile ? (
+                      <FilePreview
+                        file={selectedFile}
+                        onRemove={() => {
+                          upload.reset()
+                          setSelectedFile(null)
+                        }}
+                      />
+                    ) : (
+                      <Empty title="尚未选择文件" />
+                    )}
+                    <Button
+                      disabled={!selectedFile || upload.status === 'uploading'}
+                      onClick={() =>
+                        selectedFile && void upload.start(selectedFile)
+                      }
+                    >
+                      开始上传
+                    </Button>
+                    <UploadProgress
+                      status={upload.status}
+                      progress={upload.progress}
+                      error={upload.error}
+                      onCancel={upload.cancel}
+                      onRetry={
+                        selectedFile
+                          ? () => void upload.start(selectedFile)
+                          : undefined
+                      }
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+            </DemoSection>
+
+            <DemoSection
+              id="ai-task"
+              title="AI 任务能力"
+              note="任务状态机、轮询、进度、取消、失败和重试"
+            >
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>提交任务</CardTitle>
+                    <CardDescription>
+                      Mock 客户端从 JSON fixture
+                      初始化；输入“失败”可演示失败与重试。
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <PromptInput
+                      onSubmit={(prompt) => void aiTask.submit({ prompt })}
+                      loading={aiTask.phase === 'submitting'}
+                      disabled={aiTask.isBusy && aiTask.phase !== 'submitting'}
+                    />
+                    <div className="grid gap-[var(--space-sm)] rounded-[var(--radius-md)] border border-border bg-muted p-[var(--space-md)]">
+                      <p className="font-medium">Mock 状态样例</p>
+                      {aiClient.fixtures.map((fixture) => (
+                        <div key={fixture.id} className="grid gap-2 text-sm">
+                          <div className="flex items-center justify-between gap-3">
+                            <code>{fixture.id}</code>
+                            <TaskStatus
+                              task={{
+                                id: fixture.id,
+                                input: { prompt: '' },
+                                status: fixture.status as
+                                  'queued' | 'running' | 'completed',
+                                progress: fixture.progress,
+                              }}
+                            />
+                          </div>
+                          {fixture.status === 'running' && (
+                            <TaskProgress
+                              task={{
+                                id: fixture.id,
+                                input: { prompt: '' },
+                                status: 'running',
+                                progress: fixture.progress,
+                              }}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>任务状态</CardTitle>
+                    <CardDescription>
+                      业务页面只消费任务状态，不直接处理轮询细节。
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <span>当前状态</span>
+                      <TaskStatus task={aiTask.task} />
+                    </div>
+                    <TaskProgress task={aiTask.task} />
+                    {aiTask.message && (
+                      <p
+                        role="alert"
+                        className="text-sm leading-normal text-destructive"
+                      >
+                        {aiTask.message}
+                      </p>
+                    )}
+                    {aiTask.task?.error && (
+                      <p
+                        role="alert"
+                        className="text-sm leading-normal text-destructive"
+                      >
+                        {aiTask.task.error}
+                      </p>
+                    )}
+                    {aiTask.task?.result && (
+                      <div className="grid gap-[var(--space-sm)] rounded-[var(--radius-md)] border border-border bg-accent p-[var(--space-md)] text-accent-foreground">
+                        <p className="m-0 font-semibold">
+                          {aiTask.task.result.title}
+                        </p>
+                        <p className="m-0 leading-normal">
+                          {aiTask.task.result.summary}
+                        </p>
+                      </div>
+                    )}
+                    <TaskActions
+                      state={aiTask}
+                      onCancel={() => void aiTask.cancel()}
+                      onRetry={() => void aiTask.retry()}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+            </DemoSection>
+
+            <DemoSection
+              id="ai-chat"
+              title="AI 对话能力"
+              note="会话列表、欢迎态、快捷提示、思考中、流式输出、取消、失败和重试"
+            >
+              <AiChatWorkbench client={aiChatClient} />
+            </DemoSection>
+
+            <DemoSection
+              id="video"
+              title="视频能力"
+              note="播放、暂停、跳转、音量、全屏、字幕和媒体错误"
+            >
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(16rem,1fr)]">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>视频播放器</CardTitle>
+                    <CardDescription>
+                      使用浏览器原生 video，控制栏按钮和进度条支持键盘与触控。
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <VideoPlayer
+                      source={demoVideoSource}
+                      title="视频能力示例"
+                    />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>海报与错误状态</CardTitle>
+                    <CardDescription>
+                      资源不存在时显示可重试的媒体错误，海报可独立复用。
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <VideoPoster
+                      src="/mock/media/poster.svg"
+                      alt="示例视频封面"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowVideoError((visible) => !visible)}
+                    >
+                      {showVideoError ? '隐藏媒体错误' : '演示媒体错误'}
+                    </Button>
+                    {showVideoError && (
+                      <VideoPlayer
+                        source={brokenVideoSource}
+                        title="错误视频示例"
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </DemoSection>
+
+            <DemoSection
+              id="audio"
+              title="音频能力"
+              note="播放、暂停、跳转、音量和媒体错误"
+            >
+              <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>音频播放器</CardTitle>
+                    <CardDescription>
+                      本地 WAV 样例；支持键盘和触控操作。
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <AudioPlayer
+                      source={{
+                        src: '/mock/media/sample.wav',
+                        type: 'audio/wav',
+                      }}
+                      title="音频能力示例"
+                    />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>错误状态</CardTitle>
+                    <CardDescription>资源加载失败时可重试。</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowAudioError((visible) => !visible)}
+                    >
+                      {showAudioError ? '隐藏音频错误' : '演示音频错误'}
+                    </Button>
+                    {showAudioError && (
+                      <AudioPlayer
+                        source={{
+                          src: '/mock/media/not-found.wav',
+                          type: 'audio/wav',
+                        }}
+                        title="错误音频示例"
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </DemoSection>
+
+            {isMock && (
+              <DemoSection
+                id="workflow"
+                title="完整 Mock 示例流程"
+                note="文件选择 → 上传 → AI 任务 → 状态轮询 → 媒体预览；包含取消、失败与重试"
+              >
+                <MockWorkflowDemo />
+              </DemoSection>
+            )}
+
+            <DemoSection id="tokens" title="设计变量">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                {swatches.map((swatch) => (
+                  <div
+                    key={swatch.variable}
+                    className="rounded-lg border border-border bg-card p-3"
+                  >
+                    <div
+                      aria-hidden="true"
+                      className="h-16 rounded-md border border-border"
+                      style={{ backgroundColor: `var(--${swatch.variable})` }}
+                    />
+                    <p className="mt-3 text-sm font-medium">{swatch.name}</p>
+                    <code className="text-xs text-muted-foreground">
+                      --{swatch.variable}
+                    </code>
+                  </div>
+                ))}
+              </div>
+            </DemoSection>
+            <DemoSection id="fixtures" title="JSON Mock">
+              {!isMock ? (
+                <p className="text-muted-foreground">
+                  当前为真实接口模式。运行 <code>pnpm dev:mock</code> 可加载本地
+                  JSON 数据。
+                </p>
+              ) : fixtures.isPending ? (
+                <p role="status">正在加载 Mock 数据…</p>
+              ) : fixtures.isError ? (
+                <p role="alert" className="text-destructive">
+                  Mock 数据加载失败：{fixtures.error.message}
+                </p>
+              ) : (
+                <Card>
+                  <CardContent>
+                    <p className="font-medium">状态：{fixtures.data.status}</p>
+                    <ul className="mt-3 list-inside list-disc space-y-1 text-muted-foreground">
+                      {fixtures.data.examples.map((item) => (
+                        <li key={item.id}>{item.label}</li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+            </DemoSection>
           </div>
-        </DemoSection>
-        <DemoSection title="JSON Mock">
-          {!isMock ? (
-            <p className="text-muted-foreground">
-              当前为真实接口模式。运行 <code>pnpm dev:mock</code> 可加载本地
-              JSON 数据。
-            </p>
-          ) : fixtures.isPending ? (
-            <p role="status">正在加载 Mock 数据…</p>
-          ) : fixtures.isError ? (
-            <p role="alert" className="text-destructive">
-              Mock 数据加载失败：{fixtures.error.message}
-            </p>
-          ) : (
-            <Card>
-              <CardContent>
-                <p className="font-medium">状态：{fixtures.data.status}</p>
-                <ul className="mt-3 list-inside list-disc space-y-1 text-muted-foreground">
-                  {fixtures.data.examples.map((item) => (
-                    <li key={item.id}>{item.label}</li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-        </DemoSection>
+        </div>
       </main>
     </div>
   )
