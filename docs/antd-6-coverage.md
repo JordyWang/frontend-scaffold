@@ -18,7 +18,7 @@
 
 按当前源码继续补齐以下真实能力，组件入口存在不能作为完成证据：
 
-1. `Tabs` 的卡片、可编辑标签和增删焦点管理已落地；继续核对指示条定制、居中/附加内容与更多折叠菜单及其搜索键盘路径。拖拽标签通过上游示例的外部 DnD 组合实现，后续需检查项目组合契约。
+1. `Tabs` 的卡片、可编辑标签、指示条、居中/附加内容和更多标签搜索菜单已落地；拖拽标签通过上游示例的外部 DnD 组合实现，后续需检查项目组合契约。
 
 `Typography` 此前确认的末行/中间省略后缀和原生文档表格缺口已补齐；下文记录实际验证范围。整库仍需逐类核对其他复杂状态和组合行为。
 
@@ -28,9 +28,9 @@
 
 ## 已落地能力与验证范围
 
-对照 [Tabs 6.6.5 文档](https://ant.design/components/tabs-cn)，项目继续使用 items/value 契约，增加 line/card/editable-card、统一尺寸、非交互富标签/图标、原生 ref/属性、逻辑四位置与容器响应式。新增/关闭只请求调用方维护数据，实际接受后选择邻近可用项或新项，最后一项关闭报告空选择；受控选择分步接受、回调拒绝、外部焦点保护、Delete/Tab、动态禁用和空列表恢复有独立单测。默认懒渲染并保留访问过的面板，destroyOnHidden/forceRender 支持生命周期选择，隐藏内容不进入交互顺序。Tailwind 语义插槽覆盖各部位，长标签按容器省略，`/__ui` 包含状态/生命周期、受控延迟、卡片/位置与 240px RTL 深色。更多菜单、指示条与附加操作仍作为真实缺口保留，入口存在不代表全库完成。
+对照 [Tabs 6.6.5 文档](https://ant.design/components/tabs-cn)，项目继续使用 items/value 契约，增加 line/card/editable-card、统一尺寸、非交互富标签/图标、原生 ref/属性、逻辑四位置与容器响应式。新增/关闭只请求调用方维护数据，实际接受后选择邻近可用项或新项，最后一项关闭报告空选择；受控选择分步接受、回调拒绝、外部焦点保护、Delete/Tab、动态禁用和空列表恢复有独立单测。默认懒渲染并保留访问过的面板，destroyOnHidden/forceRender 支持生命周期选择，隐藏内容不进入交互顺序。Tailwind 语义插槽覆盖各部位，长标签按容器省略；`indicator` 支持尺寸函数和三种逻辑对齐，`centered` 与 `tabBarExtraContent` 保持附加操作区，`more` 入口提供 Portal、搜索、方向键、Escape/Tab 和 `popupRender` 契约。`/__ui` 包含状态/生命周期、受控延迟、卡片/位置、扩展标签和 240px RTL 深色。
 
-Tabs 本批 `pnpm check` 通过（70 文件 / 859 单测，Tabs 独立 24 项），含 lint、Tailwind gate、类型、格式和 build。三平台 Tabs 新旧浏览器 24 项全部通过，其中新增 18 项；最后补充 LTR/RTL 标签与关闭按钮的实际矩形边界，相关 6 项再次通过。已查看 PC/H5 可编辑卡片及 240px RTL 深色截图，保留输入草稿、44px 操作与无页面横溢正常。Chromium H5 使用真实触控滑动，WebKit 使用原生 tap、键盘和真实 scroller，未宣称 WebKit 原生拖动。显式 side placement 在自身窄容器转为 top，旧 vertical 调用有单独兼容回归；默认保留面板为生命周期变更，迁移到旧卸载行为需传 destroyOnHidden。
+Tabs 本批独立单测 26 项；三平台 Tabs 浏览器回归 27 项（既有位置/生命周期用例与新增更多菜单用例）通过，新增更多菜单 3 项覆盖搜索、键盘选择、指示条和附加操作。已查看 PC/H5 扩展标签截图，保留输入草稿、44px 操作与无页面横溢正常。Chromium H5 使用真实触控滑动，WebKit 使用原生 tap、键盘和真实 scroller，未宣称 WebKit 原生拖动。显式 side placement 在自身窄容器转为 top，旧 vertical 调用有单独兼容回归；默认保留面板为生命周期变更，迁移到旧卸载行为需传 destroyOnHidden。
 
 对照 [Typography 6.6.5 文档](https://ant.design/components/typography-cn)，项目保留元素/样式/文字色契约，并补齐复制、编辑、省略三类交互。复制支持异步取值、HTML、等待去重、失败重试和过期响应，缺少纯文本 Clipboard API 时恢复原选区；编辑复用公共 Textarea，文字与开合独立受控，输入法、重复按键、失焦、内部按钮、外部更新和取消统一管理。容器/字体变化重新检测真实溢出，测量使用 DOM 克隆且不挂载重复 React 富文本；富文本链接焦点展开、受控暂未接受、内容缩减与操作动态失效均恢复可用焦点。操作蓝色从主题主色派生，正文格式保持语义标签，`/__ui` 同步实际 44px 操作、16px 输入和 240px RTL 深色，具体 API 见 [Typography](./shared-ui.md#typography)。
 

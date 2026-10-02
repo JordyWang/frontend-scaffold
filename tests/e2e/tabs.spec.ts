@@ -329,12 +329,13 @@ test('RTL dark tabs follow logical keys and narrow headers scroll locally with 4
   }
   const root = page.getByRole('region', { name: '编辑工作区预览', exact: true })
   const ltr = root.getByRole('tablist', { name: '编辑工作区', exact: true })
-  await ltr.scrollIntoViewIfNeeded()
-  await ltr.evaluate((node) => {
+  const ltrScroll = ltr.locator('[data-tabs-scroll]')
+  await ltrScroll.scrollIntoViewIfNeeded()
+  await ltrScroll.evaluate((node) => {
     node.scrollLeft = 0
   })
   if (info.project.name === 'mobile-chromium') {
-    const box = (await ltr.boundingBox())!
+    const box = (await ltrScroll.boundingBox())!
     const session = await page.context().newCDPSession(page)
     const y = box.y + box.height / 2
     await session.send('Input.dispatchTouchEvent', {
@@ -352,7 +353,7 @@ test('RTL dark tabs follow logical keys and narrow headers scroll locally with 4
     })
     await session.detach()
     await expect
-      .poll(() => ltr.evaluate((node) => node.scrollLeft))
+      .poll(() => ltrScroll.evaluate((node) => node.scrollLeft))
       .toBeGreaterThan(0)
   }
   await page.getByRole('button', { name: '切换标签尺寸', exact: true }).focus()
@@ -366,4 +367,43 @@ test('RTL dark tabs follow logical keys and narrow headers scroll locally with 4
         document.documentElement.clientWidth,
     ),
   ).toBe(true)
+})
+
+test('more menu searches hidden tabs, keeps indicator and extra actions usable', async ({
+  page,
+}, info) => {
+  const mobile = info.project.name.startsWith('mobile-')
+  const preview = page.getByRole('region', {
+    name: '标签栏扩展预览',
+    exact: true,
+  })
+  const list = preview.getByRole('tablist', { name: '扩展标签', exact: true })
+  await expect(preview.getByText('工作区', { exact: true })).toBeVisible()
+  await expect(
+    preview.getByRole('button', { name: '扩展标签设置', exact: true }),
+  ).toBeVisible()
+  await expect(list.locator('[data-tabs-indicator]')).toHaveCount(1)
+  const more = preview.getByRole('button', { name: '更多标签', exact: true })
+  await expect(more).toBeVisible()
+  await activate(more, mobile)
+  const menu = page.getByRole('menu', { name: '更多标签', exact: true })
+  await expect(menu).toBeVisible()
+  const search = menu.getByRole('searchbox', {
+    name: '搜索更多标签',
+    exact: true,
+  })
+  await expect(search).toBeFocused()
+  await search.fill('数据标签 7')
+  const result = menu.getByRole('menuitem', {
+    name: '数据标签 7',
+    exact: true,
+  })
+  await expect(result).toBeVisible()
+  await result.press('Enter')
+  await expect(menu).toBeHidden()
+  await expect(
+    list.getByRole('tab', { name: '数据标签 7', exact: true }),
+  ).toHaveAttribute('aria-selected', 'true')
+  await preview.getByRole('button', { name: /指示条对齐/ }).press('Enter')
+  await expect(list.locator('[data-tabs-indicator]')).toHaveCount(1)
 })

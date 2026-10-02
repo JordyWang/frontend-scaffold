@@ -638,4 +638,96 @@ describe('Tabs panel lifetime and responsive placement', () => {
     )
     expect(screen.getByRole('tabpanel')).toHaveClass('test-content')
   })
+  it('supports indicator sizing, centered headers, and logical extra content', () => {
+    const indicator = vi.fn((origin: number) => origin / 2)
+    render(
+      <Tabs
+        items={initial}
+        centered
+        indicator={{ size: indicator, align: 'start' }}
+        tabBarExtraContent={{ start: '左侧', end: '右侧' }}
+        classNames={{ indicator: 'test-indicator', extra: 'test-extra' }}
+      />,
+    )
+    expect(screen.getByText('左侧')).toHaveClass('test-extra')
+    expect(screen.getByText('右侧')).toHaveClass('test-extra')
+    expect(
+      screen.getByRole('tablist').querySelector('[data-tabs-scroll]'),
+    ).toHaveClass('justify-center')
+    expect(
+      screen.getByRole('tab', { name: '一' }).parentElement,
+    ).toContainElement(document.querySelector('[data-tabs-indicator]'))
+    expect(document.querySelector('[data-tabs-indicator]')).toHaveClass(
+      'test-indicator',
+    )
+    expect(indicator).toHaveBeenCalled()
+  })
+  it('offers overflowed tabs through a searchable keyboard menu and restores focus', () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      function () {
+        if (this.hasAttribute('data-tabs-scroll'))
+          return {
+            width: 120,
+            height: 44,
+            x: 0,
+            y: 0,
+            left: 0,
+            right: 120,
+            top: 0,
+            bottom: 44,
+            toJSON: () => ({}),
+          }
+        if (this.hasAttribute('data-tabs-item')) {
+          const index = Array.from(this.parentElement?.children ?? []).indexOf(
+            this,
+          )
+          const left = index * 80
+          return {
+            width: 80,
+            height: 44,
+            x: left,
+            y: 0,
+            left,
+            right: left + 80,
+            top: 0,
+            bottom: 44,
+            toJSON: () => ({}),
+          }
+        }
+        return {
+          width: 120,
+          height: 44,
+          x: 0,
+          y: 0,
+          left: 0,
+          right: 120,
+          top: 0,
+          bottom: 44,
+          toJSON: () => ({}),
+        }
+      },
+    )
+    const changed = vi.fn()
+    render(
+      <Tabs
+        items={initial}
+        more={{ searchable: true }}
+        onValueChange={changed}
+      />,
+    )
+    const more = screen.getByRole('button', { name: '更多标签' })
+    fireEvent.click(more)
+    const search = screen.getByRole('searchbox', { name: '搜索更多标签' })
+    expect(search).toHaveFocus()
+    fireEvent.change(search, { target: { value: '三' } })
+    const menu = screen.getByRole('menu', { name: '更多标签' })
+    expect(menu).toHaveTextContent('三')
+    expect(menu).not.toHaveTextContent('二')
+    fireEvent.keyDown(search, { key: 'ArrowDown' })
+    expect(screen.getByRole('menuitem', { name: '三' })).toHaveFocus()
+    fireEvent.click(screen.getByRole('menuitem', { name: '三' }))
+    expect(changed).toHaveBeenCalledWith('three')
+    expect(screen.getByRole('tab', { name: '三' })).toHaveFocus()
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
 })

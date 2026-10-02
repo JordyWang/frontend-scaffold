@@ -69,7 +69,13 @@ export { ToastProvider } from './toast-provider'
 export { toast, dismissToast, message, notification } from './toast'
 export type { MessageContent, NotificationOptions, ToastOptions } from './toast'
 export { Tabs } from './tabs'
-export type { TabsProps, TabItem, TabsPart } from './tabs'
+export type {
+  TabsProps,
+  TabItem,
+  TabsPart,
+  TabsIndicator,
+  TabsMoreOptions,
+} from './tabs'
 export { Pagination } from './pagination'
 export type { PaginationProps } from './pagination'
 export { List } from './list'

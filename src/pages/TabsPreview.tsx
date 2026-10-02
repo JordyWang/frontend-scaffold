@@ -141,7 +141,15 @@ export function TabsPreview() {
   const [placement, setPlacement] =
     useState<NonNullable<TabsProps['placement']>>('start')
   const [narrow, setNarrow] = useState(false)
+  const [indicatorAlign, setIndicatorAlign] =
+    useState<NonNullable<TabsProps['indicator']>['align']>('center')
+  const [moreValue, setMoreValue] = useState('more-1')
   const sequence = useRef(2)
+  const moreItems: TabItem[] = Array.from({ length: 7 }, (_, index) => ({
+    value: 'more-' + (index + 1),
+    label: '数据标签 ' + (index + 1),
+    content: '数据标签 ' + (index + 1) + ' 的内容',
+  }))
   return (
     <Card className="col-span-full">
       <CardHeader>
@@ -290,6 +298,65 @@ export function TabsPreview() {
                 size={size}
                 activationMode="manual"
                 items={workspace().slice(0, 3)}
+              />
+            </div>
+          </section>
+          <section aria-label="标签栏扩展预览" className="min-w-0 space-y-3">
+            <Typography as="h3" variant="title">
+              指示条、更多标签与附加操作
+            </Typography>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                onClick={() =>
+                  setIndicatorAlign((current) =>
+                    current === 'start'
+                      ? 'center'
+                      : current === 'center'
+                        ? 'end'
+                        : 'start',
+                  )
+                }
+              >
+                指示条对齐：{indicatorAlign}
+              </Button>
+            </div>
+            <div className="w-[min(100%,32rem)] min-w-0 max-w-full rounded-md border border-border p-3">
+              <Tabs
+                label="扩展标签"
+                items={moreItems}
+                value={moreValue}
+                onValueChange={setMoreValue}
+                centered
+                indicator={{
+                  align: indicatorAlign,
+                  size: (origin) => Math.max(32, origin * 0.55),
+                }}
+                tabBarExtraContent={{
+                  start: (
+                    <span className="px-2 text-sm text-muted-foreground">
+                      工作区
+                    </span>
+                  ),
+                  end: (
+                    <Button
+                      size="small"
+                      variant="ghost"
+                      aria-label="扩展标签设置"
+                    >
+                      设置
+                    </Button>
+                  ),
+                }}
+                more={{
+                  searchable: true,
+                  searchPlaceholder: '搜索数据标签',
+                }}
+                classNames={{
+                  root: 'min-w-0',
+                  header: 'rounded-md bg-muted/40',
+                  popup: 'min-w-0',
+                }}
               />
             </div>
           </section>

@@ -132,7 +132,11 @@
 
 保留 `items`、`value` / `defaultValue`、`onValueChange` 与 `activationMode` 项目契约。每项使用唯一、非空的字符串 `value`，`label` 接受非交互 ReactNode，`content` 为面板内容。`ariaLabel` 为图标或富标签提供完整可访问名称；`icon` 是非交互装饰。ref 指向根 div，原生属性与 focus/blur 事件传到根元素，`label` 命名 tablist。
 
-`variant` 为 line（默认）、card、editable-card；`size` 为 default/small/large，未指定时跟随 ConfigProvider.componentSize。小号只缩小字距和内边距，所有标签、新增与关闭入口仍至少 44×44px。`classNames` 提供 root/header/item/tab/remove/add/body/content 的 Tailwind 语义部位，卡片背景和选中蓝色使用主题 Token。
+`variant` 为 line（默认）、card、editable-card；`size` 为 default/small/large，未指定时跟随 ConfigProvider.componentSize。小号只缩小字距和内边距，所有标签、新增与关闭入口仍至少 44×44px。`classNames` 提供 root/header/item/tab/remove/add/more/popup/extra/indicator/body/content 的 Tailwind 语义部位，卡片背景和选中蓝色使用主题 Token。
+
+`indicator={{ size, align }}` 定制线形指示条；`size` 可传像素或根据原始标签宽度/高度返回尺寸，`align` 支持 start、center、end。`centered` 使标签在可用空间内居中，`tabBarExtraContent` 接受单个节点或 `{ start, end }` 逻辑附加区；附加操作保持独立的 Tab 顺序和触控目标。标签栏中间区域独立滚动，窄屏不会让附加区或更多入口离开视窗。
+
+默认启用更多标签入口，只有标签实际超出滚动区域时显示；传 `more={false}` 可关闭。`more` 可配置 `label`、`icon`、`searchable`、`searchPlaceholder` 和 `popupRender(menu, { restTabs, onClose })`。入口使用 Portal 和视觉视窗定位，打开后搜索框或首个标签获得焦点；输入搜索、方向键、Home/End、Enter、Escape 和 Tab 均有明确行为，选择后恢复到对应标签。菜单中的 disabled 标签不可选，RTL 与 H5 触控沿用项目方向、焦点和 44px 约定。
 
 ### 标签增删
 
