@@ -8,10 +8,130 @@ import {
   Skeleton,
   Spinner,
   Spin,
+  Tag,
   Typography,
 } from '@/shared/ui'
 
 describe('display and feedback semantics', () => {
+  it('keeps static tags non-interactive and supports a disabled selection', () => {
+    const onSelectedChange = vi.fn()
+    render(
+      <>
+        <Tag tone="success">已完成</Tag>
+        <Tag selectable disabled onSelectedChange={onSelectedChange}>
+          不可选
+        </Tag>
+      </>,
+    )
+    expect(screen.getByText('已完成')).toHaveAttribute(
+      'data-ui-tone',
+      'success',
+    )
+    expect(screen.getAllByRole('button')).toHaveLength(1)
+    const disabled = screen.getByRole('button', { name: '不可选' })
+    expect(disabled).toBeDisabled()
+    fireEvent.click(disabled)
+    expect(onSelectedChange).not.toHaveBeenCalled()
+  })
+
+  it('supports controlled and uncontrolled selectable tags', () => {
+    const onSelectedChange = vi.fn()
+    const { rerender } = render(
+      <>
+        <Tag selectable defaultSelected onSelectedChange={onSelectedChange}>
+          本地选择
+        </Tag>
+        <Tag selectable selected onSelectedChange={onSelectedChange}>
+          外部选择
+        </Tag>
+      </>,
+    )
+    const local = screen.getByRole('button', { name: '本地选择' })
+    const controlled = screen.getByRole('button', { name: '外部选择' })
+    expect(local).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(local)
+    expect(local).toHaveAttribute('aria-pressed', 'false')
+    expect(onSelectedChange).toHaveBeenCalledWith(false)
+    fireEvent.click(controlled)
+    expect(controlled).toHaveAttribute('aria-pressed', 'true')
+    rerender(
+      <>
+        <Tag selectable defaultSelected onSelectedChange={onSelectedChange}>
+          本地选择
+        </Tag>
+        <Tag selectable selected={false} onSelectedChange={onSelectedChange}>
+          外部选择
+        </Tag>
+      </>,
+    )
+    expect(controlled).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('dismisses tags without submitting a form and restores nearby focus', () => {
+    const onOpenChange = vi.fn()
+    const onSubmit = vi.fn((event: React.FormEvent) => event.preventDefault())
+    render(
+      <form onSubmit={onSubmit}>
+        <Tag closable onOpenChange={onOpenChange}>
+          临时标签
+        </Tag>
+        <button type="button">下一项</button>
+      </form>,
+    )
+    const close = screen.getByRole('button', { name: '关闭临时标签' })
+    expect(close).toHaveAttribute('type', 'button')
+    close.focus()
+    fireEvent.click(close)
+    expect(screen.queryByText('临时标签')).not.toBeInTheDocument()
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+    expect(screen.getByRole('button', { name: '下一项' })).toHaveFocus()
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  it('allows close cancellation and waits for controlled visibility updates', () => {
+    const onOpenChange = vi.fn()
+    const onClose = vi.fn((event: React.MouseEvent) => event.preventDefault())
+    const { rerender } = render(
+      <>
+        <Tag closable open onClose={onClose} onOpenChange={onOpenChange}>
+          可阻止关闭
+        </Tag>
+        <button type="button">焦点后继</button>
+      </>,
+    )
+    const blockedClose = screen.getByRole('button', {
+      name: '关闭可阻止关闭',
+    })
+    blockedClose.focus()
+    fireEvent.click(blockedClose)
+    expect(onClose).toHaveBeenCalledOnce()
+    expect(onOpenChange).not.toHaveBeenCalled()
+    expect(blockedClose).toHaveFocus()
+    rerender(
+      <>
+        <Tag closable open onOpenChange={onOpenChange}>
+          可阻止关闭
+        </Tag>
+        <button type="button">焦点后继</button>
+      </>,
+    )
+    const close = screen.getByRole('button', { name: '关闭可阻止关闭' })
+    close.focus()
+    fireEvent.click(close)
+    expect(screen.getByText('可阻止关闭')).toBeInTheDocument()
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+    rerender(
+      <>
+        <Tag closable open={false} onOpenChange={onOpenChange}>
+          可阻止关闭
+        </Tag>
+        <button type="button">焦点后继</button>
+      </>,
+    )
+    expect(screen.queryByText('可阻止关闭')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '焦点后继' })).toHaveFocus()
+  })
+
   it('keeps decorative icons out of the accessibility tree and names meaningful icons', () => {
     render(
       <>

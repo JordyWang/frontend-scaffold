@@ -1,5 +1,83 @@
 import { expect, test } from '@playwright/test'
 
+test('Tag selection and dismissal work with keyboard and H5 touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  await page.setViewportSize({ width: 360, height: 844 })
+  const group = page.getByRole('group', { name: '标签交互' })
+  const selected = group.getByRole('button', {
+    name: '受控筛选',
+    exact: true,
+  })
+  const disabled = group.getByRole('button', { name: '禁用筛选' })
+  const controlledClose = group.getByRole('button', {
+    name: '关闭受控关闭',
+    exact: true,
+  })
+  const localClose = group.getByRole('button', {
+    name: '关闭非受控关闭',
+    exact: true,
+  })
+  const restore = group.getByRole('button', { name: '恢复标签' })
+
+  await expect(selected).toHaveAttribute('aria-pressed', 'false')
+  await expect(disabled).toBeDisabled()
+  for (const control of [selected, controlledClose, localClose]) {
+    const box = await control.boundingBox()
+    expect(box!.width).toBeGreaterThanOrEqual(44)
+    expect(box!.height).toBeGreaterThanOrEqual(44)
+  }
+  if (testInfo.project.name.startsWith('mobile-')) await selected.tap()
+  else {
+    await selected.focus()
+    await selected.press('Space')
+  }
+  await expect(selected).toHaveAttribute('aria-pressed', 'true')
+  await expect(group.getByRole('status')).toHaveText('已选择受控筛选')
+
+  if (testInfo.project.name.startsWith('mobile-')) await controlledClose.tap()
+  else {
+    await controlledClose.focus()
+    await controlledClose.press('Enter')
+  }
+  await expect(controlledClose).toHaveCount(0)
+  await expect(localClose).toBeFocused()
+  if (testInfo.project.name.startsWith('mobile-')) await localClose.tap()
+  else await localClose.press('Space')
+  await expect(localClose).toHaveCount(0)
+  await expect(restore).toBeFocused()
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+  if (testInfo.project.name.startsWith('mobile-')) await restore.tap()
+  else await restore.press('Enter')
+  await expect(selected).toHaveAttribute('aria-pressed', 'false')
+  await expect(controlledClose).toBeVisible()
+  await expect(localClose).toBeVisible()
+
+  const rtl = group.getByRole('group', { name: 'RTL 标签' })
+  const rtlSelected = rtl.getByRole('button', { name: 'RTL 筛选' })
+  const rtlClose = rtl.getByRole('button', { name: '关闭RTL 关闭' })
+  const rtlCloseBox = await rtlClose.boundingBox()
+  const rtlSelectedBox = await rtlSelected.boundingBox()
+  expect(rtlCloseBox!.x).toBeLessThan(rtlSelectedBox!.x)
+  if (testInfo.project.name.startsWith('mobile-')) await rtlClose.tap()
+  else {
+    await rtlClose.focus()
+    await rtlClose.press('Enter')
+  }
+  await expect(rtlClose).toHaveCount(0)
+  await expect(rtlSelected).toBeFocused()
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+})
+
 test('page shell keeps safe padding and the skip link is keyboard reachable', async ({
   page,
 }, testInfo) => {

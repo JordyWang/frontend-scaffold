@@ -27,6 +27,7 @@ import { ColorPickerPreview } from './ColorPickerPreview'
 import { ColorPickerGradientPreview } from './ColorPickerGradientPreview'
 import { TypographyPreview } from './TypographyPreview'
 import { TabsPreview } from './TabsPreview'
+import { TagPreview } from './TagPreview'
 import {
   Alert,
   Affix,
@@ -457,6 +458,7 @@ export function DesignSystemPreview() {
                   <Badge count={24} label="24 条独立通知" />
                   <Badge label="已同步" tone="success" />
                 </Stack>
+                <TagPreview />
                 <Divider />
                 <Typography variant="caption" tone="muted">
                   Grid 根据可用宽度自动换列。

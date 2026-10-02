@@ -1,5 +1,13 @@
-import { type HTMLAttributes, type ReactNode } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type HTMLAttributes,
+  type MouseEvent,
+  type ReactNode,
+} from 'react'
 import { cn } from '@/shared/lib/utils'
+import { CloseIcon } from './icons'
 
 type Tone = 'default' | 'success' | 'warning' | 'error'
 
@@ -20,18 +28,145 @@ const badgeToneStyles = {
   error: 'bg-[var(--ui-seed-error)] text-[var(--ui-map-error-text)]',
 } as const
 
-export type TagProps = HTMLAttributes<HTMLSpanElement> & { tone?: Tone }
-export function Tag({ tone = 'default', className, ...props }: TagProps) {
+export type TagProps = HTMLAttributes<HTMLSpanElement> & {
+  tone?: Tone
+  selectable?: boolean
+  selected?: boolean
+  defaultSelected?: boolean
+  onSelectedChange?: (selected: boolean) => void
+  closable?: boolean
+  open?: boolean
+  defaultOpen?: boolean
+  onOpenChange?: (open: boolean) => void
+  onClose?: (event: MouseEvent<HTMLButtonElement>) => void
+  closeIcon?: ReactNode
+  closeLabel?: string
+  disabled?: boolean
+}
+
+function nextTagFocusTarget(root: HTMLElement): HTMLElement | null {
+  const parent = root.parentElement
+  if (!parent) return null
+  const focusable = Array.from(
+    parent.querySelectorAll<HTMLElement>(
+      'button:not(:disabled), a[href], input:not(:disabled), [tabindex]:not([tabindex="-1"])',
+    ),
+  ).filter(
+    (element) =>
+      !root.contains(element) &&
+      element.tabIndex >= 0 &&
+      !element.closest('[hidden]') &&
+      element.getAttribute('aria-disabled') !== 'true',
+  )
+  return (
+    focusable.find(
+      (element) =>
+        root.compareDocumentPosition(element) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ) ??
+    focusable.at(-1) ??
+    null
+  )
+}
+
+export function Tag({
+  tone = 'default',
+  selectable = false,
+  selected,
+  defaultSelected = false,
+  onSelectedChange,
+  closable = false,
+  open,
+  defaultOpen = true,
+  onOpenChange,
+  onClose,
+  closeIcon,
+  closeLabel,
+  disabled = false,
+  children,
+  className,
+  ...props
+}: TagProps) {
+  const [internalSelected, setInternalSelected] = useState(defaultSelected)
+  const [internalOpen, setInternalOpen] = useState(defaultOpen)
+  const visible = open ?? internalOpen
+  const isSelected = selected ?? internalSelected
+  const focusTarget = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (visible || !focusTarget.current) return
+    if (focusTarget.current.isConnected) focusTarget.current.focus()
+    focusTarget.current = null
+  }, [visible])
+
+  useEffect(
+    () => () => {
+      if (focusTarget.current?.isConnected) focusTarget.current.focus()
+    },
+    [],
+  )
+
+  if (!visible) return null
+
   return (
     <span
+      data-ui-tag=""
       data-ui-tone={tone}
+      data-ui-selected={selectable ? isSelected : undefined}
       className={cn(
         'inline-flex items-center rounded-[0.35rem] border px-2 py-0.5 text-sm font-semibold',
         tagToneStyles[tone],
+        selectable && 'gap-2 p-0',
+        closable && !selectable && 'gap-2 pe-0',
+        isSelected &&
+          selectable &&
+          'border-primary bg-primary text-primary-foreground',
+        disabled && 'opacity-50',
         className,
       )}
       {...props}
-    />
+    >
+      {selectable ? (
+        <button
+          type="button"
+          aria-pressed={isSelected}
+          disabled={disabled}
+          className="min-h-11 min-w-11 rounded-[0.35rem] px-3 py-2 text-start outline-none focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ring enabled:cursor-pointer enabled:active:opacity-75"
+          onClick={() => {
+            if (selected === undefined) setInternalSelected(!isSelected)
+            onSelectedChange?.(!isSelected)
+          }}
+        >
+          {children}
+        </button>
+      ) : (
+        children
+      )}
+      {closable && (
+        <button
+          type="button"
+          aria-label={
+            closeLabel ??
+            (typeof children === 'string' ? `关闭${children}` : '关闭标签')
+          }
+          disabled={disabled}
+          className="inline-grid size-11 shrink-0 place-items-center rounded-[0.35rem] outline-none focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ring enabled:cursor-pointer enabled:active:opacity-75"
+          onClick={(event) => {
+            const root = event.currentTarget.parentElement
+            focusTarget.current = root ? nextTagFocusTarget(root) : null
+            onClose?.(event)
+            if (event.defaultPrevented) {
+              focusTarget.current = null
+              return
+            }
+            if (open === undefined) setInternalOpen(false)
+            onOpenChange?.(false)
+          }}
+        >
+          {closeIcon ?? <CloseIcon />}
+        </button>
+      )}
+    </span>
   )
 }
 
