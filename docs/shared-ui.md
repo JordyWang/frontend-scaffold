@@ -657,6 +657,8 @@ Checkbox、Switch 和 RadioGroup 自带可访问标签。需要显示校验错�
 
 `Tour.steps` 使用 `{ key, target?, title, description?, cover?, placement?, mask?, type? }`。`target` 可传元素或返回元素的函数；目标为空时卡片居中。开启遮罩时目标周围保留可直接操作的高亮区域，Tab 在卡片和高亮目标之间循环，遮罩区域可点击关闭；卡片或目标尺寸变化时会重新定位。`keyboard` 开启后支持 Escape、左右方向键，步骤切换会调用 `onChange`。`current` / `open` 为受控状态，`onFinish` 和 `onClose` 结束后恢复打开前焦点。
 
+卡片优先使用指定的 `placement`；目标贴近视口边缘时先尝试相反方向，再尝试有足够空间的其他方向，最后将卡片限制在视口内。卡片高度最多为视口高度减 24px，内容过长时在卡片内滚动，操作按钮仍可触达。`/__ui` 的“预览边缘放置”可检查侧向位置与窄屏换边，关闭后焦点回到实际触发按钮。
+
 ## 折叠面板
 
 `Collapse.items` 使用稳定字符串 `key` 和非交互式 `label`，内容放在 `children`，标题旁的按钮放在 `extra`。`extra` 是展开按钮的兄弟节点，点击不会触发折叠；容器不足 360px 时操作区换行。`size` 为 `small` / `default` / `large`，未传时继承 ConfigProvider；`bordered={false}` 去掉外框，`ghost` 同时移除背景与分隔线。

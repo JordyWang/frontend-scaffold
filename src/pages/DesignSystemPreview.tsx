@@ -284,10 +284,14 @@ export function DesignSystemPreview() {
   )
   const [tourOpen, setTourOpen] = useState(false)
   const [tourStep, setTourStep] = useState(0)
+  const [tourReturnTarget, setTourReturnTarget] = useState<'start' | 'edge'>(
+    'start',
+  )
   const [tourTargetClicks, setTourTargetClicks] = useState(0)
   const [rtlPopupContainer, setRtlPopupContainer] =
     useState<HTMLDivElement | null>(null)
   const tourTriggerRef = useRef<HTMLButtonElement>(null)
+  const tourEdgeTriggerRef = useRef<HTMLButtonElement>(null)
   const alertRestoreRef = useRef<HTMLButtonElement>(null)
   const affixTargetRef = useRef<HTMLDivElement>(null)
 
@@ -2801,11 +2805,24 @@ export function DesignSystemPreview() {
                     variant="outline"
                     size="small"
                     onClick={() => {
+                      setTourReturnTarget('start')
                       setTourStep(0)
                       setTourOpen(true)
                     }}
                   >
                     开始引导
+                  </Button>
+                  <Button
+                    ref={tourEdgeTriggerRef}
+                    variant="outline"
+                    size="small"
+                    onClick={() => {
+                      setTourReturnTarget('edge')
+                      setTourStep(2)
+                      setTourOpen(true)
+                    }}
+                  >
+                    预览边缘放置
                   </Button>
                 </Stack>
                 <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/30 p-4">
@@ -2825,13 +2842,17 @@ export function DesignSystemPreview() {
                 </div>
                 <Typography variant="caption" tone="muted">
                   引导支持
-                  Escape、左右方向键、遮罩关闭和手机触控；高亮目标可直接操作，上传按钮已点击{' '}
+                  Escape、左右方向键、遮罩关闭和手机触控；靠近视口边缘时卡片自动换边。高亮目标可直接操作，上传按钮已点击{' '}
                   {tourTargetClicks} 次。
                 </Typography>
                 <Tour
                   open={tourOpen}
                   current={tourStep}
-                  returnFocusRef={tourTriggerRef}
+                  returnFocusRef={
+                    tourReturnTarget === 'edge'
+                      ? tourEdgeTriggerRef
+                      : tourTriggerRef
+                  }
                   onChange={setTourStep}
                   onClose={() => setTourOpen(false)}
                   onFinish={() => setTourOpen(false)}
@@ -2855,7 +2876,7 @@ export function DesignSystemPreview() {
                       target: () => document.getElementById('tour-publish'),
                       title: '发布内容',
                       description: '确认内容无误后发布给团队成员。',
-                      placement: 'bottom',
+                      placement: 'right',
                       type: 'primary',
                     },
                   ]}

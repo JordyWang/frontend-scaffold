@@ -136,48 +136,63 @@ function placementPosition(
     if (align === 'end') return target.bottom - height
     return target.top + (target.height - height) / 2
   }
-  let left = horizontal('center')
-  let top = target.bottom + gap
-  if (placement.startsWith('top')) {
-    top = target.top - height - gap
-    left = horizontal(
-      placement === 'topLeft'
-        ? 'start'
-        : placement === 'topRight'
-          ? 'end'
-          : 'center',
-    )
-  } else if (placement.startsWith('bottom')) {
-    top = target.bottom + gap
-    left = horizontal(
-      placement === 'bottomLeft'
-        ? 'start'
-        : placement === 'bottomRight'
-          ? 'end'
-          : 'center',
-    )
-  } else if (placement.startsWith('left')) {
-    left = target.left - width - gap
-    top = vertical(
-      placement === 'leftTop'
-        ? 'start'
-        : placement === 'leftBottom'
-          ? 'end'
-          : 'center',
-    )
-  } else if (placement.startsWith('right')) {
-    left = target.right + gap
-    top = vertical(
-      placement === 'rightTop'
-        ? 'start'
-        : placement === 'rightBottom'
-          ? 'end'
-          : 'center',
-    )
+  const side: 'top' | 'bottom' | 'left' | 'right' = placement.startsWith('top')
+    ? 'top'
+    : placement.startsWith('bottom')
+      ? 'bottom'
+      : placement.startsWith('left')
+        ? 'left'
+        : 'right'
+  const room = {
+    top: target.top - gap - 12,
+    bottom: viewport.height - target.bottom - gap - 12,
+    left: target.left - gap - 12,
+    right: viewport.width - target.right - gap - 12,
   }
+  const opposite = {
+    top: 'bottom',
+    bottom: 'top',
+    left: 'right',
+    right: 'left',
+  } as const
+  const reverse = opposite[side]
+  const cross: ('top' | 'bottom' | 'left' | 'right')[] =
+    side === 'top' || side === 'bottom' ? ['right', 'left'] : ['bottom', 'top']
+  const candidates = [side, reverse, ...cross]
+  const fits = (candidate: (typeof candidates)[number]) =>
+    room[candidate] >=
+    (candidate === 'top' || candidate === 'bottom' ? height : width)
+  const chosen =
+    candidates.find(fits) ?? (room[reverse] > room[side] ? reverse : side)
+  const sameAxis =
+    (side === 'top' || side === 'bottom') ===
+    (chosen === 'top' || chosen === 'bottom')
+  const suffix = sameAxis ? placement.slice(side.length) : ''
+  const left =
+    chosen === 'left'
+      ? target.left - width - gap
+      : chosen === 'right'
+        ? target.right + gap
+        : horizontal(
+            suffix === 'Left' ? 'start' : suffix === 'Right' ? 'end' : 'center',
+          )
+  const top =
+    chosen === 'top'
+      ? target.top - height - gap
+      : chosen === 'bottom'
+        ? target.bottom + gap
+        : vertical(
+            suffix === 'Top' ? 'start' : suffix === 'Bottom' ? 'end' : 'center',
+          )
   return {
-    left: Math.max(12, Math.min(left, viewport.width - width - 12)),
-    top: Math.max(12, Math.min(top, viewport.height - height - 12)),
+    left: Math.max(
+      12,
+      Math.min(left, Math.max(12, viewport.width - width - 12)),
+    ),
+    top: Math.max(
+      12,
+      Math.min(top, Math.max(12, viewport.height - height - 12)),
+    ),
   }
 }
 
@@ -213,6 +228,10 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
   const [internalCurrent, setInternalCurrent] = useState(defaultCurrent)
   const [targetRect, setTargetRect] = useState<Rect>(defaultRect)
   const [cardHeight, setCardHeight] = useState(180)
+  const [viewport, setViewport] = useState(() => ({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }))
   const cardRef = useRef<HTMLDivElement | null>(null)
   const restoreFocusRef = useRef<HTMLElement | null>(null)
   const openSessionRef = useRef(false)
@@ -258,6 +277,12 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
       )
     }
     const measure = () => {
+      setViewport((previous) =>
+        previous.width === window.innerWidth &&
+        previous.height === window.innerHeight
+          ? previous
+          : { width: window.innerWidth, height: window.innerHeight },
+      )
       const rect = element?.getBoundingClientRect()
       setTargetRect(
         rect
@@ -359,8 +384,7 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
   }, [isOpen, stepIndex, steps.length, keyboard, hasMask, step, close, setStep])
 
   if (!isOpen || !step) return null
-  const viewport = { width: window.innerWidth, height: window.innerHeight }
-  const cardWidth = Math.min(360, Math.max(260, viewport.width - 24))
+  const cardWidth = Math.min(360, Math.max(0, viewport.width - 24))
   const placement = step.placement ?? defaultPlacement
   const position = placementPosition(
     placement,
@@ -478,7 +502,7 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
           aria-label={typeof step.title === 'string' ? step.title : '页面引导'}
           data-tour-card=""
           className={cn(
-            'pointer-events-auto fixed z-[71] max-w-[calc(100vw-24px)] rounded-xl border p-4 text-sm shadow-xl outline-none sm:p-5',
+            'pointer-events-auto fixed z-[71] max-h-[calc(100dvh-24px)] max-w-[calc(100vw-24px)] overflow-y-auto overscroll-contain rounded-xl border p-4 text-sm shadow-xl outline-none sm:p-5',
             step.type === 'primary'
               ? 'border-primary bg-primary text-primary-foreground'
               : 'border-border bg-card text-card-foreground',
@@ -489,7 +513,7 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
             type="button"
             data-tour-close=""
             aria-label={closeLabel}
-            className="absolute right-2 top-2 inline-flex size-11 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] text-current/70 hover:bg-black/10 hover:text-current focus-visible:outline-2 focus-visible:outline-ring"
+            className="absolute end-2 top-2 inline-flex size-11 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] text-current/70 hover:bg-black/10 hover:text-current focus-visible:outline-2 focus-visible:outline-ring"
             onClick={() => close()}
           >
             <span aria-hidden="true" className="text-xl leading-none">
@@ -499,7 +523,7 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
           {step.cover && (
             <div className="mb-3 overflow-hidden rounded-lg">{step.cover}</div>
           )}
-          <div className="pr-9 font-semibold">{step.title}</div>
+          <div className="pe-9 font-semibold">{step.title}</div>
           {step.description && (
             <div className="mt-2 leading-6 text-current/80">
               {step.description}
