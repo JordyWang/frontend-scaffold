@@ -140,6 +140,8 @@ ConfigProvider 的 RTL 方向已覆盖 Select、Dialog、Sheet、Dropdown、Popo
 
 Dropdown、Popover、Tooltip 的浮层已在裁切容器、RTL、桌面与 H5 中验证。Dropdown 的上下方向键、Enter、空格和正反向 Tab，以及 Popover 中交互内容的 Tab 顺序已有浏览器回归。
 
+Dropdown 新增 `click`、`hover`、`contextMenu` 三种触发方式和 12 个位置；右键可按指针锚点显示，键盘菜单键及 Shift+F10 有焦点路径，H5 可轻触打开。`/__ui` 提供触发、位置和受控状态预览。
+
 Popover 继续保留项目自己的内容与受控开合 API，补充点击、悬停、聚焦触发和 12 种方向/对齐位置；触控可点击打开悬停与聚焦模式，Portal 内容与触发器之间的焦点移动、Escape 还焦点及视口边缘翻转在 `/__ui` 展示并回归。
 
 Tooltip 的位置也复用 12 种方向/对齐约定，RTL 的 start/end 按文字方向计算；`/__ui` 可切换请求位置并查看 RTL 示例。桌面浏览器验证全部位置及视口边缘翻转，H5 Chromium / WebKit 验证 RTL 对齐、触控、Escape 与窄屏无横溢。

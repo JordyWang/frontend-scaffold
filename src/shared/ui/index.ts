@@ -349,6 +349,7 @@ export type {
 export type {
   DropdownActionItem,
   DropdownItem,
+  DropdownPlacement,
   DropdownProps,
   FloatButtonButtonProps,
   FloatButtonLinkProps,

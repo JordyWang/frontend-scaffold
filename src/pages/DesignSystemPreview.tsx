@@ -30,6 +30,7 @@ import { TabsPreview } from './TabsPreview'
 import { TagPreview } from './TagPreview'
 import { BadgePreview } from './BadgePreview'
 import { TooltipPreview } from './TooltipPreview'
+import { DropdownPreview } from './DropdownPreview'
 import { ResultPreview } from './ResultPreview'
 import {
   Alert,
@@ -1731,6 +1732,7 @@ export function DesignSystemPreview() {
                   {controlledConfirmStatus}
                 </p>
                 <TooltipPreview />
+                <DropdownPreview />
                 <div
                   role="group"
                   aria-label="Popover 触发与位置预览"

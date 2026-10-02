@@ -84,6 +84,8 @@
 
 `Dropdown.items` 支持普通项、`{ type: 'divider' }` 和带 `children` 的 `group`；`selectionMode` 为 `none` / `single` / `multiple`，选择值通过 `selectedKeys` / `defaultSelectedKeys` 与 `onSelectionChange` 管理。多选默认保持菜单打开，可用 `closeOnSelect` 覆写；选中项使用 `menuitemradio` 或 `menuitemcheckbox` 语义，禁用项不进入方向键序列。分组标题、分隔线和菜单项均不破坏 Portal、RTL、键盘与 44px 触控约定。
 
+`Dropdown.triggerMode` 默认为 `click`，也可选 `hover` 或 `contextMenu`。悬停打开时指针可从触发器移入 Portal 菜单，离开后短暂延迟关闭；触屏轻触仍可打开。右键菜单按指针位置显示，键盘的菜单键或 Shift+F10 从触发器打开并将焦点移到首项。`placement` 使用 `DropdownPlacement` 的上下左右及 `-start` / `-end` 共 12 种位置，靠近视口边缘时翻转；Escape 返回触发器，Tab 续接页面顺序。受控 `open` / `onOpenChange` 保持调用方决策。
+
 `Badge.count` 接受非负有限数字或短字符串；数字零默认隐藏，`showZero` 可保留零，`dot` 显示圆点。数值超过 `max` 时只截断可见文本，可访问名称仍使用完整数值；`size` 为 default / small，`offset` 的两个数字分别沿逻辑末端向外、沿块方向向下偏移像素。`status` 支持 default / success / processing / warning / error，可配 `text`，圆点始终有可访问的状态名称；指定状态时优先展示状态点。`Badge.Ribbon` 的 `text`、`tone` 和 `placement` 控制卡片角标，start / end 随 RTL 方向变化。`label` 可覆写徽标的可访问名称；附着于控件时，业务入口本身仍需有名称。
 
 `Alert` 的 `description`、`action` 可放入补充内容与操作；`showIcon`、`icon` 和 `closeIcon` 控制装饰图标。`closable` 开启关闭按钮，`closeLabel` 为其命名。`open` / `defaultOpen` 控制可见性，关闭操作先调用 `onOpenChange(false)` 和 `onDismiss(event)`；实际关闭后调用 `afterClose()`。受控状态由调用方接受关闭请求，未接受时提示继续显示。

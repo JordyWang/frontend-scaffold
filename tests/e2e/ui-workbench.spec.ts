@@ -3817,7 +3817,10 @@ test('overlay components keep focus, touch and safe-area behavior', async ({
 }, testInfo) => {
   await page.goto('/__ui')
   const preview = page.getByRole('region', { name: '设计系统补充组件' })
-  const openMenu = preview.getByRole('button', { name: '打开菜单' })
+  const openMenu = preview.getByRole('button', {
+    name: '打开菜单',
+    exact: true,
+  })
   if (testInfo.project.name.startsWith('mobile-')) {
     await openMenu.tap()
   } else {
@@ -4142,7 +4145,10 @@ test('overlay triggers preserve keyboard activation and tab order', async ({
   test.skip(testInfo.project.name !== 'desktop-chromium')
   await page.goto('/__ui')
 
-  const dropdownTrigger = page.getByRole('button', { name: '打开菜单' })
+  const dropdownTrigger = page.getByRole('button', {
+    name: '打开菜单',
+    exact: true,
+  })
   await dropdownTrigger.focus()
   await page.keyboard.press('Enter')
   await expect(page.getByRole('menuitem', { name: '复制内容' })).toBeFocused()
@@ -4188,7 +4194,10 @@ test('floating overlays stay usable inside clipped containers', async ({
   page,
 }) => {
   await page.goto('/__ui')
-  const trigger = page.getByRole('button', { name: '打开菜单' })
+  const trigger = page.getByRole('button', {
+    name: '打开菜单',
+    exact: true,
+  })
   const container = trigger.locator('..')
   await container.evaluate((element) => {
     element.style.overflow = 'hidden'

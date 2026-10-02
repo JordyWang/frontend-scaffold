@@ -53,12 +53,15 @@ type FloatingPlacement =
   | 'right-start'
   | 'right-end'
 
+type FloatingAnchorPoint = { x: number; y: number }
+
 function useFloatingPosition(
   anchorRef: { current: HTMLElement | null },
   panelRef: { current: HTMLElement | null },
   open: boolean,
   placement: FloatingPlacement,
   direction: 'ltr' | 'rtl' = 'ltr',
+  anchorPoint?: FloatingAnchorPoint | null,
 ) {
   useLayoutEffect(() => {
     if (!open) return
@@ -67,7 +70,16 @@ function useFloatingPosition(
     if (!anchor || !panel) return
 
     const updatePosition = () => {
-      const anchorRect = anchor.getBoundingClientRect()
+      const anchorRect = anchorPoint
+        ? {
+            top: anchorPoint.y,
+            bottom: anchorPoint.y,
+            left: anchorPoint.x,
+            right: anchorPoint.x,
+            width: 0,
+            height: 0,
+          }
+        : anchor.getBoundingClientRect()
       const viewportWidth = window.innerWidth
       const viewportHeight = window.innerHeight
       if (
@@ -149,7 +161,7 @@ function useFloatingPosition(
       window.removeEventListener('resize', updatePosition)
       observer?.disconnect()
     }
-  }, [anchorRef, panelRef, open, placement, direction])
+  }, [anchorRef, panelRef, open, placement, direction, anchorPoint])
 }
 
 type TriggerElement = ReactElement<{
@@ -235,13 +247,16 @@ export type DropdownItem =
       children: DropdownActionItem[]
     }
 
+export type DropdownPlacement = FloatingPlacement
+
 export type DropdownProps = {
   items: DropdownItem[]
   trigger: TriggerElement
   open?: boolean
   defaultOpen?: boolean
   onOpenChange?: (open: boolean) => void
-  placement?: 'bottom-start' | 'bottom-end'
+  placement?: DropdownPlacement
+  triggerMode?: 'click' | 'hover' | 'contextMenu'
   label?: string
   className?: string
   selectionMode?: 'none' | 'single' | 'multiple'
@@ -259,6 +274,7 @@ export function Dropdown({
   defaultOpen = false,
   onOpenChange,
   placement = 'bottom-start',
+  triggerMode = 'click',
   label = '菜单',
   className,
   selectionMode = 'none',
@@ -276,22 +292,55 @@ export function Dropdown({
   const isOpen = open ?? internalOpen
   const rootRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const hoverCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [anchorPoint, setAnchorPoint] = useState<FloatingAnchorPoint | null>(
+    null,
+  )
   const [focusLastOnOpen, setFocusLastOnOpen] = useState(false)
+  const [focusOnOpen, setFocusOnOpen] = useState(true)
   const triggerId = useId()
   const menuId = `${triggerId}-menu`
   const groupId = `${menuId}-group`
-  useFloatingPosition(rootRef, menuRef, isOpen, placement, direction)
+  useFloatingPosition(
+    rootRef,
+    menuRef,
+    isOpen,
+    placement,
+    direction,
+    triggerMode === 'contextMenu' ? anchorPoint : null,
+  )
 
   const setOpen = useCallback(
     (next: boolean) => {
+      if (next === isOpen) return
       if (open === undefined) setInternalOpen(next)
       onOpenChange?.(next)
     },
-    [onOpenChange, open],
+    [isOpen, onOpenChange, open],
   )
 
+  const clearHoverCloseTimer = useCallback(() => {
+    if (hoverCloseTimer.current === null) return
+    clearTimeout(hoverCloseTimer.current)
+    hoverCloseTimer.current = null
+  }, [])
+  const scheduleHoverClose = () => {
+    if (triggerMode !== 'hover') return
+    clearHoverCloseTimer()
+    hoverCloseTimer.current = setTimeout(() => {
+      const active = document.activeElement
+      if (
+        rootRef.current?.contains(active) ||
+        menuRef.current?.contains(active)
+      )
+        return
+      setOpen(false)
+    }, 100)
+  }
+  useEffect(() => clearHoverCloseTimer, [clearHoverCloseTimer])
+
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen || !focusOnOpen) return
     const options = menuRef.current?.querySelectorAll<HTMLButtonElement>(
       '[data-ui-dropdown-action]:not(:disabled)',
     )
@@ -299,7 +348,7 @@ export function Dropdown({
       ? options?.[options.length - 1]
       : options?.[0]
     initialFocus?.focus()
-  }, [focusLastOnOpen, isOpen])
+  }, [focusLastOnOpen, focusOnOpen, isOpen])
 
   useEffect(() => {
     if (!isOpen) return
@@ -308,12 +357,15 @@ export function Dropdown({
       if (
         !rootRef.current?.contains(target) &&
         !menuRef.current?.contains(target)
-      )
+      ) {
+        clearHoverCloseTimer()
         setOpen(false)
+      }
     }
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
+        clearHoverCloseTimer()
         setOpen(false)
         rootRef.current
           ?.querySelector<HTMLElement>('[data-ui-dropdown-trigger]')
@@ -323,6 +375,7 @@ export function Dropdown({
       if (!menuRef.current?.contains(event.target as Node)) return
       if (event.key === 'Tab') {
         event.preventDefault()
+        clearHoverCloseTimer()
         const trigger = rootRef.current?.querySelector<HTMLElement>(
           '[data-ui-dropdown-trigger]',
         )
@@ -360,7 +413,7 @@ export function Dropdown({
       document.removeEventListener('pointerdown', onPointerDown)
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [isOpen, setOpen])
+  }, [clearHoverCloseTimer, isOpen, setOpen])
 
   const handleItemSelect = (item: DropdownActionItem) => {
     item.onSelect?.()
@@ -421,13 +474,28 @@ export function Dropdown({
 
   const handleTriggerClick = (event: MouseEvent) => {
     if (!callHandler(trigger.props.onClick, event)) return
+    setAnchorPoint(null)
+    setFocusOnOpen(true)
     setFocusLastOnOpen(false)
-    setOpen(!isOpen)
+    setOpen(triggerMode === 'hover' ? true : !isOpen)
   }
   const handleTriggerKeyDown = (event: KeyboardEvent) => {
     if (!callHandler(trigger.props.onKeyDown, event)) return
+    if (
+      triggerMode === 'contextMenu' &&
+      (event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey))
+    ) {
+      event.preventDefault()
+      setAnchorPoint(null)
+      setFocusOnOpen(true)
+      setFocusLastOnOpen(false)
+      setOpen(true)
+      return
+    }
     if (event.key === 'ArrowUp') {
       event.preventDefault()
+      setAnchorPoint(null)
+      setFocusOnOpen(true)
       setFocusLastOnOpen(true)
       if (!isOpen) setOpen(true)
       return
@@ -438,6 +506,8 @@ export function Dropdown({
       event.key === ' '
     ) {
       event.preventDefault()
+      setAnchorPoint(null)
+      setFocusOnOpen(true)
       setFocusLastOnOpen(false)
       if (!isOpen) setOpen(true)
     }
@@ -456,6 +526,34 @@ export function Dropdown({
       ref={rootRef}
       dir={direction}
       className={cn('relative inline-flex max-w-full', className)}
+      onPointerEnter={(event) => {
+        if (triggerMode !== 'hover' || event.pointerType === 'touch') return
+        clearHoverCloseTimer()
+        if (isOpen) return
+        setAnchorPoint(null)
+        setFocusOnOpen(false)
+        setFocusLastOnOpen(false)
+        setOpen(true)
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType === 'mouse' || event.pointerType === 'pen')
+          scheduleHoverClose()
+      }}
+      onContextMenu={(event) => {
+        if (triggerMode !== 'contextMenu' || event.defaultPrevented) return
+        if (!(event.target instanceof Element)) return
+        const contextTrigger = event.target.closest(
+          '[data-ui-dropdown-trigger]',
+        )
+        if (!contextTrigger || !event.currentTarget.contains(contextTrigger))
+          return
+        event.preventDefault()
+        clearHoverCloseTimer()
+        setAnchorPoint({ x: event.clientX, y: event.clientY })
+        setFocusOnOpen(true)
+        setFocusLastOnOpen(false)
+        setOpen(true)
+      }}
     >
       {enhancedTrigger}
       {isOpen && (
@@ -469,6 +567,11 @@ export function Dropdown({
             aria-multiselectable={
               selectionMode === 'multiple' ? true : undefined
             }
+            onPointerEnter={clearHoverCloseTimer}
+            onPointerLeave={(event) => {
+              if (event.pointerType === 'mouse' || event.pointerType === 'pen')
+                scheduleHoverClose()
+            }}
             className={cn(
               floatingPanelStyles,
               'rounded-[var(--ui-menu-radius)] p-[var(--space-xs)]',

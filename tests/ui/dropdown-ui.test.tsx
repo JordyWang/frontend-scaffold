@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { Dropdown } from '@/shared/ui'
 
@@ -70,5 +70,83 @@ describe('Dropdown menu composition', () => {
     expect(onSelectionChange).toHaveBeenCalledWith(['first'])
     expect(screen.queryByRole('menu')).toBeNull()
     expect(screen.getByRole('button', { name: '打开单选' })).toHaveFocus()
+  })
+
+  it('keeps hover menu open while moving into its Portal and supports touch click', () => {
+    vi.useFakeTimers()
+    try {
+      render(
+        <Dropdown
+          triggerMode="hover"
+          label="悬停菜单"
+          trigger={<button type="button">悬停入口</button>}
+          items={[{ key: 'one', label: '第一项' }]}
+        />,
+      )
+      const trigger = screen.getByRole('button', { name: '悬停入口' })
+      fireEvent.pointerEnter(trigger, { pointerType: 'mouse' })
+      const menu = screen.getByRole('menu', { name: '悬停菜单' })
+      const leave = (element: Element, pointerType: 'mouse' | 'touch') => {
+        const event = new MouseEvent('pointerout', { bubbles: true })
+        Object.defineProperty(event, 'pointerType', { value: pointerType })
+        fireEvent(element, event)
+      }
+      leave(trigger, 'mouse')
+      fireEvent.pointerEnter(menu, { pointerType: 'mouse' })
+      act(() => vi.advanceTimersByTime(150))
+      expect(menu).toBeInTheDocument()
+      leave(menu, 'mouse')
+      act(() => vi.advanceTimersByTime(150))
+      expect(screen.queryByRole('menu')).toBeNull()
+      fireEvent.click(trigger)
+      leave(trigger, 'touch')
+      act(() => vi.advanceTimersByTime(150))
+      expect(screen.getByRole('menu')).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('opens context menu at the requested pointer and from the keyboard', () => {
+    render(
+      <Dropdown
+        triggerMode="contextMenu"
+        label="右键菜单"
+        trigger={<button type="button">右键入口</button>}
+        items={[{ key: 'one', label: '第一项' }]}
+      />,
+    )
+    const trigger = screen.getByRole('button', { name: '右键入口' })
+    fireEvent.contextMenu(trigger, { clientX: 120, clientY: 160 })
+    expect(screen.getByRole('menu', { name: '右键菜单' })).toBeInTheDocument()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('menu')).toBeNull()
+    fireEvent.keyDown(trigger, { key: 'F10', shiftKey: true })
+    expect(screen.getByRole('menu', { name: '右键菜单' })).toBeInTheDocument()
+  })
+
+  it('respects controlled open requests', () => {
+    const onOpenChange = vi.fn()
+    const { rerender } = render(
+      <Dropdown
+        open={false}
+        onOpenChange={onOpenChange}
+        trigger={<button type="button">受控入口</button>}
+        items={[{ key: 'one', label: '第一项' }]}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '受控入口' }))
+    expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(true)
+    expect(screen.queryByRole('menu')).toBeNull()
+    rerender(
+      <Dropdown
+        open
+        onOpenChange={onOpenChange}
+        trigger={<button type="button">受控入口</button>}
+        items={[{ key: 'one', label: '第一项' }]}
+      />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: '受控入口' }))
+    expect(onOpenChange).toHaveBeenLastCalledWith(false)
   })
 })
