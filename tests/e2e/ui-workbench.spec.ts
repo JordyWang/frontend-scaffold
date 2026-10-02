@@ -2889,7 +2889,10 @@ test('table exposes one responsive data view and follows RTL text direction', as
     ).toHaveCount(0)
   }
 
-  const rtlTable = page.getByRole('table', { name: 'RTL 数据表' })
+  const rtlTable = page.getByRole('table', {
+    name: 'RTL 数据表',
+    exact: true,
+  })
   await expect(rtlTable).toHaveCSS('direction', 'rtl')
   await expect(rtlTable.getByRole('columnheader', { name: '任务' })).toHaveCSS(
     'text-align',
@@ -2912,7 +2915,10 @@ test('table expandable rows keep detail focus and touch targets', async ({
   page,
 }, testInfo) => {
   await page.goto('/__ui')
-  const table = page.getByRole('table', { name: 'RTL 数据表' })
+  const table = page.getByRole('table', {
+    name: 'RTL 数据表',
+    exact: true,
+  })
   const collapse = table.getByRole('button', { name: '收起任务' })
   await expect(collapse).toHaveAttribute('aria-expanded', 'true')
   await expect(table.getByText('任务 的详细状态：进行中')).toBeVisible()

@@ -3,6 +3,7 @@ import { cn } from '@/shared/lib/utils'
 import { Checkbox } from './choice'
 import { Empty } from './empty'
 import { ErrorState, LoadingState } from './feedback-state'
+import { scrollHorizontalRegion } from './horizontal-scroll'
 import {
   TableFilterControl,
   type TableFilterOption,
@@ -397,7 +398,14 @@ export function Table<T>(allProps: TableProps<T>) {
         </div>
       )}
       <div
-        className={cn('overflow-x-auto', renderMobileRow && 'hidden sm:block')}
+        role="region"
+        aria-label={`${caption}横向滚动`}
+        tabIndex={0}
+        onKeyDown={scrollHorizontalRegion}
+        className={cn(
+          'overflow-x-auto overscroll-x-contain focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring [scrollbar-width:thin]',
+          renderMobileRow && 'hidden sm:block',
+        )}
       >
         <table className="min-w-full border-collapse text-start">
           <caption className="sr-only">{caption}</caption>

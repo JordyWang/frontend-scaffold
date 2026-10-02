@@ -3031,6 +3031,64 @@ export function DesignSystemPreview() {
                         ),
                       }}
                     />
+                    <div
+                      role="group"
+                      aria-label="窄 RTL 表格预览"
+                      className="w-full max-w-60"
+                    >
+                      <Table
+                        caption="窄 RTL 数据表"
+                        rows={[
+                          {
+                            id: 'rtl-long-row',
+                            name: '任务 2026-10-03',
+                            owner: '设计系统团队',
+                            status: '等待内容审核',
+                            date: '2026-10-10',
+                          },
+                        ]}
+                        getRowKey={(row) => row.id}
+                        columns={[
+                          {
+                            key: 'name',
+                            header: '任务编号',
+                            rowScope: 'row',
+                            render: (row) => (
+                              <span className="whitespace-nowrap">
+                                {row.name}
+                              </span>
+                            ),
+                          },
+                          {
+                            key: 'owner',
+                            header: '负责人',
+                            render: (row) => (
+                              <span className="whitespace-nowrap">
+                                {row.owner}
+                              </span>
+                            ),
+                          },
+                          {
+                            key: 'status',
+                            header: '状态',
+                            render: (row) => (
+                              <span className="whitespace-nowrap">
+                                {row.status}
+                              </span>
+                            ),
+                          },
+                          {
+                            key: 'date',
+                            header: '截止日期',
+                            render: (row) => (
+                              <span className="whitespace-nowrap">
+                                {row.date}
+                              </span>
+                            ),
+                          },
+                        ]}
+                      />
+                    </div>
                     <Transfer
                       label="RTL 模块分配"
                       titles={['待分配', '已分配']}

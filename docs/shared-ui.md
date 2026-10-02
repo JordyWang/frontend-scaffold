@@ -120,6 +120,8 @@
 
 `Table` 默认沿文字方向的起始侧对齐表头与单元格；列的显式 `align="left"`、`"center"`、`"right"` 使用指定的物理方向。传入 `renderMobileRow` 后，窄屏展示列表视图，桌面展示表格视图。
 
+宽表格在自身容器内横向滚动。滚动区域可通过 Tab 聚焦；焦点位于区域自身时，左右方向键移动 44px，Home/End 移到逻辑起止，RTL 使用同一键位。单元格内按钮、输入和带修饰键的操作不被截获。`/__ui` 有 240px RTL 宽表预览，手机可直接横向触控滑动。
+
 `TableColumn.sorter(left, right)` 启用本地稳定排序；交互依次切换升序、降序和原始顺序。`sort` / `defaultSort` 使用 `{ columnKey, direction }`，`onSortChange` 接收新状态或 `null`；受控模式由调用方更新 `sort`。复杂表头可传入 `sortLabel` 作为排序按钮名称。桌面表头使用 `aria-sort`，配置 `renderMobileRow` 后手机卡片上方提供同一排序操作。
 
 `Table.expandable` 提供项目自己的行详情契约：`expandedRowKeys` / `defaultExpandedRowKeys`、`onExpandedRowsChange`、`expandedRowRender(row, index)`、`rowExpandable` 和 `getLabel`。展开按钮是独立的 44px 键盘/触控入口，使用 `aria-expanded` 和 `aria-controls` 关联详情行；桌面表格和 H5 卡片复用同一展开状态，受控模式等待外部更新，排序、筛选和禁用行不会改变详情内容的值语义。
