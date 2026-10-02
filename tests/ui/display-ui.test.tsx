@@ -64,6 +64,46 @@ describe('display and feedback semantics', () => {
     expect(onSubmit).not.toHaveBeenCalled()
   })
 
+  it('supports controlled visibility, banner presentation and custom icons', () => {
+    const onOpenChange = vi.fn()
+    const afterClose = vi.fn()
+    const { rerender } = render(
+      <Alert
+        title={<span>受控提示</span>}
+        description="由外部状态管理。"
+        banner
+        showIcon={false}
+        closable
+        open
+        onOpenChange={onOpenChange}
+        afterClose={afterClose}
+        closeIcon={<span aria-hidden="true">×</span>}
+      />,
+    )
+    const alert = screen.getByRole('status', { name: '' })
+    expect(alert).toHaveAttribute('data-alert-banner', 'true')
+    expect(alert.querySelector('[data-alert-icon]')).toBeNull()
+    expect(screen.getByRole('button', { name: '关闭提示' })).toHaveTextContent(
+      '×',
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '关闭提示' }))
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+    expect(screen.getByText('受控提示')).toBeInTheDocument()
+    expect(afterClose).not.toHaveBeenCalled()
+
+    rerender(
+      <Alert
+        title="受控提示"
+        open={false}
+        afterClose={afterClose}
+        icon={<span>自定义图标</span>}
+      />,
+    )
+    expect(screen.queryByText('受控提示')).not.toBeInTheDocument()
+    expect(afterClose).toHaveBeenCalledOnce()
+  })
+
   it('announces the exact badge count while capping the visible count', () => {
     render(
       <Badge count={120} max={99}>

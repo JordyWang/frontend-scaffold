@@ -57,7 +57,7 @@
 | Tag / Badge                     | `tone`；`Badge(count, max, dot, label)`                                                                                                                | 数量或标签可被辅助技术读取；Badge 可独立占位，也可附着于控件并跟随 RTL 逻辑末端                                             |
 | Image / Skeleton                | 原生 img 属性、必填 `alt`、`fallback`、`preview`；`Skeleton(shape, width, height, label, loading, active, avatar, title, paragraph, round)`            | 图片支持放大预览和加载失败反馈；骨架屏有状态标签，内容形态支持头像、标题、段落及加载结束后展示真实内容                      |
 | ImagePreviewGroup               | `items`、`current` / `defaultCurrent`、`onCurrentChange`、`open` / `defaultOpen`、`onOpenChange`、`label`、缩放配置                                    | 项目相册以图片数组表示，缩略图与预览地址可不同；键盘切换、触控工具栏和关闭后的焦点恢复共用图片预览实现                      |
-| Alert / Spinner                 | `Alert(title, description, tone, action, closable, closeLabel, onDismiss)`；`Spinner(label, size)`                                                     | 错误与警告用 alert，其他状态用 status；可关闭提示保留 44px 操作区域；加载状态有可访问名称                                   |
+| Alert / Spinner                 | `Alert(title, tone, banner, open, onOpenChange)`；`Spinner(label, size)`                                                                               | 错误与警告用 alert，其他状态用 status；可控关闭与 Banner 支持 44px 操作区域；加载状态有可访问名称                           |
 | Spin                            | `spinning`、`delay`、`tip`、`label`、`size`、`fullscreen`                                                                                              | 可包裹局部内容或全屏展示；加载时内容不可操作，延迟用于避免短任务闪烁                                                        |
 | Watermark                       | `content`、`image`、`markSize`、`gap`、`offset`、`rotate`、`opacity`、`fontSize`、`onRemove`                                                           | 在内容上重复绘制非交互水印；文字颜色跟随语义变量，图片加载失败时回退文字                                                    |
 | BorderBeam                      | `children`、`color`、`duration`、`borderWidth`、`anchor`、`reverse`、原生 div 属性                                                                     | 装饰性动态边框；内容保持原有语义、键盘和触控行为，系统减少动态效果时停止动画                                                |
@@ -73,6 +73,8 @@
 | Timeline                        | `items`、`mode`、`orientation`、`reverse`、`variant`、`labelWidth`、`label`、`emptyText`、`classNames`                                                 | 原生有序列表；两侧与交替布局、水平滚动、容器响应式、加载与文字状态、动态焦点恢复                                            |
 | Carousel                        | `items`、`index` / `defaultIndex`、`autoplay`、`dots`、`dotPlacement`、`effect`、`infinite`、`adaptiveHeight`、`ref`                                   | 受控轮播、四向指示点、两种动效、键盘/手势切换、播放进度及隐藏内容焦点恢复                                                   |
 | Tree                            | `treeData`、`expandedKeys`、`selectedKey` / `selectedKeys`、`checkedKeys`、`multiple`、`loadChildren`、`classNames`                                    | 选择和勾选独立；父子传导与半选、禁用边界、异步加载与取消/重试、唯一 Tab 入口、RTL 键盘与空状态                              |
+
+`Alert` 的 `description`、`action` 可放入补充内容与操作；`showIcon`、`icon` 和 `closeIcon` 控制装饰图标。`closable` 开启关闭按钮，`closeLabel` 为其命名。`open` / `defaultOpen` 控制可见性，关闭操作先调用 `onOpenChange(false)` 和 `onDismiss(event)`；实际关闭后调用 `afterClose()`。受控状态由调用方接受关闭请求，未接受时提示继续显示。
 
 `Space.Compact` 是 `Space` 的紧凑组合入口，也可直接导入 `SpaceCompact`。`direction` 支持 horizontal / vertical，`block` 让组合填满容器；子控件保留自己的语义、焦点顺序和 44px 触控尺寸，只合并相邻边框和圆角。
 

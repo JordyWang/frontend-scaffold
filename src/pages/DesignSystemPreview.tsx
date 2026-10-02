@@ -218,6 +218,9 @@ export function DesignSystemPreview() {
   const [badgeStatus, setBadgeStatus] = useState('尚未查看 RTL 通知')
   const [alertKey, setAlertKey] = useState(0)
   const [alertStatus, setAlertStatus] = useState('提示可关闭')
+  const [bannerAlertOpen, setBannerAlertOpen] = useState(true)
+  const [bannerAlertStatus, setBannerAlertStatus] =
+    useState('Banner 提示可关闭')
   const [city, setCity] = useState('')
   const [selectedCity, setSelectedCity] = useState('尚未选择城市')
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
@@ -1146,6 +1149,40 @@ export function DesignSystemPreview() {
                 <Alert title="信息" description="展示当前状态。" />
                 <Alert tone="success" title="已完成" />
                 <Alert tone="warning" title="需要检查" />
+                <div className="grid gap-2" data-alert-preview>
+                  <Alert
+                    banner
+                    title="Banner 提示"
+                    description="支持受控开合、关闭回调和自定义图标。"
+                    closable
+                    open={bannerAlertOpen}
+                    onOpenChange={(open) => {
+                      setBannerAlertOpen(open)
+                      if (!open) setBannerAlertStatus('Banner 已请求关闭')
+                    }}
+                    afterClose={() => setBannerAlertStatus('Banner 已关闭')}
+                    icon={<Icon name="check" />}
+                  />
+                  <Stack direction="row" align="center" gap="sm" wrap>
+                    <Button
+                      size="small"
+                      variant="outline"
+                      onClick={() => {
+                        setBannerAlertOpen(true)
+                        setBannerAlertStatus('Banner 已恢复')
+                      }}
+                    >
+                      恢复 Banner
+                    </Button>
+                    <span
+                      data-testid="banner-alert-state"
+                      aria-live="polite"
+                      className="text-sm text-muted-foreground"
+                    >
+                      {bannerAlertStatus}
+                    </span>
+                  </Stack>
+                </div>
                 <Alert
                   key={alertKey}
                   title="可关闭提示"
