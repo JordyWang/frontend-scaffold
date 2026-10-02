@@ -618,6 +618,67 @@ describe('Ant Design-inspired shared components', () => {
     )
   })
 
+  it('shows bounded progress only on the active processing step in small size', () => {
+    const items = [
+      { title: '上传文件' },
+      { title: '分析媒体' },
+      { title: '查看结果' },
+    ]
+    const { rerender } = render(
+      <Steps items={items} size="small" current={1} percent={68} />,
+    )
+    const steps = screen.getByRole('navigation', { name: '步骤进度' })
+    expect(steps).toHaveAttribute('data-ui-steps-size', 'small')
+    expect(screen.getByText('分析媒体').closest('li')).toHaveAttribute(
+      'data-ui-step-percent',
+      '68',
+    )
+    expect(screen.getByText('分析媒体').closest('li')).toHaveTextContent(
+      '进行中，已完成 68%',
+    )
+    expect(steps.querySelectorAll('svg circle')).toHaveLength(2)
+
+    rerender(<Steps items={items} size="small" current={2} percent={150} />)
+    expect(screen.getByText('分析媒体').closest('li')).not.toHaveAttribute(
+      'data-ui-step-percent',
+    )
+    expect(screen.getByText('查看结果').closest('li')).toHaveAttribute(
+      'data-ui-step-percent',
+      '100',
+    )
+
+    rerender(
+      <Steps
+        items={items}
+        size="small"
+        current={2}
+        status="error"
+        percent={68}
+      />,
+    )
+    expect(steps.querySelector('svg')).not.toBeInTheDocument()
+    expect(screen.getByText('查看结果').closest('li')).toHaveTextContent('错误')
+
+    rerender(<Steps items={items} current={1} percent={Number.NaN} />)
+    expect(steps.querySelector('svg')).not.toBeInTheDocument()
+  })
+
+  it('inherits small step size from ConfigProvider unless size is explicit', () => {
+    const items = [{ title: '准备' }]
+    render(
+      <ConfigProvider componentSize="small">
+        <Steps items={items} label="继承尺寸" />
+        <Steps items={items} label="显式尺寸" size="default" />
+      </ConfigProvider>,
+    )
+    expect(
+      screen.getByRole('navigation', { name: '继承尺寸' }),
+    ).toHaveAttribute('data-ui-steps-size', 'small')
+    expect(
+      screen.getByRole('navigation', { name: '显式尺寸' }),
+    ).toHaveAttribute('data-ui-steps-size', 'default')
+  })
+
   it('clamps progress values and exposes the progressbar contract', () => {
     render(<Progress percent={140} label="上传进度" />)
     expect(

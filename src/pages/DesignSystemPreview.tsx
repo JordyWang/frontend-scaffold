@@ -2082,6 +2082,21 @@ export function DesignSystemPreview() {
                     { title: '完成' },
                   ]}
                 />
+                <div className="grid gap-2">
+                  <p className="text-sm font-semibold">小尺寸步骤与当前进度</p>
+                  <Steps
+                    label="小尺寸步骤与当前进度"
+                    size="small"
+                    current={step}
+                    percent={step === 0 ? 0 : step === 1 ? 68 : 100}
+                    onChange={setStep}
+                    items={[
+                      { title: '上传文件' },
+                      { title: '分析媒体', description: '处理进度示例' },
+                      { title: '查看结果' },
+                    ]}
+                  />
+                </div>
                 <div className="space-y-2">
                   <p className="text-sm font-semibold">非受控垂直步骤</p>
                   <Steps

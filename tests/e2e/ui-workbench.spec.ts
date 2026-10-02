@@ -3653,6 +3653,46 @@ test('uncontrolled vertical steps support keyboard and touch changes', async ({
   await expect(preview.getByText('最近切换：第 2 步')).toBeVisible()
 })
 
+test('small steps show current progress with keyboard and H5 touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  await page.setViewportSize({ width: 360, height: 844 })
+  const steps = page.getByRole('navigation', {
+    name: '小尺寸步骤与当前进度',
+  })
+  const active = steps.getByRole('button', { name: /分析媒体/ })
+  const next = steps.getByRole('button', { name: '查看结果' })
+  await expect(steps).toHaveAttribute('data-ui-steps-size', 'small')
+  await expect(active.locator('..')).toHaveAttribute(
+    'data-ui-step-percent',
+    '68',
+  )
+  await expect(active.locator('..')).toContainText('进行中，已完成 68%')
+  await expect(active.locator('svg circle')).toHaveCount(2)
+  const ringBox = await active.locator('svg').boundingBox()
+  const stepsBox = await steps.boundingBox()
+  expect(ringBox!.y).toBeGreaterThanOrEqual(stepsBox!.y)
+  expect(ringBox!.x).toBeGreaterThanOrEqual(stepsBox!.x)
+  const box = await next.boundingBox()
+  expect(box!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await next.tap()
+  else {
+    await next.focus()
+    await next.press('Enter')
+  }
+  await expect(next.locator('..')).toHaveAttribute('aria-current', 'step')
+  await expect(next.locator('..')).toHaveAttribute(
+    'data-ui-step-percent',
+    '100',
+  )
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+})
+
 test('carousel exposes rotation controls and pauses on touch or focus', async ({
   page,
 }, testInfo) => {

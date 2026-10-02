@@ -1,5 +1,6 @@
 import { useId, useState, type ReactNode } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { useConfig } from './config-context'
 
 export type BreadcrumbItem = {
   key?: string
@@ -173,6 +174,8 @@ export type StepsProps = {
   defaultCurrent?: number
   status?: StepStatus
   direction?: 'horizontal' | 'vertical'
+  size?: 'default' | 'small'
+  percent?: number
   label?: string
   onChange?: (current: number) => void
   className?: string
@@ -204,19 +207,29 @@ export function Steps({
   defaultCurrent = 0,
   status = 'process',
   direction = 'horizontal',
+  size,
+  percent,
   label = '步骤进度',
   onChange,
   className,
 }: StepsProps) {
+  const { componentSize } = useConfig()
+  const resolvedSize = size ?? (componentSize === 'small' ? 'small' : 'default')
   const [internalCurrent, setInternalCurrent] = useState(defaultCurrent)
   const requestedCurrent = current ?? internalCurrent
   const safeCurrent = Number.isFinite(requestedCurrent)
     ? Math.max(0, Math.min(Math.trunc(requestedCurrent), items.length - 1))
     : 0
+  const safePercent =
+    percent !== undefined && Number.isFinite(percent)
+      ? Math.max(0, Math.min(100, percent))
+      : undefined
   const id = useId()
+  const ringLength = 2 * Math.PI * 19
   return (
     <nav
       aria-label={label}
+      data-ui-steps-size={resolvedSize}
       className={cn(
         'w-full',
         direction === 'horizontal' ? 'overflow-x-auto' : 'overflow-visible',
@@ -226,11 +239,16 @@ export function Steps({
       <ol
         className={cn(
           'm-0 flex min-w-max list-none p-0',
+          direction === 'horizontal' && safePercent !== undefined && 'p-1',
           direction === 'vertical' && 'min-w-0 flex-col',
         )}
       >
         {items.map((item, index) => {
           const itemStatus = getStepStatus(item, index, safeCurrent, status)
+          const stepPercent =
+            index === safeCurrent && itemStatus === 'process'
+              ? safePercent
+              : undefined
           const stepId = `${id}-step-${index}`
           const statusId = `${stepId}-status`
           const clickable = Boolean(onChange)
@@ -238,7 +256,8 @@ export function Steps({
             <>
               <span
                 className={cn(
-                  'inline-grid size-9 shrink-0 place-items-center rounded-full border border-border bg-card font-bold text-inherit',
+                  'relative inline-grid shrink-0 place-items-center rounded-full border border-border bg-card font-bold text-inherit',
+                  resolvedSize === 'small' ? 'size-7 text-sm' : 'size-9',
                   (itemStatus === 'process' || itemStatus === 'finish') &&
                     'border-primary bg-primary text-primary-foreground',
                   itemStatus === 'error' &&
@@ -247,8 +266,42 @@ export function Steps({
                 aria-hidden="true"
               >
                 {item.icon ?? (itemStatus === 'finish' ? '✓' : index + 1)}
+                {stepPercent !== undefined && (
+                  <svg
+                    viewBox="0 0 44 44"
+                    className="pointer-events-none absolute -inset-1 size-[calc(100%+0.5rem)] -rotate-90 overflow-visible"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      cx="22"
+                      cy="22"
+                      r="19"
+                      fill="none"
+                      strokeWidth="3"
+                      className="stroke-border"
+                    />
+                    {stepPercent > 0 && (
+                      <circle
+                        cx="22"
+                        cy="22"
+                        r="19"
+                        fill="none"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeDasharray={ringLength}
+                        strokeDashoffset={ringLength * (1 - stepPercent / 100)}
+                        className="stroke-primary"
+                      />
+                    )}
+                  </svg>
+                )}
               </span>
-              <span className="grid min-w-0 gap-0.5 pt-1 pe-4">
+              <span
+                className={cn(
+                  'grid min-w-0 gap-0.5 pe-4',
+                  resolvedSize === 'small' ? 'pt-0.5 text-sm' : 'pt-1',
+                )}
+              >
                 <span className="font-semibold">{item.title}</span>
                 {item.description && (
                   <span className="text-sm leading-[1.4] text-muted-foreground">
@@ -262,12 +315,23 @@ export function Steps({
             <li
               key={item.key ?? `${index}`}
               data-status={itemStatus}
+              data-ui-step-percent={stepPercent}
               aria-disabled={item.disabled || undefined}
               aria-current={index === safeCurrent ? 'step' : undefined}
               className={cn(
                 direction === 'vertical'
-                  ? "relative flex min-h-16 min-w-0 flex-1 text-muted-foreground after:absolute after:bottom-0 after:start-[18px] after:end-auto after:top-9 after:h-auto after:w-px after:bg-border after:content-[''] last:after:hidden"
-                  : "relative flex min-w-40 flex-1 text-muted-foreground after:absolute after:start-10 after:end-0 after:top-[18px] after:h-px after:bg-border after:content-[''] last:after:hidden max-sm:min-w-[8.5rem]",
+                  ? cn(
+                      "relative flex min-h-16 min-w-0 flex-1 text-muted-foreground after:absolute after:bottom-0 after:end-auto after:h-auto after:w-px after:bg-border after:content-[''] last:after:hidden",
+                      resolvedSize === 'small'
+                        ? 'after:start-[14px] after:top-7'
+                        : 'after:start-[18px] after:top-9',
+                    )
+                  : cn(
+                      "relative flex flex-1 text-muted-foreground after:absolute after:end-0 after:h-px after:bg-border after:content-[''] last:after:hidden",
+                      resolvedSize === 'small'
+                        ? 'min-w-36 after:start-8 after:top-[14px] max-sm:min-w-32'
+                        : 'min-w-40 after:start-10 after:top-[18px] max-sm:min-w-[8.5rem]',
+                    ),
                 'data-[status=finish]:text-foreground data-[status=finish]:after:bg-primary data-[status=process]:text-foreground data-[status=error]:text-destructive',
                 item.disabled && 'opacity-50',
               )}
@@ -277,7 +341,7 @@ export function Steps({
                   id={stepId}
                   type="button"
                   aria-describedby={statusId}
-                  className="relative z-[1] flex min-h-11 w-full touch-manipulation items-start gap-2 border-0 bg-transparent p-0 text-left text-inherit outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
+                  className="relative z-[1] flex min-h-11 w-full touch-manipulation items-start gap-2 border-0 bg-transparent p-0 text-start text-inherit outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={item.disabled}
                   onClick={() => {
                     if (current === undefined) setInternalCurrent(index)
@@ -290,13 +354,14 @@ export function Steps({
                 <div
                   id={stepId}
                   aria-describedby={statusId}
-                  className="relative z-[1] flex min-h-11 w-full items-start gap-2 text-left text-inherit"
+                  className="relative z-[1] flex min-h-11 w-full items-start gap-2 text-start text-inherit"
                 >
                   {content}
                 </div>
               )}
               <span id={statusId} className="sr-only">
                 {stepStatusLabels[itemStatus]}
+                {stepPercent !== undefined && `，已完成 ${stepPercent}%`}
               </span>
             </li>
           )

@@ -49,7 +49,7 @@
 | Masonry                         | `items`、`columns`、`gap`、`onLayoutChange`                                                                                                            | 按最短列排布不同高度内容；按容器宽度响应列数，内容或图片尺寸变化后重新测量                                                  |
 | Layout                          | `Layout`、`Layout.Header`、`Layout.Sider`、`Layout.Content`、`Layout.Footer`；Sider 支持断点与受控折叠                                                 | 页面结构使用语义元素；窄屏侧栏借助 Sheet 处理焦点、Escape 和背景滚动                                                        |
 | Space                           | `direction`、`size`、`align`、`wrap`、`split`                                                                                                          | 默认水平排列；支持数字间距和窄屏换行，分隔符为装饰性内容                                                                    |
-| Breadcrumb / Steps              | `Breadcrumb(items, separator, label, maxItems, expanded)`；`Steps(items, current, status, direction, onChange)`                                        | 使用 `nav`/`ol` 语义；长路径可折叠；步骤支持键盘激活和当前步骤标记，窄屏可横向滚动                                          |
+| Breadcrumb / Steps              | `Breadcrumb(items, separator, label, maxItems, expanded)`；`Steps(items, current, status, direction, size, percent, onChange)`                         | 使用 `nav`/`ol` 语义；长路径可折叠；步骤支持键盘激活、当前步骤进度和小尺寸，窄屏可横向滚动                                  |
 | Menu / Anchor / Affix           | `Menu(items, selectedKeys, mode, onSelect)`；`Anchor(links, activeHref)`；`Affix(offsetTop?, offsetBottom?, target?, onChange?)`                       | 菜单支持方向键；页内导航使用原生锚点；Affix 按目标滚动容器固定，保留占位空间，支持顶部/底部偏移和状态回调                   |
 | Checkbox / Radio / Switch       | 原生 input 属性、`label`、`size`、`invalid`；`RadioGroup(options, value, onValueChange, required)`                                                     | 原生键盘行为和表单提交；标签提供 44px 触控区域                                                                              |
 | Segmented                       | `options`、`value` / `defaultValue`、`onChange`、`size`、`block`、`disabled`                                                                           | 原生单选控件；显式 `value={undefined}` 可清空，非受控选项失效时回退到可用项；支持方向键和窄屏横向滚动                       |
@@ -535,7 +535,7 @@ ref 指向输入；`className` 修饰输入，`classNames` 除日期插槽外提
 
 滚动跟踪同时观察文档捕获阶段的滚动事件和目标可见性变化，保证浏览器程序滚动或嵌套滚动容器中的章节切换仍能刷新当前链接。
 
-`Steps` 可用 `current` 受控，也可用 `defaultCurrent` 初始化内部步骤；提供 `onChange` 后步骤可点击，禁用项仍以禁用按钮和 `aria-disabled` 暴露。当前步骤使用 `aria-current="step"`，各步状态通过辅助文字说明。
+`Steps` 可用 `current` 受控，也可用 `defaultCurrent` 初始化内部步骤；提供 `onChange` 后步骤可点击，禁用项仍以禁用按钮和 `aria-disabled` 暴露。`size="small"` 缩小标记和文字，也可继承 `ConfigProvider.componentSize="small"`；交互区域仍至少 44px。`percent` 在当前进行中的步骤标记外显示 0–100% 进度环，非有限值不显示；其他步骤或错误状态不显示进度环。当前步骤使用 `aria-current="step"`，各步状态和当前百分比通过辅助文字说明。
 
 `Spinner` 和 `Spin` 共用小号 16px、默认 24px、大号 36px 的 Tailwind 指示器尺寸，并继承 `ConfigProvider.componentSize`。两者以可访问状态名称报告加载，系统启用减少动态效果时停止旋转。
 
