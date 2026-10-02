@@ -108,6 +108,47 @@ describe('Form coordinator', () => {
     expect(screen.getByText('请输入名称')).toBeInTheDocument()
   })
 
+  it('scrolls the first error once and honors custom or disabled scrolling', async () => {
+    const options = { block: 'start' as const, inline: 'nearest' as const }
+    const renderForm = (
+      scrollToFirstError: boolean | ScrollIntoViewOptions,
+    ) => (
+      <>
+        <button type="button">表单外操作</button>
+        <Form scrollToFirstError={scrollToFirstError}>
+          <FormItem
+            name="name"
+            label="名称"
+            rules={[{ required: true, message: '请输入名称' }]}
+            control={<input />}
+          />
+          <button type="submit">提交</button>
+        </Form>
+      </>
+    )
+    const { rerender } = render(renderForm(options))
+    const input = screen.getByRole('textbox', { name: '名称' })
+    const scrollIntoView = vi.fn()
+    Object.defineProperty(input, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
+    })
+    fireEvent.click(screen.getByRole('button', { name: '提交' }))
+    await waitFor(() => expect(input).toHaveFocus())
+    expect(scrollIntoView).toHaveBeenCalledExactlyOnceWith(options)
+
+    const outside = screen.getByRole('button', { name: '表单外操作' })
+    outside.focus()
+    rerender(renderForm({ ...options }))
+    expect(outside).toHaveFocus()
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+
+    rerender(renderForm(false))
+    fireEvent.click(screen.getByRole('button', { name: '提交' }))
+    await waitFor(() => expect(input).toHaveFocus())
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+  })
+
   it('focuses the first option inside an invalid composite control', async () => {
     render(
       <Form>

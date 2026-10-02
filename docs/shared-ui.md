@@ -639,6 +639,8 @@ Checkbox、Switch 和 RadioGroup 自带可访问标签。需要显示校验错�
 
 `Form` 的异步规则使用同一份值快照校验；输入在校验期间变化时会重新校验最新值，旧结果不会覆盖新错误状态。`onFinishFailed(errors, values)` 只处理字段规则错误；`onFinish` 的同步异常或 Promise 拒绝交给 `onFinishError(error, values)`。如需处理保存失败，应提供 `onFinishError` 并在其中展示反馈。`resetFields()` 会恢复初始值、清除后来新增的字段和错误，并取消尚未完成的校验及提交；命令式 `validateFields()` 在此时以 `AbortError` 拒绝。传入受控 `values` 时，应在 `onValuesChange` 中同步更新它。
 
+提交校验失败时，Form 会聚焦首个错误控件，并默认以 `scrollToFirstError` 将它滚到可见区域；可传入 `ScrollIntoViewOptions` 调整位置，或设为 `false` 保留当前滚动位置。每次失败提交只定位一次，后续无关重渲染不会抢回焦点。`/__ui` 的长表单示例覆盖嵌套滚动容器。
+
 `Calendar` 的 `value` 和 `month` 可分别受控；`onChange` 返回本地日期字符串，不经过 UTC 转换。`renderDate` 只放非交互内容；有额外日期信息时同时提供 `getDateDescription`，让读屏器读到完整日期和说明。窄屏时日期表格在组件内部横向滚动，不让页面产生横向溢出。
 
 `range` 与 `previewRange` 接收 ISO 起止元组，用于范围首尾、内部与临时预览标记；范围模式下网格设置 `aria-multiselectable`，范围日期单元格暴露 `aria-selected`，读屏名称包含范围位置。`onDateHover` 和 `onDateFocus` 提供预览通知，悬停离开时回传 undefined；焦点浏览仍不触发 `onChange`。

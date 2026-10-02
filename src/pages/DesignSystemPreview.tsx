@@ -1031,6 +1031,26 @@ export function DesignSystemPreview() {
                     </Typography>
                   </Stack>
                 </Form>
+                <div
+                  role="group"
+                  aria-label="长表单错误定位"
+                  className="max-h-60 overflow-y-auto rounded-lg border border-border p-3"
+                >
+                  <Form aria-label="长表单示例">
+                    <FormItem
+                      name="project"
+                      label="顶部必填项目"
+                      rules={[{ required: true, message: '请输入项目名称' }]}
+                      control={<Input placeholder="项目名称" />}
+                    />
+                    <p className="m-0 min-h-72 text-sm text-muted-foreground">
+                      滚动到底部提交，校验失败后会显示并聚焦顶部字段。
+                    </p>
+                    <Button type="submit" variant="outline">
+                      检查长表单
+                    </Button>
+                  </Form>
+                </div>
               </Stack>
             </CardContent>
           </Card>

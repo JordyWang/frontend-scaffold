@@ -62,6 +62,7 @@ export type FormProps<TValues extends FormValues = FormValues> = Omit<
   form?: FormInstance<TValues>
   layout?: 'vertical' | 'horizontal' | 'inline'
   validateOn?: 'submit' | 'change' | 'blur'
+  scrollToFirstError?: boolean | ScrollIntoViewOptions
   onValuesChange?: (
     changedValues: Partial<TValues>,
     values: Partial<TValues>,
@@ -100,6 +101,7 @@ export function Form<TValues extends FormValues = FormValues>({
   form,
   layout = 'vertical',
   validateOn = 'submit',
+  scrollToFirstError = true,
   onValuesChange,
   onFinish,
   onFinishError,
@@ -113,6 +115,7 @@ export function Form<TValues extends FormValues = FormValues>({
     useState<Partial<TValues>>(initialValues)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [focusErrorRequest, setFocusErrorRequest] = useState(0)
+  const handledFocusErrorRequest = useRef(0)
   const valuesRef = useRef<Partial<TValues>>(controlledValues ?? internalValues)
   const formRef = useRef<HTMLFormElement>(null)
   const fieldsRef = useRef(new Map<string, FieldRegistration<TValues>>())
@@ -126,10 +129,16 @@ export function Form<TValues extends FormValues = FormValues>({
   }, [controlledValues])
 
   useEffect(() => {
-    if (focusErrorRequest === 0) return
+    if (
+      focusErrorRequest === 0 ||
+      handledFocusErrorRequest.current === focusErrorRequest
+    )
+      return
     const firstInvalid = formRef.current?.querySelector<HTMLElement>(
       '[aria-invalid="true"]',
     )
+    if (!firstInvalid) return
+    handledFocusErrorRequest.current = focusErrorRequest
     const focusTarget = firstInvalid?.matches(
       'button,input,textarea,select,[tabindex]:not([tabindex="-1"])',
     )
@@ -137,8 +146,14 @@ export function Form<TValues extends FormValues = FormValues>({
       : firstInvalid?.querySelector<HTMLElement>(
           'button,input,textarea,select,[tabindex]:not([tabindex="-1"])',
         )
+    if (scrollToFirstError && firstInvalid?.scrollIntoView)
+      firstInvalid.scrollIntoView(
+        scrollToFirstError === true
+          ? { block: 'center', inline: 'nearest' }
+          : scrollToFirstError,
+      )
     focusTarget?.focus({ preventScroll: true })
-  }, [errors, focusErrorRequest])
+  }, [errors, focusErrorRequest, scrollToFirstError])
 
   const setValues = useCallback(
     (changedValues: Partial<TValues>) => {
