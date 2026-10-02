@@ -198,7 +198,7 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
         data-status={status === 'default' ? undefined : status}
         data-disabled={disabled || undefined}
         className={cn(
-          'inline-flex w-full min-h-[max(44px,var(--ui-control-height))] items-center gap-[var(--space-xs)] rounded-[var(--ui-field-radius)] border border-input bg-card px-3 text-card-foreground focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20 aria-invalid:border-destructive data-disabled:cursor-not-allowed data-disabled:opacity-[0.55]',
+          'inline-flex w-full min-h-[max(44px,var(--ui-control-height))] min-w-0 items-center gap-[var(--space-xs)] rounded-[var(--ui-field-radius)] border border-input bg-card px-3 text-card-foreground focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20 aria-invalid:border-destructive data-disabled:cursor-not-allowed data-disabled:opacity-[0.55]',
           inputVariantStyles[variant],
           inputStatusStyles[status],
           inputNumberSizeStyles[resolvedSize],
@@ -217,7 +217,7 @@ export const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(
           }}
           type={formatter || parser ? 'text' : 'number'}
           role="spinbutton"
-          className="min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-inherit outline-none"
+          className="h-11 min-h-11 min-w-0 flex-1 appearance-[textfield] border-0 bg-transparent p-0 text-base! text-inherit outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           value={displayed}
           min={min}
           max={max}

@@ -132,7 +132,13 @@ export type { SegmentedOption, SegmentedProps } from './segmented'
 export { Rate } from './rate'
 export type { RateProps } from './rate'
 export { ColorPicker } from './color-picker'
-export type { ColorPickerProps } from './color-picker'
+export type {
+  ColorPickerProps,
+  ColorPickerHandle,
+  ColorPickerPart,
+  ColorPickerPreset,
+  ColorPickerFormat,
+} from './color-picker'
 export { Slider } from './slider'
 export type {
   SliderProps,

@@ -1011,6 +1011,7 @@ describe('Ant Design-inspired shared components', () => {
     const onChange = vi.fn()
     const { rerender } = render(
       <ColorPicker
+        mode="native"
         aria-label="主题色"
         defaultValue="#abc"
         showText
@@ -1026,7 +1027,15 @@ describe('Ant Design-inspired shared components', () => {
     expect(picker).toHaveValue('#112233')
     expect(onChange).toHaveBeenLastCalledWith('#112233')
 
-    rerender(<ColorPicker aria-label="主题色" value="#fed" showText disabled />)
+    rerender(
+      <ColorPicker
+        mode="native"
+        aria-label="主题色"
+        value="#fed"
+        showText
+        disabled
+      />,
+    )
     expect(picker).toHaveValue('#ffeedd')
     expect(picker).toBeDisabled()
     expect(screen.getByText('#ffeedd')).toBeInTheDocument()

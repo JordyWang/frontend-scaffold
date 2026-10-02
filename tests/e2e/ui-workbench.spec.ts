@@ -997,20 +997,23 @@ test('design system controls support keyboard, touch and local themes', async ({
       .getByRole('radio', { name: '1 星' }),
   ).toBeDisabled()
 
-  const colorPicker = preview.getByLabel('主题色')
-  await expect(colorPicker).toHaveValue('#1677ff')
+  const colorPicker = preview.getByRole('button', {
+    name: '主题色',
+    exact: true,
+  })
+  await expect(colorPicker).toHaveAttribute('value', '#1677ff')
   const colorPickerBox = await colorPicker.boundingBox()
   expect(colorPickerBox?.width).toBeGreaterThanOrEqual(44)
   expect(colorPickerBox?.height).toBeGreaterThanOrEqual(44)
-  await expect(preview.getByLabel('不可用颜色')).toBeDisabled()
-  await expect(preview.getByLabel('错误颜色')).toHaveAttribute(
-    'aria-invalid',
-    'true',
-  )
-  await expect(preview.getByLabel('错误颜色')).toHaveCSS(
-    'border-color',
-    'rgb(252, 165, 165)',
-  )
+  await expect(
+    preview.getByRole('button', { name: '不可用颜色', exact: true }),
+  ).toBeDisabled()
+  await expect(
+    preview.getByRole('button', { name: '错误颜色', exact: true }),
+  ).toHaveAttribute('aria-invalid', 'true')
+  await expect(
+    preview.getByRole('button', { name: '错误颜色', exact: true }),
+  ).toHaveCSS('border-color', 'rgb(252, 165, 165)')
   if (testInfo.project.name.startsWith('mobile-')) {
     expect(
       await preview

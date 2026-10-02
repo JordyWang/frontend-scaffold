@@ -22,7 +22,7 @@
 | DateTimePicker                  | `value` / `defaultValue`、`onChange`、`onCalendarChange`、`mode`、`precision`、`needConfirm`、`defaultOpenTime`、日期相关禁用回调                     | 完整本地日期时间字符串；同 `DatePicker showTime`，日期/时间共用一次确认，边界时间与跨日步长一致                             |
 | DateTimeRangePicker             | `value` / `defaultValue`、`onChange`、`onCalendarChange`、`needConfirm`、`order`、`allowEmpty`、端点控制、`defaultOpenTime`、日期/端点禁用回调        | 完整日期时间元组；同 `DateRangePicker showTime`，跨日、一次确认、锁定端点、JSON 表单提交、响应式日期/时间面板               |
 | Calendar                        | `value` / `defaultValue`、`month` / `defaultMonth`、`onChange`、`onMonthChange`、`minDate`、`maxDate`、`disabledDate`、`renderDate`                   | 选中日期使用 `YYYY-MM-DD`，月份使用 `YYYY-MM`；网格支持方向键、Home/End、PageUp/PageDown；日期按钮至少 44px                 |
-| ColorPicker                     | `value` / `defaultValue`、`onChange`、`showText`、`size`、`label`、常用 `aria-*`                                                                      | 使用原生颜色控件，统一输出六位小写 hex；保留键盘、系统颜色面板和 44px 触控区域                                              |
+| ColorPicker                     | `value` / `defaultValue`、`onChange` / `onChangeComplete`、`format`、`mode`、`disabledAlpha`、`presets`、`allowClear`、`open`、`showText`             | 项目颜色面板支持透明度、Hex/RGB/HSB、键盘滑块与触控；规范值保持字符串，原生颜色控件通过显式模式使用                         |
 | AutoComplete / Cascader         | `options`、`value` / `defaultValue`、`onChange`、`label`；Cascader 支持列式浏览、路径搜索、`changeOnSelect`、`mode`、四向弹层、外观和语义插槽         | 自动完成使用 `combobox` + `listbox`；级联选择默认列式弹层，支持内嵌面板与原生分级表单控件                                   |
 | TreeSelect                      | `treeData`、`value` / `defaultValue`、`onChange`、`multiple`、`checkable`、`checkStrictly`、`checkedStrategy`、`maxCount`、`showSearch`、`allowClear` | 项目树形选择契约；复用公共 Tree 的勾选、键盘和虚拟窗口，搜索保留完整树的选择结果，H5 提供 44px 触控区域                     |
 | Transfer                        | `items`、`targetKeys` / `defaultTargetKeys`、`selectedKeys` / `defaultSelectedKeys`、`onChange`、`showSearch`、`filterItem`                           | 双栏穿梭框；可见项批量选择、禁用项保护、方向操作、键盘和 H5 单列布局                                                        |
@@ -127,6 +127,24 @@
 `InputNumber`、`DatePicker`、`TimePicker`、`DateRangePicker`、`TimeRangePicker` 和 `AutoComplete` 同样支持 `variant` 与 `status`；错误状态通过 `aria-invalid` 传递；日期与时间的单选和范围默认使用项目面板，也提供显式原生适配。
 
 `InputNumber` 输入期间保留原始数字草稿，`onChange` 会收到当前数值或清空时的 `undefined`；失焦时再按 `min` / `max` 限制数值，并在修正后再次调用 `onChange`。受控用法可传入 `value={undefined}` 表示空值，并在 `onChange` 中同步更新。`precision` 在提交和步进时限制小数位；`formatter(value, { userTyping, input })` 与 `parser(text)` 负责展示和规范值转换；`controls` 默认横向显示两个至少 44×44px 的步进按钮，也可传入上下图标，`keyboard` 控制上下方向键，`changeOnWheel` 显式开启聚焦时滚轮步进，`onStep(value, { offset, type })` 报告步进结果。原生 form reset 恢复 `defaultValue`，无效草稿不会绕过边界约束。
+
+## ColorPicker
+
+`ColorPicker` 默认使用项目 `popup` 面板；`mode="panel"` 常驻展示，`mode="native"` 使用系统 `<input type="color">`。值 API 保持独立字符串：不透明颜色输出六位小写 Hex，带透明度输出八位 Hex，清空输出 `''`。Hex 支持 3/4/6/8 位；RGB/RGBA 支持逗号及空格/百分比写法，HSB/HSBA 支持数值及百分比，也接受 `transparent`。不支持命名色、CSS 变量、HSL 或任意 CSS 表达式；显式 `value={undefined}` 为受控黑色，无效外部颜色回退黑色，归一化不触发回调。编辑草稿无效时显示关联错误并保留已提交颜色，不发布黑色。
+
+`format` / `defaultFormat` 使用 `hex`、`rgb`、`hsb`；`onFormatChange` 只报告编码切换，规范输出仍为 Hex。面板提供颜色区域、色相/饱和度/亮度/透明度 Slider、颜色文本，以及 RGB/HSB 三通道 InputNumber；HSB 通道显示最多两位小数，颜色与透明度输出按字节量化。黑色或灰色时保留色相等暂未体现的编辑坐标，后续调整亮度/饱和度可继续使用。`disabledAlpha` 强制不透明并隐藏透明度滑块，`disabledFormat` 锁定编码；两个限制同样作用于文本、通道与预设输入。颜色区域使用真实指针坐标与捕获，键盘及辅助技术使用等价的命名滑块，区域本身不参与 Tab。
+
+`onChange` 报告实时规范值；松开指针、结束滑块键盘会话、文本 Enter/失焦、通道提交或选预设后，`onChangeComplete` 对有变更的会话报告一次。取消保留已发布的实时值并停止完成回调；外部值或禁用/模式/透明度约束变化会终止失效会话。可以仅在完成回调更新受控值，触发器仍以外部值显示。文本 Escape 恢复未提交草稿，输入法组合和 229 键码不会误提交。`allowClear` 提供明确清空按钮和触发器 Delete/Backspace；清空依次报告空值的 change、complete 与 `onClear`，已空或不可用时不再次清空。
+
+`presets` 使用项目 `ColorPickerPreset[]`：每组 `{ key, label, colors: { value, label? }[] }`，无效颜色跳过；色块提供名称、选中语义、棋盘格透明背景与至少 44×44px 目标。`showText` 为布尔值或 `(value, format) => ReactNode`，`panelRender(panel)` 可包装项目面板。`size` 继承全局配置，小号仍保持 44px 触控区域；`variant` / `status` 沿用字段约定。`classNames` 提供 root、trigger、swatch、description、popup、panel、area、sliders、format、presets、footer、error 部位；外观使用 Tailwind 语义 Token，动态色值仅作为内容呈现。
+
+`open` / `defaultOpen` / `onOpenChange` 控制 popup；四种逻辑位置为 bottomStart、bottomEnd、topStart、topEnd。面板复用项目 Portal、视口定位与局部滚动，逃离裁切容器并继承主题及 RTL。触发器 click/ArrowDown 打开并聚焦第一个可用控件；Escape 关闭并恢复触发器，正反向 Tab 续接字段顺序，外部点击关闭。动态关闭面板会恢复其持有的焦点，禁用时聚焦命名根容器，已经移到外部的焦点保持。`autoFocus` 在 popup/native 聚焦触发控件，在 panel 聚焦第一个可用控件。只读 popup 保留可聚焦触发器与 `aria-disabled`，不能打开或改值。
+
+**ref 迁移：** ref 从原生颜色 input 改为项目 `ColorPickerHandle`，统一提供 `focus(options?)` / `blur()`；调用方不再通过 ref 读取 `.value` 或访问原生 input，使用受控值或 `onChange`。panel 的 focus 指向首个可用控件，native 指向系统颜色输入。
+
+`name` / `form` 通过独立不可见字段提交规范值；编辑草稿不参与 FormData 或原生 required 校验。空必填颜色暴露可见错误并聚焦入口。非受控原生重置恢复 `defaultValue`，支持外部 form 关联并尊重取消的 reset，不触发值回调；项目 FormItem 使用 `onChange` 与空字符串。native 只输出不透明六位 Hex，不支持清空、项目弹层或透明度，系统颜色面板行为由浏览器决定。`/__ui` 展示受控实时/完成、只读/错误、常驻、预设、裁切弹层、项目/原生表单及 240px RTL 深色。
+
+渐变值和渐变色标编辑尚未实现，不能将当前单色面板视为 Ant Design ColorPicker 全功能完成。
 
 ## Slider
 

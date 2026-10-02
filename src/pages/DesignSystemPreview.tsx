@@ -23,6 +23,7 @@ import { DateInputPreview } from './DateInputPreview'
 import { MillisecondTimePreview } from './MillisecondTimePreview'
 import { PickerFormatPreview } from './PickerFormatPreview'
 import { SliderPreview } from './SliderPreview'
+import { ColorPickerPreview } from './ColorPickerPreview'
 import {
   Alert,
   Affix,
@@ -719,7 +720,7 @@ export function DesignSystemPreview() {
                 </div>
                 <FormField
                   label="主题色"
-                  description="原生颜色选择器；值统一为六位小写 hex。"
+                  description="项目颜色面板；不透明值输出六位 Hex，透明值输出八位 Hex。"
                   control={
                     <ColorPicker
                       value={colorValue}
@@ -2139,6 +2140,7 @@ export function DesignSystemPreview() {
           <MillisecondTimePreview />
           <PickerFormatPreview />
           <SliderPreview />
+          <ColorPickerPreview />
           <Card className="col-span-full">
             <CardContent>
               <Stack gap="md">
