@@ -683,7 +683,7 @@ export function DevWorkbenchPage() {
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
+            <div className="min-w-0 space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-semibold">页码模式</p>
                 <Button
@@ -707,6 +707,9 @@ export function DevWorkbenchPage() {
                 showQuickJumper
                 showTotal
               />
+              <p className="text-xs text-muted-foreground">
+                页码之间的省略号可跨 5 页；可使用键盘或触控操作。
+              </p>
             </div>
             <div className="space-y-2">
               <p className="font-semibold">加载更多模式</p>

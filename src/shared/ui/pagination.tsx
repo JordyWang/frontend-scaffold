@@ -1,21 +1,35 @@
-import { useId, useState } from 'react'
+import { useId, useLayoutEffect, useRef, useState } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { Button } from './button'
 import { Input } from './input'
 import { Select } from './select'
 
-function pageItems(current: number, pages: number): Array<number | 'gap'> {
+type PageJump = { direction: 'previous' | 'next'; target: number }
+
+function pageItems(
+  current: number,
+  pages: number,
+  jumpSize: number,
+): Array<number | PageJump> {
   const visible = [1, current - 1, current, current + 1, pages]
     .filter((page) => page >= 1 && page <= pages)
     .filter((page, index, all) => all.indexOf(page) === index)
     .sort((left, right) => left - right)
-  const items: Array<number | 'gap'> = []
+  const items: Array<number | PageJump> = []
   for (const page of visible) {
     const previous = items.at(-1)
     if (typeof previous === 'number' && page - previous === 2)
       items.push(previous + 1)
-    else if (typeof previous === 'number' && page - previous > 2)
-      items.push('gap')
+    else if (typeof previous === 'number' && page - previous > 2) {
+      const direction = page <= current ? 'previous' : 'next'
+      items.push({
+        direction,
+        target:
+          direction === 'previous'
+            ? Math.max(1, current - jumpSize)
+            : Math.min(pages, current + jumpSize),
+      })
+    }
     items.push(page)
   }
   return items
@@ -29,6 +43,8 @@ export type PaginationProps = {
   onPageSizeChange?: (pageSize: number, page: number) => void
   pageSizeOptions?: number[]
   showQuickJumper?: boolean
+  showJumpers?: boolean
+  jumpSize?: number
   showTotal?: boolean
   mode?: 'pages' | 'load-more'
   loading?: boolean
@@ -44,6 +60,8 @@ export function Pagination({
   onPageSizeChange,
   pageSizeOptions = [10, 20, 50, 100],
   showQuickJumper = false,
+  showJumpers = true,
+  jumpSize = 5,
   showTotal = false,
   mode = 'pages',
   loading,
@@ -51,6 +69,8 @@ export function Pagination({
   className,
 }: PaginationProps) {
   const jumpId = useId()
+  const currentButtonRef = useRef<HTMLButtonElement | null>(null)
+  const pendingJumpRef = useRef<number | null>(null)
   const [jumpValue, setJumpValue] = useState('')
   const [jumpError, setJumpError] = useState(false)
   const inactive = disabled || Boolean(loading)
@@ -62,6 +82,16 @@ export function Pagination({
   const current = Number.isFinite(page)
     ? Math.min(Math.max(Math.floor(page), 1), pages)
     : 1
+  const safeJumpSize = Number.isFinite(jumpSize)
+    ? Math.max(1, Math.floor(jumpSize))
+    : 5
+
+  useLayoutEffect(() => {
+    if (pendingJumpRef.current !== current) return
+    pendingJumpRef.current = null
+    if (document.activeElement === document.body)
+      currentButtonRef.current?.focus()
+  }, [current])
   const sizeOptions = [safePageSize, ...pageSizeOptions]
     .filter((size) => Number.isFinite(size) && size >= 1)
     .map((size) => Math.floor(size))
@@ -76,8 +106,17 @@ export function Pagination({
 
   function changePage(next: number) {
     if (inactive) return
+    pendingJumpRef.current = null
     setJumpValue('')
     setJumpError(false)
+    if (next !== current) onPageChange(next)
+  }
+
+  function jumpPages(next: number, focused: boolean) {
+    if (inactive) return
+    setJumpValue('')
+    setJumpError(false)
+    pendingJumpRef.current = focused ? next : null
     if (next !== current) onPageChange(next)
   }
 
@@ -133,18 +172,38 @@ export function Pagination({
           上一页
         </Button>
         <div className="flex min-w-0 flex-1 touch-pan-x items-center justify-center gap-2 overflow-x-auto py-1">
-          {pageItems(current, pages).map((item, index) =>
-            item === 'gap' ? (
-              <span
-                key={`gap-${index}`}
-                aria-hidden="true"
-                className="inline-flex min-w-7 shrink-0 justify-center text-muted-foreground"
-              >
-                …
-              </span>
+          {pageItems(current, pages, safeJumpSize).map((item, index) =>
+            typeof item === 'object' ? (
+              showJumpers ? (
+                <Button
+                  key={`jump-${item.direction}`}
+                  variant="outline"
+                  size="small"
+                  className="shrink-0 px-2"
+                  aria-label={`${item.direction === 'previous' ? '向前' : '向后'}跳至第 ${item.target} 页`}
+                  disabled={inactive}
+                  onClick={(event) =>
+                    jumpPages(
+                      item.target,
+                      document.activeElement === event.currentTarget,
+                    )
+                  }
+                >
+                  …
+                </Button>
+              ) : (
+                <span
+                  key={`gap-${index}`}
+                  aria-hidden="true"
+                  className="inline-flex min-w-7 shrink-0 justify-center text-muted-foreground"
+                >
+                  …
+                </span>
+              )
             ) : (
               <Button
                 key={item}
+                ref={item === current ? currentButtonRef : undefined}
                 variant={item === current ? 'primary' : 'outline'}
                 size="small"
                 className="shrink-0 px-2"

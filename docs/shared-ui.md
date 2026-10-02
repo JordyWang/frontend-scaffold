@@ -459,7 +459,7 @@ ref 指向输入；`className` 修饰输入，`classNames` 除日期插槽外提
 
 `Select` 弹层宽度限制在可用视口内，长选项和连续字符可换行；触发器中的已选长标签截断显示，完整文字保留在 DOM 中。`/__ui` 的 240px RTL 搜索预览覆盖这些状态。
 
-`Pagination` 可选 `onPageSizeChange(size, page)`、`pageSizeOptions`、`showQuickJumper` 和 `showTotal`。切换每页条数时，`page` 指向原先第一条记录所在的新页，由调用方同步更新 `pageSize` 和 `page`；快速跳页只接受当前范围内的整数，错误会在输入框旁显示。加载时这些控件不可操作，`load-more` 模式维持单按钮入口。
+`Pagination` 可选 `onPageSizeChange(size, page)`、`pageSizeOptions`、`showQuickJumper` 和 `showTotal`。切换每页条数时，`page` 指向原先第一条记录所在的新页，由调用方同步更新 `pageSize` 和 `page`；快速跳页只接受当前范围内的整数，错误会在输入框旁显示。长页码列表的省略号默认是可操作跳页按钮，每次跳 5 页；`jumpSize` 调整跨度，`showJumpers={false}` 保留纯装饰省略号。按钮有目标页码名称，原生键盘操作和至少 44px 的触控区域；跨页后省略号消失时，键盘焦点回到当前页。加载时这些控件不可操作，`load-more` 模式维持单按钮入口。
 
 `ErrorState.onRetry` 接受同步或异步回调；等待期间重试按钮进入忙碌并禁用状态，失败后保留错误提示和再次重试入口。List、Listy、Table 共用这一约定。
 

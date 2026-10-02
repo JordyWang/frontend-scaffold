@@ -1,8 +1,86 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { Pagination } from '@/shared/ui'
 
 describe('Pagination advanced controls', () => {
+  it('jumps across large page ranges and restores focus when a jumper disappears', () => {
+    const changes = vi.fn()
+    function Preview() {
+      const [page, setPage] = useState(1)
+      return (
+        <Pagination
+          page={page}
+          pageSize={10}
+          total={140}
+          onPageChange={(next) => {
+            changes(next)
+            setPage(next)
+          }}
+        />
+      )
+    }
+    render(<Preview />)
+
+    const nextJump = () =>
+      screen.getByRole('button', { name: /向后跳至第 \d+ 页/ })
+    expect(nextJump()).toHaveAccessibleName('向后跳至第 6 页')
+    nextJump().focus()
+    fireEvent.click(nextJump())
+    expect(changes).toHaveBeenLastCalledWith(6)
+    expect(
+      screen.getByRole('button', { name: '向前跳至第 1 页' }),
+    ).toBeVisible()
+    expect(nextJump()).toHaveAccessibleName('向后跳至第 11 页')
+
+    fireEvent.click(nextJump())
+    expect(changes).toHaveBeenLastCalledWith(11)
+    expect(screen.queryByRole('button', { name: /向后跳至第/ })).toBeNull()
+
+    const previousJump = () =>
+      screen.getByRole('button', { name: /向前跳至第 \d+ 页/ })
+    previousJump().focus()
+    fireEvent.click(previousJump())
+    expect(changes).toHaveBeenLastCalledWith(6)
+    fireEvent.click(previousJump())
+    expect(changes).toHaveBeenLastCalledWith(1)
+    expect(screen.queryByRole('button', { name: /向前跳至第/ })).toBeNull()
+    expect(screen.getByRole('button', { name: '前往第 1 页' })).toHaveFocus()
+  })
+
+  it('can keep page gaps decorative and disables jumpers with pagination', () => {
+    const onPageChange = vi.fn()
+    const { rerender } = render(
+      <Pagination
+        page={7}
+        pageSize={10}
+        total={140}
+        onPageChange={onPageChange}
+        showJumpers={false}
+      />,
+    )
+    expect(screen.queryByRole('button', { name: /跳至第/ })).toBeNull()
+
+    rerender(
+      <Pagination
+        page={7}
+        pageSize={10}
+        total={140}
+        onPageChange={onPageChange}
+        jumpSize={3}
+        disabled
+      />,
+    )
+    expect(
+      screen.getByRole('button', { name: '向前跳至第 4 页' }),
+    ).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: '向后跳至第 10 页' }),
+    ).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: '向后跳至第 10 页' }))
+    expect(onPageChange).not.toHaveBeenCalled()
+  })
+
   it('shows the visible item range and validates quick jumps', () => {
     const onPageChange = vi.fn()
     render(
