@@ -30,6 +30,7 @@ import { TabsPreview } from './TabsPreview'
 import { TagPreview } from './TagPreview'
 import { BadgePreview } from './BadgePreview'
 import { TooltipPreview } from './TooltipPreview'
+import { ResultPreview } from './ResultPreview'
 import {
   Alert,
   Affix,
@@ -2318,6 +2319,7 @@ export function DesignSystemPreview() {
                     </div>
                   </Result>
                 </div>
+                <ResultPreview />
                 <Button
                   variant="outline"
                   onClick={() =>

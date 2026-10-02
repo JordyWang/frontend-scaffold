@@ -78,6 +78,47 @@ test('Tag selection and dismissal work with keyboard and H5 touch', async ({
   ).toBe(true)
 })
 
+test('Result page states stay readable and actionable on desktop and H5', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  await page.setViewportSize({ width: 360, height: 844 })
+  const group = page.getByRole('group', { name: '结果状态预览' })
+  for (const [code, title] of [
+    ['404', '页面不存在'],
+    ['403', '无权访问'],
+    ['500', '服务暂时不可用'],
+  ] as const) {
+    const result = group.getByRole('region', { name: title })
+    await expect(result).toHaveAttribute('data-ui-result-status', code)
+    await expect(result).toHaveAttribute('data-ui-result-size', 'small')
+    await expect(
+      result.getByRole('heading', { level: 4, name: title }),
+    ).toBeVisible()
+    await expect(result.locator('[aria-hidden="true"]')).toHaveText(code)
+    expect(
+      await result.evaluate(
+        (element) => element.scrollWidth <= element.clientWidth,
+      ),
+    ).toBe(true)
+  }
+  const retry = group.getByRole('button', { name: '重试服务' })
+  const box = await retry.boundingBox()
+  expect(box!.width).toBeGreaterThanOrEqual(44)
+  expect(box!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await retry.tap()
+  else {
+    await retry.focus()
+    await retry.press('Enter')
+  }
+  await expect(group.getByRole('status')).toHaveText('已请求重试')
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+})
+
 test('Badge exposes zero, overflow, status and RTL ribbon states', async ({
   page,
 }, testInfo) => {

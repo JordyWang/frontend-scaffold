@@ -296,11 +296,13 @@ export type ResultStatus =
 
 export type ResultProps = {
   status?: ResultStatus
-  title: ReactNode
+  title?: ReactNode
   subTitle?: ReactNode
   extra?: ReactNode
   children?: ReactNode
   icon?: ReactNode
+  size?: 'default' | 'small'
+  headingLevel?: 1 | 2 | 3 | 4 | 5 | 6
   className?: string
 }
 
@@ -314,6 +316,22 @@ const resultIcon: Record<ResultStatus, 'check' | 'warning' | 'info'> = {
   '500': 'warning',
 }
 
+const resultTitle: Record<ResultStatus, string> = {
+  success: '操作成功',
+  error: '操作失败',
+  info: '提示',
+  warning: '请注意',
+  '404': '页面不存在',
+  '403': '无权访问',
+  '500': '服务暂时不可用',
+}
+
+const resultCodeDescription: Partial<Record<ResultStatus, string>> = {
+  '404': '请检查页面地址，或返回工作台。',
+  '403': '当前账号没有访问该页面的权限。',
+  '500': '服务暂时无法处理请求，请稍后重试。',
+}
+
 /** A centered outcome state for completed, empty and failed flows. */
 export function Result({
   status = 'info',
@@ -322,9 +340,15 @@ export function Result({
   extra,
   children,
   icon,
+  size = 'default',
+  headingLevel = 2,
   className,
 }: ResultProps) {
   const titleId = useId()
+  const Heading = `h${headingLevel}` as const
+  const resolvedTitle = title ?? resultTitle[status]
+  const resolvedSubTitle = subTitle ?? resultCodeDescription[status]
+  const statusCode = status === '403' || status === '404' || status === '500'
   const iconClassName =
     status === 'success'
       ? 'bg-[var(--ui-map-success-bg)] text-[var(--ui-color-success)]'
@@ -336,33 +360,57 @@ export function Result({
   return (
     <section
       aria-labelledby={titleId}
+      data-ui-result-status={status}
+      data-ui-result-size={size}
       className={cn(
-        'grid justify-items-center gap-2 px-6 py-8 text-center',
+        'grid min-w-0 max-w-full justify-items-center gap-2 px-6 py-8 text-center [overflow-wrap:anywhere]',
+        size === 'small' && 'px-4 py-4',
         className,
       )}
     >
       <div
         className={cn(
           'grid size-[4.5rem] place-items-center rounded-full',
+          size === 'small' && 'size-12',
           iconClassName,
         )}
         aria-hidden="true"
       >
-        {icon ?? <Icon name={resultIcon[status]} size={48} />}
+        {icon ??
+          (statusCode ? (
+            <span
+              className={cn(
+                'text-xl font-bold',
+                size !== 'small' && 'text-2xl',
+              )}
+            >
+              {status}
+            </span>
+          ) : (
+            <Icon name={resultIcon[status]} size={size === 'small' ? 32 : 48} />
+          ))}
       </div>
-      <h2 id={titleId} className="m-0 text-xl leading-tight sm:text-2xl">
-        {title}
-      </h2>
-      {subTitle && (
+      <Heading
+        id={titleId}
+        className={cn(
+          'm-0 text-xl leading-tight sm:text-2xl',
+          size === 'small' && 'text-lg sm:text-xl',
+        )}
+      >
+        {resolvedTitle}
+      </Heading>
+      {resolvedSubTitle && (
         <p className="m-0 max-w-[40rem] leading-relaxed text-muted-foreground">
-          {subTitle}
+          {resolvedSubTitle}
         </p>
       )}
       {extra && (
-        <div className="mt-2 flex flex-wrap justify-center gap-2">{extra}</div>
+        <div className="mt-2 flex max-w-full flex-wrap justify-center gap-2">
+          {extra}
+        </div>
       )}
       {children && (
-        <div className="mt-4 w-full max-w-2xl rounded-lg bg-secondary/50 p-4 text-start sm:p-6">
+        <div className="mt-4 min-w-0 w-full max-w-2xl rounded-lg bg-secondary/50 p-4 text-start sm:p-6">
           {children}
         </div>
       )}

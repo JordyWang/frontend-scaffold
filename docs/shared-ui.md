@@ -63,7 +63,7 @@
 | BorderBeam                      | `children`、`color`、`duration`、`borderWidth`、`anchor`、`reverse`、原生 div 属性                                                                     | 装饰性动态边框；内容保持原有语义、键盘和触控行为，系统减少动态效果时停止动画                                                |
 | QRCode                          | `value`、`size`、`color`、`bgColor`、`bordered`、`errorLevel`、`icon`、`iconSize`、`status`、`statusRender`、`onRefresh`、`type`                       | 支持 SVG / Canvas、真实 QR 模块、加载与失效状态；状态操作和触控目标至少 44px                                                |
 | Tour                            | `steps`、`open`、`current`、`onChange`、`onClose`、`onFinish`、`mask`、`keyboard`、`placement`、`gap`、`scrollIntoViewOptions`                         | 目标高亮、遮罩、左右方向键和 Escape；卡片操作与触控目标至少 44px                                                            |
-| Progress / Result               | `Progress(percent, status, type, showInfo, steps, gapDegree, gapPlacement)`；`Result(status, title, subTitle, extra, children)`                        | 进度值限制在 0–100 并暴露单一 progressbar；支持线性、圆环、仪表盘及分段；结果状态提供明确文本、操作和错误详情               |
+| Progress / Result               | `Progress(percent, status, type, showInfo, steps, gapDegree, gapPlacement)`；`Result(status, title?, subTitle?, size, headingLevel, extra, children)`  | 进度值限制在 0–100 并暴露单一 progressbar；结果状态提供默认文案、明确状态码、操作和错误详情                                 |
 | Toast / Message / Notification  | `toast(options)`；`message.open/success/warning/error(content)`；`notification.open/success/warning/error({ message, description?, duration? })`       | 共用 Provider 和安全区配置；页面不直接依赖 Sonner                                                                           |
 | Collapse                        | `items`、`activeKey` / `defaultActiveKey`、`accordion`、`size`、`collapsible`、`destroyOnHidden`、`classNames`                                         | 标题/图标开合、独立操作区、内容保留、方向键导航、动态焦点恢复及 RTL                                                         |
 | Avatar                          | `src`、`srcSet`、`alt`、`label`、`size`、`shape`、`icon`、`gap`、`onError`                                                                             | 头像保留单一可访问名称，失败后回退到图标或文字；长文字自动缩放，尺寸可响应断点                                              |
@@ -90,7 +90,7 @@
 
 `Progress` 的 `type` 可选 `line`、`circle`、`dashboard`。`steps` 可传数字或 `{ count, gap? }`；`gap` 单位为 px，线性默认间距为 4px，圆环及仪表盘默认间距为 2px，最多渲染 100 段。圆环与仪表盘的 `strokeWidth` 沿用项目的像素单位。仪表盘 `gapDegree` 默认 75°、限制在 0–295°，`gapPlacement` 默认 `bottom`，`start` / `end` 跟随 ConfigProvider 的 LTR/RTL 方向。所有形态只暴露一个 `progressbar`，百分比文本由 `format` 控制。
 
-`Result.children` 用于展示复杂错误详情或后续说明，位于 `extra` 操作区之后，并使用主题背景承载内容。结果区由标题提供可访问名称，默认及自定义图标均作为装饰内容隐藏，避免重复播报。
+`Result` 的 `title` 可省略，按 `status` 提供中文默认标题；403、404、500 还提供默认说明与可见状态码。调用方传入的 `title`、`subTitle` 和 `icon` 优先。`size="small"` 用于卡片内紧凑结果，`headingLevel` 默认为 2，可设 1–6 以匹配页面标题层级。`children` 用于展示复杂错误详情或后续说明，位于 `extra` 操作区之后，并使用主题背景承载内容。结果区由标题提供可访问名称，状态码和自定义图标作为装饰内容隐藏，避免重复播报；长内容在窄屏换行。
 
 `Skeleton` 默认保留单块占位；`shape="content"` 明确启用组合骨架屏。`avatar` 可传布尔值或 `{ size, shape }`，`title` 可传布尔值或 `{ width }`，`paragraph` 可传布尔值或 `{ rows, width }`；段落宽度可为单值或按行数组。`loading={false}` 直接渲染 `children`，加载时真实内容不进入焦点顺序。`active` 默认开启脉冲动画，可关闭，系统减少动态效果时停止动画。
 
