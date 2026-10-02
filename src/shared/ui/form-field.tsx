@@ -46,7 +46,7 @@ export function FormField({
   return (
     <div
       className={cn(
-        'grid gap-1',
+        'grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1',
         layout === 'horizontal' &&
           'sm:grid-cols-[minmax(7rem,0.35fr)_minmax(0,1fr)] sm:items-start',
         layout === 'inline' && 'min-w-[min(100%,12rem)] flex-[1_1_12rem]',

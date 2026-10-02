@@ -359,7 +359,7 @@ export function DesignSystemPreview() {
         className="rounded-xl border border-border p-4 sm:p-6"
       >
         <div ref={setRtlPopupContainer} data-ui-rtl-popup-root="" />
-        <Grid minItemWidth="17rem" gap="lg">
+        <Grid minItemWidth="25rem" gap="lg" className="mx-auto max-w-[70rem]">
           <Card
             id="ds-base"
             className="scroll-mt-6"
@@ -433,7 +433,7 @@ export function DesignSystemPreview() {
               </p>
             </CardContent>
           </Card>
-          <Card id="ds-layout" className="scroll-mt-6">
+          <Card id="ds-layout" className="col-span-full scroll-mt-6">
             <CardContent>
               <Stack gap="md">
                 <Typography as="h3" variant="title">
@@ -501,7 +501,7 @@ export function DesignSystemPreview() {
               </Stack>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="col-span-full">
             <CardContent>
               <Stack gap="md">
                 <Typography as="h3" variant="title">
@@ -559,7 +559,7 @@ export function DesignSystemPreview() {
               </Stack>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="col-span-full">
             <CardContent>
               <Stack gap="md">
                 <Typography as="h3" variant="title">
@@ -611,7 +611,7 @@ export function DesignSystemPreview() {
               </Stack>
             </CardContent>
           </Card>
-          <Card id="ds-input" className="scroll-mt-6">
+          <Card id="ds-input" className="col-span-full scroll-mt-6">
             <CardContent>
               <Stack gap="sm">
                 <Typography as="h3" variant="title">
@@ -1010,7 +1010,7 @@ export function DesignSystemPreview() {
               </Stack>
             </CardContent>
           </Card>
-          <Card id="ds-calendar" className="scroll-mt-6">
+          <Card id="ds-calendar" className="col-span-full scroll-mt-6">
             <CardContent>
               <Stack gap="md">
                 <Typography as="h3" variant="title">
@@ -1039,7 +1039,7 @@ export function DesignSystemPreview() {
               </Stack>
             </CardContent>
           </Card>
-          <Card id="ds-display" className="scroll-mt-6">
+          <Card id="ds-display" className="col-span-full scroll-mt-6">
             <CardContent>
               <Stack gap="md">
                 <Typography as="h3" variant="title">
@@ -1161,7 +1161,7 @@ export function DesignSystemPreview() {
               </Stack>
             </CardContent>
           </Card>
-          <Card id="ds-feedback" className="scroll-mt-6">
+          <Card id="ds-feedback" className="col-span-full scroll-mt-6">
             <CardContent>
               <Stack gap="sm">
                 <Typography as="h3" variant="title">
