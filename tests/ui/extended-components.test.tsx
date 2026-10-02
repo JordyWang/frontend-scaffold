@@ -1562,6 +1562,166 @@ describe('Ant Design-inspired shared components', () => {
     expect(screen.getByRole('treeitem', { name: '叶子' })).toBeInTheDocument()
   })
 
+  it('keeps the Affix placeholder while toggling window fixation', async () => {
+    const onChange = vi.fn()
+    render(
+      <Affix offsetTop={16} onChange={onChange} className="rounded-lg">
+        <button type="button">固定操作</button>
+      </Affix>,
+    )
+    const holder = screen.getByRole('button', { name: '固定操作' })
+      .parentElement?.parentElement as HTMLDivElement
+    const content = holder.querySelector(
+      '[data-affix-content]',
+    ) as HTMLDivElement
+    let holderTop = 120
+    vi.spyOn(holder, 'getBoundingClientRect').mockImplementation(
+      () =>
+        ({
+          top: holderTop,
+          bottom: holderTop + 48,
+          left: 24,
+          right: 224,
+          width: 200,
+          height: 48,
+        }) as DOMRect,
+    )
+    vi.spyOn(content, 'getBoundingClientRect').mockImplementation(
+      () =>
+        ({
+          top: holderTop,
+          bottom: holderTop + 48,
+          left: 24,
+          right: 224,
+          width: 200,
+          height: 48,
+        }) as DOMRect,
+    )
+
+    holderTop = -20
+    fireEvent.scroll(window)
+    await waitFor(() => expect(holder).toHaveAttribute('data-affixed', 'true'))
+    expect(content).toHaveStyle({
+      position: 'fixed',
+      top: '16px',
+      left: '24px',
+      width: '200px',
+    })
+    expect(holder.style.height).toBe('48px')
+    expect(onChange).toHaveBeenCalledWith(true)
+
+    holderTop = -80
+    fireEvent.scroll(window)
+    await waitFor(() => expect(holder).toHaveAttribute('data-affixed', 'false'))
+    await waitFor(() => expect(content).not.toHaveStyle('position: fixed'))
+    expect(onChange).toHaveBeenLastCalledWith(false)
+  })
+
+  it('uses a scroll container viewport and supports bottom offsets', async () => {
+    const onChange = vi.fn()
+    const scrollContainer = document.createElement('div')
+    document.body.append(scrollContainer)
+    vi.spyOn(scrollContainer, 'getBoundingClientRect').mockImplementation(
+      () =>
+        ({
+          top: 80,
+          bottom: 380,
+          left: 40,
+          right: 440,
+          width: 400,
+          height: 300,
+        }) as DOMRect,
+    )
+    let holderTop = 160
+    render(
+      <Affix target={() => scrollContainer} offsetTop={12} onChange={onChange}>
+        <div>容器内固定内容</div>
+      </Affix>,
+    )
+    const holder = screen.getByText('容器内固定内容').parentElement
+      ?.parentElement as HTMLDivElement
+    const content = holder.querySelector(
+      '[data-affix-content]',
+    ) as HTMLDivElement
+    vi.spyOn(holder, 'getBoundingClientRect').mockImplementation(
+      () =>
+        ({
+          top: holderTop,
+          bottom: holderTop + 40,
+          left: 72,
+          right: 272,
+          width: 200,
+          height: 40,
+        }) as DOMRect,
+    )
+    vi.spyOn(content, 'getBoundingClientRect').mockImplementation(
+      () =>
+        ({
+          top: holderTop,
+          bottom: holderTop + 40,
+          left: 72,
+          right: 272,
+          width: 200,
+          height: 40,
+        }) as DOMRect,
+    )
+
+    holderTop = 70
+    fireEvent.scroll(scrollContainer)
+    await waitFor(() => expect(holder).toHaveAttribute('data-affixed', 'true'))
+    expect(content).toHaveStyle({
+      position: 'fixed',
+      top: '92px',
+      left: '72px',
+    })
+    expect(onChange).toHaveBeenCalledWith(true)
+
+    const bottomOnChange = vi.fn()
+    holderTop = 160
+    const { unmount } = render(
+      <Affix offsetBottom={20} onChange={bottomOnChange} className="border">
+        <div>底部固定内容</div>
+      </Affix>,
+    )
+    const bottomHolder = screen.getByText('底部固定内容').parentElement
+      ?.parentElement as HTMLDivElement
+    const bottomContent = bottomHolder.querySelector(
+      '[data-affix-content]',
+    ) as HTMLDivElement
+    const bottomTop = window.innerHeight - 30
+    vi.spyOn(bottomHolder, 'getBoundingClientRect').mockImplementation(
+      () =>
+        ({
+          top: bottomTop,
+          bottom: bottomTop + 40,
+          left: 10,
+          right: 210,
+          width: 200,
+          height: 40,
+        }) as DOMRect,
+    )
+    vi.spyOn(bottomContent, 'getBoundingClientRect').mockImplementation(
+      () =>
+        ({
+          top: bottomTop,
+          bottom: bottomTop + 40,
+          left: 10,
+          right: 210,
+          width: 200,
+          height: 40,
+        }) as DOMRect,
+    )
+    fireEvent.scroll(window)
+    await waitFor(() =>
+      expect(bottomHolder).toHaveAttribute('data-affixed', 'true'),
+    )
+    expect(bottomContent).toHaveStyle({
+      position: 'fixed',
+      top: `${window.innerHeight - 20 - 40}px`,
+    })
+    unmount()
+  })
+
   it('tracks the current anchor section while scrolling', () => {
     const onChange = vi.fn()
     const first = document.createElement('section')

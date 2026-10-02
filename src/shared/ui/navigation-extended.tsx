@@ -6,7 +6,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type KeyboardEvent,
   type ReactNode,
 } from 'react'
@@ -546,17 +545,173 @@ export function Anchor({
 
 export type AffixProps = {
   offsetTop?: number
+  offsetBottom?: number
+  target?: () => HTMLElement | Window | null
+  onChange?: (affixed: boolean) => void
   children: ReactNode
   className?: string
 }
 
-export function Affix({ offsetTop = 0, children, className }: AffixProps) {
+function isWindowTarget(target: Window | HTMLElement): target is Window {
+  return 'document' in target
+}
+
+type AffixViewport = {
+  top: number
+  right: number
+  bottom: number
+  left: number
+}
+
+function getAffixViewport(target: Window | HTMLElement): AffixViewport {
+  if (isWindowTarget(target)) {
+    return {
+      top: 0,
+      right: target.innerWidth,
+      bottom: target.innerHeight,
+      left: 0,
+    }
+  }
+  const rect = target.getBoundingClientRect()
+  return {
+    top: rect.top,
+    right: rect.right,
+    bottom: rect.bottom,
+    left: rect.left,
+  }
+}
+
+/** A scroll-aware sticky surface that keeps its layout space while affixed. */
+export function Affix({
+  offsetTop,
+  offsetBottom,
+  target,
+  onChange,
+  children,
+  className,
+}: AffixProps) {
+  const holderRef = useRef<HTMLDivElement | null>(null)
+  const contentRef = useRef<HTMLDivElement | null>(null)
+  const [affixed, setAffixed] = useState(false)
+  const affixedRef = useRef(false)
+  const onChangeRef = useRef(onChange)
+
+  useEffect(() => {
+    onChangeRef.current = onChange
+  }, [onChange])
+
+  useLayoutEffect(() => {
+    const holder = holderRef.current
+    const content = contentRef.current
+    const scrollTarget = target ? target() : window
+    if (!holder || !content || !scrollTarget) return
+
+    const resolvedOffsetTop =
+      offsetTop === undefined && offsetBottom === undefined ? 0 : offsetTop
+    const resolvedOffsetBottom = offsetBottom
+    let frame = 0
+
+    const update = () => {
+      frame = 0
+      const holderRect = holder.getBoundingClientRect()
+      const contentRect = content.getBoundingClientRect()
+      const height = Math.max(
+        holder.offsetHeight,
+        content.offsetHeight,
+        contentRect.height,
+      )
+      const width = Math.max(contentRect.width, content.offsetWidth)
+      const viewport = getAffixViewport(scrollTarget)
+      const topBoundary = viewport.top + Math.max(0, resolvedOffsetTop ?? 0)
+      const bottomBoundary =
+        viewport.bottom - Math.max(0, resolvedOffsetBottom ?? 0)
+      const shouldAffixTop =
+        resolvedOffsetTop !== undefined &&
+        holderRect.top <= topBoundary &&
+        holderRect.bottom > topBoundary
+      const shouldAffixBottom =
+        resolvedOffsetBottom !== undefined &&
+        holderRect.bottom >= bottomBoundary &&
+        holderRect.top < bottomBoundary
+      const nextAffixed = shouldAffixTop || shouldAffixBottom
+
+      if (!nextAffixed) {
+        holder.style.height = ''
+        content.style.position = ''
+        content.style.top = ''
+        content.style.left = ''
+        content.style.width = ''
+        content.style.zIndex = ''
+      } else {
+        holder.style.height = `${height}px`
+        const top = shouldAffixBottom ? bottomBoundary - height : topBoundary
+        const maxWidth = Math.max(0, viewport.right - viewport.left)
+        const fixedWidth = Math.min(width, maxWidth || width)
+        const left = Math.min(
+          Math.max(contentRect.left, viewport.left),
+          Math.max(viewport.left, viewport.right - fixedWidth),
+        )
+        content.style.position = 'fixed'
+        content.style.top = `${Math.max(viewport.top, top)}px`
+        content.style.left = `${left}px`
+        content.style.width = `${fixedWidth}px`
+        content.style.zIndex = '20'
+      }
+
+      if (affixedRef.current === nextAffixed) return
+      affixedRef.current = nextAffixed
+      setAffixed(nextAffixed)
+      onChangeRef.current?.(nextAffixed)
+    }
+
+    const scheduleUpdate = () => {
+      if (!window.requestAnimationFrame) {
+        update()
+        return
+      }
+      if (frame) return
+      frame = window.requestAnimationFrame(update)
+    }
+
+    update()
+    scrollTarget.addEventListener('scroll', scheduleUpdate, { passive: true })
+    window.addEventListener('resize', scheduleUpdate)
+    if (!isWindowTarget(scrollTarget))
+      window.addEventListener('scroll', scheduleUpdate, true)
+
+    const observer =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(scheduleUpdate)
+    observer?.observe(holder)
+    observer?.observe(content)
+    if (!isWindowTarget(scrollTarget)) observer?.observe(scrollTarget)
+
+    return () => {
+      scrollTarget.removeEventListener('scroll', scheduleUpdate)
+      window.removeEventListener('resize', scheduleUpdate)
+      if (!isWindowTarget(scrollTarget))
+        window.removeEventListener('scroll', scheduleUpdate, true)
+      observer?.disconnect()
+      if (frame) window.cancelAnimationFrame(frame)
+      holder.style.height = ''
+      content.style.position = ''
+      content.style.top = ''
+      content.style.left = ''
+      content.style.width = ''
+      content.style.zIndex = ''
+    }
+  }, [offsetBottom, offsetTop, target])
+
   return (
-    <div
-      className={cn('sticky z-20 top-[var(--ui-affix-offset)]', className)}
-      style={{ '--ui-affix-offset': `${offsetTop}px` } as CSSProperties}
-    >
-      {children}
+    <div ref={holderRef} data-affix-holder data-affixed={affixed}>
+      <div
+        ref={contentRef}
+        data-affix-content
+        className={cn('touch-manipulation', className)}
+      >
+        {children}
+      </div>
     </div>
   )
 }

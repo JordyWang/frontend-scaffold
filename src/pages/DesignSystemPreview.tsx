@@ -234,6 +234,8 @@ export function DesignSystemPreview() {
   const [treeExpanded, setTreeExpanded] = useState(['components'])
   const [carouselAutoplay, setCarouselAutoplay] = useState(false)
   const [menuExpanded, setMenuExpanded] = useState<string[]>([])
+  const [affixStatus, setAffixStatus] = useState('未固定')
+  const [affixBottomStatus, setAffixBottomStatus] = useState('未固定')
   const [transferDisabled, setTransferDisabled] = useState(false)
   const [masonryCount, setMasonryCount] = useState(7)
   const [virtualListState, setVirtualListState] = useState<
@@ -253,6 +255,7 @@ export function DesignSystemPreview() {
     useState<HTMLDivElement | null>(null)
   const tourTriggerRef = useRef<HTMLButtonElement>(null)
   const alertRestoreRef = useRef<HTMLButtonElement>(null)
+  const affixTargetRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!fullscreenLoading) return
@@ -1596,6 +1599,61 @@ export function DesignSystemPreview() {
                     { title: '当前页' },
                   ]}
                 />
+                <div
+                  className="grid gap-2 rounded-[var(--radius-md)] border border-border bg-muted/30 p-3"
+                  data-affix-preview
+                >
+                  <Stack direction="row" align="center" wrap gap="sm">
+                    <Typography as="span" variant="caption">
+                      目标容器 Affix
+                    </Typography>
+                    <Typography
+                      as="span"
+                      variant="caption"
+                      tone="muted"
+                      data-affix-status
+                    >
+                      顶部：{affixStatus} · 底部：{affixBottomStatus}
+                    </Typography>
+                  </Stack>
+                  <div
+                    ref={affixTargetRef}
+                    className="h-56 overflow-auto overscroll-contain rounded-[var(--radius-md)] border border-border bg-background p-3"
+                    data-affix-scroll-container
+                  >
+                    <div className="grid min-h-24 content-center rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">
+                      目标容器：向下滚动，观察顶部和底部偏移。
+                    </div>
+                    <Affix
+                      target={() => affixTargetRef.current}
+                      offsetTop={8}
+                      onChange={(next) =>
+                        setAffixStatus(next ? '已固定' : '未固定')
+                      }
+                    >
+                      <div className="my-2 flex min-h-11 items-center rounded-md border border-primary/30 bg-primary/10 px-3 text-sm font-medium text-primary shadow-sm">
+                        容器顶部固定条
+                      </div>
+                    </Affix>
+                    <div className="h-72 rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+                      目标容器内容区
+                    </div>
+                    <Affix
+                      target={() => affixTargetRef.current}
+                      offsetBottom={8}
+                      onChange={(next) =>
+                        setAffixBottomStatus(next ? '已固定' : '未固定')
+                      }
+                    >
+                      <div className="my-2 flex min-h-11 items-center rounded-md border border-primary/30 bg-primary/10 px-3 text-sm font-medium text-primary shadow-sm">
+                        容器底部固定条
+                      </div>
+                    </Affix>
+                    <div className="h-24 rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">
+                      目标容器末端
+                    </div>
+                  </div>
+                </div>
                 <Affix offsetTop={8}>
                   <Menu
                     expandedKeys={menuExpanded}
