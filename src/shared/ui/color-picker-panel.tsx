@@ -21,6 +21,10 @@ import {
   type ColorPickerFormat,
   type PickerColor,
 } from './color-picker-state'
+import {
+  gradientToCss,
+  parsePickerGradient,
+} from './color-picker-gradient-state'
 
 export type ColorPickerPart =
   | 'root'
@@ -35,6 +39,9 @@ export type ColorPickerPart =
   | 'presets'
   | 'footer'
   | 'error'
+  | 'colorMode'
+  | 'gradient'
+  | 'stops'
 export type ColorPickerPreset = {
   key: string
   label: ReactNode
@@ -44,6 +51,12 @@ export type ColorPickerPreset = {
 type PanelProps = {
   color: PickerColor
   value: string
+  sessionKey: string
+  hasValue: boolean
+  presetValue: string
+  allowGradientPresets: boolean
+  onPreset: (value: string) => void
+  extra?: ReactNode
   label: string
   disabled: boolean
   disabledAlpha: boolean
@@ -64,6 +77,12 @@ const hueRail =
 export function ColorPickerPanel({
   color,
   value,
+  sessionKey,
+  hasValue,
+  presetValue,
+  allowGradientPresets,
+  onPreset,
+  extra,
   label,
   disabled,
   disabledAlpha,
@@ -79,18 +98,19 @@ export function ColorPickerPanel({
   onClear,
 }: PanelProps) {
   const formatted = displayPickerColor(value, format, color)
+  const source = `${sessionKey}:${formatted}`
   const [entry, setEntry] = useState({
-    source: formatted,
+    source,
     draft: formatted,
     error: '',
   })
-  const draft = entry.source === formatted ? entry.draft : formatted
-  const error = entry.source === formatted ? entry.error : ''
+  const draft = entry.source === source ? entry.draft : formatted
+  const error = entry.source === source ? entry.error : ''
   function setDraft(next: string) {
-    setEntry({ source: formatted, draft: next, error: '' })
+    setEntry({ source, draft: next, error: '' })
   }
   function setError(next: string) {
-    setEntry({ source: formatted, draft, error: next })
+    setEntry({ source, draft, error: next })
   }
   const errorId = useId()
   const area = useRef<HTMLDivElement>(null)
@@ -100,23 +120,24 @@ export function ColorPickerPanel({
     base: PickerColor
     latest: PickerColor
   } | null>(null)
-  const previous = useRef({ value, disabled, disabledAlpha })
+  const previous = useRef({ value, disabled, disabledAlpha, sessionKey })
   useLayoutEffect(() => {
     const session = drag.current
     const changed =
       previous.current.disabled !== disabled ||
       previous.current.disabledAlpha !== disabledAlpha ||
+      previous.current.sessionKey !== sessionKey ||
       (previous.current.value !== value &&
         session &&
         value !== colorToHex(session.latest))
-    previous.current = { value, disabled, disabledAlpha }
+    previous.current = { value, disabled, disabledAlpha, sessionKey }
     if (session && changed) {
       drag.current = null
       if (area.current?.hasPointerCapture?.(session.pointer))
         area.current.releasePointerCapture(session.pointer)
       onCancel()
     }
-  }, [value, disabled, disabledAlpha, onCancel])
+  }, [value, disabled, disabledAlpha, sessionKey, onCancel])
 
   function move(event: PointerEvent<HTMLDivElement>) {
     const session = drag.current,
@@ -187,6 +208,7 @@ export function ColorPickerPanel({
       data-color-panel=""
       className={cn('grid min-w-0 gap-3', classNames?.panel)}
     >
+      {extra}
       <div className="flex items-center justify-between gap-2">
         <span className="font-semibold">{label}</span>
         <span
@@ -405,22 +427,27 @@ export function ColorPickerPanel({
               <div className="text-sm font-semibold">{preset.label}</div>
               <div className="flex flex-wrap gap-2">
                 {preset.colors.map((item, index) => {
+                  const gradient = allowGradientPresets
+                    ? parsePickerGradient(item.value, disabledAlpha)
+                    : null
                   const parsed = parsePickerColor(item.value)
-                  if (!parsed) return null
-                  const next = disabledAlpha ? { ...parsed, a: 1 } : parsed,
-                    hex = colorToHex(next)
+                  if (!parsed && !gradient) return null
+                  const hex = gradient
+                    ? gradientToCss(gradient)
+                    : colorToHex(disabledAlpha ? { ...parsed!, a: 1 } : parsed!)
                   return (
                     <button
                       type="button"
                       key={`${hex}-${index}`}
                       aria-label={item.label ?? `选择 ${hex}`}
-                      aria-pressed={value === hex}
+                      aria-pressed={
+                        gradient ? presetValue === hex : value === hex
+                      }
                       disabled={disabled}
                       className="flex size-11 shrink-0 touch-manipulation items-center justify-center rounded-md border border-border bg-card focus-visible:outline-2 focus-visible:outline-ring aria-pressed:outline-2 aria-pressed:outline-primary disabled:opacity-50"
                       onClick={(event) => {
                         event.currentTarget.focus({ preventScroll: true })
-                        onChange(next)
-                        onComplete()
+                        onPreset(hex)
                       }}
                     >
                       <span
@@ -429,7 +456,7 @@ export function ColorPickerPanel({
                       >
                         <span
                           className="absolute inset-0"
-                          style={{ backgroundColor: hex }}
+                          style={{ background: hex }}
                         />
                       </span>
                     </button>
@@ -444,7 +471,7 @@ export function ColorPickerPanel({
         <div className={cn('flex flex-wrap gap-2', classNames?.footer)}>
           <Button
             variant="outline"
-            disabled={disabled || !value}
+            disabled={disabled || !hasValue}
             onClick={() => {
               saturation.current?.focus({ preventScroll: true })
               onClear()

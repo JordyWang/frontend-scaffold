@@ -25,11 +25,19 @@ import {
 import {
   colorToHex,
   displayPickerColor,
-  normalizePickerColor,
   parsePickerColor,
   type ColorPickerFormat,
   type PickerColor,
 } from './color-picker-state'
+import { ColorPickerGradientEditor } from './color-picker-gradient-editor'
+import {
+  displayPickerPaint,
+  gradientToCss,
+  normalizePickerPaint,
+  parsePickerGradient,
+  type ColorPickerColorMode,
+  type ColorPickerStop,
+} from './color-picker-gradient-state'
 import {
   focusAfterPicker,
   pickerFocusable,
@@ -40,7 +48,12 @@ import {
 import { Portal } from './portal'
 import { inputStatusStyles, inputVariantStyles } from './tailwind-styles'
 
-export type { ColorPickerPart, ColorPickerPreset, ColorPickerFormat }
+export type {
+  ColorPickerPart,
+  ColorPickerPreset,
+  ColorPickerFormat,
+  ColorPickerColorMode,
+}
 export type ColorPickerHandle = {
   focus: (options?: FocusOptions) => void
   blur: () => void
@@ -66,6 +79,8 @@ export type ColorPickerProps = Omit<
   form?: string
   autoFocus?: boolean
   mode?: 'popup' | 'panel' | 'native'
+  colorMode?: ColorPickerColorMode | ColorPickerColorMode[]
+  onColorModeChange?: (mode: ColorPickerColorMode) => void
   disabledAlpha?: boolean
   disabledFormat?: boolean
   format?: ColorPickerFormat
@@ -83,7 +98,7 @@ export type ColorPickerProps = Omit<
 }
 const emptyPresets: ColorPickerPreset[] = []
 
-/** Canonical Hex strings and project controls keep color values independent from presentation. */
+/** Canonical Hex/gradient strings and project controls keep paint values independent from presentation. */
 export const ColorPicker = forwardRef<ColorPickerHandle, ColorPickerProps>(
   function ColorPicker(allProps, ref) {
     const controlled = Object.prototype.hasOwnProperty.call(allProps, 'value')
@@ -105,6 +120,8 @@ export const ColorPicker = forwardRef<ColorPickerHandle, ColorPickerProps>(
       form,
       autoFocus,
       mode = 'popup',
+      colorMode = 'single',
+      onColorModeChange,
       disabledAlpha = false,
       disabledFormat = false,
       format: controlledFormat,
@@ -141,22 +158,46 @@ export const ColorPicker = forwardRef<ColorPickerHandle, ColorPickerProps>(
       controlId = id ?? `color-${generatedId}`,
       popupId = `${controlId}-popup`
     const effectiveAlphaDisabled = disabledAlpha || mode === 'native'
-    const [internal, setInternal] = useState(() =>
-      normalizePickerColor(defaultValue, effectiveAlphaDisabled),
+    const configuredModes = Array.isArray(colorMode) ? colorMode : [colorMode]
+    const permitted = configuredModes.filter(
+      (item) => item === 'single' || item === 'gradient',
     )
-    const normalized = normalizePickerColor(
+    const modes: ColorPickerColorMode[] =
+      mode === 'native' || !permitted.length
+        ? ['single']
+        : [...new Set(permitted)]
+    const modesKey = modes.join(',')
+    const [internal, setInternal] = useState(() =>
+      normalizePickerPaint(defaultValue, effectiveAlphaDisabled, modes),
+    )
+    const normalized = normalizePickerPaint(
       controlled ? value : internal,
       effectiveAlphaDisabled,
+      modes,
     )
     const current = mode === 'native' && !normalized ? '#000000' : normalized
+    const gradient = parsePickerGradient(current)
+    const isGradient =
+      Boolean(gradient) || (modes.length === 1 && modes[0] === 'gradient')
+    const [selectedStop, setSelectedStop] = useState(0)
+    const stops = gradient ?? [
+      { color: current || '#000000', percent: 0 },
+      { color: current || '#000000', percent: 100 },
+    ]
+    const activeStop = Math.min(selectedStop, stops.length - 1)
+    const editingValue = isGradient ? stops[activeStop].color : current
     const [remembered, setRemembered] = useState(() => ({
-      value: current,
-      color: parsePickerColor(current || '#000000')!,
+      value: editingValue,
+      stop: activeStop,
+      color: parsePickerColor(editingValue || '#000000')!,
     }))
     const color =
-      remembered.value === current
+      remembered.value === editingValue && remembered.stop === activeStop
         ? remembered.color
-        : parsePickerColor(current || '#000000', remembered.color.h)!
+        : parsePickerColor(
+            editingValue || '#000000',
+            remembered.stop === activeStop ? remembered.color.h : 0,
+          )!
     const [internalFormat, setInternalFormat] = useState(defaultFormat)
     const format = controlledFormat ?? internalFormat
     const [internalOpen, setInternalOpen] = useState(defaultOpen)
@@ -166,11 +207,23 @@ export const ColorPicker = forwardRef<ColorPickerHandle, ColorPickerProps>(
     const [nativeError, setNativeError] = useState('')
     const latest = useRef(current),
       changed = useRef(false),
-      previous = useRef({ current, inactive, mode, effectiveAlphaDisabled })
+      previous = useRef({
+        current,
+        inactive,
+        mode,
+        effectiveAlphaDisabled,
+        modesKey,
+      })
     const focusRequested = useRef(false),
       blurFrame = useRef(0),
       notifiedInactive = useRef(false)
     const detachedFocus = useRef(false)
+    const colorModeRef = useRef<HTMLDivElement>(null)
+    const attachColorMode = useCallback((element: HTMLDivElement | null) => {
+      if (!element && colorModeRef.current?.contains(document.activeElement))
+        detachedFocus.current = true
+      colorModeRef.current = element
+    }, [])
     const attachPopup = useCallback((element: HTMLDivElement | null) => {
       if (!element && popupRef.current?.contains(document.activeElement))
         detachedFocus.current = true
@@ -247,10 +300,17 @@ export const ColorPicker = forwardRef<ColorPickerHandle, ColorPickerProps>(
         (state.current !== current && latest.current !== current) ||
         state.inactive !== inactive ||
         state.mode !== mode ||
-        state.effectiveAlphaDisabled !== effectiveAlphaDisabled
+        state.effectiveAlphaDisabled !== effectiveAlphaDisabled ||
+        state.modesKey !== modesKey
       )
         cancelSession()
-      previous.current = { current, inactive, mode, effectiveAlphaDisabled }
+      previous.current = {
+        current,
+        inactive,
+        mode,
+        effectiveAlphaDisabled,
+        modesKey,
+      }
       if (isOpen && focusRequested.current) {
         focusRequested.current = false
         const first = popupRef.current && pickerFocusable(popupRef.current)[0]
@@ -266,6 +326,7 @@ export const ColorPicker = forwardRef<ColorPickerHandle, ColorPickerProps>(
       inactive,
       mode,
       effectiveAlphaDisabled,
+      modesKey,
       isOpen,
       requestedOpen,
       cancelSession,
@@ -286,7 +347,15 @@ export const ColorPicker = forwardRef<ColorPickerHandle, ColorPickerProps>(
       const active = document.activeElement
       const released =
         lost && (!active || active === document.body || !active.isConnected)
-      if (showPanel || (!released && !owned(active))) return
+      if (showPanel) {
+        if (released) {
+          const container = isOpen ? popupRef.current : rootRef.current
+          const first = container && pickerFocusable(container)[0]
+          if (first) revealPickerTarget(first)
+        }
+        return
+      }
+      if (!released && !owned(active)) return
       if (
         document.activeElement !== triggerRef.current &&
         document.activeElement !== fieldRef.current
@@ -294,7 +363,7 @@ export const ColorPicker = forwardRef<ColorPickerHandle, ColorPickerProps>(
         if (disabled) rootRef.current?.focus({ preventScroll: true })
         else focus({ preventScroll: true })
       }
-    }, [showPanel, disabled, focus, owned])
+    }, [showPanel, isOpen, disabled, modesKey, focus, owned])
     useEffect(() => () => cancelAnimationFrame(blurFrame.current), [])
     useEffect(() => {
       if (!isOpen) return
@@ -330,17 +399,22 @@ export const ColorPicker = forwardRef<ColorPickerHandle, ColorPickerProps>(
       const reset = (event: Event) => {
         queueMicrotask(() => {
           if (event.defaultPrevented) return
-          const next = normalizePickerColor(
+          const next = normalizePickerPaint(
             defaultValue,
             effectiveAlphaDisabled,
+            modesKey.split(',') as ColorPickerColorMode[],
           )
           changed.current = false
           latest.current = next
           setInternal(next)
           setRemembered({
-            value: next,
-            color: parsePickerColor(next || '#000000')!,
+            value: parsePickerGradient(next)?.[0].color ?? next,
+            stop: 0,
+            color: parsePickerColor(
+              parsePickerGradient(next)?.[0].color ?? (next || '#000000'),
+            )!,
           })
+          setSelectedStop(0)
           setNativeError('')
           focusRequested.current = false
           setOpen(false)
@@ -348,13 +422,32 @@ export const ColorPicker = forwardRef<ColorPickerHandle, ColorPickerProps>(
       }
       nativeForm.addEventListener('reset', reset)
       return () => nativeForm.removeEventListener('reset', reset)
-    }, [controlled, defaultValue, effectiveAlphaDisabled, form, mode, setOpen])
+    }, [
+      controlled,
+      defaultValue,
+      effectiveAlphaDisabled,
+      modesKey,
+      form,
+      mode,
+      setOpen,
+    ])
 
     function publish(next: PickerColor) {
       if (inactive || fieldRef.current?.matches(':disabled')) return
       const candidate = effectiveAlphaDisabled ? { ...next, a: 1 } : next
-      const canonical = colorToHex(candidate)
-      setRemembered({ value: canonical, color: candidate })
+      const hex = colorToHex(candidate)
+      const canonical = isGradient
+        ? gradientToCss(
+            stops.map((stop, index) =>
+              index === activeStop ? { ...stop, color: hex } : stop,
+            ),
+          )
+        : hex
+      setRemembered({ value: hex, stop: activeStop, color: candidate })
+      publishPaint(canonical)
+    }
+    function publishPaint(canonical: string) {
+      if (inactive || fieldRef.current?.matches(':disabled')) return
       if (!controlled) setInternal(canonical)
       setNativeError('')
       if (canonical !== latest.current) {
@@ -362,6 +455,57 @@ export const ColorPicker = forwardRef<ColorPickerHandle, ColorPickerProps>(
         latest.current = canonical
         onChange?.(canonical)
       }
+    }
+    function selectStop(index: number) {
+      if (inactive || index === activeStop) return
+      cancelSession()
+      setSelectedStop(index)
+    }
+    function publishGradient(next: ColorPickerStop[], index: number) {
+      if (inactive) return
+      setSelectedStop(index)
+      publishPaint(gradientToCss(next))
+    }
+    function choosePreset(raw: string) {
+      const nextGradient = parsePickerGradient(raw, effectiveAlphaDisabled)
+      if (nextGradient) {
+        if (!modes.includes('gradient')) return
+        setSelectedStop(0)
+        publishPaint(gradientToCss(nextGradient))
+        if (!isGradient) onColorModeChange?.('gradient')
+      } else {
+        const parsed = parsePickerColor(raw)
+        if (!parsed) return
+        if (isGradient && modes.length === 1) publish(parsed)
+        else {
+          publishPaint(
+            colorToHex(effectiveAlphaDisabled ? { ...parsed, a: 1 } : parsed),
+          )
+          if (isGradient) onColorModeChange?.('single')
+        }
+      }
+      complete()
+    }
+    function changeColorMode(next: ColorPickerColorMode) {
+      if (
+        inactive ||
+        next === (isGradient ? 'gradient' : 'single') ||
+        !modes.includes(next)
+      )
+        return
+      cancelSession()
+      const hex = colorToHex(color)
+      setSelectedStop(0)
+      publishPaint(
+        next === 'gradient'
+          ? gradientToCss([
+              { color: hex, percent: 0 },
+              { color: hex, percent: 100 },
+            ])
+          : hex,
+      )
+      onColorModeChange?.(next)
+      complete()
     }
     function complete() {
       const finalValue = latest.current
@@ -381,6 +525,7 @@ export const ColorPicker = forwardRef<ColorPickerHandle, ColorPickerProps>(
         return
       changed.current = false
       latest.current = ''
+      setSelectedStop(0)
       if (!controlled) setInternal('')
       onChange?.('')
       onChangeComplete?.('')
@@ -408,7 +553,97 @@ export const ColorPicker = forwardRef<ColorPickerHandle, ColorPickerProps>(
     const panel = (
       <ColorPickerPanel
         color={color}
-        value={current}
+        value={editingValue}
+        sessionKey={isGradient ? `gradient-${activeStop}` : 'single'}
+        hasValue={Boolean(current)}
+        presetValue={current}
+        allowGradientPresets={modes.includes('gradient')}
+        onPreset={choosePreset}
+        extra={
+          <>
+            {modes.length > 1 && (
+              <div
+                ref={attachColorMode}
+                role="radiogroup"
+                aria-label={`${nameText}颜色类型`}
+                className={cn(
+                  'flex min-w-0 gap-1 rounded-md bg-muted p-1',
+                  classNames?.colorMode,
+                )}
+              >
+                {modes.map((item, index) => (
+                  <button
+                    key={item}
+                    type="button"
+                    role="radio"
+                    aria-checked={(isGradient ? 'gradient' : 'single') === item}
+                    disabled={inactive}
+                    tabIndex={
+                      (isGradient ? 'gradient' : 'single') === item ? 0 : -1
+                    }
+                    className="min-h-11 min-w-11 flex-1 touch-manipulation rounded-sm px-2 text-foreground aria-checked:bg-card aria-checked:shadow-sm focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
+                    onClick={(event) => {
+                      event.currentTarget.focus({ preventScroll: true })
+                      changeColorMode(item)
+                    }}
+                    onKeyDown={(event) => {
+                      if (
+                        event.nativeEvent.isComposing ||
+                        event.nativeEvent.keyCode === 229
+                      )
+                        return
+                      const step =
+                        event.key === 'ArrowRight'
+                          ? direction === 'rtl'
+                            ? -1
+                            : 1
+                          : event.key === 'ArrowLeft'
+                            ? direction === 'rtl'
+                              ? 1
+                              : -1
+                            : event.key === 'ArrowDown'
+                              ? 1
+                              : event.key === 'ArrowUp'
+                                ? -1
+                                : 0
+                      if (!step && event.key !== 'Home' && event.key !== 'End')
+                        return
+                      event.preventDefault()
+                      const next =
+                        event.key === 'Home'
+                          ? 0
+                          : event.key === 'End'
+                            ? modes.length - 1
+                            : (index + step + modes.length) % modes.length
+                      const options =
+                        colorModeRef.current?.querySelectorAll<HTMLButtonElement>(
+                          'button',
+                        )
+                      options?.[next]?.focus({ preventScroll: true })
+                      changeColorMode(modes[next])
+                    }}
+                  >
+                    {item === 'single' ? '单色' : '渐变'}
+                  </button>
+                ))}
+              </div>
+            )}
+            {isGradient && (
+              <ColorPickerGradientEditor
+                stops={stops}
+                value={current}
+                active={activeStop}
+                label={nameText}
+                disabled={inactive}
+                classNames={classNames}
+                onSelect={selectStop}
+                onChange={publishGradient}
+                onComplete={complete}
+                onCancel={cancelSession}
+              />
+            )}
+          </>
+        }
         label={nameText}
         disabled={inactive}
         disabledAlpha={effectiveAlphaDisabled}
@@ -428,7 +663,9 @@ export const ColorPicker = forwardRef<ColorPickerHandle, ColorPickerProps>(
       typeof showText === 'function'
         ? showText(current, format)
         : current
-          ? displayPickerColor(current, format, color)
+          ? gradient
+            ? displayPickerPaint(current, format)
+            : displayPickerColor(current, format, color)
           : '未选择颜色'
     return (
       <div
@@ -572,7 +809,7 @@ export const ColorPicker = forwardRef<ColorPickerHandle, ColorPickerProps>(
                 >
                   <span
                     className="absolute inset-0"
-                    style={{ backgroundColor: current || 'transparent' }}
+                    style={{ background: current || 'transparent' }}
                   />
                 </span>
               </button>

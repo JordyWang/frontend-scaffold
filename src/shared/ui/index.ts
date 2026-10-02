@@ -138,6 +138,7 @@ export type {
   ColorPickerPart,
   ColorPickerPreset,
   ColorPickerFormat,
+  ColorPickerColorMode,
 } from './color-picker'
 export { Slider } from './slider'
 export type {

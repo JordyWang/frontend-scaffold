@@ -18,9 +18,8 @@
 
 按当前源码继续补齐以下真实能力，组件入口存在不能作为完成证据：
 
-1. `ColorPicker` 已具备项目单色面板、透明度与格式切换；仍需补渐变值、色标增删及对应的键盘与触控编辑。
-2. `Typography` 仅提供元素、样式和文字色：需补复制、编辑与省略展示的交互契约。
-3. `Tabs` 仍为基础标签与面板：需补卡片形态、可编辑标签及对应的增删焦点管理。
+1. `Typography` 仅提供元素、样式和文字色：需补复制、编辑与省略展示的交互契约。
+2. `Tabs` 仍为基础标签与面板：需补卡片形态、可编辑标签及对应的增删焦点管理。
 
 对照 [DatePicker 6.6.5 文档](https://ant.design/components/date-picker-cn) 和 [TimePicker 6.6.5 文档](https://ant.design/components/time-picker-cn)，项目已实现日期、周、月、季度、年的单选、多选与范围面板，以及时间单选和范围的统一时间列面板。日期时间单选与范围组合、时间滚动选择、日期/时间悬停输入预览和毫秒精度已补齐；字符串/数组/函数 format、自定义解析与分段 mask 输入已补齐。日期范围的网格预览与输入 previewValue 分别验证。
 
@@ -28,9 +27,13 @@
 
 ## 已落地能力与验证范围
 
-对照 [ColorPicker 6.6.5 文档](https://ant.design/components/color-picker-cn)，项目默认使用自己的弹出颜色面板，并提供常驻面板与显式原生适配。字符串规范值保留 Hex，支持透明度、RGB/HSB 编码与通道输入、清空、分组预设、受控实时/完成、受控开合、四逻辑位置及自定义面板包装。颜色区域通过项目 Slider 提供等价键盘操作；Portal 逃离裁切并继承主题与 RTL，Tab 续接字段，动态关闭恢复持有的焦点。统一 `ColorPickerHandle` 替代旧 input ref，迁移约定见 [ColorPicker API](./shared-ui.md#colorpicker)。输入草稿错误与规范值隔离，Escape 恢复草稿；H5 预设与清空保持面板焦点，InputNumber 隐藏重复原生步进器并保证实际输入区域的高度和字号。HSB 小数步长避免常驻原生表单的 step mismatch。`/__ui` 覆盖透明/不透明、只读/错误、格式、裁切、表单和 240px RTL 深色。渐变值与色标编辑仍是明确缺口。
+对照 [ColorPicker 6.6.5 文档](https://ant.design/components/color-picker-cn)，项目默认使用自己的弹出颜色面板，并提供常驻面板与显式原生适配。字符串规范值保留 Hex，支持透明度、RGB/HSB 编码与通道输入、清空、分组预设、受控实时/完成、受控开合、四逻辑位置及自定义面板包装。颜色区域通过项目 Slider 提供等价键盘操作；Portal 逃离裁切并继承主题与 RTL，Tab 续接字段，动态关闭恢复持有的焦点。统一 `ColorPickerHandle` 替代旧 input ref，迁移约定见 [ColorPicker API](./shared-ui.md#colorpicker)。输入草稿错误与规范值隔离，Escape 恢复草稿；H5 预设与清空保持面板焦点，InputNumber 隐藏重复原生步进器并保证实际输入区域的高度和字号。HSB 小数步长避免常驻原生表单的 step mismatch。`/__ui` 覆盖透明/不透明、只读/错误、格式、裁切、表单和 240px RTL 深色。
 
-本批 `pnpm check` 通过（67 文件 / 777 单测，ColorPicker 独立单测 21 项），含 lint、Tailwind gate、typecheck、format 和 build。ColorPicker、InputNumber、主题预览及受影响浮层的三平台浏览器回归 34 项通过、2 项按平台跳过；颜色面板新增 18 项全部通过。已查看桌面与 H5 Chromium/WebKit 的 240px RTL 深色截图，验证输入实际尺寸、通道间距及无页面横溢。PC 使用真实鼠标拖动，H5 Chromium 使用原生触控拖动，WebKit 使用原生 tap 与合成指针拖动；未宣称 WebKit 原生拖动或系统颜色面板已自动验证。
+`ColorPicker` 渐变能力使用独立 `colorMode` API 保留已有 popup/panel/native 展示模式，字符串规范值扩展为 90deg 线性渐变。颜色类型由受控值决定，radio 按钮避免污染原生 FormData；相邻范围 Slider、显式位置输入、轨道插入并拖动、按钮与键盘增删复用同一色标结构。保留至少两个色标，外部重复位置保留，编辑禁止交叉；新增颜色以预乘 sRGB 插值并在转换 HSB 前量化 RGB，独立中点期望值覆盖字节边界误差。所有色标遵循透明度约束，整组/单点预设、格式展示、完成回调、取消、延迟受控焦点、原生重置和项目表单同步验证。解析边界为 90deg / to right 和显式百分比，不宣称任意 CSS 渐变支持，具体契约见 [渐变颜色](./shared-ui.md#渐变颜色)。`/__ui` 独立展示实时/完成、透明/不透明、禁用/只读/错误、类型切换、表单和 240px RTL 深色。
+
+渐变本批 `pnpm check` 通过（68 文件 / 798 单测，单色与渐变独立单测共 42 项），含 lint、Tailwind gate、typecheck、format 和 build。单色、渐变及 Slider 的三平台回归 69 项验证通过，其中渐变新增 18 项；首轮 WebKit Slider 在页面重新导航时失去 DOM 引用，单独复核通过。公共主题、原生输入及浮层回归另有 10 项通过、2 项按平台跳过。已查看三平台最新的 240px RTL 深色截图，透明棋盘格、色标颜色、输入边界和无页面横溢正常。PC 使用真实鼠标，H5 Chromium 使用原生触控拖动，WebKit 使用原生 tap 与合成指针拖动；未宣称 WebKit 原生拖动或系统颜色面板已自动验证。
+
+前批单色 `pnpm check` 通过（67 文件 / 777 单测，ColorPicker 独立单测 21 项），含 lint、Tailwind gate、typecheck、format 和 build。ColorPicker、InputNumber、主题预览及受影响浮层的三平台浏览器回归 34 项通过、2 项按平台跳过；颜色面板新增 18 项全部通过。已查看桌面与 H5 Chromium/WebKit 的 240px RTL 深色截图，验证输入实际尺寸、通道间距及无页面横溢。PC 使用真实鼠标拖动，H5 Chromium 使用原生触控拖动，WebKit 使用原生 tap 与合成指针拖动；未宣称 WebKit 原生拖动或系统颜色面板已自动验证。
 
 对照 [Slider 6.6.5 文档](https://ant.design/components/slider-cn)，Slider 拆为独立模块，保留项目单值数字与原生输入 ref，范围使用有序数字数组、禁止交叉的相邻边界，以及独立 `draggableTrack` 开关。标记采用项目数组契约，支持步长/离散标记、包含/独立点位、密集装饰刻度采样、多点及局部禁用、水平/垂直/反向/RTL、实时与操作完成回调、受控值和原生/项目表单。整体平移保持点间距离并计算所有点共同可用的偏移；失效或取消会话不报告完成。值提示复用公共 Tooltip 的受控开合、Portal 和主题；触控命中项目轨道，原生输入保留显式 Tab 焦点，修复 H5 Chromium 双重触控改值与 WebKit 跳过第二滑块。`/__ui` 展示 240px RTL 深色、只读/错误、刻度、禁用边界和组合表单。单测覆盖离散合法偏移穷举对照、精度、受控/非受控、边界、取消、焦点和重置；PC 使用真实鼠标拖动，H5 Chromium 使用原生触控拖动，WebKit 使用原生 tap 及合成指针拖动事件。交互式节点增删由下述独立编辑契约补齐。
 
