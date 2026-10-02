@@ -26,6 +26,7 @@ import { SliderPreview } from './SliderPreview'
 import { ColorPickerPreview } from './ColorPickerPreview'
 import { ColorPickerGradientPreview } from './ColorPickerGradientPreview'
 import { TypographyPreview } from './TypographyPreview'
+import { TabsPreview } from './TabsPreview'
 import {
   Alert,
   Affix,
@@ -2145,6 +2146,7 @@ export function DesignSystemPreview() {
           <ColorPickerPreview />
           <ColorPickerGradientPreview />
           <TypographyPreview />
+          <TabsPreview />
           <Card className="col-span-full">
             <CardContent>
               <Stack gap="md">

@@ -35,7 +35,7 @@
 | Dropdown / Tooltip / Popover    | `Dropdown(items, trigger)`；`Tooltip(title, children)`；`Popover(content, children, title?, label?, placement?)`                                       | 菜单支持 Enter、空格、上下方向键和 Escape；气泡内控件接续触发器的 Tab 顺序，提示用于可选信息，必要信息直接展示              |
 | Popconfirm / FloatButton        | `Popconfirm(title, description, onConfirm, onCancel)`；`FloatButton(label, position, shape)`                                                           | 确认操作复用 Dialog 焦点管理；浮动按钮保留安全区和 44px 触控尺寸                                                            |
 | Toast                           | `ToastProvider`、`toast({ title, description?, variant?, duration? })`、`dismissToast(id?)`                                                            | 应用根部已有 Provider；`variant` 为 default / success / warning / error；系统深色和 H5 安全区由 Provider 处理               |
-| Tabs                            | `items`、`value` / `defaultValue`、`onValueChange`、`orientation`、`activationMode`、`label`                                                           | `items` 含 value、label、content、disabled；支持垂直方向、手动激活、键盘导航和窄屏触控；垂直模式为左侧选项、右侧内容        |
+| Tabs                            | `items`、`value` / `defaultValue`、`onValueChange`、`variant`、`size`、`placement`、增删回调、面板生命周期                                             | 卡片与标签增删、逻辑位置、容器响应式、面板保留/销毁、键盘与触控；详见 Tabs 契约                                             |
 | Pagination                      | `page`、`pageSize`、`total`、`onPageChange`、`mode`、`loading`、`disabled`                                                                             | `mode` 为 pages / load-more；页码从 1 开始；禁用时同步锁定页码、条数与跳页；窄屏区域独立滚动                                |
 | List                            | `items`、`getKey`、`renderItem`、`loading`、`error`、`onRetry`、`emptyTitle`、`label`、`className`                                                     | 语义化列表；加载、空和错误状态保留同一容器、名称与布局类，加载时标记 `aria-busy`                                            |
 | Listy                           | `items`、`getKey`、`renderItem`、`itemHeight`、`height`、`overscan`、`onEndReached`、`loading`、`error`、`label`                                       | 固定行高虚拟列表；状态切换保留名称、高度和布局类，数据缩减时修正滚动位置，恢复数据后从首行开始；原生滚动和 H5 触控保留      |
@@ -127,6 +127,28 @@
 `InputNumber`、`DatePicker`、`TimePicker`、`DateRangePicker`、`TimeRangePicker` 和 `AutoComplete` 同样支持 `variant` 与 `status`；错误状态通过 `aria-invalid` 传递；日期与时间的单选和范围默认使用项目面板，也提供显式原生适配。
 
 `InputNumber` 输入期间保留原始数字草稿，`onChange` 会收到当前数值或清空时的 `undefined`；失焦时再按 `min` / `max` 限制数值，并在修正后再次调用 `onChange`。受控用法可传入 `value={undefined}` 表示空值，并在 `onChange` 中同步更新。`precision` 在提交和步进时限制小数位；`formatter(value, { userTyping, input })` 与 `parser(text)` 负责展示和规范值转换；`controls` 默认横向显示两个至少 44×44px 的步进按钮，也可传入上下图标，`keyboard` 控制上下方向键，`changeOnWheel` 显式开启聚焦时滚轮步进，`onStep(value, { offset, type })` 报告步进结果。原生 form reset 恢复 `defaultValue`，无效草稿不会绕过边界约束。
+
+## Tabs
+
+保留 `items`、`value` / `defaultValue`、`onValueChange` 与 `activationMode` 项目契约。每项使用唯一、非空的字符串 `value`，`label` 接受非交互 ReactNode，`content` 为面板内容。`ariaLabel` 为图标或富标签提供完整可访问名称；`icon` 是非交互装饰。ref 指向根 div，原生属性与 focus/blur 事件传到根元素，`label` 命名 tablist。
+
+`variant` 为 line（默认）、card、editable-card；`size` 为 default/small/large，未指定时跟随 ConfigProvider.componentSize。小号只缩小字距和内边距，所有标签、新增与关闭入口仍至少 44×44px。`classNames` 提供 root/header/item/tab/remove/add/body/content 的 Tailwind 语义部位，卡片背景和选中蓝色使用主题 Token。
+
+### 标签增删
+
+editable-card 提供 `onAdd()` 和 `onRemove(value)` 请求；items 始终由调用方维护。只有调用方实际插入/删除对应项后才执行选择与焦点交接；回调返回 false 可明确拒绝请求，void 表示等待数据更新。新增后请求选择第一个新出现且可用的标签；关闭当前项后优先选择之前的可用项，没有则选择之后的可用项。关闭非当前项保持原选择；关闭最后一项调用 `onValueChange('')`，展示 emptyTitle（默认“暂无可用标签页”）。受控 value 等待调用方接受更新，新增受控项的焦点同样等待实际选择；异步更新期间若用户已离开组件，不抢回外部焦点。
+
+`addable={false}` 隐藏默认新增入口；`addLabel` / `addIcon` 自定义名称与装饰，外部新增按钮可自行更新 items/value。缺少 onAdd/onRemove 时对应按钮禁用。项 `closable={false}`、`closeIcon={null/false}` 隐藏关闭入口；disabled 项不可激活或关闭。`closeLabel` 自定义关闭名称，默认来自 ariaLabel、文字 label 或 value；`closeIcon` 优先于公共 removeIcon。关闭按钮与 tab 为兄弟按钮，不嵌套；仅当前项关闭按钮进入 Tab 序列，鼠标/触控仍可关闭其他项。
+
+方向键/Home/End 浏览标签，automatic 立即激活，manual 通过 Enter/Space 激活；水平左右键遵循 RTL，上下键用于垂直布局。Delete 请求关闭可关闭项，重复键、输入法和修饰键不会触发。关闭操作与新增不会重复派发 value 回调。已聚焦的标签/关闭入口动态失效或面板被隐藏时恢复到可用标签；所有项不可用时使用新增入口或 tablist 回收焦点。
+
+### 位置、响应式和面板生命周期
+
+`placement` 为 top/bottom/start/end，优先于 orientation；显式 start/end 在组件自身宽度低于 640px 时转为 top。卡片不提供垂直形态，start/end 始终使用 top。未传 placement 的旧 orientation="vertical" 保留纵向布局，方便兼容已有调用。横向标签在自己的 header 内滚动，聚焦或选择会显示对应项；长标签按自身容器省略，为图标与关闭入口保留宽度。start/end 使用逻辑边框和间距，bottom 标签视觉排列在内容后。
+
+面板默认按首次激活懒渲染，切换后保留 DOM 与局部草稿。非当前面板 hidden/inert，控件不进入读屏和键盘序列。`destroyOnHidden={true}` 在隐藏时卸载内容，单项同名属性可覆写全局约定；项 forceRender 提前并持续挂载面板。项目此前直接沿用 Radix 隐藏即卸载的表现，需要旧生命周期的调用方应显式设置 destroyOnHidden。
+
+外部数据变化使非受控当前项被移除或禁用时，显示第一个可用面板；原项重新可用后恢复之前的选择。通过 onRemove 接受的明确删除会提交新的选择。受控仍以传入 value 为准，未知受控值展示空状态且不擅自回调。`/__ui` 独立展示可编辑卡片、保留/销毁草稿、禁用与空数组、数据/选择分步接受、四位置与 240px RTL 深色。
 
 ## Typography
 
@@ -479,7 +501,7 @@ ref 指向输入；`className` 修饰输入，`classNames` 除日期插槽外提
 
 `variant`、`status` 和 `size` 与其他输入控件统一，错误状态设置 `aria-invalid`，`prefix` / `suffixIcon` 提供非交互装饰。`showLine` / `showIcon` 复用 Tree 视觉，`emptyText` 配置无结果文案。`classNames` 提供 root / trigger / value / tag / remove / prefix / suffix / clear / popup / search / tree / item / title / switcher / checkbox / loading / error 的 Tailwind 插槽。`/__ui` 独立预览关联/严格勾选、三种回填、选择上限、标签折叠、逐项移除、四向弹出、受控空值、千节点窗口、四种外观、错误/警告、空结果与 RTL 深色；异步预览包含延迟、缓存、嵌套目录、空结果、失败、取消、刷新、删除与待加载值。
 
-`Tabs` 在非受控模式下会在当前项被移除或禁用时显示第一个可用面板；原项重新可用后会恢复之前的选择。若键盘焦点停在被移除或禁用的标签上，焦点会转到当前可用标签。受控模式仍以传入的 `value` 为准。
+`Tabs` 的动态标签、增删焦点和面板生命周期见 [Tabs](#tabs)。
 
 `Transfer.items` 的 `key` 必须唯一。`onChange(nextTargetKeys, direction, movedKeys)` 在移动后调用；`direction` 为 `to-target` 或 `to-source`。搜索只影响当前可见项和“全选可见项”，已勾选但被搜索隐藏的项目仍可移动。自定义 `filterItem` 收到去除首尾空格并转为小写的查询词。横向排列时箭头跟随 `ConfigProvider.direction`；窄屏上下排列时改用上下箭头，移动方向语义保持一致。
 
