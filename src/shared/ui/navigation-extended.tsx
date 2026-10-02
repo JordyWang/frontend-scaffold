@@ -489,6 +489,7 @@ export type AnchorProps = {
   links: AnchorLink[]
   activeHref?: string
   offsetTop?: number
+  getContainer?: () => HTMLElement | Window | null
   label?: string
   onChange?: (href: string) => void
   className?: string
@@ -498,6 +499,7 @@ export function Anchor({
   links,
   activeHref,
   offsetTop = 0,
+  getContainer,
   label = '页内导航',
   onChange,
   className,
@@ -514,18 +516,19 @@ export function Anchor({
 
   useEffect(() => {
     if (activeHref !== undefined) return
+    const container = getContainer?.() ?? window
 
     function updateFromScroll() {
       const targets = links
         .filter((link) => link.href.startsWith('#') && link.href.length > 1)
         .map((link) => {
-          let id: string
-          try {
-            id = decodeURIComponent(link.href.slice(1))
-          } catch {
+          const element = anchorTarget(link.href)
+          if (
+            element &&
+            !isWindowTarget(container) &&
+            !container.contains(element)
+          )
             return undefined
-          }
-          const element = document.getElementById(id)
           return element
             ? { href: link.href, top: element.getBoundingClientRect().top }
             : undefined
@@ -536,7 +539,12 @@ export function Anchor({
         .sort((a, b) => a.top - b.top)
       if (!targets.length) return
 
-      const threshold = Math.max(0, offsetTop) + 1
+      const threshold =
+        (isWindowTarget(container)
+          ? 0
+          : container.getBoundingClientRect().top) +
+        Math.max(0, offsetTop) +
+        1
       const next =
         targets.filter((target) => target.top <= threshold).at(-1)?.href ??
         targets[0].href
@@ -547,37 +555,35 @@ export function Anchor({
     }
 
     updateFromScroll()
-    window.addEventListener('scroll', updateFromScroll, { passive: true })
-    document.addEventListener('scroll', updateFromScroll, {
-      capture: true,
-      passive: true,
-    })
+    container.addEventListener('scroll', updateFromScroll, { passive: true })
+    if (isWindowTarget(container))
+      document.addEventListener('scroll', updateFromScroll, {
+        capture: true,
+        passive: true,
+      })
     window.addEventListener('resize', updateFromScroll)
     window.addEventListener('hashchange', updateFromScroll)
     const observer =
       typeof IntersectionObserver === 'undefined'
         ? null
-        : new IntersectionObserver(updateFromScroll)
+        : new IntersectionObserver(updateFromScroll, {
+            root: isWindowTarget(container) ? null : container,
+          })
     if (observer)
       for (const link of links) {
-        if (!link.href.startsWith('#') || link.href.length < 2) continue
-        try {
-          const target = document.getElementById(
-            decodeURIComponent(link.href.slice(1)),
-          )
-          if (target) observer.observe(target)
-        } catch {
-          continue
-        }
+        const target = anchorTarget(link.href)
+        if (target && (isWindowTarget(container) || container.contains(target)))
+          observer.observe(target)
       }
     return () => {
-      window.removeEventListener('scroll', updateFromScroll)
-      document.removeEventListener('scroll', updateFromScroll, true)
+      container.removeEventListener('scroll', updateFromScroll)
+      if (isWindowTarget(container))
+        document.removeEventListener('scroll', updateFromScroll, true)
       window.removeEventListener('resize', updateFromScroll)
       window.removeEventListener('hashchange', updateFromScroll)
       observer?.disconnect()
     }
-  }, [activeHref, links, offsetTop, onChange])
+  }, [activeHref, getContainer, links, offsetTop, onChange])
 
   return (
     <nav
@@ -590,7 +596,32 @@ export function Anchor({
           href={link.href}
           aria-current={effectiveActive === link.href ? 'location' : undefined}
           className="-ms-px flex min-h-11 touch-manipulation items-center border-s-2 border-transparent px-[var(--space-md)] py-2 text-muted-foreground no-underline outline-none hover:border-primary hover:text-foreground focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring aria-[current=location]:border-primary aria-[current=location]:text-foreground"
-          onClick={() => {
+          onClick={(event) => {
+            if (
+              event.button !== 0 ||
+              event.altKey ||
+              event.ctrlKey ||
+              event.metaKey ||
+              event.shiftKey
+            )
+              return
+            const container = getContainer?.()
+            const target = anchorTarget(link.href)
+            if (
+              container &&
+              !isWindowTarget(container) &&
+              target &&
+              container.contains(target)
+            ) {
+              event.preventDefault()
+              const position =
+                container.scrollTop +
+                target.getBoundingClientRect().top -
+                container.getBoundingClientRect().top -
+                Math.max(0, offsetTop)
+              container.scrollTop = position
+              window.history.pushState(null, '', link.href)
+            }
             if (activeHref === undefined) {
               activeRef.current = link.href
               setInternalActive(link.href)
@@ -603,6 +634,15 @@ export function Anchor({
       ))}
     </nav>
   )
+}
+
+function anchorTarget(href: string) {
+  if (!href.startsWith('#') || href.length < 2) return null
+  try {
+    return document.getElementById(decodeURIComponent(href.slice(1)))
+  } catch {
+    return null
+  }
 }
 
 export type AffixProps = {

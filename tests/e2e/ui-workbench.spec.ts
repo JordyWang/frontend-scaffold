@@ -3600,7 +3600,10 @@ test('anchor follows page sections with keyboard and touch navigation', async ({
 }, testInfo) => {
   await page.goto('/__ui')
   const preview = page.getByRole('region', { name: '设计系统补充组件' })
-  const anchor = preview.getByRole('navigation', { name: '页内导航' })
+  const anchor = preview.getByRole('navigation', {
+    name: '页内导航',
+    exact: true,
+  })
   const timeline = anchor.getByRole('link', { name: '时间线' })
   const result = anchor.getByRole('link', { name: '结果' })
   await expect(timeline).toHaveAttribute('aria-current', 'location')

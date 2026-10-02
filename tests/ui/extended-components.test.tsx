@@ -1954,6 +1954,60 @@ describe('Ant Design-inspired shared components', () => {
     }
   })
 
+  it('tracks and navigates targets inside a chosen scroll container', () => {
+    const onChange = vi.fn()
+    const originalUrl = window.location.href
+    const container = document.createElement('div')
+    const first = document.createElement('section')
+    const second = document.createElement('section')
+    first.id = 'inner-anchor-first'
+    second.id = 'inner-anchor-second'
+    container.append(first, second)
+    document.body.append(container)
+    let firstTop = 100
+    let secondTop = 300
+    vi.spyOn(container, 'getBoundingClientRect').mockReturnValue({
+      top: 100,
+    } as DOMRect)
+    vi.spyOn(first, 'getBoundingClientRect').mockImplementation(
+      () => ({ top: firstTop }) as DOMRect,
+    )
+    vi.spyOn(second, 'getBoundingClientRect').mockImplementation(
+      () => ({ top: secondTop }) as DOMRect,
+    )
+    try {
+      render(
+        <Anchor
+          label="容器导航"
+          links={[
+            { href: '#inner-anchor-first', title: '概览' },
+            { href: '#inner-anchor-second', title: '详情' },
+          ]}
+          getContainer={() => container}
+          offsetTop={8}
+          onChange={onChange}
+        />,
+      )
+      const firstLink = screen.getByRole('link', { name: '概览' })
+      const secondLink = screen.getByRole('link', { name: '详情' })
+      expect(firstLink).toHaveAttribute('aria-current', 'location')
+      firstTop = -120
+      secondTop = 107
+      fireEvent.scroll(window)
+      expect(firstLink).toHaveAttribute('aria-current', 'location')
+      fireEvent.scroll(container)
+      expect(secondLink).toHaveAttribute('aria-current', 'location')
+      secondTop = 300
+      fireEvent.click(secondLink)
+      expect(container.scrollTop).toBe(192)
+      expect(window.location.hash).toBe('#inner-anchor-second')
+      expect(onChange).toHaveBeenLastCalledWith('#inner-anchor-second')
+    } finally {
+      window.history.replaceState(null, '', originalUrl)
+      container.remove()
+    }
+  })
+
   it('moves tree focus with arrows and reports expansion', () => {
     const onExpand = vi.fn()
     const onSelect = vi.fn()

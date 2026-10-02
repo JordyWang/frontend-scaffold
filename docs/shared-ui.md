@@ -531,6 +531,8 @@ ref 指向输入；`className` 修饰输入，`classNames` 除日期插槽外提
 
 `Anchor` 默认跟踪同页 `#id` 目标的滚动位置，并以 `aria-current="location"` 标记当前章节；`offsetTop` 用于固定页头的判定偏移。传入 `activeHref` 后由业务控制高亮；点击链接仍保留浏览器原生锚点跳转，`onChange` 在点击或自动切换当前章节时收到链接地址。
 
+`getContainer()` 可指定独立滚动的 HTMLElement 或 Window。容器模式仅跟踪该容器内的目标，活动章节按容器顶部加 `offsetTop` 判定；点击同页链接时只滚动容器，并保留 URL hash 与 `onChange`。修饰键点击仍由浏览器处理。未指定容器时继续使用原生页面锚点跳转。`/__ui` 提供三章节容器预览，键盘与 H5 轻触均可导航。
+
 滚动跟踪同时观察文档捕获阶段的滚动事件和目标可见性变化，保证浏览器程序滚动或嵌套滚动容器中的章节切换仍能刷新当前链接。
 
 `Steps` 可用 `current` 受控，也可用 `defaultCurrent` 初始化内部步骤；提供 `onChange` 后步骤可点击，禁用项仍以禁用按钮和 `aria-disabled` 暴露。当前步骤使用 `aria-current="step"`，各步状态通过辅助文字说明。

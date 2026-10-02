@@ -293,6 +293,7 @@ export function DesignSystemPreview() {
     useState<HTMLDivElement | null>(null)
   const tourTriggerRef = useRef<HTMLButtonElement>(null)
   const tourEdgeTriggerRef = useRef<HTMLButtonElement>(null)
+  const anchorScrollRef = useRef<HTMLDivElement>(null)
   const alertRestoreRef = useRef<HTMLButtonElement>(null)
   const affixTargetRef = useRef<HTMLDivElement>(null)
 
@@ -2009,6 +2010,54 @@ export function DesignSystemPreview() {
                     { href: '#preview-result', title: '结果' },
                   ]}
                 />
+                <div
+                  role="group"
+                  aria-label="容器页内导航预览"
+                  className="grid min-w-0 gap-3 sm:grid-cols-[10rem_minmax(0,1fr)]"
+                >
+                  <Anchor
+                    label="容器页内导航"
+                    getContainer={() => anchorScrollRef.current}
+                    offsetTop={8}
+                    links={[
+                      { href: '#anchor-panel-one', title: '概览章节' },
+                      { href: '#anchor-panel-two', title: '配置章节' },
+                      { href: '#anchor-panel-three', title: '结果章节' },
+                    ]}
+                  />
+                  <div
+                    ref={anchorScrollRef}
+                    role="region"
+                    aria-label="章节滚动容器"
+                    tabIndex={0}
+                    className="h-56 min-w-0 overflow-y-auto overscroll-contain rounded-lg border border-border bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  >
+                    <section
+                      id="anchor-panel-one"
+                      className="min-h-56 border-b border-border p-4"
+                    >
+                      <Typography as="h4" variant="title">
+                        概览章节
+                      </Typography>
+                      <Typography tone="muted">容器内第一节内容。</Typography>
+                    </section>
+                    <section
+                      id="anchor-panel-two"
+                      className="min-h-56 border-b border-border p-4"
+                    >
+                      <Typography as="h4" variant="title">
+                        配置章节
+                      </Typography>
+                      <Typography tone="muted">容器内第二节内容。</Typography>
+                    </section>
+                    <section id="anchor-panel-three" className="min-h-72 p-4">
+                      <Typography as="h4" variant="title">
+                        结果章节
+                      </Typography>
+                      <Typography tone="muted">容器内最后一节内容。</Typography>
+                    </section>
+                  </div>
+                </div>
                 <Button
                   variant="outline"
                   disabled={carouselAutoplay}
