@@ -599,6 +599,8 @@ Carousel 的 `items` 保持项目 ReactNode 数组 API；有状态的内容传�
 
 Menu 的受控展开 API 为 `expandedKeys`、`defaultExpandedKeys` 和 `onExpand`；多级菜单使用方向键展开、收起和移动焦点，禁用项不会被方向键选中。Menu 只有一个 Tab 入口，焦点菜单项通过 roving `tabIndex` 暴露。横向菜单的子菜单通过主题作用域内的 Portal 显示，避开卡片裁切边界；Escape 返回触发项，点击外部关闭。
 
+横向菜单的父项支持 ArrowDown 打开并聚焦首个可用子项，弹层内 ArrowDown/ArrowUp 在同级可用项之间移动。选中子项会请求收起横向弹层；受控 `expandedKeys` 在调用方接受前保持原状态，实际收起后焦点回到父项。禁用父项即使被外部列入 `expandedKeys`，也不会展示或允许操作子项。`/__ui` 预览连续键盘导航、禁用子项和 H5 触控选择。
+
 ## 主题变量
 
 设计变量按 **Seed → 语义 Map/Alias → 组件 Token** 组织。`--ui-seed-*` 控制品牌色、状态色和圆角；`--ui-map-*` 控制浅色/深色的表面、文字和边框，其中主色悬停/按下色及高亮色从主色 Seed 派生；`--ui-button-*`、`--ui-field-*`、`--ui-card-*`、`--ui-overlay-*`、`--ui-menu-*` 是组件级覆写点。既有 `--primary`、`--card` 等变量仍作为 Alias 使用，业务无需改动。

@@ -3767,7 +3767,10 @@ test('horizontal submenu remains usable beside a clipped card edge', async ({
   )
   await expect(child).toBeInViewport()
   await child.click()
-  await expect(child).toHaveAttribute('aria-selected', 'true')
+  await expect(child).toHaveCount(0)
+  await expect(page.getByRole('status', { name: '横向菜单选择' })).toHaveText(
+    '已选择：all-components',
+  )
 })
 
 test('tree uses one tab stop and supports keyboard and touch expansion', async ({

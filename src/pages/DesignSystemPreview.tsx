@@ -267,6 +267,7 @@ export function DesignSystemPreview() {
   const [treeExpanded, setTreeExpanded] = useState(['components'])
   const [carouselAutoplay, setCarouselAutoplay] = useState(false)
   const [menuExpanded, setMenuExpanded] = useState<string[]>([])
+  const [horizontalMenuSelection, setHorizontalMenuSelection] = useState('')
   const [breadcrumbStatus, setBreadcrumbStatus] = useState('路径已折叠')
   const [affixStatus, setAffixStatus] = useState('未固定')
   const [affixBottomStatus, setAffixBottomStatus] = useState('未固定')
@@ -1973,16 +1974,35 @@ export function DesignSystemPreview() {
                 <Menu
                   mode="horizontal"
                   label="横向导航"
+                  selectedKeys={
+                    horizontalMenuSelection ? [horizontalMenuSelection] : []
+                  }
+                  onSelect={setHorizontalMenuSelection}
                   items={[
                     {
                       key: 'catalog',
                       label: '目录',
-                      children: [{ key: 'all-components', label: '全部组件' }],
+                      children: [
+                        { key: 'all-components', label: '全部组件' },
+                        { key: 'guides', label: '组件示例' },
+                        {
+                          key: 'disabled-child',
+                          label: '暂不可选',
+                          disabled: true,
+                        },
+                      ],
                     },
                     { key: 'examples', label: '示例' },
                     { key: 'unavailable', label: '暂不可用', disabled: true },
                   ]}
                 />
+                <p
+                  role="status"
+                  aria-label="横向菜单选择"
+                  className="m-0 text-sm text-muted-foreground"
+                >
+                  已选择：{horizontalMenuSelection || '无'}
+                </p>
                 <Anchor
                   links={[
                     { href: '#preview-timeline', title: '时间线' },

@@ -278,6 +278,105 @@ describe('Ant Design-inspired shared components', () => {
     expect(screen.getByRole('menuitem', { name: '子菜单' })).toBeInTheDocument()
   })
 
+  it('keeps descendants of a disabled submenu unavailable even if expanded externally', () => {
+    const onSelect = vi.fn()
+    render(
+      <Menu
+        expandedKeys={['disabled-parent']}
+        onSelect={onSelect}
+        items={[
+          {
+            key: 'disabled-parent',
+            label: '不可用分组',
+            disabled: true,
+            children: [{ key: 'child', label: '隐藏子项' }],
+          },
+          { key: 'available', label: '可用项' },
+        ]}
+      />,
+    )
+    expect(screen.queryByRole('menuitem', { name: '隐藏子项' })).toBeNull()
+    const disabled = screen.getByRole('menuitem', { name: '不可用分组' })
+    expect(disabled).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.keyDown(disabled, { key: 'ArrowRight' })
+    expect(screen.getByRole('menuitem', { name: '可用项' })).toHaveAttribute(
+      'tabindex',
+      '0',
+    )
+    expect(onSelect).not.toHaveBeenCalled()
+  })
+
+  it('enters a horizontal submenu with ArrowDown and closes it after leaf selection', () => {
+    const onSelect = vi.fn()
+    const onExpand = vi.fn()
+    render(
+      <Menu
+        mode="horizontal"
+        onSelect={onSelect}
+        onExpand={onExpand}
+        items={[
+          {
+            key: 'catalog',
+            label: '目录',
+            children: [
+              { key: 'all', label: '全部' },
+              { key: 'disabled', label: '不可选', disabled: true },
+              { key: 'guides', label: '指南' },
+            ],
+          },
+        ]}
+      />,
+    )
+    const catalog = screen.getByRole('menuitem', { name: '目录' })
+    catalog.focus()
+    fireEvent.keyDown(catalog, { key: 'ArrowDown' })
+    expect(onExpand).toHaveBeenCalledWith(['catalog'])
+    const all = screen.getByRole('menuitem', { name: '全部' })
+    expect(all).toHaveFocus()
+    fireEvent.keyDown(all, { key: 'ArrowDown' })
+    const guides = screen.getByRole('menuitem', { name: '指南' })
+    expect(guides).toHaveFocus()
+    fireEvent.click(guides)
+    expect(onSelect).toHaveBeenCalledWith('guides')
+    expect(onExpand).toHaveBeenLastCalledWith([])
+    expect(screen.queryByRole('menuitem', { name: '指南' })).toBeNull()
+    expect(catalog).toHaveFocus()
+  })
+
+  it('waits for controlled horizontal expansion to accept a selected leaf close', () => {
+    const items = [
+      {
+        key: 'catalog',
+        label: '目录',
+        children: [{ key: 'all', label: '全部' }],
+      },
+    ]
+    const onExpand = vi.fn()
+    const { rerender } = render(
+      <Menu
+        mode="horizontal"
+        items={items}
+        expandedKeys={['catalog']}
+        onExpand={onExpand}
+      />,
+    )
+    const child = screen.getByRole('menuitem', { name: '全部' })
+    child.focus()
+    fireEvent.click(child)
+    expect(onExpand).toHaveBeenLastCalledWith([])
+    expect(child).toBeInTheDocument()
+    rerender(
+      <Menu
+        mode="horizontal"
+        items={items}
+        expandedKeys={[]}
+        onExpand={onExpand}
+      />,
+    )
+    expect(screen.queryByRole('menuitem', { name: '全部' })).toBeNull()
+    expect(screen.getByRole('menuitem', { name: '目录' })).toHaveFocus()
+  })
+
   it('restores menu focus when controlled expansion hides the focused item', () => {
     const items = [
       {

@@ -152,6 +152,7 @@ export function Menu({
   const popupRefs = useRef<Record<string, HTMLUListElement | null>>({})
   const menuRef = useRef<HTMLElement | null>(null)
   const focusWithinRef = useRef(false)
+  const pendingChildFocus = useRef<string | null>(null)
   const menuId = useId()
   const selected = selectedKeys ?? internalSelected
   const expanded = expandedKeys ?? internalExpanded
@@ -183,7 +184,11 @@ export function Menu({
     function collect(current: MenuItem[], parentKey?: string) {
       for (const item of current) {
         result.push({ item, parentKey })
-        if (item.children?.length && expanded.includes(item.key))
+        if (
+          !item.disabled &&
+          item.children?.length &&
+          expanded.includes(item.key)
+        )
           collect(item.children, item.key)
       }
     }
@@ -194,6 +199,26 @@ export function Menu({
     [focusedKey, ...selected].find((key) =>
       visibleItems.some(({ item }) => item.key === key && !item.disabled),
     ) ?? visibleItems.find(({ item }) => !item.disabled)?.item.key
+
+  useLayoutEffect(() => {
+    const parentKey = pendingChildFocus.current
+    if (!parentKey) return
+    const parent = itemRefs.current[parentKey]
+    if (document.activeElement !== parent) {
+      pendingChildFocus.current = null
+      return
+    }
+    const child = visibleItems.find(
+      ({ item, parentKey: candidateParent }) =>
+        candidateParent === parentKey && !item.disabled,
+    )
+    if (!child) {
+      if (expanded.includes(parentKey)) pendingChildFocus.current = null
+      return
+    }
+    pendingChildFocus.current = null
+    itemRefs.current[child.item.key]?.focus()
+  }, [expanded, visibleItems])
 
   useLayoutEffect(() => {
     if (
@@ -230,9 +255,13 @@ export function Menu({
       itemRefs.current[fallback]?.focus()
   }, [focusedKey, isWithinMenu, items, visibleItems])
 
-  function select(key: string) {
+  function select(key: string, parentKey?: string) {
     if (selectedKeys === undefined) setInternalSelected([key])
     onSelect?.(key)
+    if (mode === 'horizontal' && parentKey && expanded.length) {
+      if (expandedKeys === undefined) setInternalExpanded([])
+      onExpand?.([])
+    }
   }
 
   function toggleExpanded(key: string) {
@@ -281,7 +310,36 @@ export function Menu({
       event.key === closeKey &&
       (Boolean(current.parentKey) ||
         (Boolean(current.item.children?.length) && expanded.includes(key)))
-    if (event.key === 'Escape') {
+    if (
+      mode === 'horizontal' &&
+      event.key === 'ArrowDown' &&
+      current.item.children?.length
+    ) {
+      event.preventDefault()
+      if (!expanded.includes(key)) {
+        pendingChildFocus.current = key
+        toggleExpanded(key)
+      } else {
+        const child = visibleItems.find(
+          ({ item, parentKey }) => parentKey === key && !item.disabled,
+        )
+        itemRefs.current[child?.item.key ?? '']?.focus()
+      }
+    } else if (
+      mode === 'horizontal' &&
+      current.parentKey &&
+      (event.key === 'ArrowDown' || event.key === 'ArrowUp')
+    ) {
+      event.preventDefault()
+      const siblings = visibleItems.filter(
+        ({ item, parentKey }) =>
+          parentKey === current.parentKey && !item.disabled,
+      )
+      const position = siblings.findIndex(({ item }) => item.key === key)
+      const offset = event.key === 'ArrowDown' ? 1 : -1
+      const next = siblings[position + offset]
+      itemRefs.current[next?.item.key ?? '']?.focus()
+    } else if (event.key === 'Escape') {
       const parent = current.parentKey ?? (expanded.includes(key) ? key : null)
       if (parent) {
         event.preventDefault()
@@ -321,10 +379,14 @@ export function Menu({
     }
   }
 
-  function renderItems(current: MenuItem[], level = 0): ReactNode {
+  function renderItems(
+    current: MenuItem[],
+    level = 0,
+    parentKey?: string,
+  ): ReactNode {
     return current.map((item) => {
       const hasChildren = Boolean(item.children?.length)
-      const isExpanded = expanded.includes(item.key)
+      const isExpanded = !item.disabled && expanded.includes(item.key)
       const isSelected = selected.includes(item.key)
       const triggerId = `${menuId}-${encodeURIComponent(item.key)}-trigger`
       const submenuId = `${menuId}-${encodeURIComponent(item.key)}-submenu`
@@ -354,7 +416,7 @@ export function Menu({
               if (hasChildren) {
                 toggleExpanded(item.key)
               }
-              select(item.key)
+              select(item.key, parentKey)
             }}
             onFocus={() => {
               focusWithinRef.current = true
@@ -383,7 +445,7 @@ export function Menu({
                 popupRefs.current[item.key] = element
               }}
             >
-              {renderItems(item.children ?? [], level + 1)}
+              {renderItems(item.children ?? [], level + 1, item.key)}
             </HorizontalMenuPopup>
           ) : hasChildren && isExpanded ? (
             <ul
@@ -392,7 +454,7 @@ export function Menu({
               aria-labelledby={triggerId}
               className="m-0 list-none ps-[var(--space-md)]"
             >
-              {renderItems(item.children ?? [], level + 1)}
+              {renderItems(item.children ?? [], level + 1, item.key)}
             </ul>
           ) : null}
         </li>
