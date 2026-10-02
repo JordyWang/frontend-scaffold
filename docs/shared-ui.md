@@ -43,7 +43,7 @@
 | 公共能力                        | `Portal`、`ErrorBoundary`、`Container`、`LoadingState`、`ErrorState`                                                                                   | 弹层挂载、异常兜底、响应式容器和统一反馈                                                                                    |
 | App / ConfigProvider / Util     | `App`、`useApp()`；`ConfigProvider`、`useConfig()`；`getPrefixCls`、`usePrefixCls`、`warning`、`cx`                                                    | 应用级 message / notification / modal.confirm API；弹窗支持确认、取消和回调；主题、方向、尺寸、locale 与前缀配置            |
 | ThemeScope                      | `mode`、`density`、`tokens`、原生 div 属性                                                                                                             | 局部浅色/深色、品牌 Token、组件 Token 和紧凑预览；`auto` 继承上级主题                                                       |
-| Icon / Typography               | `Icon(name, size, label)`；`Typography(as, variant, tone)`                                                                                             | 图标默认装饰性；有语义时传 `label`；标题通过 `as` 保持正确层级                                                              |
+| Icon / Typography               | `Icon(name, size, label)`；`Typography(as, variant, tone, copyable, editable, ellipsis)`                                                               | 图标默认装饰性；标题通过 `as` 保持层级，文字支持复制、编辑、容器省略与展开/收起                                             |
 | Stack / Flex / Grid / Divider   | `Stack(direction, gap, align, justify, wrap)`；`Flex` 为 Stack 别名；`Grid(minItemWidth, gap)`；`Divider(orientation)`                                 | Grid 根据容器宽度自动换列；竖向分隔线仅用于水平布局                                                                         |
 | Splitter                        | `panels`、`sizes` / `defaultSizes`、`onResize`、`onResizeEnd`、`onCollapse`、`orientation`、`step`、`disabled`                                         | 多面板百分比尺寸；相邻面板拖拽、方向键、Home/End、双击重置及折叠；触控命中区至少 44px                                       |
 | Masonry                         | `items`、`columns`、`gap`、`onLayoutChange`                                                                                                            | 按最短列排布不同高度内容；按容器宽度响应列数，内容或图片尺寸变化后重新测量                                                  |
@@ -127,6 +127,38 @@
 `InputNumber`、`DatePicker`、`TimePicker`、`DateRangePicker`、`TimeRangePicker` 和 `AutoComplete` 同样支持 `variant` 与 `status`；错误状态通过 `aria-invalid` 传递；日期与时间的单选和范围默认使用项目面板，也提供显式原生适配。
 
 `InputNumber` 输入期间保留原始数字草稿，`onChange` 会收到当前数值或清空时的 `undefined`；失焦时再按 `min` / `max` 限制数值，并在修正后再次调用 `onChange`。受控用法可传入 `value={undefined}` 表示空值，并在 `onChange` 中同步更新。`precision` 在提交和步进时限制小数位；`formatter(value, { userTyping, input })` 与 `parser(text)` 负责展示和规范值转换；`controls` 默认横向显示两个至少 44×44px 的步进按钮，也可传入上下图标，`keyboard` 控制上下方向键，`changeOnWheel` 显式开启聚焦时滚轮步进，`onStep(value, { offset, type })` 报告步进结果。原生 form reset 恢复 `defaultValue`，无效草稿不会绕过边界约束。
+
+## Typography
+
+保留项目 `as` / `variant` / `tone` API，元素支持 span、p、div 和 h1–h6；标题层级独立于字体外观，ref 指向根 HTML 元素。`tone` 支持 default、muted、danger、success、warning；`strong` / `italic` 使用语义标签，`underline` / `strike` 可组合，`code` / `keyboard` / `mark` 保留项目主题。`disabled` 保留可读文字并禁止复制/编辑/展开操作。富文本块内容请使用 `as="div"`，其内部布局与表格可通过 Tailwind 类自行定义。
+
+### 复制
+
+`copyable` 为布尔值或 `TypographyCopyOptions`。默认复制完整正文与 `ellipsis.suffix`，省略、装饰和操作按钮不改变复制值；富文本复制来自正文 DOM 的 textContent。`text` 可指定字符串，或返回字符串/Promise 的函数；`format` 为 text/plain（默认）或 text/html，HTML 默认来自正文 DOM，也可显式指定内容。HTML 使用 ClipboardItem，浏览器不支持时显示失败。
+
+复制期间使用 `aria-busy` / `aria-disabled` 和可见“正在复制”反馈，同一请求不会重复发起。失败提供可见错误，原按钮可重试；成功调用 `onCopy(text)` 并展示两秒成功反馈，失败调用 `onError(error)`。正文、后缀、复制来源/格式、禁用、移除操作和卸载使旧请求失效，迟到响应不写入新状态；异步取值尚未完成时失效则不再写剪贴板。已交给浏览器的剪贴板写入不能撤销，只忽略其过期反馈。
+
+`label` / `successLabel` / `errorLabel`、两个 `icon`、两个 `tooltip` 内容（或 false）和 `tabIndex` 可定制。现代浏览器优先使用 Clipboard API；缺少纯文本 API 时使用 execCommand，并恢复原焦点、输入选区和文档选区。复制按钮为 type=button，不提交外部表单。
+
+### 编辑
+
+`editable` 为布尔值或 `TypographyEditOptions`。`value` / `defaultValue` 管理项目字符串；显式 `value={undefined}` 表示受控空值，`onChange(value)` 只在提交后报告。未指定值时，点击入口会读取完整正文文本；本地保存后显示字符串，外部 children 更新清除旧本地保存结果。任意自定义组件在初始 `defaultEditing` 时可通过 value/defaultValue 提供编辑源；编辑任意富文本后不自动重建原格式。
+
+`editing` / `defaultEditing` / `onEditingChange` 独立管理开合，`onStart` 报告用户请求开始，`onCancel` 报告 Escape/取消，`onEnd(value, reason)` 报告 submit/blur。受控文字和开合等待外部接受，关闭请求尚未接受时不会重复发布同次提交。外部文字更新会重置过期草稿。`trigger` 为 icon（默认）、text 或 both；文字入口支持 Enter/空格，内部链接保持自身操作。
+
+编辑复用公共 Textarea。Enter 保存、Shift+Enter 换行、Escape 取消，组合输入、229 键码和重复按键不会误提交；空白与换行原样保留。默认离开编辑区域时保存，内部保存/取消按钮的焦点切换不提前提交；`submitOnBlur={false}` 可保持会话。`maxLength` 使用原生文本长度限制，`autoSize` 默认 true，可指定 minRows/maxRows 或 false 保留手动调整；没有 maxRows 时不限制自动高度。`icon`、`submitIcon`（null 隐藏保存按钮）、`tooltip`、`label`、`inputLabel`、`tabIndex` 可定制，取消始终有明确入口。
+
+开始编辑聚焦正文末端；保存/取消后恢复可用入口，移除或禁用焦点所属操作时回到根元素，已经移到外部的焦点保持。动态禁用、移除编辑或卸载终止旧会话，不发布残留草稿。
+
+### 省略、操作与触控
+
+`ellipsis` 为布尔值或 `TypographyEllipsisOptions`，默认一行；rows 限制为至少一行整数。通过 Tailwind line-clamp 和实际正文 DOM 测量判断溢出，ResizeObserver、字体载入和窗口变化重新检查；MutationObserver 覆盖富文本子组件自行改字或样式但框尺寸未变的情况。不挂载第二棵 React 富文本树。`onEllipsis(boolean)` 只报告溢出状态变化。
+
+`expandable={true}` 为一次展开，`'collapsible'` 支持展开/收起；`expanded` / `defaultExpanded` / `onExpandedChange` 采用项目受控约定。只有实际溢出时显示操作，ARIA 关联正文和展开状态；`symbol` 为节点或 `(expanded) => ReactNode`。`suffix` 在正文后单独保留完整行，始终可读且加入默认复制值；这是项目后缀布局，不在被截断的末行插入后缀。`tooltip` 为 true 或自定义内容，复用公共 Portal Tooltip，省略正文可通过 Tab 聚焦查看提示。推荐用展开查看大量文字。
+
+富文本保持一份实际 DOM 和组件状态，链接等后代取得焦点时自动显示完整正文。受控展开尚未接受时暂时显示正文，离开根区域后恢复调用方要求的状态，避免焦点停在被裁切的内容上。`actions.placement` 可为 start/end（默认），操作栏在正文前/后独立排列，不消耗省略行宽。`classNames` 提供 root、content、actions、action、textarea、suffix、feedback 语义部位，全部使用 Tailwind 与主题 Token。
+
+按钮/文字编辑入口至少 44×44px，编辑字号至少 16px，操作蓝色从主色与文字色混合以保持可读对比。`/__ui` 独立展示受控编辑、复制等待/失败/重试、长度限制、富文本、动态容器、后缀、格式/状态与 240px RTL 深色。
 
 ## ColorPicker
 

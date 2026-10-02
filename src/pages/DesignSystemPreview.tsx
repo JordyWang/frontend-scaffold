@@ -25,6 +25,7 @@ import { PickerFormatPreview } from './PickerFormatPreview'
 import { SliderPreview } from './SliderPreview'
 import { ColorPickerPreview } from './ColorPickerPreview'
 import { ColorPickerGradientPreview } from './ColorPickerGradientPreview'
+import { TypographyPreview } from './TypographyPreview'
 import {
   Alert,
   Affix,
@@ -2143,6 +2144,7 @@ export function DesignSystemPreview() {
           <SliderPreview />
           <ColorPickerPreview />
           <ColorPickerGradientPreview />
+          <TypographyPreview />
           <Card className="col-span-full">
             <CardContent>
               <Stack gap="md">

@@ -18,14 +18,18 @@
 
 按当前源码继续补齐以下真实能力，组件入口存在不能作为完成证据：
 
-1. `Typography` 仅提供元素、样式和文字色：需补复制、编辑与省略展示的交互契约。
-2. `Tabs` 仍为基础标签与面板：需补卡片形态、可编辑标签及对应的增删焦点管理。
+1. `Tabs` 仍为基础标签与面板：需补卡片形态、可编辑标签及对应的增删焦点管理。
+2. `Typography` 的项目交互已落地；继续核对原生表格样式和末行/中间省略后缀，当前后缀使用独立保留行，未复刻上游后缀布局。
 
 对照 [DatePicker 6.6.5 文档](https://ant.design/components/date-picker-cn) 和 [TimePicker 6.6.5 文档](https://ant.design/components/time-picker-cn)，项目已实现日期、周、月、季度、年的单选、多选与范围面板，以及时间单选和范围的统一时间列面板。日期时间单选与范围组合、时间滚动选择、日期/时间悬停输入预览和毫秒精度已补齐；字符串/数组/函数 format、自定义解析与分段 mask 输入已补齐。日期范围的网格预览与输入 previewValue 分别验证。
 
 后续日期能力复用严格的本地日期计算、Calendar 网格、弹层定位与焦点契约，保持项目字符串值 API、Tailwind 语义 Token 和 44px 触控约定，同步键盘、焦点、RTL 与 `/__ui`。组件总览中的入口数量不能作为整库完成的验收依据。
 
 ## 已落地能力与验证范围
+
+对照 [Typography 6.6.5 文档](https://ant.design/components/typography-cn)，项目保留元素/样式/文字色契约，并补齐复制、编辑、省略三类交互。复制支持异步取值、HTML、等待去重、失败重试和过期响应，缺少纯文本 Clipboard API 时恢复原选区；编辑复用公共 Textarea，文字与开合独立受控，输入法、重复按键、失焦、内部按钮、外部更新和取消统一管理。容器/字体变化重新检测真实溢出，测量使用 DOM 克隆且不挂载重复 React 富文本；富文本链接焦点展开、受控暂未接受、内容缩减与操作动态失效均恢复可用焦点。操作蓝色从主题主色派生，正文格式保持语义标签，`/__ui` 同步实际 44px 操作、16px 输入和 240px RTL 深色。项目后缀使用正文后独立保留行，原生表格样式和上游末行/中间后缀布局继续按缺口检查，具体 API 见 [Typography](./shared-ui.md#typography)。
+
+本批 `pnpm check` 通过（69 文件 / 828 单测，Typography 独立 30 项），含 lint、Tailwind gate、typecheck、format 和 build。Typography 新增三平台回归 15 项全部通过；连同受影响主题、原生输入、键盘与浮层路径共 25 项通过、2 项按平台跳过。最后补充框尺寸不变时的富文本 DOM 变化监听，相关省略/RTL 浏览器 6 项再次通过。已查看三平台 240px RTL 深色截图，操作、文本与输入边界正常且无页面横溢。Chromium PC/H5 验证真实纯文本剪贴板，WebKit 使用隔离的剪贴板测试适配；HTML 与旧复制 fallback 通过单测验证，未宣称已驱动 WebKit 原生剪贴板权限或操作系统输入法。
 
 对照 [ColorPicker 6.6.5 文档](https://ant.design/components/color-picker-cn)，项目默认使用自己的弹出颜色面板，并提供常驻面板与显式原生适配。字符串规范值保留 Hex，支持透明度、RGB/HSB 编码与通道输入、清空、分组预设、受控实时/完成、受控开合、四逻辑位置及自定义面板包装。颜色区域通过项目 Slider 提供等价键盘操作；Portal 逃离裁切并继承主题与 RTL，Tab 续接字段，动态关闭恢复持有的焦点。统一 `ColorPickerHandle` 替代旧 input ref，迁移约定见 [ColorPicker API](./shared-ui.md#colorpicker)。输入草稿错误与规范值隔离，Escape 恢复草稿；H5 预设与清空保持面板焦点，InputNumber 隐藏重复原生步进器并保证实际输入区域的高度和字号。HSB 小数步长避免常驻原生表单的 step mismatch。`/__ui` 覆盖透明/不透明、只读/错误、格式、裁切、表单和 240px RTL 深色。
 

@@ -90,7 +90,13 @@ export type { ThemeScopeProps, ThemeTokens } from './theme-scope'
 export { Icon } from './icon'
 export type { IconProps } from './icon'
 export { Typography } from './typography'
-export type { TypographyProps } from './typography'
+export type {
+  TypographyProps,
+  TypographyPart,
+  TypographyCopyOptions,
+  TypographyEditOptions,
+  TypographyEllipsisOptions,
+} from './typography'
 export { Stack, Flex, Space, SpaceCompact, Grid, Divider } from './layout'
 export type {
   StackProps,

@@ -15,6 +15,8 @@ const paths = {
     </>
   ),
   check: <path d="m4 10 4 4 8-8" />,
+  copy: <path d="M7 7h10v11H7ZM4 13H2V2h10v2" />,
+  edit: <path d="m13 3 4 4M3 17l1-5L14 2l4 4L8 16ZM3 17l5-1" />,
   grip: <path d="M7 4h.01M13 4h.01M7 10h.01M13 10h.01M7 16h.01M13 16h.01" />,
   folder: (
     <path d="M2 5a1 1 0 0 1 1-1h5l2 2h7a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1Z" />
