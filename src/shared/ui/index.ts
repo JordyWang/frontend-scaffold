@@ -279,6 +279,10 @@ export type {
   DescriptionColumns,
   DescriptionSpan,
   DescriptionItem,
+  DescriptionPart,
+  DescriptionSemanticInfo,
+  DescriptionClassNames,
+  DescriptionStyles,
   DescriptionsProps,
 } from './descriptions'
 export {

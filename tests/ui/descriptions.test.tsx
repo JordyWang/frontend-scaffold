@@ -5,6 +5,7 @@ import {
   ConfigProvider,
   Descriptions,
   type DescriptionItem,
+  type DescriptionSemanticInfo,
 } from '@/shared/ui'
 
 function term(label: string) {
@@ -207,5 +208,93 @@ describe('Descriptions', () => {
       within(region).getByRole('button', { name: '重新加载详情' }),
     ).toBeInTheDocument()
     expect(within(region).queryByRole('term')).toBeNull()
+  })
+
+  it('updates semantic classes and styles without changing the responsive grid', () => {
+    const classNames = vi.fn(({ props, state }: DescriptionSemanticInfo) => ({
+      root: `details-${state}`,
+      header: 'custom-header',
+      title: 'custom-title',
+      extra: 'custom-extra',
+      body: 'custom-body',
+      item: 'custom-item',
+      label: props.bordered ? 'text-primary' : 'text-muted-foreground',
+      content: 'custom-content',
+      empty: 'custom-empty',
+    }))
+    const styles = vi.fn(({ size }: DescriptionSemanticInfo) => ({
+      root: { color: 'blue' },
+      header: { marginTop: 2 },
+      title: { letterSpacing: size === 'large' ? '2px' : '1px' },
+      extra: { opacity: 0.8 },
+      body: { opacity: 0.9 },
+      item: { backgroundColor: 'red' },
+      label: { fontWeight: 700 },
+      content: { fontWeight: 600 },
+      empty: { borderWidth: 2 },
+    }))
+    const { rerender } = render(
+      <Descriptions
+        title="语义详情"
+        extra={<Button>编辑</Button>}
+        bordered
+        size="large"
+        column={2}
+        className="root-override"
+        style={{ color: 'green' }}
+        classNames={classNames}
+        styles={styles}
+        items={[{ key: 'status', label: '状态', children: '进行中' }]}
+      />,
+    )
+    const region = screen.getByRole('region', { name: '语义详情' })
+    const heading = within(region).getByRole('heading', { name: '语义详情' })
+    const body = region.querySelector('dl')!
+    expect(region).toHaveClass('details-ready', 'root-override')
+    expect(region).toHaveStyle({ color: 'rgb(0, 128, 0)' })
+    expect(heading.parentElement).toHaveClass('custom-header')
+    expect(heading.parentElement).toHaveStyle({ marginTop: '2px' })
+    expect(heading).toHaveClass('custom-title')
+    expect(heading).toHaveStyle({ letterSpacing: '2px' })
+    expect(
+      within(region).getByRole('button', { name: '编辑' }).parentElement,
+    ).toHaveClass('custom-extra')
+    expect(body).toHaveClass('custom-body')
+    expect(body).toHaveStyle({ opacity: '0.9' })
+    expect(body.style.getPropertyValue('--description-columns-sm')).toBe('2')
+    expect(cell('状态')).toHaveClass('custom-item')
+    expect(cell('状态')).toHaveStyle({ backgroundColor: 'rgb(255, 0, 0)' })
+    expect(term('状态')).toHaveClass('text-primary')
+    expect(term('状态')).toHaveStyle({ fontWeight: '700' })
+    expect(definition('状态')).toHaveClass('custom-content')
+    expect(definition('状态')).toHaveStyle({ fontWeight: '600' })
+    expect(classNames).toHaveBeenCalledWith(
+      expect.objectContaining({
+        size: 'large',
+        state: 'ready',
+        props: expect.objectContaining({ bordered: true }),
+      }),
+    )
+
+    rerender(
+      <Descriptions
+        title="语义详情"
+        items={[]}
+        classNames={classNames}
+        styles={styles}
+      />,
+    )
+    expect(region).toHaveClass('details-empty')
+    expect(
+      within(region).getByText('暂无详情').closest('[data-ui-empty]'),
+    ).toHaveClass('custom-empty')
+    expect(
+      within(region).getByText('暂无详情').closest('[data-ui-empty]'),
+    ).toHaveStyle({
+      borderWidth: '2px',
+    })
+    expect(classNames).toHaveBeenLastCalledWith(
+      expect.objectContaining({ state: 'empty', size: 'default' }),
+    )
   })
 })

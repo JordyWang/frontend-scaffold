@@ -26,8 +26,31 @@ export type DescriptionItem = {
   contentClassName?: string
 }
 
-type DescriptionPart =
-  'root' | 'header' | 'title' | 'extra' | 'body' | 'item' | 'label' | 'content'
+export type DescriptionPart =
+  | 'root'
+  | 'header'
+  | 'title'
+  | 'extra'
+  | 'body'
+  | 'item'
+  | 'label'
+  | 'content'
+  | 'empty'
+export type DescriptionSemanticInfo = {
+  props: DescriptionsProps
+  size: ControlSize
+  state: 'ready' | 'empty'
+}
+export type DescriptionClassNames =
+  | Partial<Record<DescriptionPart, string>>
+  | ((
+      info: DescriptionSemanticInfo,
+    ) => Partial<Record<DescriptionPart, string>>)
+export type DescriptionStyles =
+  | Partial<Record<DescriptionPart, CSSProperties>>
+  | ((
+      info: DescriptionSemanticInfo,
+    ) => Partial<Record<DescriptionPart, CSSProperties>>)
 export type DescriptionsProps = Omit<
   HTMLAttributes<HTMLElement>,
   'title' | 'children'
@@ -41,7 +64,8 @@ export type DescriptionsProps = Omit<
   size?: ControlSize
   colon?: boolean
   emptyText?: string
-  classNames?: Partial<Record<DescriptionPart, string>>
+  classNames?: DescriptionClassNames
+  styles?: DescriptionStyles
 }
 
 const breakpoints = ['xs', 'sm', 'md', 'lg', 'xl', 'xxl'] as const
@@ -142,23 +166,35 @@ function descriptionLayout(
 }
 
 /** Read-only field pairs, with responsive rows and a single semantic reading order. */
-export function Descriptions({
-  title,
-  extra,
-  items,
-  column = 3,
-  bordered = false,
-  layout = 'horizontal',
-  size,
-  colon = true,
-  emptyText = '暂无详情',
-  className,
-  classNames,
-  ...props
-}: DescriptionsProps) {
+export function Descriptions(descriptionProps: DescriptionsProps) {
+  const {
+    title,
+    extra,
+    items,
+    column = 3,
+    bordered = false,
+    layout = 'horizontal',
+    size,
+    colon = true,
+    emptyText = '暂无详情',
+    className,
+    classNames,
+    styles,
+    style: rootStyle,
+    ...props
+  } = descriptionProps
   const id = useId()
   const { componentSize, direction } = useConfig()
   const resolvedSize = resolveComponentSize(componentSize, size)
+  const semanticInfo: DescriptionSemanticInfo = {
+    props: descriptionProps,
+    size: resolvedSize,
+    state: items.length ? 'ready' : 'empty',
+  }
+  const semanticClassNames =
+    typeof classNames === 'function' ? classNames(semanticInfo) : classNames
+  const semanticStyles =
+    typeof styles === 'function' ? styles(semanticInfo) : styles
   const vertical = layout === 'vertical'
   const { bodyStyle, itemStyles } = descriptionLayout(items, column, vertical)
   const hasTitle =
@@ -177,24 +213,27 @@ export function Descriptions({
       data-ui-layout={layout}
       className={cn(
         '@container/descriptions min-w-0 w-full',
-        classNames?.root,
+        semanticClassNames?.root,
         className,
       )}
+      style={{ ...semanticStyles?.root, ...rootStyle }}
     >
       {(hasTitle || extra) && (
         <div
           className={cn(
             'mb-4 flex flex-wrap items-center gap-3',
-            classNames?.header,
+            semanticClassNames?.header,
           )}
+          style={semanticStyles?.header}
         >
           {hasTitle && (
             <h2
               id={titleId}
               className={cn(
                 'm-0 min-w-0 flex-1 text-lg font-semibold [overflow-wrap:anywhere]',
-                classNames?.title,
+                semanticClassNames?.title,
               )}
+              style={semanticStyles?.title}
             >
               {title}
             </h2>
@@ -203,8 +242,9 @@ export function Descriptions({
             <div
               className={cn(
                 'ms-auto flex min-w-0 flex-wrap items-center gap-2',
-                classNames?.extra,
+                semanticClassNames?.extra,
               )}
+              style={semanticStyles?.extra}
             >
               {extra}
             </div>
@@ -212,7 +252,12 @@ export function Descriptions({
         </div>
       )}
       {items.length === 0 ? (
-        <Empty title={emptyText} size="small" />
+        <Empty
+          title={emptyText}
+          size="small"
+          className={semanticClassNames?.empty}
+          style={semanticStyles?.empty}
+        />
       ) : (
         <dl
           className={cn(
@@ -221,9 +266,9 @@ export function Descriptions({
             bordered
               ? 'gap-px overflow-hidden rounded-[var(--radius-lg)] bg-border p-px'
               : 'gap-x-4 gap-y-4',
-            classNames?.body,
+            semanticClassNames?.body,
           )}
-          style={bodyStyle}
+          style={{ ...semanticStyles?.body, ...bodyStyle }}
         >
           {items.map((item, index) => {
             return (
@@ -237,10 +282,10 @@ export function Descriptions({
                     ? 'row-span-2 grid-cols-1 grid-rows-subgrid'
                     : 'grid-cols-[minmax(min(6rem,45%),1fr)_minmax(0,2fr)]',
                   bordered && 'bg-card',
-                  classNames?.item,
+                  semanticClassNames?.item,
                   item.className,
                 )}
-                style={itemStyles[index]}
+                style={{ ...semanticStyles?.item, ...itemStyles[index] }}
               >
                 <dt
                   className={cn(
@@ -249,9 +294,10 @@ export function Descriptions({
                     !bordered && 'px-0',
                     bordered && 'bg-muted',
                     bordered && !vertical && 'border-e border-border',
-                    classNames?.label,
+                    semanticClassNames?.label,
                     item.labelClassName,
                   )}
+                  style={semanticStyles?.label}
                 >
                   <span className="min-w-0">{item.label}</span>
                   {colon && !bordered && (
@@ -267,9 +313,10 @@ export function Descriptions({
                     !bordered && 'px-0',
                     bordered && 'bg-card',
                     vertical && !bordered && 'pt-0',
-                    classNames?.content,
+                    semanticClassNames?.content,
                     item.contentClassName,
                   )}
+                  style={semanticStyles?.content}
                 >
                   {item.children}
                 </dd>

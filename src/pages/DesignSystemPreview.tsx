@@ -2805,6 +2805,15 @@ export function DesignSystemPreview() {
                     bordered={descriptionBordered}
                     layout={descriptionLayout}
                     size={descriptionSize}
+                    classNames={({ props }) => ({
+                      label: props.bordered ? 'text-primary' : undefined,
+                    })}
+                    styles={({ size: currentSize }) => ({
+                      title: {
+                        letterSpacing:
+                          currentSize === 'large' ? '0.04em' : undefined,
+                      },
+                    })}
                     items={[
                       {
                         key: 'team',
@@ -2861,7 +2870,14 @@ export function DesignSystemPreview() {
                       ]}
                     />
                   </ConfigProvider>
-                  <Descriptions title="空详情预览" items={[]} />
+                  <Descriptions
+                    title="空详情预览"
+                    items={[]}
+                    classNames={({ state }) => ({
+                      empty:
+                        state === 'empty' ? 'border-primary/30' : undefined,
+                    })}
+                  />
                 </section>
                 <Stack direction="row" wrap gap="lg" align="center">
                   <div className="grid gap-3 sm:grid-cols-2">

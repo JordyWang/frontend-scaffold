@@ -122,6 +122,7 @@ test('description layout, borders, sizes and extra action work with keyboard and
   await expect(region).toHaveAttribute('data-ui-layout', 'vertical')
   const teamTerm = item(region, '归属团队').getByRole('term')
   const teamContent = definition(region, '归属团队')
+  await expect(teamTerm).toHaveClass(/\btext-primary\b/)
   const termBox = await teamTerm.boundingBox()
   const contentBox = await teamContent.boundingBox()
   expect(contentBox!.y).toBeCloseTo(termBox!.y + termBox!.height + 1, 0)
@@ -133,6 +134,7 @@ test('description layout, borders, sizes and extra action work with keyboard and
     path: `output/playwright/descriptions-vertical-${testInfo.project.name}.png`,
   })
   await activate('隐藏详情边框')
+  await expect(teamTerm).not.toHaveClass(/\btext-primary\b/)
   await expect(region.locator('dt [aria-hidden="true"]')).toHaveCount(4)
   await expect(teamTerm).toHaveCSS('border-inline-end-width', '0px')
   await activate('使用小号详情')
@@ -141,6 +143,13 @@ test('description layout, borders, sizes and extra action work with keyboard and
   await activate('使用大号详情')
   await expect(region).toHaveAttribute('data-ui-size', 'large')
   await expect(teamTerm).toHaveCSS('padding-top', '16px')
+  expect(
+    await region
+      .getByRole('heading', { name: '响应式任务详情' })
+      .evaluate((element) =>
+        parseFloat(getComputedStyle(element).letterSpacing),
+      ),
+  ).toBeGreaterThan(0)
   await activate('恢复默认详情尺寸')
   await expect(region).toHaveAttribute('data-ui-size', 'default')
   await expect(teamTerm).toHaveCSS('padding-top', '12px')
@@ -205,6 +214,9 @@ test('vertical descriptions inherit RTL, dark theme and small size', async ({
   await expect(
     page.getByRole('region', { name: '空详情预览' }).getByText('暂无详情'),
   ).toBeVisible()
+  await expect(
+    page.getByRole('region', { name: '空详情预览' }).locator('[data-ui-empty]'),
+  ).toHaveClass(/border-primary\/30/)
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
