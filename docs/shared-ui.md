@@ -131,7 +131,7 @@ Input 与 Textarea 的 `count` 可设为 `true`，或 `{ max, strategy, render }
 
 数据列与分组均可设 `hidden`。隐藏分组会移除整棵子树；隐藏叶子后，空分组自动移除，其他表头的 `colSpan` / `rowSpan` 与展开行跨度重算。被隐藏列的排序和筛选配置暂不参与本地数据处理或 H5 工具栏，但受控/默认状态保留，再显示时恢复；汇总只渲染可见叶子列。`/__ui` 可切换成员组、评审列与任务组。
 
-数据列与分组还可设 `minContainerWidth`（CSS 像素）。Table 测量自身容器宽度，宽度低于阈值时按 `hidden` 的相同规则移除对应列或整组；容器缩放时自动重算，无需依赖视口断点。未测得宽度时先展示全部非 `hidden` 列。`renderMobileRow(row, context)` 的 `context.visibleColumnKeys` 提供最终可见叶子列键，`context.containerWidth` 提供测得的容器宽度（测量前为 `null`）；已有单参数回调继续可用。自定义卡片可据此同步展示内容。`/__ui` 的“按容器宽度显示列”可切换宽、中、窄容器，验证列组跨度、排序、筛选与汇总随宽度更新。
+数据列与分组还可设 `minContainerWidth`（CSS 像素）。Table 测量自身容器宽度，宽度低于阈值时按 `hidden` 的相同规则移除对应列或整组；容器缩放时自动重算，无需依赖视口断点。未测得宽度时先展示全部非 `hidden` 列。`renderMobileRow(row, context)` 的 `context.visibleColumnKeys` 提供最终可见叶子列键，`context.containerWidth` 提供测得的容器宽度（测量前为 `null`）；已有单参数回调继续可用。自定义卡片可据此同步展示内容。缩窄容器时，若当前焦点所在的列控件被移除，焦点回到有名称的 Table 区域。`/__ui` 的“按容器宽度显示列”可切换宽、中、窄容器，验证列组跨度、排序、筛选与汇总随宽度更新。
 
 `Table.size` 使用项目统一的 `small`、`default`、`large`，未传时继承 `ConfigProvider.componentSize`。尺寸调整表头、数据单元格、详情区域与 H5 卡片行的留白；选择、排序和展开按钮仍保留至少 44px 触控目标。`bordered` 默认关闭，开启后桌面展示单元格网格线，H5 卡片行展示独立边框。`rowHoverable` 默认开启，只在支持悬停的设备上提示当前行；设为 `false` 可关闭。`/__ui` 的“Table 展示状态”可切换这些设置，并验证桌面表格与窄屏卡片视图。
 

@@ -161,8 +161,13 @@ describe('Table container responsive columns', () => {
     expect(table.querySelector('tfoot')).toHaveTextContent('5')
     fireEvent.click(within(table).getByRole('button', { name: '展开c' }))
     expect(expandedCell()).toHaveAttribute('colspan', '6')
+    const sortButton = within(table).getByRole('button', {
+      name: '按已完成排序，升序',
+    })
+    sortButton.focus()
 
     resize(800)
+    expect(sortButton).toHaveFocus()
     expect(group()).toHaveAttribute('colspan', '2')
     expect(
       within(table).queryByRole('columnheader', { name: '待处理' }),
@@ -174,6 +179,7 @@ describe('Table container responsive columns', () => {
     )
 
     resize(650)
+    expect(region).toHaveFocus()
     expect(group()).toHaveAttribute('colspan', '1')
     expect(bodyRows()[0]).toHaveTextContent('任务 A')
     expect(expandedCell()).toHaveAttribute('colspan', '4')

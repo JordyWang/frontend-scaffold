@@ -89,6 +89,19 @@ test('Table columns respond to container width on desktop and H5', async ({
     await expect(
       region.getByRole('button', { name: /筛选负责人/ }),
     ).toBeVisible()
+
+    const focusedSort = region.getByRole('button', {
+      name: '按已完成排序，升序',
+    })
+    await focusedSort.focus()
+    await expect(focusedSort).toBeFocused()
+    await region.evaluate((element) => {
+      element.parentElement!.style.width = '380px'
+    })
+    await expect(
+      table.getByRole('columnheader', { name: '交付信息' }),
+    ).toHaveCount(0)
+    await expect(region).toBeFocused()
   }
 
   expect(

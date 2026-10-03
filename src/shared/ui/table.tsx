@@ -296,6 +296,8 @@ export type TableProps<T> = TableCommonProps<T> &
 export function Table<T>(allProps: TableProps<T>) {
   const radioGroupName = useId()
   const rootRef = useRef<HTMLElement>(null)
+  const focusedBeforeResizeRef = useRef<HTMLElement | null>(null)
+  const lastMeasuredWidthRef = useRef<number | null>(null)
   const [containerWidth, setContainerWidth] = useState<number | null>(null)
   const controlled = Object.prototype.hasOwnProperty.call(allProps, 'sort')
   const {
@@ -338,8 +340,17 @@ export function Table<T>(allProps: TableProps<T>) {
     if (!root) return
     const measure = () => {
       const width = root.getBoundingClientRect().width
-      if (width > 0 && Number.isFinite(width))
-        setContainerWidth((current) => (current === width ? current : width))
+      if (
+        width <= 0 ||
+        !Number.isFinite(width) ||
+        lastMeasuredWidthRef.current === width
+      )
+        return
+      lastMeasuredWidthRef.current = width
+      const active = document.activeElement
+      focusedBeforeResizeRef.current =
+        active instanceof HTMLElement && root.contains(active) ? active : null
+      setContainerWidth(width)
     }
     measure()
     if (typeof ResizeObserver === 'undefined') {
@@ -350,6 +361,11 @@ export function Table<T>(allProps: TableProps<T>) {
     observer.observe(root)
     return () => observer.disconnect()
   }, [measureContainer])
+  useLayoutEffect(() => {
+    const focused = focusedBeforeResizeRef.current
+    focusedBeforeResizeRef.current = null
+    if (focused && !focused.isConnected) rootRef.current?.focus()
+  }, [containerWidth])
   const {
     headerRows,
     leafColumns,
@@ -803,7 +819,7 @@ export function Table<T>(allProps: TableProps<T>) {
   }
 
   const regionClassName = cn(
-    'min-w-0 overflow-hidden rounded-[var(--radius)] border border-border bg-card text-card-foreground',
+    'min-w-0 overflow-hidden rounded-[var(--radius)] border border-border bg-card text-card-foreground focus:outline-2 focus:outline-offset-[-2px] focus:outline-ring',
     semanticClassNames?.root,
     className,
   )
@@ -816,6 +832,7 @@ export function Table<T>(allProps: TableProps<T>) {
     return (
       <section
         ref={rootRef}
+        tabIndex={-1}
         {...tableAttributes}
         aria-busy="true"
         aria-label={caption}
@@ -833,6 +850,7 @@ export function Table<T>(allProps: TableProps<T>) {
     return (
       <section
         ref={rootRef}
+        tabIndex={-1}
         {...tableAttributes}
         aria-label={caption}
         className={regionClassName}
@@ -853,6 +871,7 @@ export function Table<T>(allProps: TableProps<T>) {
     return (
       <section
         ref={rootRef}
+        tabIndex={-1}
         {...tableAttributes}
         aria-label={caption}
         className={regionClassName}
@@ -873,6 +892,7 @@ export function Table<T>(allProps: TableProps<T>) {
   return (
     <section
       ref={rootRef}
+      tabIndex={-1}
       {...tableAttributes}
       aria-label={caption}
       className={regionClassName}
