@@ -140,6 +140,7 @@ const previewGroups = [
       { id: 'ds-input', label: '输入与表单' },
       { id: 'ds-calendar', label: '日历' },
       { id: 'ds-display', label: '展示与加载' },
+      { id: 'ds-table', label: '表格' },
       { id: 'ds-feedback', label: '反馈与弹层' },
       { id: 'ds-navigation', label: '导航与结果' },
       { id: 'ds-collapse', label: '折叠面板' },

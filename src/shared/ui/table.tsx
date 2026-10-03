@@ -1,6 +1,11 @@
 import { Fragment, useMemo, useState, type Key, type ReactNode } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { Checkbox } from './choice'
+import {
+  resolveComponentSize,
+  useConfig,
+  type ControlSize,
+} from './config-context'
 import { Empty } from './empty'
 import { ErrorState, LoadingState } from './feedback-state'
 import { scrollHorizontalRegion } from './horizontal-scroll'
@@ -83,6 +88,9 @@ export type TableProps<T> = {
   rows: T[]
   getRowKey: (row: T) => Key
   caption: string
+  size?: ControlSize
+  bordered?: boolean
+  rowHoverable?: boolean
   loading?: boolean
   error?: string
   onRetry?: () => void | Promise<void>
@@ -107,6 +115,9 @@ export function Table<T>(allProps: TableProps<T>) {
     rows,
     getRowKey,
     caption,
+    size,
+    bordered = false,
+    rowHoverable = true,
     loading,
     error,
     onRetry,
@@ -123,6 +134,31 @@ export function Table<T>(allProps: TableProps<T>) {
     pagination,
     className,
   } = allProps
+  const { componentSize } = useConfig()
+  const resolvedSize = resolveComponentSize(componentSize, size)
+  const cellPadding = {
+    small: 'px-3 py-2',
+    default: 'px-4 py-3',
+    large: 'px-6 py-4',
+  }[resolvedSize]
+  const sortHeaderPadding = {
+    small: 'px-1 py-0',
+    default: 'px-2 py-1',
+    large: 'px-3 py-2',
+  }[resolvedSize]
+  const mobilePadding = {
+    small: 'p-2',
+    default: 'p-[var(--space-md)]',
+    large: 'p-6',
+  }[resolvedSize]
+  const cellBorder = bordered && 'border border-border'
+  const rowHover = rowHoverable ? 'hover:bg-accent/50' : undefined
+  const tableAttributes = {
+    'data-ui-table': '',
+    'data-ui-size': resolvedSize,
+    'data-ui-bordered': bordered,
+    'data-ui-row-hoverable': rowHoverable,
+  }
   const paginationConfig = pagination === false ? undefined : pagination
   const paginationControlled =
     paginationConfig?.page !== undefined &&
@@ -419,7 +455,12 @@ export function Table<T>(allProps: TableProps<T>) {
         <td
           id={contentId}
           colSpan={colSpan}
-          className="border-b border-border bg-muted/40 px-4 py-3"
+          className={cn(
+            'bg-muted/40',
+            cellPadding,
+            cellBorder,
+            !bordered && 'border-b border-border',
+          )}
         >
           {expandable.expandedRowRender(row, index)}
         </td>
@@ -438,6 +479,7 @@ export function Table<T>(allProps: TableProps<T>) {
   if (loading)
     return (
       <section
+        {...tableAttributes}
         aria-busy="true"
         aria-label={caption}
         className={regionClassName}
@@ -449,7 +491,11 @@ export function Table<T>(allProps: TableProps<T>) {
     )
   if (error)
     return (
-      <section aria-label={caption} className={regionClassName}>
+      <section
+        {...tableAttributes}
+        aria-label={caption}
+        className={regionClassName}
+      >
         <div className={stateClassName}>
           <ErrorState description={error} onRetry={onRetry} />
         </div>
@@ -457,7 +503,11 @@ export function Table<T>(allProps: TableProps<T>) {
     )
   if (displayedRows.length === 0 && !hasActiveFilters)
     return (
-      <section aria-label={caption} className={regionClassName}>
+      <section
+        {...tableAttributes}
+        aria-label={caption}
+        className={regionClassName}
+      >
         <div role="status" className={stateClassName}>
           <Empty title={emptyTitle} />
         </div>
@@ -465,7 +515,11 @@ export function Table<T>(allProps: TableProps<T>) {
     )
 
   return (
-    <section aria-label={caption} className={regionClassName}>
+    <section
+      {...tableAttributes}
+      aria-label={caption}
+      className={regionClassName}
+    >
       {selection && (
         <div
           aria-live="polite"
@@ -489,12 +543,18 @@ export function Table<T>(allProps: TableProps<T>) {
           <thead className="bg-muted">
             <tr className="border-b border-border">
               {selection && (
-                <th scope="col" className="w-14 px-2 text-start">
+                <th
+                  scope="col"
+                  className={cn('w-14 px-2 text-start', cellBorder)}
+                >
                   {selectAllCheckbox()}
                 </th>
               )}
               {expandable && (
-                <th scope="col" className="w-14 px-2 text-start">
+                <th
+                  scope="col"
+                  className={cn('w-14 px-2 text-start', cellBorder)}
+                >
                   <span className="sr-only">展开详情</span>
                 </th>
               )}
@@ -512,9 +572,9 @@ export function Table<T>(allProps: TableProps<T>) {
                       : undefined
                   }
                   className={cn(
-                    column.sorter
-                      ? 'px-2 py-1 text-sm font-semibold'
-                      : 'px-4 py-3 text-sm font-semibold',
+                    'text-sm font-semibold',
+                    column.sorter ? sortHeaderPadding : cellPadding,
+                    cellBorder,
                     alignmentClassName(column.align),
                   )}
                 >
@@ -526,12 +586,12 @@ export function Table<T>(allProps: TableProps<T>) {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className={cn(!bordered && 'divide-y divide-border')}>
             {displayedRows.length === 0 && (
               <tr>
                 <td
                   colSpan={Math.max(1, tableColSpan)}
-                  className="p-[var(--space-lg)]"
+                  className={cn('p-[var(--space-lg)]', cellBorder)}
                 >
                   <div role="status">
                     <Empty
@@ -544,12 +604,16 @@ export function Table<T>(allProps: TableProps<T>) {
             )}
             {pageRows.map((row, index) => (
               <Fragment key={getRowKey(row)}>
-                <tr>
+                <tr className={rowHover}>
                   {selection && (
-                    <td className="w-14 px-2">{rowCheckbox(row)}</td>
+                    <td className={cn('w-14 px-2', cellBorder)}>
+                      {rowCheckbox(row)}
+                    </td>
                   )}
                   {expandable && (
-                    <td className="w-14 px-2">{expandButton(row)}</td>
+                    <td className={cn('w-14 px-2', cellBorder)}>
+                      {expandButton(row)}
+                    </td>
                   )}
                   {columns.map((column) =>
                     column.rowScope ? (
@@ -557,7 +621,9 @@ export function Table<T>(allProps: TableProps<T>) {
                         key={column.key}
                         scope={column.rowScope}
                         className={cn(
-                          'px-4 py-3 align-middle font-medium',
+                          'align-middle font-medium',
+                          cellPadding,
+                          cellBorder,
                           alignmentClassName(column.align),
                         )}
                       >
@@ -567,7 +633,9 @@ export function Table<T>(allProps: TableProps<T>) {
                       <td
                         key={column.key}
                         className={cn(
-                          'px-4 py-3 align-middle',
+                          'align-middle',
+                          cellPadding,
+                          cellBorder,
                           alignmentClassName(column.align),
                         )}
                       >
@@ -615,10 +683,18 @@ export function Table<T>(allProps: TableProps<T>) {
           )}
           <ul
             aria-label={caption}
-            className="m-0 list-none divide-y divide-border p-0"
+            className={cn(
+              'm-0 list-none p-0',
+              bordered ? 'grid gap-2 p-2' : 'divide-y divide-border',
+            )}
           >
             {displayedRows.length === 0 && (
-              <li className="p-[var(--space-md)]">
+              <li
+                className={cn(
+                  mobilePadding,
+                  bordered && 'rounded-[var(--radius-sm)] border border-border',
+                )}
+              >
                 <div role="status">
                   <Empty
                     title={emptyTitle}
@@ -631,7 +707,9 @@ export function Table<T>(allProps: TableProps<T>) {
               <li
                 key={getRowKey(row)}
                 className={cn(
-                  'p-[var(--space-md)]',
+                  mobilePadding,
+                  bordered && 'rounded-[var(--radius-sm)] border border-border',
+                  rowHover,
                   selection && 'flex items-start gap-3',
                 )}
               >

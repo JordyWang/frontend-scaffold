@@ -40,7 +40,7 @@
 | Pagination                      | `page`、`pageSize`、`total`、`onPageChange`、`mode`、`loading`、`disabled`                                                                             | `mode` 为 pages / load-more；页码从 1 开始；禁用时同步锁定页码、条数与跳页；窄屏区域独立滚动                                |
 | List                            | `items`、`getKey`、`renderItem`、`loading`、`error`、`onRetry`、`emptyTitle`、`label`、`className`                                                     | 语义化列表；加载、空和错误状态保留同一容器、名称与布局类，加载时标记 `aria-busy`                                            |
 | Listy                           | `items`、`getKey`、`renderItem`、`itemHeight`、`height`、`overscan`、`onEndReached`、`loading`、`error`、`label`                                       | 固定行高虚拟列表；状态切换保留名称、高度和布局类，数据缩减时修正滚动位置，恢复数据后从首行开始；原生滚动和 H5 触控保留      |
-| Table                           | `columns`、`rows`、`getRowKey`、`caption`、`loading`、`error`、`onRetry`、`emptyTitle`、`renderMobileRow`                                              | 列支持 `header`、`align`、`rowScope`；加载、空和错误状态保留表格区域语义，传入 `renderMobileRow` 后手机展示业务定义的卡片行 |
+| Table                           | `columns`、`rows`、`getRowKey`、`caption`、`size`、`bordered`、`rowHoverable`、`loading`、`error`、`onRetry`、`emptyTitle`、`renderMobileRow`          | 列支持 `header`、`align`、`rowScope`；加载、空和错误状态保留表格区域语义，传入 `renderMobileRow` 后手机展示业务定义的卡片行 |
 | 公共能力                        | `Portal`、`ErrorBoundary`、`Container`、`LoadingState`、`ErrorState`                                                                                   | 弹层挂载、异常兜底、响应式容器和统一反馈                                                                                    |
 | App / ConfigProvider / Util     | `App`、`useApp()`；`ConfigProvider`、`useConfig()`；`getPrefixCls`、`usePrefixCls`、`warning`、`cx`                                                    | 应用级 message / notification / modal.confirm API；弹窗支持确认、取消和回调；主题、方向、尺寸、locale 与前缀配置            |
 | ThemeScope                      | `mode`、`density`、`tokens`、原生 div 属性                                                                                                             | 局部浅色/深色、品牌 Token、组件 Token 和紧凑预览；`auto` 继承上级主题                                                       |
@@ -126,6 +126,8 @@ Input 与 Textarea 的 `count` 可设为 `true`，或 `{ max, strategy, render }
 `FloatButton` 传入 `href` 时渲染原生链接，`linkTarget` 指定新页等浏览器目标；`_blank` 默认加入 `noopener noreferrer`，也可显式传入 `rel`。链接保留 `variant`、图标、提示和徽标；`disabled` 或 `loading` 时移除 `href` 与 Tab 入口，并提供 `aria-disabled` 或 `aria-busy`。无 `href` 时仍是原生按钮，BackTop 只接受按钮属性。
 
 `Table` 默认沿文字方向的起始侧对齐表头与单元格；列的显式 `align="left"`、`"center"`、`"right"` 使用指定的物理方向。传入 `renderMobileRow` 后，窄屏展示列表视图，桌面展示表格视图。
+
+`Table.size` 使用项目统一的 `small`、`default`、`large`，未传时继承 `ConfigProvider.componentSize`。尺寸调整表头、数据单元格、详情区域与 H5 卡片行的留白；选择、排序和展开按钮仍保留至少 44px 触控目标。`bordered` 默认关闭，开启后桌面展示单元格网格线，H5 卡片行展示独立边框。`rowHoverable` 默认开启，只在支持悬停的设备上提示当前行；设为 `false` 可关闭。`/__ui` 的“Table 展示状态”可切换这些设置，并验证桌面表格与窄屏卡片视图。
 
 宽表格在自身容器内横向滚动。滚动区域可通过 Tab 聚焦；焦点位于区域自身时，左右方向键移动 44px，Home/End 移到逻辑起止，RTL 使用同一键位。单元格内按钮、输入和带修饰键的操作不被截获。`/__ui` 有 240px RTL 宽表预览，手机可直接横向触控滑动。
 
