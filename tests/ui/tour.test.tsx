@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Tour } from '@/shared/ui'
 
@@ -208,5 +208,143 @@ describe('Tour', () => {
     expect(target).not.toHaveAttribute('inert')
     await waitFor(() => expect(target).toHaveFocus())
     target.remove()
+  })
+
+  it('lets custom action buttons extend and cancel default navigation', () => {
+    let cancelNext = true
+    const onNextClick = vi.fn()
+    const onChange = vi.fn()
+    const onFinish = vi.fn()
+    const onExtra = vi.fn()
+    const actionsRender = vi.fn((origin: ReactNode) => (
+      <>
+        {origin}
+        <button type="button" onClick={onExtra}>
+          额外操作
+        </button>
+      </>
+    ))
+    render(
+      <Tour
+        defaultOpen
+        onChange={onChange}
+        onFinish={onFinish}
+        actionsRender={actionsRender}
+        steps={[
+          {
+            key: 'first',
+            title: '第一步',
+            nextButtonProps: {
+              children: '继续查看',
+              onClick: (event) => {
+                onNextClick()
+                if (cancelNext) event.preventDefault()
+              },
+            },
+          },
+          {
+            key: 'second',
+            title: '第二步',
+            prevButtonProps: { children: '返回检查' },
+            nextButtonProps: { children: '确认完成' },
+          },
+        ]}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '继续查看' }))
+    expect(onNextClick).toHaveBeenCalledOnce()
+    expect(onChange).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog', { name: '第一步' })).toBeVisible()
+    cancelNext = false
+    fireEvent.click(screen.getByRole('button', { name: '继续查看' }))
+    expect(onChange).toHaveBeenCalledWith(1)
+    expect(screen.getByRole('button', { name: '返回检查' })).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: '额外操作' }))
+    expect(onExtra).toHaveBeenCalledOnce()
+    expect(actionsRender).toHaveBeenLastCalledWith(expect.anything(), {
+      current: 1,
+      total: 2,
+    })
+    fireEvent.click(screen.getByRole('button', { name: '确认完成' }))
+    expect(onFinish).toHaveBeenCalledOnce()
+  })
+
+  it('uses step close, scroll and mask overrides inside a custom portal', () => {
+    const target = document.createElement('button')
+    target.textContent = '局部目标'
+    document.body.append(target)
+    vi.spyOn(target, 'getBoundingClientRect').mockReturnValue({
+      top: 80,
+      left: 40,
+      right: 160,
+      bottom: 120,
+      width: 120,
+      height: 40,
+    } as DOMRect)
+    const container = document.createElement('div')
+    document.body.append(container)
+    const scrollIntoView = vi.fn()
+    Object.defineProperty(target, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
+    })
+    const onStepClose = vi.fn()
+    const onClose = vi.fn()
+    const getPopupContainer = vi.fn(() => container)
+    const renderTour = (closeIcon: ReactNode, scroll: boolean) => (
+      <Tour
+        open
+        mask={false}
+        scrollIntoViewOptions
+        getPopupContainer={getPopupContainer}
+        zIndex={1100}
+        classNames={{ card: 'test-tour-card', actions: 'flex-wrap' }}
+        styles={{ card: { borderWidth: 2 } }}
+        onClose={onClose}
+        steps={[
+          {
+            key: 'local',
+            target,
+            title: '局部引导',
+            mask: {
+              color: 'rgba(0, 0, 0, 0.4)',
+              className: 'test-tour-mask',
+            },
+            closeIcon,
+            onClose: onStepClose,
+            scrollIntoViewOptions: scroll,
+          },
+        ]}
+      />
+    )
+    const { rerender, unmount } = render(
+      renderTour(<span>自定义关闭</span>, false),
+    )
+    const root = container.querySelector<HTMLElement>('[data-tour-root]')
+    expect(root).not.toBeNull()
+    expect(root).toHaveStyle({ zIndex: 1100 })
+    expect(getPopupContainer).toHaveBeenCalledWith(target)
+    expect(scrollIntoView).not.toHaveBeenCalled()
+    expect(document.querySelectorAll('.test-tour-mask')).toHaveLength(4)
+    expect(screen.getByRole('dialog', { name: '局部引导' })).toHaveClass(
+      'test-tour-card',
+    )
+    expect(screen.getByRole('dialog', { name: '局部引导' })).toHaveStyle({
+      borderWidth: '2px',
+    })
+    fireEvent.click(screen.getByRole('button', { name: '关闭引导' }))
+    expect(onStepClose).toHaveBeenCalledOnce()
+    expect(onClose).toHaveBeenCalledOnce()
+
+    rerender(renderTour(false, true))
+    expect(screen.queryByRole('button', { name: '关闭引导' })).toBeNull()
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      block: 'nearest',
+      inline: 'nearest',
+    })
+    unmount()
+    target.remove()
+    container.remove()
   })
 })

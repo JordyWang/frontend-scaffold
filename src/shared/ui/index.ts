@@ -217,9 +217,13 @@ export type {
 export { Tour } from './tour'
 export type {
   TourArrow,
+  TourClassNames,
+  TourMask,
   TourPlacement,
   TourProps,
+  TourSemanticSlot,
   TourStep,
+  TourStyles,
   TourTarget,
 } from './tour'
 export { Breadcrumb, Steps } from './navigation'

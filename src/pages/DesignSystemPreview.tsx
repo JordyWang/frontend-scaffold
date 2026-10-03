@@ -306,12 +306,17 @@ export function DesignSystemPreview() {
   const [tourGuardOpen, setTourGuardOpen] = useState(false)
   const tourGuardCloseRequests = useRef(0)
   const [tourBlockedOpen, setTourBlockedOpen] = useState(false)
+  const [tourCustomOpen, setTourCustomOpen] = useState(false)
+  const [tourCustomStep, setTourCustomStep] = useState(0)
+  const [tourCustomStatus, setTourCustomStatus] = useState('自定义引导未开始')
   const [rtlPopupContainer, setRtlPopupContainer] =
     useState<HTMLDivElement | null>(null)
   const tourTriggerRef = useRef<HTMLButtonElement>(null)
   const tourEdgeTriggerRef = useRef<HTMLButtonElement>(null)
   const tourGuardTriggerRef = useRef<HTMLButtonElement>(null)
   const tourBlockedTriggerRef = useRef<HTMLButtonElement>(null)
+  const tourCustomTriggerRef = useRef<HTMLButtonElement>(null)
+  const tourCustomPortalRef = useRef<HTMLDivElement>(null)
   const anchorScrollRef = useRef<HTMLDivElement>(null)
   const alertRestoreRef = useRef<HTMLButtonElement>(null)
   const affixTargetRef = useRef<HTMLDivElement>(null)
@@ -3476,6 +3481,18 @@ export function DesignSystemPreview() {
                   >
                     预览禁止目标交互
                   </Button>
+                  <Button
+                    ref={tourCustomTriggerRef}
+                    variant="outline"
+                    size="small"
+                    onClick={() => {
+                      setTourCustomStep(0)
+                      setTourCustomStatus('引导进行中')
+                      setTourCustomOpen(true)
+                    }}
+                  >
+                    预览自定义引导
+                  </Button>
                 </Stack>
                 <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/30 p-4">
                   <Button
@@ -3568,6 +3585,73 @@ export function DesignSystemPreview() {
                       description:
                         '引导期间不能触发高亮的上传按钮；关闭后恢复目标操作。箭头指向目标中心。',
                       placement: 'bottom',
+                    },
+                  ]}
+                />
+                <div ref={tourCustomPortalRef} data-ui-tour-portal="" />
+                <Typography variant="caption" role="status">
+                  {tourCustomStatus}
+                </Typography>
+                <Tour
+                  open={tourCustomOpen}
+                  current={tourCustomStep}
+                  onChange={setTourCustomStep}
+                  onClose={() => setTourCustomOpen(false)}
+                  onFinish={() => {
+                    setTourCustomStatus('已完成自定义引导')
+                    setTourCustomOpen(false)
+                  }}
+                  returnFocusRef={tourCustomTriggerRef}
+                  getPopupContainer={() =>
+                    tourCustomPortalRef.current ?? document.body
+                  }
+                  zIndex={1100}
+                  classNames={{
+                    mask: 'bg-black/60',
+                    card: 'border-2',
+                    title: 'text-base',
+                    actions: 'flex-wrap justify-end',
+                  }}
+                  actionsRender={(origin) => (
+                    <>
+                      {origin}
+                      <Button
+                        variant="ghost"
+                        size="small"
+                        onClick={() => {
+                          setTourCustomStatus('已跳过自定义引导')
+                          setTourCustomOpen(false)
+                        }}
+                      >
+                        跳过引导
+                      </Button>
+                    </>
+                  )}
+                  steps={[
+                    {
+                      key: 'custom-save',
+                      target: () => document.getElementById('tour-save'),
+                      title: '自定义操作',
+                      description: '继续或跳过均由项目操作区处理。',
+                      closeIcon: <Icon name="close" size={18} />,
+                      onClose: () => setTourCustomStatus('步骤关闭回调已触发'),
+                      nextButtonProps: {
+                        children: '继续引导',
+                        onClick: () => setTourCustomStatus('已点击继续'),
+                      },
+                      scrollIntoViewOptions: {
+                        block: 'nearest',
+                        inline: 'nearest',
+                      },
+                    },
+                    {
+                      key: 'custom-publish',
+                      target: () => document.getElementById('tour-publish'),
+                      title: '最终检查',
+                      description: '本步骤隐藏关闭图标，仍可返回、完成或跳过。',
+                      closeIcon: false,
+                      prevButtonProps: { children: '返回检查' },
+                      nextButtonProps: { children: '完成引导' },
                     },
                   ]}
                 />

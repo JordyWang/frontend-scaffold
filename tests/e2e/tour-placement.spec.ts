@@ -212,3 +212,69 @@ test('Tour arrow follows the card while disabledInteraction protects the target'
     ),
   ).toBe(true)
 })
+
+test('Tour custom actions, close icon and local portal work with keyboard and H5 touch', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 360, height: 844 })
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const begin = preview.getByRole('button', { name: '预览自定义引导' })
+  const portal = preview.locator('[data-ui-tour-portal]')
+  const mobile = testInfo.project.name.startsWith('mobile-')
+  if (mobile) await begin.tap()
+  else await begin.click()
+
+  const root = portal.locator('[data-tour-root]')
+  await expect(root).toBeVisible()
+  await expect(root).toHaveCSS('z-index', '1100')
+  await expect(root.locator('[data-tour-mask]').first()).toHaveClass(
+    /bg-black\/60/,
+  )
+  const first = root.getByRole('dialog', { name: '自定义操作' })
+  const close = first.getByRole('button', { name: '关闭引导' })
+  await expect(close.locator('svg')).toHaveCount(1)
+  const next = first.getByRole('button', { name: '继续引导' })
+  if (mobile) await next.tap()
+  else await next.press('Enter')
+  await expect(preview.getByText('已点击继续')).toBeVisible()
+
+  const second = root.getByRole('dialog', { name: '最终检查' })
+  await expect(second.getByRole('button', { name: '关闭引导' })).toHaveCount(0)
+  const previous = second.getByRole('button', { name: '返回检查' })
+  await expect(previous).toBeFocused()
+  const finish = second.getByRole('button', { name: '完成引导' })
+  const skip = second.getByRole('button', { name: '跳过引导' })
+  for (const action of [previous, finish, skip]) {
+    const box = await action.boundingBox()
+    expect(box!.width).toBeGreaterThanOrEqual(44)
+    expect(box!.height).toBeGreaterThanOrEqual(44)
+  }
+  if (mobile) await previous.tap()
+  else await previous.press('Enter')
+  await expect(first).toBeVisible()
+  if (mobile) await first.getByRole('button', { name: '继续引导' }).tap()
+  else await first.getByRole('button', { name: '继续引导' }).press('Enter')
+  await expect(second).toBeVisible()
+  if (mobile) await skip.tap()
+  else await skip.press('Enter')
+  await expect(root).toHaveCount(0)
+  await expect(preview.getByText('已跳过自定义引导')).toBeVisible()
+  await expect(begin).toBeFocused()
+
+  if (mobile) await begin.tap()
+  else await begin.press('Enter')
+  const reopenedClose = portal
+    .getByRole('dialog', { name: '自定义操作' })
+    .getByRole('button', { name: '关闭引导' })
+  if (mobile) await reopenedClose.tap()
+  else await reopenedClose.press('Enter')
+  await expect(preview.getByText('步骤关闭回调已触发')).toBeVisible()
+  await expect(portal.locator('[data-tour-root]')).toHaveCount(0)
+  await expect(begin).toBeFocused()
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+})

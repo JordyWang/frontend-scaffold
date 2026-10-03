@@ -686,6 +686,8 @@ Checkbox、Switch 和 RadioGroup 自带可访问标签。需要显示校验错�
 
 `arrow` 默认显示，可用步骤的 `arrow` 覆写；传 `{ pointAtCenter: true }` 时箭头朝高亮目标中心对齐，位置随卡片换边调整。`type` 可在 Tour 或单个步骤设为 `primary`，统一卡片与箭头的主题色。`disabledInteraction` 将高亮目标临时设为 `inert` 并遮挡指针，Tab 只在卡片内循环；换步或关闭后恢复目标原有的 `inert` 状态。`/__ui` 的“预览禁止目标交互”展示这一组合。
 
+`actionsRender(defaultActions, { current, total })` 可扩展或替换默认操作按钮。步骤的 `nextButtonProps` / `prevButtonProps` 支持按钮文案及原生点击回调；回调调用 `event.preventDefault()` 可取消默认换步。`closeIcon` 支持全局或步骤级自定义，传 `false` 隐藏关闭按钮；此时初始焦点落到卡片内下一可操作项。步骤 `onClose` 在全局 `onClose` 前调用，步骤 `scrollIntoViewOptions` 可覆写全局滚动设置，步骤 `mask` 可覆写全局遮罩及颜色/样式。`getPopupContainer(target)` 可指定局部挂载节点，未指定时沿用 ConfigProvider/ThemeScope 的 Portal；`zIndex` 默认为项目浮层层级 70，可显式调整。`classNames` / `styles` 提供 root、mask、highlight、arrow、card、close、cover、title、description、indicators、actions 语义插槽，位置尺寸仍由组件计算。`/__ui` 的“预览自定义引导”展示局部挂载、操作扩展、关闭图标和步骤覆写。
+
 受控 `open` 的 `onClose` / `onFinish` 是关闭请求；调用方继续保持 `open=true` 时，卡片不会提前将焦点恢复到启动按钮，键盘 Tab 仍进入引导。只有实际变为关闭状态后才恢复启动前焦点；`/__ui` 的“预览受控关闭”展示第一次拒绝、第二次接受的路径。
 
 卡片优先使用指定的 `placement`；目标贴近视口边缘时先尝试相反方向，再尝试有足够空间的其他方向，最后将卡片限制在视口内。卡片高度最多为视口高度减 24px，内容过长时在卡片内滚动，操作按钮仍可触达。`/__ui` 的“预览边缘放置”可检查侧向位置与窄屏换边，关闭后焦点回到实际触发按钮。

@@ -5,6 +5,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
   type HTMLAttributes,
   type RefObject,
   type ReactNode,
@@ -30,6 +31,22 @@ export type TourPlacement =
 
 export type TourTarget = HTMLElement | null | (() => HTMLElement | null)
 export type TourArrow = boolean | { pointAtCenter?: boolean }
+export type TourMask =
+  boolean | { color?: string; className?: string; style?: CSSProperties }
+export type TourSemanticSlot =
+  | 'root'
+  | 'mask'
+  | 'highlight'
+  | 'arrow'
+  | 'card'
+  | 'close'
+  | 'cover'
+  | 'title'
+  | 'description'
+  | 'indicators'
+  | 'actions'
+export type TourClassNames = Partial<Record<TourSemanticSlot, string>>
+export type TourStyles = Partial<Record<TourSemanticSlot, CSSProperties>>
 
 export type TourStep = {
   key: string
@@ -38,11 +55,14 @@ export type TourStep = {
   description?: ReactNode
   cover?: ReactNode
   placement?: TourPlacement
-  mask?: boolean
+  mask?: TourMask
   arrow?: TourArrow
+  closeIcon?: ReactNode
   type?: 'default' | 'primary'
-  nextButtonProps?: Omit<ButtonProps, 'children' | 'onClick'>
-  prevButtonProps?: Omit<ButtonProps, 'children' | 'onClick'>
+  nextButtonProps?: ButtonProps
+  prevButtonProps?: ButtonProps
+  onClose?: () => void
+  scrollIntoViewOptions?: boolean | ScrollIntoViewOptions
 }
 
 export type TourProps = Omit<
@@ -57,8 +77,9 @@ export type TourProps = Omit<
   onChange?: (current: number) => void
   onClose?: () => void
   onFinish?: () => void
-  mask?: boolean | { color?: string; className?: string }
+  mask?: TourMask
   maskClosable?: boolean
+  closeIcon?: ReactNode
   disabledInteraction?: boolean
   arrow?: TourArrow
   type?: 'default' | 'primary'
@@ -71,6 +92,14 @@ export type TourProps = Omit<
   prevLabel?: string
   finishLabel?: string
   indicatorsRender?: (current: number, total: number) => ReactNode
+  actionsRender?: (
+    defaultActions: ReactNode,
+    info: { current: number; total: number },
+  ) => ReactNode
+  getPopupContainer?: (target: HTMLElement) => HTMLElement
+  zIndex?: number
+  classNames?: TourClassNames
+  styles?: TourStyles
   returnFocusRef?: RefObject<HTMLElement | null>
 }
 
@@ -216,6 +245,7 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
     onFinish,
     mask = true,
     maskClosable = true,
+    closeIcon = true,
     disabledInteraction = false,
     arrow = true,
     type = 'default',
@@ -228,8 +258,15 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
     prevLabel = '上一步',
     finishLabel = '完成',
     indicatorsRender,
+    actionsRender,
+    getPopupContainer,
+    zIndex = 70,
+    classNames,
+    styles,
     returnFocusRef,
     className,
+    style: rootStyle,
+    'aria-label': tourLabel = '页面引导',
     ...props
   },
   forwardedRef,
@@ -254,7 +291,18 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
   const [offset, radius] = Array.isArray(gap)
     ? [Math.max(0, safeNumber(gap[0], 6)), Math.max(0, safeNumber(gap[1], 8))]
     : [Math.max(0, safeNumber(gap, 6)), 8]
-  const hasMask = mask !== false && step?.mask !== false
+  const resolvedMask = step?.mask === undefined ? mask : step.mask
+  const hasMask = resolvedMask !== false
+  const maskOptions =
+    typeof step?.mask === 'object'
+      ? step.mask
+      : typeof mask === 'object'
+        ? mask
+        : undefined
+  const resolvedCloseIcon =
+    step?.closeIcon === undefined ? closeIcon : step.closeIcon
+  const resolvedScrollIntoViewOptions =
+    step?.scrollIntoViewOptions ?? scrollIntoViewOptions
 
   const setStep = useCallback(
     (next: number) => {
@@ -268,7 +316,10 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
     (finish = false) => {
       if (open === undefined) setInternalOpen(false)
       if (finish) onFinish?.()
-      else onClose?.()
+      else {
+        step?.onClose?.()
+        onClose?.()
+      }
       // A controlled owner may reject the close request. Restore focus only
       // after the card has actually left the document, including when the
       // owner unmounts Tour in response to this callback.
@@ -285,7 +336,11 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
           !card.contains(active) &&
           (disabledInteraction || !target?.contains(active))
         ) {
-          card.querySelector<HTMLButtonElement>('[data-tour-close]')?.focus()
+          const preferred =
+            card.querySelector<HTMLElement>('[data-tour-close]') ??
+            card.querySelector<HTMLElement>(focusableSelector) ??
+            card
+          preferred.focus()
         }
       })
     },
@@ -303,11 +358,11 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
   useLayoutEffect(() => {
     if (!isOpen || !step) return
     const element = targetElement(step.target)
-    if (scrollIntoViewOptions && element) {
+    if (resolvedScrollIntoViewOptions && element) {
       element.scrollIntoView(
-        scrollIntoViewOptions === true
+        resolvedScrollIntoViewOptions === true
           ? { block: 'nearest', inline: 'nearest' }
-          : scrollIntoViewOptions,
+          : resolvedScrollIntoViewOptions,
       )
     }
     const measure = () => {
@@ -347,7 +402,7 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
       window.removeEventListener('scroll', measure, true)
       observer?.disconnect()
     }
-  }, [isOpen, step, scrollIntoViewOptions])
+  }, [isOpen, step, resolvedScrollIntoViewOptions])
 
   useEffect(() => {
     if (!isOpen) {
@@ -380,9 +435,11 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
     if (!isOpen) return
     const focusTarget = targetElement(step?.target)
     const frame = window.requestAnimationFrame(() => {
-      const closeButton =
-        cardRef.current?.querySelector<HTMLButtonElement>('[data-tour-close]')
-      closeButton?.focus()
+      const preferred =
+        cardRef.current?.querySelector<HTMLElement>('[data-tour-close]') ??
+        cardRef.current?.querySelector<HTMLElement>(focusableSelector) ??
+        cardRef.current
+      preferred?.focus()
       if (focusTarget && !hasMask && !disabledInteraction)
         focusTarget.setAttribute('data-tour-focus-target', '')
     })
@@ -503,8 +560,12 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
         : position.side === 'left'
           ? { left: position.left + cardWidth - arrowSize / 2, top: arrowY }
           : { left: position.left - arrowSize / 2, top: arrowY }
-  const maskColor = typeof mask === 'object' ? mask.color : undefined
-  const maskClassName = typeof mask === 'object' ? mask.className : undefined
+  const maskClassName = maskOptions?.className
+  const maskStyle: CSSProperties = {
+    ...styles?.mask,
+    ...maskOptions?.style,
+    ...(maskOptions?.color ? { backgroundColor: maskOptions.color } : {}),
+  }
   const targetStyle = targetRect.width
     ? {
         top: targetRect.top - offset,
@@ -514,16 +575,59 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
         borderRadius: radius,
       }
     : undefined
-  const actionButtonProps = step.nextButtonProps
+  const nextButtonProps = step.nextButtonProps
+  const prevButtonProps = step.prevButtonProps
+  const defaultActions = (
+    <>
+      {stepIndex > 0 && (
+        <Button
+          variant={resolvedType === 'primary' ? 'ghost' : 'outline'}
+          size="small"
+          {...prevButtonProps}
+          onClick={(event) => {
+            prevButtonProps?.onClick?.(event)
+            if (!event.defaultPrevented) setStep(stepIndex - 1)
+          }}
+        >
+          {prevButtonProps?.children ?? prevLabel}
+        </Button>
+      )}
+      <Button
+        variant={resolvedType === 'primary' ? 'secondary' : 'primary'}
+        size="small"
+        {...nextButtonProps}
+        onClick={(event) => {
+          nextButtonProps?.onClick?.(event)
+          if (event.defaultPrevented) return
+          if (stepIndex === steps.length - 1) close(true)
+          else setStep(stepIndex + 1)
+        }}
+      >
+        {nextButtonProps?.children ??
+          (stepIndex === steps.length - 1 ? finishLabel : nextLabel)}
+      </Button>
+    </>
+  )
+  const renderedActions = actionsRender
+    ? actionsRender(defaultActions, { current: stepIndex, total: steps.length })
+    : defaultActions
+  const popupContainer = getPopupContainer?.(
+    targetElement(step.target) ?? document.body,
+  )
 
   return (
-    <Portal>
+    <Portal container={popupContainer}>
       <div
         {...props}
         ref={forwardedRef}
         data-tour-root=""
-        className={cn('pointer-events-none fixed inset-0 z-[70]', className)}
-        aria-label="页面引导"
+        className={cn(
+          'pointer-events-none fixed inset-0',
+          classNames?.root,
+          className,
+        )}
+        style={{ ...styles?.root, ...rootStyle, zIndex }}
+        aria-label={tourLabel}
       >
         {hasMask && targetStyle && (
           <>
@@ -533,10 +637,11 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
               className={cn(
                 'fixed inset-x-0 top-0 pointer-events-auto bg-slate-950/55',
                 maskClassName,
+                classNames?.mask,
               )}
               style={{
+                ...maskStyle,
                 height: Math.max(0, targetRect.top - offset),
-                backgroundColor: maskColor,
               }}
               onClick={() => maskClosable && close()}
             />
@@ -546,11 +651,12 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
               className={cn(
                 'fixed bottom-0 left-0 pointer-events-auto bg-slate-950/55',
                 maskClassName,
+                classNames?.mask,
               )}
               style={{
+                ...maskStyle,
                 top: targetRect.bottom + offset,
                 width: '100%',
-                backgroundColor: maskColor,
               }}
               onClick={() => maskClosable && close()}
             />
@@ -560,12 +666,13 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
               className={cn(
                 'fixed left-0 pointer-events-auto bg-slate-950/55',
                 maskClassName,
+                classNames?.mask,
               )}
               style={{
+                ...maskStyle,
                 top: targetRect.top - offset,
                 width: Math.max(0, targetRect.left - offset),
                 height: targetRect.height + offset * 2,
-                backgroundColor: maskColor,
               }}
               onClick={() => maskClosable && close()}
             />
@@ -575,12 +682,13 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
               className={cn(
                 'fixed right-0 pointer-events-auto bg-slate-950/55',
                 maskClassName,
+                classNames?.mask,
               )}
               style={{
+                ...maskStyle,
                 top: targetRect.top - offset,
                 width: Math.max(0, viewport.width - targetRect.right - offset),
                 height: targetRect.height + offset * 2,
-                backgroundColor: maskColor,
               }}
               onClick={() => maskClosable && close()}
             />
@@ -593,8 +701,9 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
             className={cn(
               'fixed inset-0 pointer-events-auto bg-slate-950/55',
               maskClassName,
+              classNames?.mask,
             )}
-            style={{ backgroundColor: maskColor }}
+            style={maskStyle}
             onClick={() => maskClosable && close()}
           />
         )}
@@ -605,8 +714,9 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
             className={cn(
               'pointer-events-none fixed border-2 border-primary shadow-[0_0_0_2px_color-mix(in_srgb,var(--primary)_35%,transparent)]',
               disabledInteraction && 'pointer-events-auto cursor-not-allowed',
+              classNames?.highlight,
             )}
-            style={targetStyle}
+            style={{ ...styles?.highlight, ...targetStyle }}
           />
         )}
         {showArrow && (
@@ -618,8 +728,9 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
               resolvedType === 'primary'
                 ? 'border-primary bg-primary'
                 : 'border-border bg-card',
+              classNames?.arrow,
             )}
-            style={arrowStyle}
+            style={{ ...styles?.arrow, ...arrowStyle }}
           />
         )}
         <div
@@ -631,39 +742,84 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
               ? true
               : undefined
           }
-          aria-label={typeof step.title === 'string' ? step.title : '页面引导'}
+          aria-label={typeof step.title === 'string' ? step.title : tourLabel}
           data-tour-card=""
           className={cn(
             'pointer-events-auto fixed z-[71] max-h-[calc(100dvh-24px)] max-w-[calc(100vw-24px)] overflow-y-auto overscroll-contain rounded-xl border p-4 text-sm shadow-xl outline-none sm:p-5',
             resolvedType === 'primary'
               ? 'border-primary bg-primary text-primary-foreground'
               : 'border-border bg-card text-card-foreground',
+            classNames?.card,
           )}
-          style={{ width: cardWidth, left: position.left, top: position.top }}
+          style={{
+            ...styles?.card,
+            width: cardWidth,
+            left: position.left,
+            top: position.top,
+          }}
         >
-          <button
-            type="button"
-            data-tour-close=""
-            aria-label={closeLabel}
-            className="absolute end-2 top-2 inline-flex size-11 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] text-current/70 hover:bg-black/10 hover:text-current focus-visible:outline-2 focus-visible:outline-ring"
-            onClick={() => close()}
-          >
-            <span aria-hidden="true" className="text-xl leading-none">
-              ×
-            </span>
-          </button>
-          {step.cover && (
-            <div className="mb-3 overflow-hidden rounded-lg">{step.cover}</div>
+          {resolvedCloseIcon !== false && resolvedCloseIcon !== null && (
+            <button
+              type="button"
+              data-tour-close=""
+              aria-label={closeLabel}
+              className={cn(
+                'absolute end-2 top-2 inline-flex size-11 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] text-current/70 hover:bg-black/10 hover:text-current focus-visible:outline-2 focus-visible:outline-ring',
+                classNames?.close,
+              )}
+              style={styles?.close}
+              onClick={() => close()}
+            >
+              <span aria-hidden="true" className="text-xl leading-none">
+                {resolvedCloseIcon === true ? '×' : resolvedCloseIcon}
+              </span>
+            </button>
           )}
-          <div className="pe-9 font-semibold">{step.title}</div>
+          {step.cover && (
+            <div
+              data-tour-cover=""
+              className={cn(
+                'mb-3 overflow-hidden rounded-lg',
+                classNames?.cover,
+              )}
+              style={styles?.cover}
+            >
+              {step.cover}
+            </div>
+          )}
+          <div
+            data-tour-title=""
+            className={cn(
+              'font-semibold',
+              resolvedCloseIcon !== false &&
+                resolvedCloseIcon !== null &&
+                'pe-9',
+              classNames?.title,
+            )}
+            style={styles?.title}
+          >
+            {step.title}
+          </div>
           {step.description && (
-            <div className="mt-2 leading-6 text-current/80">
+            <div
+              data-tour-description=""
+              className={cn(
+                'mt-2 leading-6 text-current/80',
+                classNames?.description,
+              )}
+              style={styles?.description}
+            >
               {step.description}
             </div>
           )}
           <div className="mt-4 flex min-h-11 items-center justify-between gap-3">
             <div
-              className="inline-flex items-center gap-1"
+              data-tour-indicators=""
+              className={cn(
+                'inline-flex items-center gap-1',
+                classNames?.indicators,
+              )}
+              style={styles?.indicators}
               aria-label={`第 ${stepIndex + 1} 步，共 ${steps.length} 步`}
             >
               {indicatorsRender
@@ -679,29 +835,12 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
                     />
                   ))}
             </div>
-            <div className="flex items-center gap-2">
-              {stepIndex > 0 && (
-                <Button
-                  variant={resolvedType === 'primary' ? 'ghost' : 'outline'}
-                  size="small"
-                  {...step.prevButtonProps}
-                  onClick={() => setStep(stepIndex - 1)}
-                >
-                  {prevLabel}
-                </Button>
-              )}
-              <Button
-                variant={resolvedType === 'primary' ? 'secondary' : 'primary'}
-                size="small"
-                {...actionButtonProps}
-                onClick={() =>
-                  stepIndex === steps.length - 1
-                    ? close(true)
-                    : setStep(stepIndex + 1)
-                }
-              >
-                {stepIndex === steps.length - 1 ? finishLabel : nextLabel}
-              </Button>
+            <div
+              data-tour-actions=""
+              className={cn('flex items-center gap-2', classNames?.actions)}
+              style={styles?.actions}
+            >
+              {renderedActions}
             </div>
           </div>
         </div>
