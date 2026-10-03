@@ -504,6 +504,31 @@ export function DesignSystemPreview() {
               </CardGrid>
             </CardGridGroup>
           </Card>
+          <Card
+            title="页签卡片"
+            size="small"
+            tabs={{
+              label: '卡片内容页签',
+              items: [
+                {
+                  value: 'overview',
+                  label: '概览',
+                  content: <p className="m-0">概览内容保留在卡片内。</p>,
+                },
+                {
+                  value: 'history',
+                  label: '操作记录',
+                  content: <p className="m-0">操作记录支持键盘和触控切换。</p>,
+                },
+                {
+                  value: 'locked',
+                  label: '待开放',
+                  disabled: true,
+                  content: <p className="m-0">尚未开放。</p>,
+                },
+              ],
+            }}
+          />
           <Card title="空状态">
             <CardContent className="grid gap-3">
               <Empty

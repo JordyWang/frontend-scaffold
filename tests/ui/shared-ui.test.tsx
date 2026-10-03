@@ -178,6 +178,50 @@ describe('shared/ui contracts', () => {
     expect(onOpen).toHaveBeenCalledOnce()
   })
 
+  it('hosts project Tabs in a Card with inherited size and controlled selection', () => {
+    const onValueChange = vi.fn()
+    const items = [
+      { value: 'overview', label: '概览', content: <p>概览正文</p> },
+      { value: 'history', label: '记录', content: <p>记录正文</p> },
+    ]
+    const { container, rerender } = render(
+      <Card
+        title="页签容器"
+        size="small"
+        classNames={{ tabs: 'bg-muted' }}
+        tabs={{ items, value: 'overview', onValueChange, label: '卡片页签' }}
+      />,
+    )
+    const tabs = container.querySelector('[data-ui-tabs]')!
+    expect(tabs).toHaveClass('bg-muted')
+    expect(tabs).toHaveAttribute('data-ui-size', 'small')
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('概览正文')
+    act(() => screen.getByRole('tab', { name: '记录' }).focus())
+    expect(onValueChange).toHaveBeenCalledWith('history')
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('概览正文')
+
+    rerender(
+      <Card
+        title="页签容器"
+        size="small"
+        tabs={{ items, value: 'history', onValueChange, label: '卡片页签' }}
+      />,
+    )
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('记录正文')
+    rerender(
+      <Card
+        title="页签容器"
+        size="small"
+        loading
+        tabs={{ items, value: 'history', label: '卡片页签' }}
+      />,
+    )
+    expect(screen.queryByRole('tab')).toBeNull()
+    expect(
+      screen.getByText('页签容器').closest('[data-ui-card]'),
+    ).toHaveAttribute('aria-busy', 'true')
+  })
+
   it('shares Card size across declarative and compound slots', () => {
     render(
       <ConfigProvider componentSize="small">

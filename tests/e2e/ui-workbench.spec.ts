@@ -383,6 +383,40 @@ test('Card meta and grid follow container width with keyboard and H5 touch', asy
   await expect(tiles.first()).toHaveCSS('transition-property', 'none')
 })
 
+test('Card tabs inherit compact size and switch content by keyboard or touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  await page.setViewportSize({ width: 360, height: 844 })
+  const card = page.locator('[data-ui-card]').filter({ hasText: '页签卡片' })
+  const tabs = card.getByRole('tablist', { name: '卡片内容页签' })
+  const overview = tabs.getByRole('tab', { name: '概览' })
+  const history = tabs.getByRole('tab', { name: '操作记录' })
+  await expect(card.locator('[data-ui-tabs]')).toHaveAttribute(
+    'data-ui-size',
+    'small',
+  )
+  await expect(card.getByRole('tabpanel')).toHaveText('概览内容保留在卡片内。')
+  await expect(tabs.getByRole('tab', { name: '待开放' })).toBeDisabled()
+  const box = await history.boundingBox()
+  expect(box!.width).toBeGreaterThanOrEqual(44)
+  expect(box!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await history.tap()
+  else {
+    await overview.focus()
+    await overview.press('ArrowRight')
+  }
+  await expect(history).toHaveAttribute('aria-selected', 'true')
+  await expect(card.getByRole('tabpanel')).toHaveText(
+    '操作记录支持键盘和触控切换。',
+  )
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+})
+
 test('Space.Compact keeps control order, semantics and H5 touch targets', async ({
   page,
 }, testInfo) => {

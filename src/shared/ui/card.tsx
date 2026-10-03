@@ -6,6 +6,7 @@ import {
 } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { useConfig } from './config-context'
+import { Tabs, type TabsProps } from './tabs'
 
 type CardSize = 'default' | 'small'
 const CardSizeContext = createContext<CardSize>('default')
@@ -20,12 +21,16 @@ export type CardPart =
   | 'actions'
   | 'action'
   | 'loading'
+  | 'tabs'
 
 function useCardSize() {
   return useContext(CardSizeContext)
 }
 
-export type CardProps = Omit<HTMLAttributes<HTMLDivElement>, 'title'> & {
+type CardBaseProps = Omit<
+  HTMLAttributes<HTMLDivElement>,
+  'title' | 'children'
+> & {
   title?: ReactNode
   extra?: ReactNode
   cover?: ReactNode
@@ -37,6 +42,13 @@ export type CardProps = Omit<HTMLAttributes<HTMLDivElement>, 'title'> & {
   classNames?: Partial<Record<CardPart, string>>
 }
 
+export type CardTabsProps = Omit<TabsProps, 'children'>
+export type CardProps = CardBaseProps &
+  (
+    | { tabs: CardTabsProps; children?: never }
+    | { tabs?: undefined; children?: ReactNode }
+  )
+
 /** A project-owned card that supports both compound children and Ant-style slots. */
 export function Card({
   title,
@@ -47,6 +59,7 @@ export function Card({
   loading = false,
   bordered = true,
   size,
+  tabs,
   classNames,
   className,
   children,
@@ -123,6 +136,27 @@ export function Card({
               <span className="h-4 w-full animate-pulse rounded bg-secondary motion-reduce:animate-none" />
               <span className="h-4 w-4/5 animate-pulse rounded bg-secondary motion-reduce:animate-none" />
             </div>
+          ) : tabs ? (
+            <Tabs
+              {...tabs}
+              size={tabs.size ?? resolvedSize}
+              className={cn(classNames?.tabs, tabs.className)}
+              classNames={{
+                ...tabs.classNames,
+                header: cn(
+                  resolvedSize === 'small'
+                    ? 'px-[var(--space-md)]'
+                    : 'px-[var(--space-lg)]',
+                  tabs.classNames?.header,
+                ),
+                body: cn(
+                  resolvedSize === 'small'
+                    ? 'px-[var(--space-md)] py-[var(--space-md)]'
+                    : 'px-[var(--space-lg)] py-[var(--space-lg)]',
+                  tabs.classNames?.body,
+                ),
+              }}
+            />
           ) : (
             children
           )}

@@ -29,6 +29,7 @@ export {
 export type {
   CardProps,
   CardPart,
+  CardTabsProps,
   CardMetaProps,
   CardMetaPart,
   CardGridGroupProps,
