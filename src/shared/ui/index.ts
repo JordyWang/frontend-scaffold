@@ -100,7 +100,16 @@ export type {
 export { Pagination } from './pagination'
 export type { PaginationProps } from './pagination'
 export { List } from './list'
-export type { ListProps } from './list'
+export type {
+  ListProps,
+  ListPart,
+  ListDisplayState,
+  ListSemanticInfo,
+  ListClassNames,
+  ListStyles,
+  ListGrid,
+  ListPagination,
+} from './list'
 export { Listy } from './listy'
 export type { ListyProps } from './listy'
 export { Table } from './table'

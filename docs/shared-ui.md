@@ -38,7 +38,7 @@
 | Toast                           | `ToastProvider`、`toast({ id?, title, description?, variant?, duration? })`、`dismissToast(id?)`                                                          | Provider 处理系统深色和 H5 安全区；固定 `id` 可更新同一提示，`loading` 形态默认持续展示                                     |
 | Tabs                            | `items`、`value` / `defaultValue`、`onValueChange`、`variant`、`size`、`placement`、增删回调、面板生命周期                                                | 卡片与标签增删、逻辑位置、容器响应式、面板保留/销毁、键盘与触控；详见 Tabs 契约                                             |
 | Pagination                      | `page`、`pageSize`、`total`、`onPageChange`、`mode`、`loading`、`disabled`                                                                                | `mode` 为 pages / load-more；页码从 1 开始；禁用时同步锁定页码、条数与跳页；窄屏区域独立滚动                                |
-| List                            | `items`、`getKey`、`renderItem`、`loading`、`error`、`onRetry`、`emptyTitle`、`label`、`className`                                                        | 语义化列表；加载、空和错误状态保留同一容器、名称与布局类，加载时标记 `aria-busy`                                            |
+| List                            | `items`、`getKey`、`renderItem`、`header`、`footer`、`size`、`bordered`、`split`、`grid`、`pagination`、`classNames` / `styles`                           | 语义化列表；本地分页和容器网格共用加载、空、错误反馈，加载时标记 `aria-busy`                                                |
 | Listy                           | `items`、`getKey`、`renderItem`、`itemHeight`、`height`、`overscan`、`onEndReached`、`loading`、`error`、`label`                                          | 固定行高虚拟列表；状态切换保留名称、高度和布局类，数据缩减时修正滚动位置，恢复数据后从首行开始；原生滚动和 H5 触控保留      |
 | Table                           | `columns`、`rows`、`getRowKey`、`caption`、`dataMode`、`size`、`bordered`、`rowHoverable`、`loading`、`error`、`onRetry`、`emptyTitle`、`renderMobileRow` | 列支持 `header`、`align`、`rowScope`；加载、空和错误状态保留表格区域语义，传入 `renderMobileRow` 后手机展示业务定义的卡片行 |
 | 公共能力                        | `Portal`、`ErrorBoundary`、`Container`、`LoadingState`、`ErrorState`                                                                                      | 弹层挂载、异常兜底、响应式容器和统一反馈                                                                                    |
@@ -124,6 +124,8 @@ Input 与 Textarea 的 `count` 可设为 `true`，或 `{ max, strategy, render }
 `FloatButton` 的 `tooltip` 和 `badge` 复用项目提示与徽标组件；按钮始终保留 `label` 作为可访问名称，`badge.label` 可单独说明数量。`containerClassName` 用于调整固定容器的位置，`className` 只调整按钮外观；`/__ui` 展示两者组合及 H5 安全区。
 
 `FloatButton` 传入 `href` 时渲染原生链接，`linkTarget` 指定新页等浏览器目标；`_blank` 默认加入 `noopener noreferrer`，也可显式传入 `rel`。链接保留 `variant`、图标、提示和徽标；`disabled` 或 `loading` 时移除 `href` 与 Tab 入口，并提供 `aria-disabled` 或 `aria-busy`。无 `href` 时仍是原生按钮，BackTop 只接受按钮属性。
+
+`List` 的 `header` / `footer` 可传内容或 `(visibleItems) => 内容`，在加载、错误和空状态下仍保留；`visibleItems` 是当前页记录。`renderItem(item, index)` 的索引为原始 `items` 中的位置，现有单参数回调保持兼容。`size` 为 `small`、`default`、`large`，未传时继承 ConfigProvider；`bordered` 默认开启，`split` 默认开启并仅作用于普通列表。`grid={{ minItemWidth?, gap? }}` 按 List 自身可用宽度自动换列，默认最小项宽 220px、间距 12px；网格项保留独立边框。`pagination` 对本地 `items` 截页，可用 `defaultPage` / `defaultPageSize`，或同时传 `page` / `pageSize` 受控；`onChange(page, pageSize)` 同步页码，改变条数时保留原首项所在页。加载、错误与空状态不显示分页，但根容器、标题和页脚仍保留。`classNames` / `styles` 接受 `root`、`header`、`state`、`list`、`item`、`footer`、`pagination` 插槽或 `({ props, size, state }) => 插槽`；根节点原有 `className` / `style` 优先。`/__ui` 的“List 列表布局”展示网格、尺寸、分页与状态切换。
 
 `Table` 默认沿文字方向的起始侧对齐表头与单元格；列的显式 `align="left"`、`"center"`、`"right"` 使用指定的物理方向。传入 `renderMobileRow` 后，窄屏展示列表视图，桌面展示表格视图。
 

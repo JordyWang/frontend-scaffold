@@ -29,6 +29,7 @@ import { TypographyPreview } from './TypographyPreview'
 import { TabsPreview } from './TabsPreview'
 import { TagPreview } from './TagPreview'
 import { BadgePreview } from './BadgePreview'
+import { ListPreview } from './ListPreview'
 import { TablePreview } from './TablePreview'
 import { TableGroupedPreview } from './TableGroupedPreview'
 import { TableManualPreview } from './TableManualPreview'
@@ -1657,6 +1658,7 @@ export function DesignSystemPreview() {
               </Stack>
             </CardContent>
           </Card>
+          <ListPreview />
           <TablePreview />
           <TableGroupedPreview />
           <TableManualPreview />
