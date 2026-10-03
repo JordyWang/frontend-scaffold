@@ -3606,12 +3606,16 @@ export function DesignSystemPreview() {
                     tourCustomPortalRef.current ?? document.body
                   }
                   zIndex={1100}
-                  classNames={{
+                  gap={{ offset: [12, 6], radius: 14 }}
+                  classNames={({ current }) => ({
                     mask: 'bg-black/60',
-                    card: 'border-2',
+                    card: current === 0 ? 'border-2' : 'border-dashed',
                     title: 'text-base',
                     actions: 'flex-wrap justify-end',
-                  }}
+                  })}
+                  styles={({ current }) => ({
+                    title: { fontWeight: current === 0 ? 700 : 600 },
+                  })}
                   actionsRender={(origin) => (
                     <>
                       {origin}

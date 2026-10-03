@@ -218,10 +218,12 @@ export { Tour } from './tour'
 export type {
   TourArrow,
   TourClassNames,
+  TourGap,
   TourMask,
   TourPlacement,
   TourProps,
   TourSemanticSlot,
+  TourSemanticInfo,
   TourStep,
   TourStyles,
   TourTarget,

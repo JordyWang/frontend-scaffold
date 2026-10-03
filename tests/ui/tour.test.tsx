@@ -299,8 +299,14 @@ describe('Tour', () => {
         scrollIntoViewOptions
         getPopupContainer={getPopupContainer}
         zIndex={1100}
-        classNames={{ card: 'test-tour-card', actions: 'flex-wrap' }}
-        styles={{ card: { borderWidth: 2 } }}
+        gap={{ offset: [12, 6], radius: 14 }}
+        classNames={({ current, props }) => ({
+          card: current === 0 && props.zIndex === 1100 ? 'test-tour-card' : '',
+          actions: 'flex-wrap',
+        })}
+        styles={({ step }) => ({
+          card: { borderWidth: step.key === 'local' ? 2 : 0 },
+        })}
         onClose={onClose}
         steps={[
           {
@@ -327,6 +333,13 @@ describe('Tour', () => {
     expect(getPopupContainer).toHaveBeenCalledWith(target)
     expect(scrollIntoView).not.toHaveBeenCalled()
     expect(document.querySelectorAll('.test-tour-mask')).toHaveLength(4)
+    expect(document.querySelector('[data-tour-highlight]')).toHaveStyle({
+      top: '74px',
+      left: '28px',
+      width: '144px',
+      height: '52px',
+      borderRadius: '14px',
+    })
     expect(screen.getByRole('dialog', { name: '局部引导' })).toHaveClass(
       'test-tour-card',
     )

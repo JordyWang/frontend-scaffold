@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ForwardedRef,
   type HTMLAttributes,
   type RefObject,
   type ReactNode,
@@ -33,6 +34,13 @@ export type TourTarget = HTMLElement | null | (() => HTMLElement | null)
 export type TourArrow = boolean | { pointAtCenter?: boolean }
 export type TourMask =
   boolean | { color?: string; className?: string; style?: CSSProperties }
+export type TourGap =
+  | number
+  | [offset: number, radius: number]
+  | {
+      offset?: number | [horizontal: number, vertical: number]
+      radius?: number
+    }
 export type TourSemanticSlot =
   | 'root'
   | 'mask'
@@ -45,8 +53,20 @@ export type TourSemanticSlot =
   | 'description'
   | 'indicators'
   | 'actions'
-export type TourClassNames = Partial<Record<TourSemanticSlot, string>>
-export type TourStyles = Partial<Record<TourSemanticSlot, CSSProperties>>
+export type TourSemanticInfo = {
+  props: TourProps
+  current: number
+  total: number
+  step: TourStep
+}
+export type TourClassNames =
+  | Partial<Record<TourSemanticSlot, string>>
+  | ((info: TourSemanticInfo) => Partial<Record<TourSemanticSlot, string>>)
+export type TourStyles =
+  | Partial<Record<TourSemanticSlot, CSSProperties>>
+  | ((
+      info: TourSemanticInfo,
+    ) => Partial<Record<TourSemanticSlot, CSSProperties>>)
 
 export type TourStep = {
   key: string
@@ -85,7 +105,7 @@ export type TourProps = Omit<
   type?: 'default' | 'primary'
   keyboard?: boolean
   placement?: TourPlacement
-  gap?: number | [offset: number, radius: number]
+  gap?: TourGap
   scrollIntoViewOptions?: boolean | ScrollIntoViewOptions
   closeLabel?: string
   nextLabel?: string
@@ -151,7 +171,8 @@ function placementPosition(
   target: Rect,
   width: number,
   height: number,
-  gap: number,
+  horizontalGap: number,
+  verticalGap: number,
   viewport: { width: number; height: number },
 ) {
   if (placement === 'center' || target.width === 0) {
@@ -179,10 +200,10 @@ function placementPosition(
         ? 'left'
         : 'right'
   const room = {
-    top: target.top - gap - 12,
-    bottom: viewport.height - target.bottom - gap - 12,
-    left: target.left - gap - 12,
-    right: viewport.width - target.right - gap - 12,
+    top: target.top - verticalGap - 12,
+    bottom: viewport.height - target.bottom - verticalGap - 12,
+    left: target.left - horizontalGap - 12,
+    right: viewport.width - target.right - horizontalGap - 12,
   }
   const opposite = {
     top: 'bottom',
@@ -205,17 +226,17 @@ function placementPosition(
   const suffix = sameAxis ? placement.slice(side.length) : ''
   const left =
     chosen === 'left'
-      ? target.left - width - gap
+      ? target.left - width - horizontalGap
       : chosen === 'right'
-        ? target.right + gap
+        ? target.right + horizontalGap
         : horizontal(
             suffix === 'Left' ? 'start' : suffix === 'Right' ? 'end' : 'center',
           )
   const top =
     chosen === 'top'
-      ? target.top - height - gap
+      ? target.top - height - verticalGap
       : chosen === 'bottom'
-        ? target.bottom + gap
+        ? target.bottom + verticalGap
         : vertical(
             suffix === 'Top' ? 'start' : suffix === 'Bottom' ? 'end' : 'center',
           )
@@ -233,8 +254,11 @@ function placementPosition(
 }
 
 /** Guided steps with a target highlight, keyboard navigation and touch-friendly actions. */
-export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
-  {
+function TourComponent(
+  tourProps: TourProps,
+  forwardedRef: ForwardedRef<HTMLDivElement>,
+) {
+  const {
     steps,
     open,
     defaultOpen = false,
@@ -268,9 +292,7 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
     style: rootStyle,
     'aria-label': tourLabel = '页面引导',
     ...props
-  },
-  forwardedRef,
-) {
+  } = tourProps
   const [internalOpen, setInternalOpen] = useState(defaultOpen)
   const [internalCurrent, setInternalCurrent] = useState(defaultCurrent)
   const [targetRect, setTargetRect] = useState<Rect>(defaultRect)
@@ -288,9 +310,36 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
     Math.min(current ?? internalCurrent, Math.max(0, steps.length - 1)),
   )
   const step = steps[stepIndex]
-  const [offset, radius] = Array.isArray(gap)
-    ? [Math.max(0, safeNumber(gap[0], 6)), Math.max(0, safeNumber(gap[1], 8))]
-    : [Math.max(0, safeNumber(gap, 6)), 8]
+  const gapOffset =
+    typeof gap === 'object' && !Array.isArray(gap) ? gap.offset : gap
+  const [horizontalOffset, verticalOffset] =
+    typeof gap === 'object' && !Array.isArray(gap)
+      ? Array.isArray(gapOffset)
+        ? [
+            Math.max(0, safeNumber(gapOffset[0], 6)),
+            Math.max(0, safeNumber(gapOffset[1], 6)),
+          ]
+        : [
+            Math.max(0, safeNumber(gapOffset, 6)),
+            Math.max(0, safeNumber(gapOffset, 6)),
+          ]
+      : Array.isArray(gap)
+        ? [
+            Math.max(0, safeNumber(gap[0], 6)),
+            Math.max(0, safeNumber(gap[0], 6)),
+          ]
+        : [Math.max(0, safeNumber(gap, 6)), Math.max(0, safeNumber(gap, 6))]
+  const radius = Math.max(
+    0,
+    safeNumber(
+      typeof gap === 'object' && !Array.isArray(gap)
+        ? gap.radius
+        : Array.isArray(gap)
+          ? gap[1]
+          : undefined,
+      8,
+    ),
+  )
   const resolvedMask = step?.mask === undefined ? mask : step.mask
   const hasMask = resolvedMask !== false
   const maskOptions =
@@ -501,6 +550,16 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
   ])
 
   if (!isOpen || !step) return null
+  const semanticInfo: TourSemanticInfo = {
+    props: tourProps,
+    current: stepIndex,
+    total: steps.length,
+    step,
+  }
+  const semanticClassNames =
+    typeof classNames === 'function' ? classNames(semanticInfo) : classNames
+  const semanticStyles =
+    typeof styles === 'function' ? styles(semanticInfo) : styles
   const cardWidth = Math.min(360, Math.max(0, viewport.width - 24))
   const placement = step.placement ?? defaultPlacement
   const position = placementPosition(
@@ -508,7 +567,8 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
     targetRect,
     cardWidth,
     cardHeight,
-    offset + 8,
+    horizontalOffset + 8,
+    verticalOffset + 8,
     viewport,
   )
   const resolvedType = step.type ?? type
@@ -562,16 +622,16 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
           : { left: position.left - arrowSize / 2, top: arrowY }
   const maskClassName = maskOptions?.className
   const maskStyle: CSSProperties = {
-    ...styles?.mask,
+    ...semanticStyles?.mask,
     ...maskOptions?.style,
     ...(maskOptions?.color ? { backgroundColor: maskOptions.color } : {}),
   }
   const targetStyle = targetRect.width
     ? {
-        top: targetRect.top - offset,
-        left: targetRect.left - offset,
-        width: targetRect.width + offset * 2,
-        height: targetRect.height + offset * 2,
+        top: targetRect.top - verticalOffset,
+        left: targetRect.left - horizontalOffset,
+        width: targetRect.width + horizontalOffset * 2,
+        height: targetRect.height + verticalOffset * 2,
         borderRadius: radius,
       }
     : undefined
@@ -609,7 +669,10 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
     </>
   )
   const renderedActions = actionsRender
-    ? actionsRender(defaultActions, { current: stepIndex, total: steps.length })
+    ? actionsRender(defaultActions, {
+        current: stepIndex,
+        total: steps.length,
+      })
     : defaultActions
   const popupContainer = getPopupContainer?.(
     targetElement(step.target) ?? document.body,
@@ -623,10 +686,10 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
         data-tour-root=""
         className={cn(
           'pointer-events-none fixed inset-0',
-          classNames?.root,
+          semanticClassNames?.root,
           className,
         )}
-        style={{ ...styles?.root, ...rootStyle, zIndex }}
+        style={{ ...semanticStyles?.root, ...rootStyle, zIndex }}
         aria-label={tourLabel}
       >
         {hasMask && targetStyle && (
@@ -637,11 +700,11 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
               className={cn(
                 'fixed inset-x-0 top-0 pointer-events-auto bg-slate-950/55',
                 maskClassName,
-                classNames?.mask,
+                semanticClassNames?.mask,
               )}
               style={{
                 ...maskStyle,
-                height: Math.max(0, targetRect.top - offset),
+                height: Math.max(0, targetRect.top - verticalOffset),
               }}
               onClick={() => maskClosable && close()}
             />
@@ -651,11 +714,11 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
               className={cn(
                 'fixed bottom-0 left-0 pointer-events-auto bg-slate-950/55',
                 maskClassName,
-                classNames?.mask,
+                semanticClassNames?.mask,
               )}
               style={{
                 ...maskStyle,
-                top: targetRect.bottom + offset,
+                top: targetRect.bottom + verticalOffset,
                 width: '100%',
               }}
               onClick={() => maskClosable && close()}
@@ -666,13 +729,13 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
               className={cn(
                 'fixed left-0 pointer-events-auto bg-slate-950/55',
                 maskClassName,
-                classNames?.mask,
+                semanticClassNames?.mask,
               )}
               style={{
                 ...maskStyle,
-                top: targetRect.top - offset,
-                width: Math.max(0, targetRect.left - offset),
-                height: targetRect.height + offset * 2,
+                top: targetRect.top - verticalOffset,
+                width: Math.max(0, targetRect.left - horizontalOffset),
+                height: targetRect.height + verticalOffset * 2,
               }}
               onClick={() => maskClosable && close()}
             />
@@ -682,13 +745,16 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
               className={cn(
                 'fixed right-0 pointer-events-auto bg-slate-950/55',
                 maskClassName,
-                classNames?.mask,
+                semanticClassNames?.mask,
               )}
               style={{
                 ...maskStyle,
-                top: targetRect.top - offset,
-                width: Math.max(0, viewport.width - targetRect.right - offset),
-                height: targetRect.height + offset * 2,
+                top: targetRect.top - verticalOffset,
+                width: Math.max(
+                  0,
+                  viewport.width - targetRect.right - horizontalOffset,
+                ),
+                height: targetRect.height + verticalOffset * 2,
               }}
               onClick={() => maskClosable && close()}
             />
@@ -701,7 +767,7 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
             className={cn(
               'fixed inset-0 pointer-events-auto bg-slate-950/55',
               maskClassName,
-              classNames?.mask,
+              semanticClassNames?.mask,
             )}
             style={maskStyle}
             onClick={() => maskClosable && close()}
@@ -714,9 +780,9 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
             className={cn(
               'pointer-events-none fixed border-2 border-primary shadow-[0_0_0_2px_color-mix(in_srgb,var(--primary)_35%,transparent)]',
               disabledInteraction && 'pointer-events-auto cursor-not-allowed',
-              classNames?.highlight,
+              semanticClassNames?.highlight,
             )}
-            style={{ ...styles?.highlight, ...targetStyle }}
+            style={{ ...semanticStyles?.highlight, ...targetStyle }}
           />
         )}
         {showArrow && (
@@ -728,9 +794,9 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
               resolvedType === 'primary'
                 ? 'border-primary bg-primary'
                 : 'border-border bg-card',
-              classNames?.arrow,
+              semanticClassNames?.arrow,
             )}
-            style={{ ...styles?.arrow, ...arrowStyle }}
+            style={{ ...semanticStyles?.arrow, ...arrowStyle }}
           />
         )}
         <div
@@ -749,10 +815,10 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
             resolvedType === 'primary'
               ? 'border-primary bg-primary text-primary-foreground'
               : 'border-border bg-card text-card-foreground',
-            classNames?.card,
+            semanticClassNames?.card,
           )}
           style={{
-            ...styles?.card,
+            ...semanticStyles?.card,
             width: cardWidth,
             left: position.left,
             top: position.top,
@@ -765,9 +831,9 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
               aria-label={closeLabel}
               className={cn(
                 'absolute end-2 top-2 inline-flex size-11 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] text-current/70 hover:bg-black/10 hover:text-current focus-visible:outline-2 focus-visible:outline-ring',
-                classNames?.close,
+                semanticClassNames?.close,
               )}
-              style={styles?.close}
+              style={semanticStyles?.close}
               onClick={() => close()}
             >
               <span aria-hidden="true" className="text-xl leading-none">
@@ -780,9 +846,9 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
               data-tour-cover=""
               className={cn(
                 'mb-3 overflow-hidden rounded-lg',
-                classNames?.cover,
+                semanticClassNames?.cover,
               )}
-              style={styles?.cover}
+              style={semanticStyles?.cover}
             >
               {step.cover}
             </div>
@@ -794,9 +860,9 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
               resolvedCloseIcon !== false &&
                 resolvedCloseIcon !== null &&
                 'pe-9',
-              classNames?.title,
+              semanticClassNames?.title,
             )}
-            style={styles?.title}
+            style={semanticStyles?.title}
           >
             {step.title}
           </div>
@@ -805,9 +871,9 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
               data-tour-description=""
               className={cn(
                 'mt-2 leading-6 text-current/80',
-                classNames?.description,
+                semanticClassNames?.description,
               )}
-              style={styles?.description}
+              style={semanticStyles?.description}
             >
               {step.description}
             </div>
@@ -817,9 +883,9 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
               data-tour-indicators=""
               className={cn(
                 'inline-flex items-center gap-1',
-                classNames?.indicators,
+                semanticClassNames?.indicators,
               )}
-              style={styles?.indicators}
+              style={semanticStyles?.indicators}
               aria-label={`第 ${stepIndex + 1} 步，共 ${steps.length} 步`}
             >
               {indicatorsRender
@@ -837,8 +903,11 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
             </div>
             <div
               data-tour-actions=""
-              className={cn('flex items-center gap-2', classNames?.actions)}
-              style={styles?.actions}
+              className={cn(
+                'flex items-center gap-2',
+                semanticClassNames?.actions,
+              )}
+              style={semanticStyles?.actions}
             >
               {renderedActions}
             </div>
@@ -847,4 +916,6 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
       </div>
     </Portal>
   )
-})
+}
+
+export const Tour = forwardRef<HTMLDivElement, TourProps>(TourComponent)

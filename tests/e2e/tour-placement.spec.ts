@@ -232,6 +232,19 @@ test('Tour custom actions, close icon and local portal work with keyboard and H5
     /bg-black\/60/,
   )
   const first = root.getByRole('dialog', { name: '自定义操作' })
+  await expect(first).toHaveClass(/border-2/)
+  await expect(first.locator('[data-tour-title]')).toHaveCSS(
+    'font-weight',
+    '700',
+  )
+  const highlighted = root.locator('[data-tour-highlight]')
+  const targetBox = await preview.locator('#tour-save').boundingBox()
+  const highlightedBox = await highlighted.boundingBox()
+  expect(highlightedBox!.x).toBeCloseTo(targetBox!.x - 12, 0)
+  expect(highlightedBox!.y).toBeCloseTo(targetBox!.y - 6, 0)
+  expect(highlightedBox!.width).toBeCloseTo(targetBox!.width + 24, 0)
+  expect(highlightedBox!.height).toBeCloseTo(targetBox!.height + 12, 0)
+  await expect(highlighted).toHaveCSS('border-radius', '14px')
   const close = first.getByRole('button', { name: '关闭引导' })
   await expect(close.locator('svg')).toHaveCount(1)
   const next = first.getByRole('button', { name: '继续引导' })
@@ -240,6 +253,11 @@ test('Tour custom actions, close icon and local portal work with keyboard and H5
   await expect(preview.getByText('已点击继续')).toBeVisible()
 
   const second = root.getByRole('dialog', { name: '最终检查' })
+  await expect(second).toHaveClass(/border-dashed/)
+  await expect(second.locator('[data-tour-title]')).toHaveCSS(
+    'font-weight',
+    '600',
+  )
   await expect(second.getByRole('button', { name: '关闭引导' })).toHaveCount(0)
   const previous = second.getByRole('button', { name: '返回检查' })
   await expect(previous).toBeFocused()
