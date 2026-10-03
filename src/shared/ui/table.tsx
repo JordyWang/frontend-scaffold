@@ -40,6 +40,85 @@ export type TableColumn<T> = {
   rowScope?: 'row' | 'rowgroup'
 }
 
+export type TableColumnGroup<T> = {
+  key: string
+  header: ReactNode
+  children: TableColumnNode<T>[]
+  align?: 'left' | 'center' | 'right'
+}
+
+export type TableColumnNode<T> = TableColumn<T> | TableColumnGroup<T>
+
+type ColumnLayoutNode<T> = {
+  column: TableColumnNode<T>
+  children?: ColumnLayoutNode<T>[]
+  leafCount: number
+  depth: number
+}
+
+type ColumnHeaderCell<T> = {
+  column: TableColumnNode<T>
+  group: boolean
+  colSpan: number
+  rowSpan: number
+}
+
+function isColumnGroup<T>(
+  column: TableColumnNode<T>,
+): column is TableColumnGroup<T> {
+  return 'children' in column
+}
+
+function buildColumnLayout<T>(columns: TableColumnNode<T>[]) {
+  function build(column: TableColumnNode<T>): ColumnLayoutNode<T> | null {
+    if (!isColumnGroup(column)) return { column, leafCount: 1, depth: 1 }
+    const children = column.children
+      .map(build)
+      .filter((child): child is ColumnLayoutNode<T> => child !== null)
+    if (!children.length) return null
+    return {
+      column,
+      children,
+      leafCount: children.reduce((count, child) => count + child.leafCount, 0),
+      depth: 1 + Math.max(...children.map((child) => child.depth)),
+    }
+  }
+
+  const roots = columns
+    .map(build)
+    .filter((column): column is ColumnLayoutNode<T> => column !== null)
+  const depth = Math.max(1, ...roots.map((root) => root.depth))
+  const headerRows: ColumnHeaderCell<T>[][] = Array.from(
+    { length: depth },
+    () => [],
+  )
+  const leafColumns: TableColumn<T>[] = []
+  const headerPaths = new Map<string, string[]>()
+  function visit(
+    nodes: ColumnLayoutNode<T>[],
+    level: number,
+    ancestors: string[],
+  ) {
+    nodes.forEach((node) => {
+      const group = Boolean(node.children)
+      headerRows[level].push({
+        column: node.column,
+        group,
+        colSpan: node.leafCount,
+        rowSpan: group ? 1 : depth - level,
+      })
+      if (node.children)
+        visit(node.children, level + 1, [...ancestors, node.column.key])
+      else {
+        leafColumns.push(node.column as TableColumn<T>)
+        headerPaths.set(node.column.key, [...ancestors, node.column.key])
+      }
+    })
+  }
+  visit(roots, 0, [])
+  return { headerRows, leafColumns, headerPaths, depth }
+}
+
 export type TableSort = {
   columnKey: string
   direction: 'asc' | 'desc'
@@ -146,7 +225,7 @@ function alignmentClassName(align?: TableColumn<unknown>['align']) {
 }
 
 type TableCommonProps<T> = {
-  columns: TableColumn<T>[]
+  columns: TableColumnNode<T>[]
   rows: T[]
   getRowKey: (row: T) => Key
   caption: string
@@ -217,6 +296,18 @@ export function Table<T>(allProps: TableProps<T>) {
     styles,
     rowClassName,
   } = allProps
+  const {
+    headerRows,
+    leafColumns,
+    headerPaths,
+    depth: headerDepth,
+  } = useMemo(() => buildColumnLayout(columns), [columns])
+  function headerId(key: string) {
+    return `${radioGroupName}-column-${encodeURIComponent(key)}`
+  }
+  function cellHeaders(key: string) {
+    return headerPaths.get(key)?.map(headerId).join(' ')
+  }
   const { componentSize } = useConfig()
   const resolvedSize = resolveComponentSize(componentSize, size)
   const cellPadding = {
@@ -257,7 +348,7 @@ export function Table<T>(allProps: TableProps<T>) {
     defaultSort,
   )
   const requestedSort = controlled ? (sort ?? null) : internalSort
-  const sortColumn = columns.find(
+  const sortColumn = leafColumns.find(
     (column) => column.key === requestedSort?.columnKey && column.sorter,
   )
   const activeSort = sortColumn ? requestedSort : null
@@ -271,7 +362,7 @@ export function Table<T>(allProps: TableProps<T>) {
   const displayedRows = useMemo(() => {
     if (dataMode === 'manual') return rows
     const filteredRows = rows.filter((row) =>
-      columns.every((column) => {
+      leafColumns.every((column) => {
         const values = activeFilters[column.key]
         if (!values?.length || !column.filterOptions) return true
         return values.some((value) =>
@@ -293,7 +384,7 @@ export function Table<T>(allProps: TableProps<T>) {
         )
       })
       .map(({ row }) => row)
-  }, [activeFilters, activeSort, columns, dataMode, rows, sorter])
+  }, [activeFilters, activeSort, dataMode, leafColumns, rows, sorter])
   const requestedPageSize = paginationControlled
     ? paginationConfig?.pageSize
     : internalPageSize
@@ -349,7 +440,7 @@ export function Table<T>(allProps: TableProps<T>) {
       : undefined
   const hasSummary =
     summaryValues !== undefined &&
-    columns.some((column) => summaryValues[column.key] != null)
+    leafColumns.some((column) => summaryValues[column.key] != null)
 
   function tableTitle() {
     if (titleContent == null || titleContent === false) return null
@@ -658,7 +749,7 @@ export function Table<T>(allProps: TableProps<T>) {
   const rootStyle = { ...semanticStyles?.root, ...style }
   const stateClassName = cn('p-[var(--space-lg)]', semanticClassNames?.state)
   const tableColSpan =
-    columns.length + (selection ? 1 : 0) + (expandable ? 1 : 0)
+    leafColumns.length + (selection ? 1 : 0) + (expandable ? 1 : 0)
 
   if (loading)
     return (
@@ -759,72 +850,87 @@ export function Table<T>(allProps: TableProps<T>) {
             className={cn('bg-muted', semanticClassNames?.header)}
             style={semanticStyles?.header}
           >
-            <tr
-              className={cn(
-                'border-b border-border',
-                semanticClassNames?.headerRow,
-              )}
-              style={semanticStyles?.headerRow}
-            >
-              {selection && (
-                <th
-                  scope="col"
-                  className={cn(
-                    'w-14 px-2 text-start',
-                    cellBorder,
-                    semanticClassNames?.headerCell,
-                  )}
-                  style={semanticStyles?.headerCell}
-                >
-                  {singleSelection ? (
-                    <span className="sr-only">选择一行</span>
-                  ) : (
-                    selectAllCheckbox()
-                  )}
-                </th>
-              )}
-              {expandable && (
-                <th
-                  scope="col"
-                  className={cn(
-                    'w-14 px-2 text-start',
-                    cellBorder,
-                    semanticClassNames?.headerCell,
-                  )}
-                  style={semanticStyles?.headerCell}
-                >
-                  <span className="sr-only">展开详情</span>
-                </th>
-              )}
-              {columns.map((column) => (
-                <th
-                  key={column.key}
-                  scope="col"
-                  aria-sort={
-                    column.sorter
-                      ? activeSort?.columnKey === column.key
-                        ? activeSort.direction === 'asc'
-                          ? 'ascending'
-                          : 'descending'
-                        : 'none'
-                      : undefined
-                  }
-                  className={cn(
-                    'text-sm font-semibold',
-                    column.sorter ? sortHeaderPadding : cellPadding,
-                    cellBorder,
-                    alignmentClassName(column.align),
-                    semanticClassNames?.headerCell,
-                  )}
-                  style={semanticStyles?.headerCell}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    {column.sorter ? sortButton(column) : column.header}
-                    {filterButton(column)}
-                  </span>
-                </th>
-              ))}
-            </tr>
+            {headerRows.map((headerRow, level) => (
+              <tr
+                key={level}
+                className={cn(
+                  'border-b border-border',
+                  semanticClassNames?.headerRow,
+                )}
+                style={semanticStyles?.headerRow}
+              >
+                {level === 0 && selection && (
+                  <th
+                    scope="col"
+                    rowSpan={headerDepth}
+                    className={cn(
+                      'w-14 px-2 text-start',
+                      cellBorder,
+                      semanticClassNames?.headerCell,
+                    )}
+                    style={semanticStyles?.headerCell}
+                  >
+                    {singleSelection ? (
+                      <span className="sr-only">选择一行</span>
+                    ) : (
+                      selectAllCheckbox()
+                    )}
+                  </th>
+                )}
+                {level === 0 && expandable && (
+                  <th
+                    scope="col"
+                    rowSpan={headerDepth}
+                    className={cn(
+                      'w-14 px-2 text-start',
+                      cellBorder,
+                      semanticClassNames?.headerCell,
+                    )}
+                    style={semanticStyles?.headerCell}
+                  >
+                    <span className="sr-only">展开详情</span>
+                  </th>
+                )}
+                {headerRow.map(({ column, group, colSpan, rowSpan }) => {
+                  const leaf = group ? undefined : (column as TableColumn<T>)
+                  return (
+                    <th
+                      key={column.key}
+                      id={headerId(column.key)}
+                      scope={group ? 'colgroup' : 'col'}
+                      colSpan={group ? colSpan : undefined}
+                      rowSpan={rowSpan > 1 ? rowSpan : undefined}
+                      aria-sort={
+                        leaf?.sorter
+                          ? activeSort?.columnKey === leaf.key
+                            ? activeSort.direction === 'asc'
+                              ? 'ascending'
+                              : 'descending'
+                            : 'none'
+                          : undefined
+                      }
+                      className={cn(
+                        'text-sm font-semibold',
+                        leaf?.sorter ? sortHeaderPadding : cellPadding,
+                        cellBorder,
+                        alignmentClassName(column.align),
+                        semanticClassNames?.headerCell,
+                      )}
+                      style={semanticStyles?.headerCell}
+                    >
+                      {leaf ? (
+                        <span className="inline-flex items-center gap-1">
+                          {leaf.sorter ? sortButton(leaf) : leaf.header}
+                          {filterButton(leaf)}
+                        </span>
+                      ) : (
+                        column.header
+                      )}
+                    </th>
+                  )
+                })}
+              </tr>
+            ))}
           </thead>
           <tbody
             className={cn(
@@ -903,10 +1009,11 @@ export function Table<T>(allProps: TableProps<T>) {
                       {expandButton(row)}
                     </td>
                   )}
-                  {columns.map((column) =>
+                  {leafColumns.map((column) =>
                     column.rowScope ? (
                       <th
                         key={column.key}
+                        headers={cellHeaders(column.key)}
                         scope={column.rowScope}
                         className={cn(
                           'align-middle font-medium',
@@ -922,6 +1029,7 @@ export function Table<T>(allProps: TableProps<T>) {
                     ) : (
                       <td
                         key={column.key}
+                        headers={cellHeaders(column.key)}
                         className={cn(
                           'align-middle',
                           cellPadding,
@@ -961,9 +1069,10 @@ export function Table<T>(allProps: TableProps<T>) {
                     style={semanticStyles?.summaryCell}
                   />
                 )}
-                {columns.map((column) => (
+                {leafColumns.map((column) => (
                   <td
                     key={column.key}
+                    headers={cellHeaders(column.key)}
                     className={cn(
                       'font-medium',
                       cellPadding,
@@ -987,7 +1096,7 @@ export function Table<T>(allProps: TableProps<T>) {
           style={semanticStyles?.mobile}
         >
           {((selection && !singleSelection) ||
-            columns.some(
+            leafColumns.some(
               (column) => column.sorter || column.filterOptions?.length,
             )) && (
             <div
@@ -998,14 +1107,14 @@ export function Table<T>(allProps: TableProps<T>) {
               style={semanticStyles?.mobileToolbar}
             >
               {selection && !singleSelection && selectAllCheckbox(true)}
-              {(columns.some((column) => column.sorter) ||
-                columns.some((column) => column.filterOptions?.length)) && (
+              {(leafColumns.some((column) => column.sorter) ||
+                leafColumns.some((column) => column.filterOptions?.length)) && (
                 <div
                   role="group"
                   aria-label={`${caption}筛选和排序`}
                   className="flex min-w-0 gap-2 overflow-x-auto"
                 >
-                  {columns.flatMap((column) => [
+                  {leafColumns.flatMap((column) => [
                     column.sorter ? (
                       <span key={`${column.key}-sort`}>
                         {sortButton(column, true)}
@@ -1110,7 +1219,7 @@ export function Table<T>(allProps: TableProps<T>) {
               style={semanticStyles?.mobileSummary}
             >
               <dl className="m-0 grid gap-2">
-                {columns
+                {leafColumns
                   .filter((column) => summaryValues?.[column.key] != null)
                   .map((column) => (
                     <div

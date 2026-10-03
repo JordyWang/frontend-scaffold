@@ -107,6 +107,8 @@ export { Table } from './table'
 export type {
   TableProps,
   TableColumn,
+  TableColumnGroup,
+  TableColumnNode,
   TableSort,
   TableSelection,
   TableExpandable,
