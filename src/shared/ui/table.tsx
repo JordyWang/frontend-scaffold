@@ -28,6 +28,7 @@ export type TableColumn<T> = {
   key: string
   header: ReactNode
   render: (row: T) => ReactNode
+  hidden?: boolean
   /** Use true when the owner sorts rows in manual data mode. */
   sorter?: ((left: T, right: T) => number) | true
   sortLabel?: string
@@ -44,6 +45,7 @@ export type TableColumnGroup<T> = {
   key: string
   header: ReactNode
   children: TableColumnNode<T>[]
+  hidden?: boolean
   align?: 'left' | 'center' | 'right'
 }
 
@@ -71,6 +73,7 @@ function isColumnGroup<T>(
 
 function buildColumnLayout<T>(columns: TableColumnNode<T>[]) {
   function build(column: TableColumnNode<T>): ColumnLayoutNode<T> | null {
+    if (column.hidden) return null
     if (!isColumnGroup(column)) return { column, leafCount: 1, depth: 1 }
     const children = column.children
       .map(build)
@@ -356,8 +359,8 @@ export function Table<T>(allProps: TableProps<T>) {
   const [internalFilters, setInternalFilters] =
     useState<TableFilters>(defaultFilters)
   const activeFilters = filters ?? internalFilters
-  const hasActiveFilters = Object.values(activeFilters).some(
-    (values) => values.length > 0,
+  const hasActiveFilters = leafColumns.some((column) =>
+    Boolean(activeFilters[column.key]?.length),
   )
   const displayedRows = useMemo(() => {
     if (dataMode === 'manual') return rows

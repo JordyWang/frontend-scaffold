@@ -1,4 +1,5 @@
-import { Card, CardContent, Table, Typography } from '@/shared/ui'
+import { useState } from 'react'
+import { Button, Card, CardContent, Table, Typography } from '@/shared/ui'
 
 const rows = [
   {
@@ -27,7 +28,14 @@ const rows = [
   },
 ]
 
+const visibilityButtonStyles =
+  'aria-pressed:border-primary aria-pressed:bg-primary/10 aria-pressed:text-primary'
+
 export function TableGroupedPreview() {
+  const [showPeople, setShowPeople] = useState(true)
+  const [showReviewer, setShowReviewer] = useState(true)
+  const [showTasks, setShowTasks] = useState(true)
+
   return (
     <Card id="ds-table-grouped" className="col-span-full scroll-mt-6">
       <CardContent className="grid gap-4">
@@ -35,8 +43,38 @@ export function TableGroupedPreview() {
           Table 分组表头
         </Typography>
         <Typography variant="caption" tone="muted">
-          项目列跨三层表头；成员和任务各自成组，排序、筛选和汇总仍按实际数据列处理。
+          项目列跨三层表头；切换列或整组时，跨度、排序、筛选和汇总按可见数据列调整。
         </Typography>
+        <div
+          role="group"
+          aria-label="可见列设置"
+          className="flex flex-wrap gap-2"
+        >
+          <Button
+            variant="outline"
+            className={visibilityButtonStyles}
+            aria-pressed={showPeople}
+            onClick={() => setShowPeople((current) => !current)}
+          >
+            成员组
+          </Button>
+          <Button
+            variant="outline"
+            className={visibilityButtonStyles}
+            aria-pressed={showReviewer}
+            onClick={() => setShowReviewer((current) => !current)}
+          >
+            评审列
+          </Button>
+          <Button
+            variant="outline"
+            className={visibilityButtonStyles}
+            aria-pressed={showTasks}
+            onClick={() => setShowTasks((current) => !current)}
+          >
+            任务组
+          </Button>
+        </div>
         <Table
           caption="交付概览表"
           rows={rows}
@@ -55,6 +93,7 @@ export function TableGroupedPreview() {
                 {
                   key: 'people',
                   header: '成员',
+                  hidden: !showPeople,
                   children: [
                     {
                       key: 'owner',
@@ -71,6 +110,7 @@ export function TableGroupedPreview() {
                     {
                       key: 'reviewer',
                       header: '评审人',
+                      hidden: !showReviewer,
                       render: (row) => row.reviewer,
                     },
                   ],
@@ -78,6 +118,7 @@ export function TableGroupedPreview() {
                 {
                   key: 'tasks',
                   header: '任务',
+                  hidden: !showTasks,
                   children: [
                     {
                       key: 'done',
@@ -112,12 +153,17 @@ export function TableGroupedPreview() {
           renderMobileRow={(row) => (
             <div className="grid gap-1 text-sm">
               <strong className="text-base">{row.name}</strong>
-              <span>
-                {row.owner} · {row.reviewer}评审
-              </span>
-              <span>
-                完成 {row.done} · 待处理 {row.pending}
-              </span>
+              {showPeople && (
+                <span>
+                  {row.owner}
+                  {showReviewer && ` · ${row.reviewer}评审`}
+                </span>
+              )}
+              {showTasks && (
+                <span>
+                  完成 {row.done} · 待处理 {row.pending}
+                </span>
+              )}
             </div>
           )}
         />

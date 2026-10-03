@@ -63,6 +63,75 @@ test('Table column groups keep headers, leaf controls and summaries aligned on d
       'colspan',
       '7',
     )
+  const collapse = region.getByRole('button', { name: '收起表单完善' })
+  if (mobile) await collapse.tap()
+  else await collapse.press('Enter')
+
+  const settings = page.getByRole('group', { name: '可见列设置' })
+  const toggle = async (name: string) => {
+    const button = settings.getByRole('button', { name })
+    const box = (await button.boundingBox())!
+    expect(box.width).toBeGreaterThanOrEqual(44)
+    expect(box.height).toBeGreaterThanOrEqual(44)
+    if (mobile) await button.tap()
+    else await button.press('Space')
+  }
+  const reviewerButton = settings.getByRole('button', { name: '评审列' })
+  const pressedBackground = await reviewerButton.evaluate(
+    (element) => getComputedStyle(element).backgroundColor,
+  )
+  await toggle('评审列')
+  await expect(reviewerButton).toHaveAttribute('aria-pressed', 'false')
+  await expect
+    .poll(() =>
+      reviewerButton.evaluate(
+        (element) => getComputedStyle(element).backgroundColor,
+      ),
+    )
+    .not.toBe(pressedBackground)
+  if (mobile) await expect(rows.first()).not.toContainText('丙评审')
+  else {
+    await expect(
+      table.getByRole('columnheader', { name: '成员' }),
+    ).toHaveAttribute('colspan', '1')
+    await expect(
+      table.getByRole('columnheader', { name: '交付信息' }),
+    ).toHaveAttribute('colspan', '3')
+    await expect(
+      table.getByRole('columnheader', { name: '评审人' }),
+    ).toHaveCount(0)
+  }
+
+  await toggle('成员组')
+  await expect(rows).toHaveCount(3)
+  await expect(rows.first()).toContainText('表单完善')
+  await expect(region.getByRole('button', { name: '筛选负责人' })).toHaveCount(
+    0,
+  )
+  await expect(summary).toContainText('9')
+  if (mobile) await expect(rows.first()).not.toContainText('团队 A')
+  else
+    await expect(
+      table.getByRole('columnheader', { name: '交付信息' }),
+    ).toHaveAttribute('colspan', '2')
+
+  await toggle('任务组')
+  await expect(rows.first()).toContainText('设计系统')
+  await expect(
+    region.getByRole('button', { name: /按已完成排序/ }),
+  ).toHaveCount(0)
+  if (!mobile) {
+    await expect(table.locator('thead tr')).toHaveCount(1)
+    await expect(table.locator('tbody tr').first().locator('>*')).toHaveCount(3)
+  }
+  await toggle('成员组')
+  await toggle('任务组')
+  await expect(rows).toHaveCount(2)
+  await expect(rows.first()).toContainText('表单完善')
+  await expect(region.getByRole('button', { name: '筛选负责人' })).toBeVisible()
+  await expect(
+    region.getByRole('button', { name: '按已完成排序，升序' }),
+  ).toBeVisible()
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,

@@ -129,6 +129,8 @@ Input 与 Textarea 的 `count` 可设为 `true`，或 `{ max, strategy, render }
 
 `columns` 接受数据列与 `TableColumnGroup` 混合数组。分组使用 `{ key, header, children, align? }`，可继续嵌套；只有带 `render(row)` 的叶子列参与数据、排序、筛选、汇总及 H5 工具栏。桌面表头依深度生成原生多行结构，分组用 `scope="colgroup"` 与 `colSpan`，较浅的叶子列用 `rowSpan` 对齐；数据和汇总单元格通过 `headers` 关联每层表头，选择和展开表头跨全部表头层级。无叶子列的空分组不渲染。各列 `key` 应唯一且稳定；`summary` 仍按叶子列键提供内容。`/__ui` 的“Table 分组表头”展示三层结构、排序、筛选、汇总与移动端卡片。
 
+数据列与分组均可设 `hidden`。隐藏分组会移除整棵子树；隐藏叶子后，空分组自动移除，其他表头的 `colSpan` / `rowSpan` 与展开行跨度重算。被隐藏列的排序和筛选配置暂不参与本地数据处理或 H5 工具栏，但受控/默认状态保留，再显示时恢复；汇总只渲染可见叶子列。`renderMobileRow` 是调用方自定义内容，调用方应让卡片内容与可见列设置一致。`/__ui` 可切换成员组、评审列与任务组。
+
 `Table.size` 使用项目统一的 `small`、`default`、`large`，未传时继承 `ConfigProvider.componentSize`。尺寸调整表头、数据单元格、详情区域与 H5 卡片行的留白；选择、排序和展开按钮仍保留至少 44px 触控目标。`bordered` 默认关闭，开启后桌面展示单元格网格线，H5 卡片行展示独立边框。`rowHoverable` 默认开启，只在支持悬停的设备上提示当前行；设为 `false` 可关闭。`/__ui` 的“Table 展示状态”可切换这些设置，并验证桌面表格与窄屏卡片视图。
 
 `Table.classNames` / `styles` 接受语义槽对象，也可接收 `({ props, size, state }) => 槽对象`，其中 `state` 为 `loading`、`error`、`empty`、`filtered-empty` 或 `ready`。槽包括 `root`、`state`、`title`、`selectionSummary`、`scrollRegion`、`table`、`header`、`headerRow`、`headerCell`、`body`、`row`、`cell`、`summary`、`summaryCell`、`expandedRow`、`expandedCell`、`mobile`、`mobileToolbar`、`mobileList`、`mobileRow`、`mobileDetail`、`mobileSummary`、`mobileSummaryItem`、`footer` 和 `pagination`。根节点原有的 `className` / `style` 保留最高优先级。`rowClassName(row, index)` 可按可见数据的全局索引设置桌面行和 H5 卡片行；筛选、排序、分页后的索引与渲染顺序一致。动态 Tailwind 类名仍需以完整字面量出现在项目源码中。

@@ -173,4 +173,101 @@ describe('Table column groups', () => {
     expect(table.querySelectorAll('thead tr')).toHaveLength(1)
     expect(table.querySelector('tbody tr')?.children).toHaveLength(1)
   })
+
+  it('prunes hidden leaves and groups while preserving suspended sort and filter state', () => {
+    const visibleColumns = (
+      hideOwner = false,
+      hideDone = false,
+      hideGroup = false,
+    ): TableColumnNode<Row>[] => [
+      columns[0],
+      {
+        key: 'metrics',
+        header: '信息',
+        hidden: hideGroup,
+        children: [
+          {
+            key: 'owner',
+            header: '负责人',
+            hidden: hideOwner,
+            render: (row) => row.owner,
+            filterOptions: [
+              {
+                value: 'a',
+                label: '甲组',
+                matches: (row) => row.owner === '甲组',
+              },
+            ],
+          },
+          {
+            key: 'done',
+            header: '已完成',
+            hidden: hideDone,
+            render: (row) => row.done,
+            sorter: (left, right) => left.done - right.done,
+          },
+        ],
+      },
+    ]
+    const props = {
+      caption: '动态列表',
+      rows,
+      getRowKey: (row: Row) => row.id,
+      defaultSort: { columnKey: 'done', direction: 'asc' } as const,
+      defaultFilters: { owner: ['a'] },
+      summary: (visibleRows: Row[]) => ({
+        name: '汇总',
+        done: visibleRows.reduce((total, row) => total + row.done, 0),
+      }),
+      renderMobileRow: (row: Row) => row.name,
+    }
+    const { rerender } = render(<Table {...props} columns={visibleColumns()} />)
+    const region = screen.getByRole('region', { name: '动态列表' })
+    const table = within(region).getByRole('table', { name: '动态列表' })
+    const body = () =>
+      [...table.querySelectorAll('tbody tr')].map((row) => row.textContent)
+    expect(body()).toHaveLength(1)
+    expect(body()[0]).toContain('任务 A')
+    expect(
+      table.querySelector('thead tr:first-child th:last-child'),
+    ).toHaveAttribute('colspan', '2')
+
+    rerender(<Table {...props} columns={visibleColumns(true)} />)
+    expect(body()).toHaveLength(2)
+    expect(body()[0]).toContain('任务 B')
+    expect(
+      table.querySelector('thead tr:first-child th:last-child'),
+    ).toHaveAttribute('colspan', '1')
+    expect(
+      within(region).queryByRole('button', { name: '筛选负责人' }),
+    ).toBeNull()
+    expect(
+      within(region).getByRole('group', { name: '动态列表汇总' }),
+    ).toHaveTextContent('4')
+
+    rerender(<Table {...props} columns={visibleColumns(true, true)} />)
+    expect(body()).toHaveLength(2)
+    expect(body()[0]).toContain('任务 A')
+    expect(table.querySelectorAll('thead tr')).toHaveLength(1)
+    expect(
+      within(table).queryByRole('columnheader', { name: '信息' }),
+    ).toBeNull()
+    expect(
+      within(region).queryByRole('button', { name: /按已完成排序/ }),
+    ).toBeNull()
+    expect(
+      within(region).getByRole('group', { name: '动态列表汇总' }),
+    ).not.toHaveTextContent('4')
+
+    rerender(<Table {...props} columns={visibleColumns(false, false, true)} />)
+    expect(body()[0]).toContain('任务 A')
+    expect(table.querySelector('tbody tr')?.children).toHaveLength(1)
+
+    rerender(<Table {...props} columns={visibleColumns()} />)
+    expect(body()).toHaveLength(1)
+    expect(body()[0]).toContain('任务 A')
+    expect(
+      within(table).getByRole('columnheader', { name: '已完成' }),
+    ).toHaveAttribute('aria-sort', 'ascending')
+  })
 })
