@@ -335,6 +335,54 @@ test('small Card applies its size to slots and keeps actions touchable', async (
   await expect(compact.getByRole('status')).toHaveText('已执行操作')
 })
 
+test('Card meta and grid follow container width with keyboard and H5 touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  await page.setViewportSize({ width: 360, height: 844 })
+  const card = page.locator('[data-ui-card]').filter({
+    hasText: '卡片元信息与网格',
+  })
+  const grid = card.getByRole('list', { name: '卡片网格示例' })
+  const layout = grid.locator('[data-ui-card-grid-layout]')
+  const tiles = grid.getByRole('listitem')
+  const columnCount = () =>
+    layout.evaluate(
+      (element) =>
+        getComputedStyle(element).gridTemplateColumns.split(' ').length,
+    )
+  await expect(card.locator('[data-ui-card-header]')).toHaveCSS(
+    'border-bottom-width',
+    '1px',
+  )
+  await expect(
+    card.getByRole('heading', { name: '组件目录', level: 4 }),
+  ).toBeVisible()
+  await expect(card.getByRole('img', { name: '组件维护组' })).toBeVisible()
+  await expect(tiles).toHaveCount(3)
+  expect(await columnCount()).toBe(1)
+  const open = grid.getByRole('button', { name: '打开基础控件' })
+  const box = await open.boundingBox()
+  expect(box!.width).toBeGreaterThanOrEqual(44)
+  expect(box!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await open.tap()
+  else await open.press('Enter')
+  await expect(card.getByRole('status')).toHaveText('已打开基础控件')
+  const staticTile = tiles.nth(2)
+  await expect(staticTile).not.toHaveAttribute('tabindex')
+  await expect(staticTile).not.toHaveAttribute('data-ui-card-grid-hoverable')
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+
+  await page.setViewportSize({ width: 960, height: 800 })
+  await expect.poll(columnCount).toBe(3)
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await expect(tiles.first()).toHaveCSS('transition-property', 'none')
+})
+
 test('Space.Compact keeps control order, semantics and H5 touch targets', async ({
   page,
 }, testInfo) => {

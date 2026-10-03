@@ -22,8 +22,18 @@ export {
   CardDescription,
   CardContent,
   CardFooter,
+  CardMeta,
+  CardGridGroup,
+  CardGrid,
 } from './card'
-export type { CardProps } from './card'
+export type {
+  CardProps,
+  CardPart,
+  CardMetaProps,
+  CardMetaPart,
+  CardGridGroupProps,
+  CardGridProps,
+} from './card'
 export { Empty } from './empty'
 export type { EmptyProps } from './empty'
 export { LoadingState, ErrorState } from './feedback-state'

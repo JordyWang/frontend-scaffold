@@ -28,6 +28,7 @@
 | Transfer                        | `items`、`targetKeys` / `defaultTargetKeys`、`selectedKeys` / `defaultSelectedKeys`、`onChange`、`showSearch`、`filterItem`                            | 双栏穿梭框；可见项批量选择、禁用项保护、方向操作、键盘和 H5 单列布局                                                        |
 | Upload                          | `accept`、`multiple`、`beforeUpload`、`onFiles`、`disabled`                                                                                            | 仅负责文件入口和筛选；预览、校验、上传进度继续使用 `capabilities/files`                                                     |
 | Card                            | `Card`、`CardHeader`、`CardTitle`、`CardDescription`、`CardContent`、`CardFooter`；`size` 为 default / small                                           | 组合式插槽共享尺寸；小号可继承 ConfigProvider.componentSize                                                                 |
+| CardMeta / CardGrid             | `CardMeta(avatar, title, description, headingLevel)`；`CardGridGroup(columns)`；`CardGrid(hoverable)`                                                  | 元信息支持头像与说明；网格随容器宽度排成 1–4 列                                                                             |
 | Empty                           | `title`、`description`、`action`、`image`、`size`                                                                                                      | 无数据状态；default / small 尺寸，可继承 ConfigProvider.componentSize；默认插图可替换或隐藏                                 |
 | Select                          | `options`、`value` / `defaultValue`、`onValueChange`、`showSearch`、`filterOption`、`allowClear`；其余字段同输入约定                                   | 选项 `{ value, label, disabled? }`；项目处理搜索文本与输入法，Radix 处理选项键盘与弹层焦点                                  |
 | MultiSelect                     | `options`、`value` / `defaultValue`、`onValueChange`、`showSearch`、`allowClear`、`disabled`、`name`、`required`、`size`                               | 项目多选值为 `string[]`；弹层列表支持过滤、方向键、Enter/空格、Escape 和 H5 触控                                            |
@@ -142,7 +143,9 @@
 
 `Select` 和 `MultiSelect` 使用相同的 `variant` 和 `status` 字段契约；`status="error"` 同时暴露 `aria-invalid="true"`，便于表单校验和辅助技术识别。
 
-`Card` 保留 `CardHeader` / `CardContent` 等组合 API，同时支持 `title`、`extra`、`cover`、`actions`、`hoverable`、`loading`、`bordered` 和 `size`。小号尺寸会同步收紧标题、Header、Content、Footer 与加载骨架屏；未指定时继承全局小号配置，加载状态提供 `role="status"`。
+`Card` 保留 `CardHeader` / `CardContent` 等组合 API，同时支持 `title`、`extra`、`cover`、`actions`、`hoverable`、`loading`、`bordered` 和 `size`。小号尺寸会同步收紧标题、Header、Content、Footer、Meta、Grid 和加载骨架屏；未指定时继承全局小号配置。加载时根节点暴露 `aria-busy`，内容区显示有名称的 `status` 骨架。
+
+`Card.classNames` 为声明式 `title`、`extra`、`cover`、`actions` 等提供 `root`、`header`、`title`、`extra`、`cover`、`body`、`actions`、`action`、`loading` 的 Tailwind 插槽；组合式子组件仍可直接使用自身的 `className`。`CardMeta` 接受 `avatar`、`title`、`description`，默认用三级标题，`headingLevel` 可选 3–6；`classNames` 可定制其 root/avatar/section/title/description。`CardGridGroup` 用容器宽度而非视口宽度安排列数，`columns` 为 1–4，默认 3；不足 30rem 时单列，达到 30rem 后双列，48rem 后三列，64rem 后四列，不超过设置的列数。`CardGrid` 是非交互的列表项，`hoverable` 仅控制视觉反馈；操作应放入内部原生按钮或链接，保持键盘与 H5 触控行为。
 
 `Button` 在原有 `variant`、`size`、`loading` 基础上支持 `danger`、`block`、`shape`（default、round、circle）以及 `icon` / `iconPosition` 插槽；`danger` 会优先使用错误主题色。
 

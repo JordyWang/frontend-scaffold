@@ -176,7 +176,7 @@ Input 与 Textarea 提供项目自己的 `variant`（outlined、filled、borderl
 
 Select 与 MultiSelect 复用同一组外观与状态字段，错误状态会同步设置 `aria-invalid`，`/__ui` 展示填充和下划线警告选择器。
 
-Card 保留组合式子组件，并补充 AntD 常用的 `title`、`extra`、`cover`、`actions`、`hoverable`、`loading` 和 `bordered` 插槽；`/__ui` 展示声明式卡片。
+Card 保留组合式子组件，并补充 AntD 常用的 `title`、`extra`、`cover`、`actions`、`hoverable`、`loading` 和 `bordered` 插槽；`CardMeta` 提供头像、标题和描述，`CardGridGroup` / `CardGrid` 以容器宽度组织等宽网格。卡片与 Meta 有 Tailwind 语义类名入口；`/__ui` 展示声明式卡片、元信息及网格。
 
 Button 补充危险、块级、圆角和图标位置 API；这些状态仍使用项目的 Tailwind 语义 Token，并在 `/__ui` 展示触控尺寸。
 
@@ -242,7 +242,7 @@ Table 增加项目级可选 `pagination`，先筛选/排序再分页，默认与
 
 List、Listy、Table 的公共错误状态支持异步重试，等待时防止重复触发，拒绝后提示重试失败；`/__ui` 可切换重试成功与失败预览。
 
-Card 增加 default / small 尺寸契约，组合式插槽与声明式内容同步缩放，并支持继承 ConfigProvider 的小号尺寸；`/__ui` 展示小号卡片及可触控操作。
+Card 增加 default / small 尺寸契约，组合式插槽、Meta、Grid 与声明式内容同步缩放，并支持继承 ConfigProvider 的小号尺寸；加载时根节点标记忙碌。`/__ui` 展示小号卡片、元信息、响应式网格及可触控操作。
 
 Alert 增加可关闭提示和关闭回调，关闭按钮保持 44px 触控区域；`/__ui` 展示操作、关闭与恢复，桌面键盘和 H5 触控均可验证。
 

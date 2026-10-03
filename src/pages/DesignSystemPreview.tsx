@@ -47,6 +47,9 @@ import {
   Card,
   CardContent,
   CardFooter,
+  CardMeta,
+  CardGrid,
+  CardGridGroup,
   Calendar,
   Checkbox,
   Carousel,
@@ -240,6 +243,7 @@ export function DesignSystemPreview() {
   const [consentStatus, setConsentStatus] = useState('尚未提交')
   const [searchStatus, setSearchStatus] = useState('尚未搜索')
   const [smallCardStatus, setSmallCardStatus] = useState('尚未操作')
+  const [cardGridStatus, setCardGridStatus] = useState('尚未选择卡片项目')
   const [emptyStatus, setEmptyStatus] = useState('尚未重置')
   const [badgeStatus, setBadgeStatus] = useState('尚未查看 RTL 通知')
   const [alertKey, setAlertKey] = useState(0)
@@ -439,6 +443,66 @@ export function DesignSystemPreview() {
                 执行小号卡片操作
               </Button>
             </CardFooter>
+          </Card>
+          <Card
+            title="卡片元信息与网格"
+            className="col-span-full"
+            classNames={{
+              header: 'border-b border-border',
+              title: 'text-primary',
+              body: 'min-w-0',
+            }}
+          >
+            <CardContent className="grid gap-3">
+              <CardMeta
+                avatar={<Avatar label="组件维护组">组</Avatar>}
+                title="组件目录"
+                description="头像、标题和说明跟随卡片宽度换行。"
+                headingLevel={4}
+                classNames={{ title: 'text-primary' }}
+              />
+              <p role="status" className="m-0 text-sm text-muted-foreground">
+                {cardGridStatus}
+              </p>
+            </CardContent>
+            <CardGridGroup columns={3} aria-label="卡片网格示例">
+              <CardGrid>
+                <div className="grid gap-2">
+                  <strong>基础控件</strong>
+                  <p className="m-0 text-sm text-muted-foreground">
+                    按钮、输入与空状态。
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="small"
+                    onClick={() => setCardGridStatus('已打开基础控件')}
+                  >
+                    打开基础控件
+                  </Button>
+                </div>
+              </CardGrid>
+              <CardGrid>
+                <div className="grid gap-2">
+                  <strong>数据展示</strong>
+                  <p className="m-0 text-sm text-muted-foreground">
+                    统计、列表与表格。
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="small"
+                    onClick={() => setCardGridStatus('已打开数据展示')}
+                  >
+                    打开数据展示
+                  </Button>
+                </div>
+              </CardGrid>
+              <CardGrid hoverable={false}>
+                <strong>静态说明</strong>
+                <p className="m-0 text-sm text-muted-foreground">
+                  此项只展示内容，不模拟可点击卡片。
+                </p>
+              </CardGrid>
+            </CardGridGroup>
           </Card>
           <Card title="空状态">
             <CardContent className="grid gap-3">

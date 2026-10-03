@@ -5,6 +5,9 @@ import {
   Card,
   CardContent,
   CardFooter,
+  CardMeta,
+  CardGridGroup,
+  CardGrid,
   Checkbox,
   ConfigProvider,
   ErrorBoundary,
@@ -72,18 +75,107 @@ describe('shared/ui contracts', () => {
           </button>,
         ]}
         hoverable
+        classNames={{
+          cover: 'rounded-md',
+          actions: 'bg-muted',
+          action: 'text-primary',
+        }}
       >
         <p>已完成</p>
       </Card>,
     )
     expect(screen.getByText('任务结果')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: '任务封面' })).toBeInTheDocument()
+    const card = screen.getByText('任务结果').closest('[data-ui-card]')!
+    expect(card.querySelector('[data-ui-card-cover]')).toHaveClass('rounded-md')
+    expect(card.querySelector('[data-ui-card-actions]')).toHaveClass('bg-muted')
+    expect(card.querySelector('[data-ui-card-action]')).toHaveClass(
+      'text-primary',
+    )
     fireEvent.click(screen.getByRole('button', { name: '打开' }))
     expect(onAction).toHaveBeenCalledOnce()
 
-    rerender(<Card title="加载中" loading />)
+    rerender(
+      <Card title="加载中" loading classNames={{ loading: 'bg-muted' }} />,
+    )
+    expect(
+      screen.getByText('加载中').closest('[data-ui-card]'),
+    ).toHaveAttribute('aria-busy', 'true')
     expect(screen.getByRole('status', { name: '正在加载' })).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: '正在加载' })).toHaveClass(
+      'bg-muted',
+    )
     expect(screen.queryByText('已完成')).toBeNull()
+  })
+
+  it('composes Card meta, responsive tiles and Tailwind semantic slots', () => {
+    const onOpen = vi.fn()
+    const { container } = render(
+      <ConfigProvider componentSize="small">
+        <Card
+          title="卡片结构"
+          extra={<button type="button">更多选项</button>}
+          classNames={{
+            root: 'shadow-sm',
+            header: 'border-b',
+            title: 'text-primary',
+            extra: 'text-sm',
+            body: 'min-w-0',
+          }}
+        >
+          <CardContent>
+            <CardMeta
+              avatar={
+                <span role="img" aria-label="项目头像">
+                  项
+                </span>
+              }
+              title="项目概览"
+              description="较长的说明内容"
+              headingLevel={4}
+              classNames={{ title: 'text-primary' }}
+            />
+          </CardContent>
+          <CardGridGroup
+            columns={3}
+            aria-label="项目入口"
+            classNames={{ root: 'rounded-lg', grid: 'border-primary' }}
+          >
+            <CardGrid>
+              <button type="button" onClick={onOpen}>
+                打开项目
+              </button>
+            </CardGrid>
+            <CardGrid hoverable={false}>静态说明</CardGrid>
+          </CardGridGroup>
+        </Card>
+      </ConfigProvider>,
+    )
+    const card = container.querySelector('[data-ui-card]')!
+    expect(card).toHaveClass('shadow-sm')
+    expect(card.querySelector('[data-ui-card-header]')).toHaveClass('border-b')
+    expect(card.querySelector('[data-ui-card-title]')).toHaveClass(
+      'text-primary',
+    )
+    expect(card.querySelector('[data-ui-card-extra]')).toHaveClass('text-sm')
+    expect(card.querySelector('[data-ui-card-body]')).toHaveClass('min-w-0')
+    expect(
+      screen.getByRole('heading', { name: '项目概览', level: 4 }),
+    ).toHaveClass('text-primary', 'text-sm')
+    expect(screen.getByRole('img', { name: '项目头像' })).toBeInTheDocument()
+    expect(screen.getByText('较长的说明内容')).toBeVisible()
+    const list = screen.getByRole('list', { name: '项目入口' })
+    expect(list).toHaveAttribute('data-ui-columns', '3')
+    expect(list).toHaveClass('rounded-lg')
+    expect(list.querySelector('[data-ui-card-grid-layout]')).toHaveClass(
+      'border-primary',
+    )
+    const tiles = screen.getAllByRole('listitem')
+    expect(tiles).toHaveLength(2)
+    expect(tiles[0]).toHaveClass('p-[var(--space-md)]')
+    expect(tiles[1]).not.toHaveClass('hover:bg-muted/40')
+    fireEvent.click(screen.getByRole('button', { name: '打开项目' }))
+    expect(onOpen).toHaveBeenCalledOnce()
   })
 
   it('shares Card size across declarative and compound slots', () => {
