@@ -261,6 +261,10 @@ type TableCommonProps<T> = {
   size?: ControlSize
   bordered?: boolean
   rowHoverable?: boolean
+  /** Maximum table-view scroll height in CSS pixels. Keeps header visible. */
+  scrollY?: number
+  /** Keep the summary visible at the bottom of a vertically scrolling table. */
+  stickySummary?: boolean
   loading?: boolean
   error?: string
   onRetry?: () => void | Promise<void>
@@ -312,6 +316,8 @@ export function Table<T>(allProps: TableProps<T>) {
     size,
     bordered = false,
     rowHoverable = true,
+    scrollY,
+    stickySummary = false,
     loading,
     error,
     onRetry,
@@ -403,6 +409,10 @@ export function Table<T>(allProps: TableProps<T>) {
     large: 'p-6',
   }[resolvedSize]
   const cellBorder = bordered && 'border border-border'
+  const verticalScrollHeight =
+    typeof scrollY === 'number' && Number.isFinite(scrollY) && scrollY > 0
+      ? scrollY
+      : undefined
   const rowHover = rowHoverable ? 'hover:bg-accent/50' : undefined
   const tableAttributes = {
     'data-ui-table': '',
@@ -913,15 +923,19 @@ export function Table<T>(allProps: TableProps<T>) {
       )}
       <div
         role="region"
-        aria-label={`${caption}横向滚动`}
+        aria-label={`${caption}${verticalScrollHeight ? '滚动区域' : '横向滚动'}`}
         tabIndex={0}
         onKeyDown={scrollHorizontalRegion}
         className={cn(
           'overflow-x-auto overscroll-x-contain focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring [scrollbar-width:thin]',
+          verticalScrollHeight && 'overflow-y-auto overscroll-y-contain',
           renderMobileRow && 'hidden sm:block',
           semanticClassNames?.scrollRegion,
         )}
-        style={semanticStyles?.scrollRegion}
+        style={{
+          ...semanticStyles?.scrollRegion,
+          ...(verticalScrollHeight && { maxHeight: verticalScrollHeight }),
+        }}
       >
         <table
           className={cn(
@@ -932,7 +946,11 @@ export function Table<T>(allProps: TableProps<T>) {
         >
           <caption className="sr-only">{caption}</caption>
           <thead
-            className={cn('bg-muted', semanticClassNames?.header)}
+            className={cn(
+              'bg-muted',
+              verticalScrollHeight && 'sticky top-0 z-10',
+              semanticClassNames?.header,
+            )}
             style={semanticStyles?.header}
           >
             {headerRows.map((headerRow, level) => (
@@ -1137,6 +1155,7 @@ export function Table<T>(allProps: TableProps<T>) {
             <tfoot
               className={cn(
                 'border-t border-border bg-muted/40',
+                verticalScrollHeight && stickySummary && 'sticky bottom-0 z-10',
                 semanticClassNames?.summary,
               )}
               style={semanticStyles?.summary}

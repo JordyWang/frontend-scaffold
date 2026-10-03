@@ -47,4 +47,38 @@ describe('Table horizontal scrolling', () => {
       expect(region.scrollLeft).toBe(0)
     },
   )
+
+  it('limits desktop table height and keeps grouped headers and summaries sticky', () => {
+    render(
+      <Table
+        caption="长任务表"
+        rows={[{ id: 'first', status: '进行中' }]}
+        getRowKey={(row) => row.id}
+        columns={[
+          { key: 'id', header: '任务', render: (row) => row.id },
+          {
+            key: 'progress',
+            header: '进度',
+            children: [
+              { key: 'status', header: '状态', render: (row) => row.status },
+            ],
+          },
+        ]}
+        scrollY={240}
+        stickySummary
+        summary={() => ({ id: '汇总', status: '1 项进行中' })}
+        renderMobileRow={(row) => row.id}
+      />,
+    )
+    const region = screen.getByRole('region', { name: '长任务表滚动区域' })
+    const table = screen.getByRole('table', { name: '长任务表' })
+    expect(region).toHaveStyle({ maxHeight: '240px' })
+    expect(region).toHaveClass('overflow-y-auto')
+    expect(table.querySelectorAll('thead tr')).toHaveLength(2)
+    expect(table.querySelector('thead')).toHaveClass('sticky', 'top-0')
+    expect(table.querySelector('tfoot')).toHaveClass('sticky', 'bottom-0')
+    expect(screen.getByRole('list', { name: '长任务表' })).toHaveTextContent(
+      'first',
+    )
+  })
 })

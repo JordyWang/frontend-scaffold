@@ -18,6 +18,11 @@ const singleRows = [
   { id: 'test', name: '测试组件' },
   { id: 'review', name: '验证交互' },
 ]
+const scrollRows = Array.from({ length: 12 }, (_, index) => ({
+  id: `stage-${index + 1}`,
+  name: `任务 ${index + 1}`,
+  status: index % 3 === 0 ? '进行中' : '待开始',
+}))
 
 export function TablePreview() {
   const [size, setSize] = useState<ControlSize>('default')
@@ -124,6 +129,39 @@ export function TablePreview() {
         <Typography variant="caption" tone="muted">
           桌面显示表格，窄屏切换为卡片行；选择、排序和展开状态共用。
         </Typography>
+        <Typography as="h4" variant="heading">
+          长表格滚动
+        </Typography>
+        <Typography variant="caption" tone="muted">
+          桌面限制表格区域高度，滚动时保留表头和汇总；手机继续按列表阅读。
+        </Typography>
+        <Table
+          caption="纵向滚动任务表"
+          rows={scrollRows}
+          getRowKey={(row) => row.id}
+          columns={[
+            { key: 'name', header: '任务', render: (row) => row.name },
+            {
+              key: 'progress',
+              header: '进度',
+              children: [
+                { key: 'status', header: '状态', render: (row) => row.status },
+              ],
+            },
+          ]}
+          scrollY={256}
+          stickySummary
+          summary={(visibleRows) => ({
+            name: `共 ${visibleRows.length} 项`,
+            status: `${visibleRows.filter((row) => row.status === '进行中').length} 项进行中`,
+          })}
+          renderMobileRow={(row) => (
+            <div className="flex min-w-0 items-center justify-between gap-3 text-sm">
+              <strong>{row.name}</strong>
+              <span className="text-muted-foreground">{row.status}</span>
+            </div>
+          )}
+        />
         <Typography as="h4" variant="heading">
           单选与跨页
         </Typography>
