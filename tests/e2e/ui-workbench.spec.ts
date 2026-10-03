@@ -2510,6 +2510,41 @@ test('composite skeleton reveals content with keyboard and touch', async ({
   ).toBe(true)
 })
 
+test('standalone skeleton shapes keep their sizes and fit H5', async ({
+  page,
+}) => {
+  await page.goto('/__ui')
+  await page.setViewportSize({ width: 360, height: 844 })
+  const group = page.getByRole('group', { name: '独立骨架屏预览' })
+  const avatar = group.getByRole('status', { name: '头像正在加载' })
+  const smallButton = group.getByRole('status', { name: '小按钮正在加载' })
+  const wideButton = group.getByRole('status', {
+    name: '铺满容器的按钮正在加载',
+  })
+  const input = group.getByRole('status', { name: '输入框正在加载' })
+  const image = group.getByRole('status', { name: '图片正在加载' })
+  await expect(avatar).toHaveCSS('width', '32px')
+  await expect(smallButton).toHaveCSS('height', '24px')
+  await expect(input).toHaveCSS('width', '160px')
+  await expect(image).toHaveCSS('width', '64px')
+  expect(
+    await wideButton.evaluate(
+      (element) => element.getBoundingClientRect().width,
+    ),
+  ).toBe(
+    await wideButton.evaluate(
+      (element) => element.parentElement!.getBoundingClientRect().width,
+    ),
+  )
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await expect(image).toHaveCSS('animation-name', 'none')
+})
+
 test('watermark follows theme and keeps covered controls touchable', async ({
   page,
 }, testInfo) => {

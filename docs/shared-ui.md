@@ -55,7 +55,7 @@
 | Segmented                       | `options`、`value` / `defaultValue`、`onChange`、`size`、`block`、`disabled`                                                                           | 原生单选控件；显式 `value={undefined}` 可清空，非受控选项失效时回退到可用项；支持方向键和窄屏横向滚动                       |
 | Rate                            | `count`、`value` / `defaultValue`、`onChange`、`allowClear`、`character`、`tooltips`、`disabled`                                                       | 原生单选控件；显式 `value={undefined}` 保持受控空值；支持方向键、清除和 44px 触控区域                                       |
 | Tag / Badge                     | `Tag(tone, selectable, closable)`；`Badge(count, showZero, status)`；`Badge.Ribbon`                                                                    | Tag 操作使用 44px 触控区域；Badge 支持数量、状态点和角标，位置跟随 RTL 逻辑方向                                             |
-| Image / Skeleton                | 原生 img 属性、必填 `alt`、`fallback`、`preview`；`Skeleton(shape, width, height, label, loading, active, avatar, title, paragraph, round)`            | 图片支持放大预览和加载失败反馈；骨架屏有状态标签，内容形态支持头像、标题、段落及加载结束后展示真实内容                      |
+| Image / Skeleton                | 原生 img 属性、必填 `alt`、`fallback`、`preview`；`Skeleton(shape, size, width, height, label, loading, active, avatar, title, paragraph, round)`      | 图片支持放大预览和加载失败反馈；骨架屏支持独立按钮、输入框、图片占位及组合内容，加载结束后展示真实内容                      |
 | ImagePreviewGroup               | `items`、`current` / `defaultCurrent`、`onCurrentChange`、`open` / `defaultOpen`、`onOpenChange`、`label`、缩放配置                                    | 项目相册以图片数组表示，缩略图与预览地址可不同；键盘切换、触控工具栏和关闭后的焦点恢复共用图片预览实现                      |
 | Alert / Spinner                 | `Alert(title, tone, banner, open, onOpenChange)`；`Spinner(label, size)`                                                                               | 错误与警告用 alert，其他状态用 status；可控关闭与 Banner 支持 44px 操作区域；加载状态有可访问名称                           |
 | Spin                            | `spinning`、`delay`、`tip`、`label`、`size`、`fullscreen`                                                                                              | 可包裹局部内容或全屏展示；加载时内容不可操作，延迟用于避免短任务闪烁                                                        |
@@ -96,7 +96,7 @@
 
 `Result` 的 `title` 可省略，按 `status` 提供中文默认标题；403、404、500 还提供默认说明与可见状态码。调用方传入的 `title`、`subTitle` 和 `icon` 优先。`size="small"` 用于卡片内紧凑结果，`headingLevel` 默认为 2，可设 1–6 以匹配页面标题层级。`children` 用于展示复杂错误详情或后续说明，位于 `extra` 操作区之后，并使用主题背景承载内容。结果区由标题提供可访问名称，状态码和自定义图标作为装饰内容隐藏，避免重复播报；长内容在窄屏换行。
 
-`Skeleton` 默认保留单块占位；`shape="content"` 明确启用组合骨架屏。`avatar` 可传布尔值或 `{ size, shape }`，`title` 可传布尔值或 `{ width }`，`paragraph` 可传布尔值或 `{ rows, width }`；段落宽度可为单值或按行数组。`loading={false}` 直接渲染 `children`，加载时真实内容不进入焦点顺序。`active` 默认开启脉冲动画，可关闭，系统减少动态效果时停止动画。
+`Skeleton` 默认是文字行占位；独立形态包括 `line`、`circle`、`block`、`button`、`input`、`image`。`size` 对独立形态提供 `small`、`medium`、`large` 三档，默认 `medium`；`width`、`height` 可覆写尺寸，按钮使用 `width="100%"` 时铺满父容器，`round` 可将独立形态设为圆角。`shape="content"` 明确启用组合骨架屏，此时尺寸由内容配置控制：`avatar` 可传布尔值或 `{ size, shape }`，`title` 可传布尔值或 `{ width }`，`paragraph` 可传布尔值或 `{ rows, width }`；段落宽度可为单值或按行数组。`loading={false}` 直接渲染 `children`，加载时真实内容不进入焦点顺序。`active` 默认开启脉冲动画，可关闭，系统减少动态效果时停止动画。
 
 `Image` 默认允许点击或键盘打开预览，纯展示图片可传 `preview={false}`；原生属性、`className` 和事件仍作用于图片，`containerClassName` 调整预览入口。`preview` 对象支持独立大图 `src`、`open` / `defaultOpen` / `onOpenChange`、`label`、`maxScale`、`scaleStep`、`wheel` 和 `maskClosable`。缩放默认范围为 1–8 倍，`maxScale` 最大为 50，默认每步乘以 1.5；滚轮与点击空白关闭可独立禁用。
 

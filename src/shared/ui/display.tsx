@@ -171,7 +171,8 @@ export type SkeletonParagraph = {
 export type SkeletonProps = Omit<HTMLAttributes<HTMLDivElement>, 'title'> & {
   width?: string | number
   height?: string | number
-  shape?: 'line' | 'circle' | 'block' | 'content'
+  shape?: 'line' | 'circle' | 'block' | 'button' | 'input' | 'image' | 'content'
+  size?: 'small' | 'medium' | 'large'
   label?: string
   loading?: boolean
   active?: boolean
@@ -184,6 +185,7 @@ export function Skeleton({
   width,
   height,
   shape = 'line',
+  size = 'medium',
   label = '正在加载',
   loading = true,
   active = true,
@@ -276,19 +278,31 @@ export function Skeleton({
       </div>
     )
   }
-  const shapeStyles = {
-    line: 'h-4 w-full rounded-[var(--radius-sm)]',
-    circle: 'size-12 rounded-full',
-    block: 'h-24 w-full rounded-[var(--radius-sm)]',
+  const shapeSizes = {
+    line: { small: 'h-3 w-full', medium: 'h-4 w-full', large: 'h-5 w-full' },
+    circle: { small: 'size-8', medium: 'size-12', large: 'size-16' },
+    block: {
+      small: 'h-16 w-full',
+      medium: 'h-24 w-full',
+      large: 'h-32 w-full',
+    },
+    button: { small: 'h-6 w-16', medium: 'h-8 w-20', large: 'h-10 w-24' },
+    input: { small: 'h-6 w-28', medium: 'h-8 w-40', large: 'h-10 w-52' },
+    image: { small: 'size-16', medium: 'size-24', large: 'size-32' },
   } as const
   return (
     <div
       role="status"
       aria-label={label}
+      data-ui-skeleton={shape}
+      data-ui-size={size}
       className={cn(
         'bg-secondary',
         animationClass,
-        shapeStyles[shape],
+        shapeSizes[shape][size],
+        shape === 'circle' || round
+          ? 'rounded-full'
+          : 'rounded-[var(--radius-sm)]',
         className,
       )}
       style={{ width, height, ...style }}

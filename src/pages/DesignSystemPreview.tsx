@@ -1149,6 +1149,28 @@ export function DesignSystemPreview() {
                 <Skeleton shape="block" height={48} label="内容正在加载" />
                 <div
                   role="group"
+                  aria-label="独立骨架屏预览"
+                  className="flex w-full flex-wrap items-end gap-4"
+                >
+                  <Skeleton shape="circle" size="small" label="头像正在加载" />
+                  <Skeleton
+                    shape="button"
+                    size="small"
+                    label="小按钮正在加载"
+                  />
+                  <Skeleton shape="button" round label="圆角按钮正在加载" />
+                  <div className="w-40 max-w-full">
+                    <Skeleton
+                      shape="button"
+                      width="100%"
+                      label="铺满容器的按钮正在加载"
+                    />
+                  </div>
+                  <Skeleton shape="input" label="输入框正在加载" />
+                  <Skeleton shape="image" size="small" label="图片正在加载" />
+                </div>
+                <div
+                  role="group"
                   aria-label="组合骨架屏预览"
                   className="grid w-full gap-3"
                 >

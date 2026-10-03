@@ -327,6 +327,42 @@ describe('display and feedback semantics', () => {
     expect(screen.getByRole('status', { name: '正在处理' })).toBeInTheDocument()
   })
 
+  it('renders sized button, input, image and avatar placeholders', () => {
+    render(
+      <>
+        <Skeleton shape="circle" size="small" label="头像正在加载" />
+        <Skeleton shape="button" size="small" label="按钮正在加载" />
+        <Skeleton shape="button" round width="100%" label="宽按钮正在加载" />
+        <Skeleton shape="input" size="large" label="输入框正在加载" />
+        <Skeleton shape="image" active={false} label="图片正在加载" />
+      </>,
+    )
+    expect(screen.getByRole('status', { name: '头像正在加载' })).toHaveClass(
+      'size-8',
+      'rounded-full',
+    )
+    expect(screen.getByRole('status', { name: '按钮正在加载' })).toHaveClass(
+      'h-6',
+      'w-16',
+    )
+    expect(screen.getByRole('status', { name: '宽按钮正在加载' })).toHaveStyle({
+      width: '100%',
+    })
+    expect(screen.getByRole('status', { name: '宽按钮正在加载' })).toHaveClass(
+      'rounded-full',
+    )
+    expect(screen.getByRole('status', { name: '输入框正在加载' })).toHaveClass(
+      'h-10',
+      'w-52',
+    )
+    expect(screen.getByRole('status', { name: '图片正在加载' })).toHaveClass(
+      'size-24',
+    )
+    expect(
+      screen.getByRole('status', { name: '图片正在加载' }),
+    ).not.toHaveClass('animate-pulse')
+  })
+
   it('renders a composite skeleton and swaps to real content when loading ends', () => {
     const { rerender } = render(
       <Skeleton
