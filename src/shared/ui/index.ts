@@ -202,7 +202,13 @@ export type { AlertProps } from './alert'
 export { Spinner } from './spinner'
 export type { SpinnerProps } from './spinner'
 export { Spin } from './spin'
-export type { SpinProps } from './spin'
+export type {
+  SpinClassNames,
+  SpinProps,
+  SpinSemanticInfo,
+  SpinSemanticSlot,
+  SpinStyles,
+} from './spin'
 export { Watermark } from './watermark'
 export type { WatermarkProps } from './watermark'
 export { BorderBeam } from './border-beam'

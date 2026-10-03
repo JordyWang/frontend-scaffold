@@ -293,6 +293,8 @@ export function DesignSystemPreview() {
   const [virtualListCount, setVirtualListCount] = useState(100)
   const [regionLoading, setRegionLoading] = useState(true)
   const [fullscreenLoading, setFullscreenLoading] = useState(false)
+  const [spinProgress, setSpinProgress] = useState(28)
+  const [spinAutoOpen, setSpinAutoOpen] = useState(false)
   const [watermarkImage, setWatermarkImage] = useState(false)
   const [qrStatus, setQrStatus] = useState<'active' | 'expired' | 'loading'>(
     'active',
@@ -3389,6 +3391,55 @@ export function DesignSystemPreview() {
                     演示全屏加载
                   </Button>
                 </Stack>
+                <div
+                  role="group"
+                  aria-label="Spin 进度与自定义状态"
+                  className="flex flex-wrap items-center gap-4 rounded-lg border border-border bg-muted/30 p-4"
+                >
+                  <Spin
+                    percent={spinProgress}
+                    label="任务进度"
+                    description="已处理的任务"
+                    classNames={({ props }) => ({
+                      section:
+                        props.percent === 100
+                          ? 'text-[var(--ui-color-success)]'
+                          : '',
+                      description: 'font-medium',
+                    })}
+                  />
+                  <Button
+                    variant="outline"
+                    size="small"
+                    onClick={() =>
+                      setSpinProgress((current) =>
+                        current === 100 ? 28 : Math.min(100, current + 36),
+                      )
+                    }
+                  >
+                    推进任务进度
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="small"
+                    onClick={() => setSpinAutoOpen((current) => !current)}
+                  >
+                    {spinAutoOpen ? '结束估算进度' : '开始估算进度'}
+                  </Button>
+                  {spinAutoOpen && (
+                    <Spin
+                      percent="auto"
+                      label="估算进度"
+                      description="等待异步任务"
+                    />
+                  )}
+                  <Spin
+                    label="自定义指示器"
+                    indicator={<Icon name="clock" size={28} />}
+                    description="自定义图标"
+                    styles={{ indicator: { opacity: 0.8 } }}
+                  />
+                </div>
                 <Spin
                   fullscreen
                   spinning={fullscreenLoading}
