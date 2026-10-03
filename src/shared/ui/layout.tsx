@@ -68,8 +68,6 @@ export function Stack({
   )
 }
 
-export const Flex = Stack
-
 export type SpaceProps = Omit<HTMLAttributes<HTMLDivElement>, 'children'> & {
   children?: ReactNode
   direction?: 'horizontal' | 'vertical'

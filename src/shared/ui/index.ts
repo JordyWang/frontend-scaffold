@@ -143,7 +143,9 @@ export type {
   TypographyEditOptions,
   TypographyEllipsisOptions,
 } from './typography'
-export { Stack, Flex, Space, SpaceCompact, Grid, Divider } from './layout'
+export { Stack, Space, SpaceCompact, Grid, Divider } from './layout'
+export { Flex } from './flex'
+export type { FlexGap, FlexProps } from './flex'
 export { GridRow, GridCol } from './grid-layout'
 export type {
   StackProps,

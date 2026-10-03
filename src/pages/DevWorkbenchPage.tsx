@@ -143,6 +143,7 @@ const previewGroups = [
       { id: 'ds-table', label: '表格' },
       { id: 'ds-list', label: '列表' },
       { id: 'ds-grid', label: '栅格' },
+      { id: 'ds-flex', label: '弹性布局' },
       { id: 'ds-table-grouped', label: '分组表头' },
       { id: 'ds-table-manual', label: '手动数据表格' },
       { id: 'ds-feedback', label: '反馈与弹层' },
