@@ -111,6 +111,39 @@ describe('clearable text controls', () => {
     expect(screen.getByRole('button', { name: '清空输入' })).toBeVisible()
   })
 
+  it('does not offer clearing for read-only Input or Textarea', () => {
+    const onInputValueChange = vi.fn()
+    const onTextareaValueChange = vi.fn()
+    render(
+      <>
+        <Input
+          aria-label="只读名称"
+          value="任务"
+          allowClear
+          readOnly
+          onValueChange={onInputValueChange}
+        />
+        <Textarea
+          aria-label="只读说明"
+          defaultValue="内容"
+          allowClear
+          readOnly
+          onValueChange={onTextareaValueChange}
+        />
+      </>,
+    )
+
+    expect(screen.getByRole('textbox', { name: '只读名称' })).toHaveAttribute(
+      'readonly',
+    )
+    expect(screen.getByRole('textbox', { name: '只读说明' })).toHaveAttribute(
+      'readonly',
+    )
+    expect(screen.queryByRole('button', { name: /清空输入/ })).toBeNull()
+    expect(onInputValueChange).not.toHaveBeenCalled()
+    expect(onTextareaValueChange).not.toHaveBeenCalled()
+  })
+
   it('supports Ant Design-style field variants and statuses', () => {
     render(
       <>

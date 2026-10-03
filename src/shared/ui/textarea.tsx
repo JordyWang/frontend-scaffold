@@ -43,6 +43,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       value,
       defaultValue,
       disabled,
+      readOnly,
       'aria-label': ariaLabel,
       ...props
     } = allProps
@@ -88,6 +89,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             else if (ref) ref.current = element
           }}
           disabled={disabled}
+          readOnly={readOnly}
           aria-label={ariaLabel}
           aria-invalid={
             invalid || status === 'error' || props['aria-invalid'] || undefined
@@ -105,11 +107,11 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           value={currentValue}
           onChange={handleChange}
         />
-        {allowClear && currentValue && !disabled && (
+        {allowClear && currentValue && !disabled && !readOnly && (
           <button
             type="button"
             aria-label={`${clearLabel}${ariaLabel ? `：${ariaLabel}` : ''}`}
-            className="absolute inset-y-0 end-0 z-10 flex min-h-11 w-11 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
+            className="absolute end-0 top-0 z-10 flex h-11 w-11 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
             onClick={clear}
           >
             <span aria-hidden="true">×</span>

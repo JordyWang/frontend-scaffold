@@ -170,7 +170,7 @@ Checkbox 与 Radio 的勾选标记使用相邻输入状态驱动的 Tailwind 样
 
 Table 列筛选复用项目 Popover 的焦点和 Portal 约定，支持多选、应用、重置、键盘和 H5 触控；桌面表头与手机工具栏使用同一筛选结果。
 
-Input 与 Textarea 增加 `allowClear`，清空按钮保持 44px 触控区域并恢复输入焦点；`/__ui` 提供普通输入和多行输入预览。
+Input 与 Textarea 增加 `allowClear`，清空按钮保持 44px 触控区域并恢复输入焦点；禁用和只读状态不显示清空按钮，Textarea 的清空区域只占右上角，不覆盖右侧的多行选择与滚动区域。`/__ui` 提供普通、多行和只读预览。
 
 Input 与 Textarea 提供项目自己的 `variant`（outlined、filled、borderless、underlined）和 `status`（error、warning），状态通过主题 Token 和 `aria-invalid` 暴露。
 

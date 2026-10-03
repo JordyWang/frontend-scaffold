@@ -832,6 +832,28 @@ export function DesignSystemPreview() {
                 />
                 <div className="grid gap-3 sm:grid-cols-2">
                   <FormField
+                    label="只读输入"
+                    control={
+                      <Input
+                        allowClear
+                        readOnly
+                        defaultValue="只读内容不可清空"
+                      />
+                    }
+                  />
+                  <FormField
+                    label="只读文本域"
+                    control={
+                      <Textarea
+                        allowClear
+                        readOnly
+                        defaultValue="只读多行内容不可清空"
+                      />
+                    }
+                  />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <FormField
                     label="填充输入"
                     control={<Input variant="filled" defaultValue="filled" />}
                   />

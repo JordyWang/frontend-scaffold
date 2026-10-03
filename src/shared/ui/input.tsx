@@ -46,6 +46,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       value,
       defaultValue,
       disabled,
+      readOnly,
       'aria-label': ariaLabel,
       ...props
     } = allProps
@@ -92,6 +93,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           }}
           type={type}
           disabled={disabled}
+          readOnly={readOnly}
           aria-label={ariaLabel}
           aria-invalid={
             invalid || status === 'error' || props['aria-invalid'] || undefined
@@ -108,7 +110,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           value={currentValue}
           onChange={handleChange}
         />
-        {allowClear && currentValue && !disabled && (
+        {allowClear && currentValue && !disabled && !readOnly && (
           <button
             type="button"
             aria-label={`${clearLabel}${ariaLabel ? `：${ariaLabel}` : ''}`}

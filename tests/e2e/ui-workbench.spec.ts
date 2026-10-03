@@ -1272,6 +1272,35 @@ test('clearable Input and Textarea restore focus on desktop and H5', async ({
   const clearTextarea = textarea
     .locator('..')
     .getByRole('button', { name: '清空输入' })
+  await textarea.scrollIntoViewIfNeeded()
+  const textareaBox = await textarea.boundingBox()
+  const textareaClearBox = await clearTextarea.boundingBox()
+  expect(textareaClearBox!.height).toBe(44)
+  expect(textareaClearBox!.y + textareaClearBox!.height).toBeLessThan(
+    textareaBox!.y + textareaBox!.height,
+  )
+  const textareaLowerRight = {
+    x: textareaBox!.x + textareaBox!.width - 22,
+    y: textareaBox!.y + textareaBox!.height - 20,
+  }
+  expect(
+    await textarea.evaluate(
+      (element, point) =>
+        document.elementFromPoint(point.x, point.y) === element,
+      textareaLowerRight,
+    ),
+  ).toBe(true)
+  if (testInfo.project.name.startsWith('mobile-'))
+    await page.touchscreen.tap(textareaLowerRight.x, textareaLowerRight.y)
+  else await page.mouse.click(textareaLowerRight.x, textareaLowerRight.y)
+  await expect(textarea).toBeFocused()
+  for (const name of ['只读输入', '只读文本域']) {
+    const readOnly = preview.getByRole('textbox', { name })
+    await expect(readOnly).toHaveAttribute('readonly')
+    await expect(
+      readOnly.locator('..').getByRole('button', { name: '清空输入' }),
+    ).toHaveCount(0)
+  }
   for (const [control, clear] of [
     [input, clearInput],
     [textarea, clearTextarea],
