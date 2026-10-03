@@ -3602,6 +3602,69 @@ test('extended navigation and feedback components expose responsive semantics', 
   expect(overflow).toBe(false)
 })
 
+test('small progress shapes distinguish total and completed segments on narrow screens', async ({
+  page,
+}) => {
+  await page.goto('/__ui')
+  await page.setViewportSize({ width: 360, height: 844 })
+  const group = page.getByRole('group', { name: '小尺寸与分阶段进度' })
+  const bars = [
+    '分阶段线性进度',
+    '分阶段分段进度',
+    '分阶段圆形进度',
+    '分阶段仪表盘进度',
+  ].map((name) => group.getByRole('progressbar', { name }))
+  for (const bar of bars) {
+    await expect(bar).toHaveAttribute('aria-valuenow', '68')
+    await expect(bar).toHaveAttribute('aria-valuetext', '68%，其中已完成 30%')
+    await expect(bar).toHaveAttribute('data-ui-progress-size', 'small')
+    await expect(
+      bar.locator('[data-ui-progress-success]').first(),
+    ).toBeVisible()
+  }
+  const linear = await bars[0].evaluate((element) => {
+    const fill = element.querySelector<HTMLElement>('[data-ui-progress-fill]')!
+    const success = element.querySelector<HTMLElement>(
+      '[data-ui-progress-success]',
+    )!
+    return {
+      height: element.getBoundingClientRect().height,
+      ratio:
+        success.getBoundingClientRect().width /
+        element.getBoundingClientRect().width,
+      fillRatio:
+        fill.getBoundingClientRect().width /
+        element.getBoundingClientRect().width,
+      distinct:
+        getComputedStyle(fill).backgroundColor !==
+        getComputedStyle(success).backgroundColor,
+    }
+  })
+  expect(linear.height).toBe(6)
+  expect(linear.ratio).toBeCloseTo(0.3, 1)
+  expect(linear.fillRatio).toBeCloseTo(0.68, 1)
+  expect(linear.distinct).toBe(true)
+  const stepped = await bars[1]
+    .locator('[data-ui-progress-step]')
+    .first()
+    .boundingBox()
+  expect(stepped!.height).toBe(6)
+  for (const circular of bars.slice(2)) {
+    const box = await circular.boundingBox()
+    expect(box!.width).toBe(64)
+    expect(box!.height).toBe(64)
+    await expect(circular.locator('svg')).toHaveAttribute(
+      'viewBox',
+      '0 0 64 64',
+    )
+  }
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+})
+
 test('descriptions reflow and avatar sizes remain stable across viewports', async ({
   page,
 }, testInfo) => {

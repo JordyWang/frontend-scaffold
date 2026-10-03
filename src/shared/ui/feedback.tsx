@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import type { CSSProperties, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { useConfig } from './config-context'
 import { Icon } from './icon'
@@ -8,26 +8,33 @@ export type ProgressSteps = number | { count: number; gap?: number }
 
 export type ProgressProps = {
   percent?: number
+  successPercent?: number
   status?: 'normal' | 'active' | 'success' | 'exception'
   type?: 'line' | 'circle' | 'dashboard'
+  size?: 'default' | 'small'
   steps?: ProgressSteps
   gapDegree?: number
   gapPlacement?: 'top' | 'bottom' | 'start' | 'end'
   showInfo?: boolean
   strokeWidth?: number
   label?: string
-  format?: (percent: number) => ReactNode
+  format?: (percent: number, successPercent?: number) => ReactNode
   className?: string
 }
 
 const progressSize = 112
 
-function progressArcPath(start: number, sweep: number, radius: number) {
+function progressArcPath(
+  start: number,
+  sweep: number,
+  radius: number,
+  canvasSize = progressSize,
+) {
   if (sweep <= 0) return ''
   const point = (angle: number) => {
     const radians = (angle * Math.PI) / 180
-    const x = progressSize / 2 + radius * Math.sin(radians)
-    const y = progressSize / 2 - radius * Math.cos(radians)
+    const x = canvasSize / 2 + radius * Math.sin(radians)
+    const y = canvasSize / 2 - radius * Math.cos(radians)
     return `${x.toFixed(3)} ${y.toFixed(3)}`
   }
   if (sweep >= 360) {
@@ -39,25 +46,37 @@ function progressArcPath(start: number, sweep: number, radius: number) {
 /** A token-driven progress indicator with a real progressbar value. */
 export function Progress({
   percent = 0,
+  successPercent,
   status = 'normal',
   type = 'line',
+  size,
   steps,
   gapDegree = 75,
   gapPlacement = 'bottom',
   showInfo = true,
-  strokeWidth = 8,
+  strokeWidth,
   label = '进度',
   format,
   className,
 }: ProgressProps) {
-  const { direction } = useConfig()
+  const { direction, componentSize } = useConfig()
+  const resolvedSize = size ?? (componentSize === 'small' ? 'small' : 'default')
+  const canvasSize = resolvedSize === 'small' ? 64 : progressSize
   const safePercent = Number.isFinite(percent) ? percent : 0
   const value = Math.max(0, Math.min(safePercent, 100))
-  const safeStrokeWidth = Number.isFinite(strokeWidth)
-    ? Math.max(1, strokeWidth)
-    : 8
-  const text = format ? format(value) : `${value}%`
-  const style = { '--ui-progress-value': `${value}%` } as CSSProperties
+  const completed =
+    successPercent !== undefined && Number.isFinite(successPercent)
+      ? Math.max(0, Math.min(successPercent, value))
+      : undefined
+  const safeStrokeWidth =
+    typeof strokeWidth === 'number' && Number.isFinite(strokeWidth)
+      ? Math.max(1, strokeWidth)
+      : resolvedSize === 'small'
+        ? 6
+        : 8
+  const text = format ? format(value, completed) : `${value}%`
+  const valueText =
+    completed === undefined ? undefined : `${value}%，其中已完成 ${completed}%`
   const requestedSteps = typeof steps === 'number' ? steps : steps?.count
   const stepCount =
     requestedSteps !== undefined &&
@@ -73,8 +92,8 @@ export function Progress({
         ? 'text-destructive'
         : 'text-primary'
   if (type === 'circle' || type === 'dashboard') {
-    const stroke = Math.min(safeStrokeWidth, 48)
-    const radius = (progressSize - stroke) / 2
+    const stroke = Math.min(safeStrokeWidth, canvasSize === 64 ? 28 : 48)
+    const radius = (canvasSize - stroke) / 2
     const safeGapDegree =
       Number.isFinite(gapDegree) && type === 'dashboard'
         ? Math.max(0, Math.min(295, gapDegree))
@@ -109,12 +128,22 @@ export function Progress({
     const stepSweep =
       stepCount > 0 ? (sweep - gapAngle * (stepCount - 1)) / stepCount : 0
     const progressRatio = (value / 100) * stepCount
-    const trackPath = progressArcPath(start, sweep, radius)
-    const valuePath = progressArcPath(start, (sweep * value) / 100, radius)
+    const trackPath = progressArcPath(start, sweep, radius, canvasSize)
+    const valuePath = progressArcPath(
+      start,
+      (sweep * value) / 100,
+      radius,
+      canvasSize,
+    )
+    const successPath =
+      completed === undefined
+        ? ''
+        : progressArcPath(start, (sweep * completed) / 100, radius, canvasSize)
     return (
       <div
         className={cn(
-          'relative inline-grid size-28 place-items-center',
+          'relative inline-grid place-items-center',
+          resolvedSize === 'small' ? 'size-16' : 'size-28',
           ringColorClass,
           className,
         )}
@@ -123,7 +152,10 @@ export function Progress({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={value}
+        aria-valuetext={valueText}
         data-ui-progress-type={type}
+        data-ui-progress-size={resolvedSize}
+        data-ui-progress-success-percent={completed}
         data-ui-progress-steps={stepCount || undefined}
         data-ui-progress-gap-degree={
           type === 'dashboard' ? safeGapDegree : undefined
@@ -136,13 +168,20 @@ export function Progress({
         <svg
           aria-hidden="true"
           className="absolute inset-0 size-full"
-          viewBox={`0 0 ${progressSize} ${progressSize}`}
+          viewBox={`0 0 ${canvasSize} ${canvasSize}`}
           fill="none"
         >
           {stepCount > 0 ? (
             Array.from({ length: stepCount }, (_, index) => {
               const segmentValue = Math.round(
                 Math.min(100, Math.max(0, (progressRatio - index) * 100)),
+              )
+              const successSegmentValue = Math.round(
+                Math.min(
+                  100,
+                  Math.max(0, ((completed ?? 0) / 100) * stepCount - index) *
+                    100,
+                ),
               )
               const segmentStart = start + index * (stepSweep + gapAngle)
               return (
@@ -152,7 +191,12 @@ export function Progress({
                   data-ui-progress-step-value={segmentValue}
                 >
                   <path
-                    d={progressArcPath(segmentStart, stepSweep, radius)}
+                    d={progressArcPath(
+                      segmentStart,
+                      stepSweep,
+                      radius,
+                      canvasSize,
+                    )}
                     stroke="var(--secondary)"
                     strokeWidth={stroke}
                     data-ui-progress-track=""
@@ -163,10 +207,24 @@ export function Progress({
                         segmentStart,
                         (stepSweep * segmentValue) / 100,
                         radius,
+                        canvasSize,
                       )}
                       stroke="currentColor"
                       strokeWidth={stroke}
                       data-ui-progress-fill=""
+                    />
+                  )}
+                  {successSegmentValue > 0 && (
+                    <path
+                      d={progressArcPath(
+                        segmentStart,
+                        (stepSweep * successSegmentValue) / 100,
+                        radius,
+                        canvasSize,
+                      )}
+                      stroke="var(--ui-seed-success)"
+                      strokeWidth={stroke}
+                      data-ui-progress-success=""
                     />
                   )}
                 </g>
@@ -188,13 +246,24 @@ export function Progress({
                   data-ui-progress-fill=""
                 />
               )}
+              {successPath && (
+                <path
+                  d={successPath}
+                  stroke="var(--ui-seed-success)"
+                  strokeWidth={stroke}
+                  data-ui-progress-success=""
+                />
+              )}
             </>
           )}
         </svg>
         {showInfo && (
           <span
             aria-hidden="true"
-            className="relative text-center font-semibold text-foreground"
+            className={cn(
+              'relative text-center font-semibold text-foreground',
+              resolvedSize === 'small' && 'text-sm',
+            )}
           >
             {text}
           </span>
@@ -205,7 +274,7 @@ export function Progress({
   if (stepCount > 0) {
     const progressRatio = (value / 100) * stepCount
     const segmentClass = cn(
-      'block h-full rounded-[inherit] transition-[width] duration-200 motion-reduce:transition-none',
+      'absolute inset-y-0 start-0 rounded-[inherit] transition-[width] duration-200 motion-reduce:transition-none',
       status === 'active' &&
         'bg-gradient-to-r from-primary to-[var(--ui-map-primary-hover)]',
       status === 'success' && 'bg-[var(--ui-seed-success)]',
@@ -222,6 +291,9 @@ export function Progress({
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={value}
+            aria-valuetext={valueText}
+            data-ui-progress-size={resolvedSize}
+            data-ui-progress-success-percent={completed}
             data-ui-progress-steps={stepCount}
             style={
               requestedGap !== undefined && Number.isFinite(requestedGap)
@@ -233,17 +305,32 @@ export function Progress({
               const segmentValue = Math.round(
                 Math.min(100, Math.max(0, (progressRatio - index) * 100)),
               )
+              const successSegmentValue = Math.round(
+                Math.min(
+                  100,
+                  Math.max(0, ((completed ?? 0) / 100) * stepCount - index) *
+                    100,
+                ),
+              )
               return (
                 <span
                   key={index}
-                  className="min-w-0 flex-1 overflow-hidden rounded-[var(--radius-sm)] bg-secondary"
+                  className="relative min-w-0 flex-1 overflow-hidden rounded-[var(--radius-sm)] bg-secondary"
                   data-ui-progress-step={index}
+                  style={{ minHeight: safeStrokeWidth }}
                 >
                   <span
                     className={segmentClass}
                     style={{ width: `${segmentValue}%` }}
                     data-ui-progress-step-value={segmentValue}
                   />
+                  {successSegmentValue > 0 && (
+                    <span
+                      className="absolute inset-y-0 start-0 rounded-[inherit] bg-[var(--ui-seed-success)]"
+                      style={{ width: `${successSegmentValue}%` }}
+                      data-ui-progress-success=""
+                    />
+                  )}
                 </span>
               )
             })}
@@ -267,19 +354,30 @@ export function Progress({
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={value}
+          aria-valuetext={valueText}
+          data-ui-progress-size={resolvedSize}
+          data-ui-progress-success-percent={completed}
           style={{ minHeight: safeStrokeWidth }}
         >
           <span
             className={cn(
-              'block min-h-[inherit] w-[var(--ui-progress-value)] rounded-[inherit] transition-[width] duration-200 motion-reduce:transition-none',
+              'absolute inset-y-0 start-0 rounded-[inherit] transition-[width] duration-200 motion-reduce:transition-none',
               status === 'active' &&
                 'bg-gradient-to-r from-primary to-[var(--ui-map-primary-hover)]',
               status === 'success' && 'bg-[var(--ui-seed-success)]',
               status === 'exception' && 'bg-destructive',
               status === 'normal' && 'bg-primary',
             )}
-            style={style}
+            style={{ width: `${value}%` }}
+            data-ui-progress-fill=""
           />
+          {completed !== undefined && completed > 0 && (
+            <span
+              className="absolute inset-y-0 start-0 rounded-[inherit] bg-[var(--ui-seed-success)]"
+              style={{ width: `${completed}%` }}
+              data-ui-progress-success=""
+            />
+          )}
         </div>
         {showInfo && (
           <span className="min-w-12 shrink-0 text-end text-sm tabular-nums text-muted-foreground">

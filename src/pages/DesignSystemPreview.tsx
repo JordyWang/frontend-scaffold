@@ -2124,6 +2124,45 @@ export function DesignSystemPreview() {
                   steps={5}
                   status={step === 2 ? 'success' : 'active'}
                 />
+                <div
+                  role="group"
+                  aria-label="小尺寸与分阶段进度"
+                  className="grid gap-3 rounded-[var(--radius-md)] border border-border p-3"
+                >
+                  <p className="m-0 text-sm text-muted-foreground">
+                    蓝色表示总进度 68%，绿色表示其中已完成的 30%。
+                  </p>
+                  <Progress
+                    label="分阶段线性进度"
+                    size="small"
+                    percent={68}
+                    successPercent={30}
+                  />
+                  <Progress
+                    label="分阶段分段进度"
+                    size="small"
+                    percent={68}
+                    successPercent={30}
+                    steps={5}
+                  />
+                  <div className="flex flex-wrap items-center gap-4">
+                    <Progress
+                      type="circle"
+                      label="分阶段圆形进度"
+                      size="small"
+                      percent={68}
+                      successPercent={30}
+                    />
+                    <Progress
+                      type="dashboard"
+                      label="分阶段仪表盘进度"
+                      size="small"
+                      percent={68}
+                      successPercent={30}
+                      steps={{ count: 5, gap: 3 }}
+                    />
+                  </div>
+                </div>
                 <div className="flex flex-wrap gap-4">
                   <Progress
                     type="circle"

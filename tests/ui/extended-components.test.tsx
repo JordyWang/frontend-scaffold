@@ -686,6 +686,79 @@ describe('Ant Design-inspired shared components', () => {
     ).toHaveAttribute('aria-valuenow', '100')
   })
 
+  it('shows a bounded success segment and formats both progress values', () => {
+    const format = vi.fn(
+      (percent: number, completed?: number) => `${percent}% / ${completed}%`,
+    )
+    const { rerender } = render(
+      <Progress
+        percent={68}
+        successPercent={30}
+        size="small"
+        label="分阶段进度"
+        format={format}
+      />,
+    )
+    const progress = screen.getByRole('progressbar', { name: '分阶段进度' })
+    expect(progress).toHaveAttribute('aria-valuenow', '68')
+    expect(progress).toHaveAttribute('aria-valuetext', '68%，其中已完成 30%')
+    expect(progress).toHaveAttribute('data-ui-progress-size', 'small')
+    expect(progress).toHaveStyle({ minHeight: '6px' })
+    expect(progress.querySelector('[data-ui-progress-success]')).toHaveStyle({
+      width: '30%',
+    })
+    expect(format).toHaveBeenLastCalledWith(68, 30)
+
+    rerender(<Progress percent={20} successPercent={30} label="分阶段进度" />)
+    expect(progress).toHaveAttribute('data-ui-progress-success-percent', '20')
+    expect(progress.querySelector('[data-ui-progress-success]')).toHaveStyle({
+      width: '20%',
+    })
+    rerender(
+      <Progress percent={68} successPercent={Number.NaN} label="分阶段进度" />,
+    )
+    expect(progress).not.toHaveAttribute('aria-valuetext')
+    expect(progress.querySelector('[data-ui-progress-success]')).toBeNull()
+  })
+
+  it('inherits small size and renders success segments in stepped and circular shapes', () => {
+    render(
+      <ConfigProvider componentSize="small">
+        <Progress label="线性分段" percent={68} successPercent={30} steps={5} />
+        <Progress
+          label="圆形分段"
+          type="circle"
+          percent={68}
+          successPercent={30}
+          steps={{ count: 5, gap: 3 }}
+        />
+        <Progress
+          label="小仪表盘"
+          type="dashboard"
+          percent={68}
+          successPercent={30}
+        />
+      </ConfigProvider>,
+    )
+    const line = screen.getByRole('progressbar', { name: '线性分段' })
+    const circle = screen.getByRole('progressbar', { name: '圆形分段' })
+    const dashboard = screen.getByRole('progressbar', { name: '小仪表盘' })
+    for (const progress of [line, circle, dashboard]) {
+      expect(progress).toHaveAttribute('data-ui-progress-size', 'small')
+      expect(progress).toHaveAttribute('data-ui-progress-success-percent', '30')
+      expect(progress).toHaveAttribute('aria-valuenow', '68')
+      expect(
+        progress.querySelector('[data-ui-progress-success]'),
+      ).not.toBeNull()
+    }
+    expect(line.querySelectorAll('[data-ui-progress-success]')).toHaveLength(2)
+    expect(circle.querySelector('svg')).toHaveAttribute('viewBox', '0 0 64 64')
+    expect(dashboard.querySelector('svg')).toHaveAttribute(
+      'viewBox',
+      '0 0 64 64',
+    )
+  })
+
   it('renders linear progress as partially filled semantic steps', () => {
     render(
       <Progress percent={62} steps={5} status="active" label="分段上传进度" />,
