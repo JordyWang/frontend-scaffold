@@ -417,6 +417,37 @@ test('Card tabs inherit compact size and switch content by keyboard or touch', a
   ).toBe(true)
 })
 
+test('Card borderless and inner variants keep a visible boundary and touchable action', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  await page.setViewportSize({ width: 360, height: 844 })
+  const outer = page.locator('[data-ui-card]').filter({
+    hasText: '无边框与内嵌卡片',
+  })
+  const inner = outer.locator('[data-ui-appearance="inner"]')
+  await expect(outer).toHaveAttribute('data-ui-variant', 'borderless')
+  await expect(outer).toHaveCSS('border-top-width', '0px')
+  await expect(inner).toHaveAttribute('data-ui-variant', 'outlined')
+  await expect(inner).toHaveCSS('border-top-width', '1px')
+  await expect(inner.locator('[data-ui-card-header]')).toHaveCSS(
+    'border-bottom-width',
+    '1px',
+  )
+  const action = inner.getByRole('button', { name: '查看信息' })
+  const box = await action.boundingBox()
+  expect(box!.width).toBeGreaterThanOrEqual(44)
+  expect(box!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await action.tap()
+  else await action.press('Enter')
+  await expect(inner.getByRole('status')).toHaveText('已操作内层卡片')
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+})
+
 test('Space.Compact keeps control order, semantics and H5 touch targets', async ({
   page,
 }, testInfo) => {

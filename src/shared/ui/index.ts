@@ -29,6 +29,8 @@ export {
 export type {
   CardProps,
   CardPart,
+  CardVariant,
+  CardAppearance,
   CardTabsProps,
   CardMetaProps,
   CardMetaPart,

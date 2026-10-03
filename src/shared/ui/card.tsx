@@ -9,7 +9,12 @@ import { useConfig } from './config-context'
 import { Tabs, type TabsProps } from './tabs'
 
 type CardSize = 'default' | 'small'
-const CardSizeContext = createContext<CardSize>('default')
+export type CardVariant = 'outlined' | 'borderless'
+export type CardAppearance = 'default' | 'inner'
+const CardContext = createContext<{
+  size: CardSize
+  appearance: CardAppearance
+}>({ size: 'default', appearance: 'default' })
 
 export type CardPart =
   | 'root'
@@ -24,7 +29,7 @@ export type CardPart =
   | 'tabs'
 
 function useCardSize() {
-  return useContext(CardSizeContext)
+  return useContext(CardContext).size
 }
 
 type CardBaseProps = Omit<
@@ -37,6 +42,9 @@ type CardBaseProps = Omit<
   actions?: ReactNode[]
   hoverable?: boolean
   loading?: boolean
+  variant?: CardVariant
+  appearance?: CardAppearance
+  /** @deprecated Use variant="outlined" or variant="borderless". */
   bordered?: boolean
   size?: CardSize
   classNames?: Partial<Record<CardPart, string>>
@@ -57,7 +65,9 @@ export function Card({
   actions,
   hoverable = false,
   loading = false,
-  bordered = true,
+  variant,
+  appearance = 'default',
+  bordered,
   size,
   tabs,
   classNames,
@@ -67,18 +77,23 @@ export function Card({
 }: CardProps) {
   const { componentSize } = useConfig()
   const resolvedSize = size ?? (componentSize === 'small' ? 'small' : 'default')
+  const resolvedVariant =
+    variant ?? (bordered === false ? 'borderless' : 'outlined')
   return (
-    <CardSizeContext.Provider value={resolvedSize}>
+    <CardContext.Provider value={{ size: resolvedSize, appearance }}>
       <div
         {...props}
         data-ui-card=""
         data-ui-size={resolvedSize}
+        data-ui-variant={resolvedVariant}
+        data-ui-appearance={appearance}
         data-ui-card-hoverable={hoverable || undefined}
         data-ui-card-loading={loading || undefined}
         aria-busy={loading ? true : props['aria-busy']}
         className={cn(
           'overflow-hidden rounded-[var(--ui-card-radius)] bg-card text-card-foreground',
-          bordered && 'border border-border',
+          appearance === 'inner' && 'rounded-[var(--radius-md)]',
+          resolvedVariant === 'outlined' && 'border border-border',
           hoverable &&
             'transition-shadow duration-180 hover:shadow-[0_8px_24px_rgb(15_23_42_/_0.12)] motion-reduce:transition-none',
           classNames?.root,
@@ -184,20 +199,22 @@ export function Card({
           </CardFooter>
         ) : null}
       </div>
-    </CardSizeContext.Provider>
+    </CardContext.Provider>
   )
 }
 export function CardHeader({
   className,
   ...props
 }: HTMLAttributes<HTMLDivElement>) {
-  const size = useCardSize()
+  const { size, appearance } = useContext(CardContext)
   return (
     <div
       className={cn(
         'grid gap-[var(--space-xs)]',
         size === 'small' ? 'p-[var(--space-md)]' : 'p-[var(--space-lg)]',
         'pb-0',
+        appearance === 'inner' &&
+          'border-b border-border bg-muted/40 pb-[var(--space-md)]',
         className,
       )}
       {...props}
@@ -208,12 +225,12 @@ export function CardTitle({
   className,
   ...props
 }: HTMLAttributes<HTMLHeadingElement>) {
-  const size = useCardSize()
+  const { size, appearance } = useContext(CardContext)
   return (
     <h3
       className={cn(
         'm-0 font-[650]',
-        size === 'small' ? 'text-base' : 'text-lg',
+        size === 'small' || appearance === 'inner' ? 'text-base' : 'text-lg',
         className,
       )}
       {...props}

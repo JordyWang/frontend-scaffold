@@ -244,6 +244,7 @@ export function DesignSystemPreview() {
   const [searchStatus, setSearchStatus] = useState('尚未搜索')
   const [smallCardStatus, setSmallCardStatus] = useState('尚未操作')
   const [cardGridStatus, setCardGridStatus] = useState('尚未选择卡片项目')
+  const [innerCardStatus, setInnerCardStatus] = useState('尚未操作内层卡片')
   const [emptyStatus, setEmptyStatus] = useState('尚未重置')
   const [badgeStatus, setBadgeStatus] = useState('尚未查看 RTL 通知')
   const [alertKey, setAlertKey] = useState(0)
@@ -529,6 +530,34 @@ export function DesignSystemPreview() {
               ],
             }}
           />
+          <div className="col-span-full rounded-lg bg-muted/40 p-3 sm:p-4">
+            <Card title="无边框与内嵌卡片" variant="borderless">
+              <CardContent className="grid gap-3">
+                <p className="m-0 text-sm text-muted-foreground">
+                  外层无边框，内层卡片保留独立边界和标题区域。
+                </p>
+                <Card
+                  title="内层信息"
+                  appearance="inner"
+                  extra={
+                    <Button
+                      size="small"
+                      variant="outline"
+                      onClick={() => setInnerCardStatus('已操作内层卡片')}
+                    >
+                      查看信息
+                    </Button>
+                  }
+                >
+                  <CardContent>
+                    <p role="status" className="m-0">
+                      {innerCardStatus}
+                    </p>
+                  </CardContent>
+                </Card>
+              </CardContent>
+            </Card>
+          </div>
           <Card title="空状态">
             <CardContent className="grid gap-3">
               <Empty

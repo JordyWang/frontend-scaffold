@@ -176,7 +176,7 @@ Input 与 Textarea 提供项目自己的 `variant`（outlined、filled、borderl
 
 Select 与 MultiSelect 复用同一组外观与状态字段，错误状态会同步设置 `aria-invalid`，`/__ui` 展示填充和下划线警告选择器。
 
-Card 保留组合式子组件，并补充 AntD 常用的 `title`、`extra`、`cover`、`actions`、`hoverable`、`loading` 和 `bordered` 插槽；`CardMeta` 提供头像、标题和描述，`CardGridGroup` / `CardGrid` 以容器宽度组织等宽网格。卡片内页签复用项目 Tabs 的 items/受控/非受控 API，不另建一套页签状态。卡片与 Meta 有 Tailwind 语义类名入口；`/__ui` 展示声明式卡片、元信息、网格和页签。
+Card 保留组合式子组件，并补充 AntD 常用的 `title`、`extra`、`cover`、`actions`、`hoverable` 和 `loading` 插槽；`variant` 区分 outlined / borderless，旧 `bordered` 兼容，`appearance="inner"` 提供内嵌卡片形态。`CardMeta` 提供头像、标题和描述，`CardGridGroup` / `CardGrid` 以容器宽度组织等宽网格。卡片内页签复用项目 Tabs 的 items/受控/非受控 API，不另建一套页签状态。卡片与 Meta 有 Tailwind 语义类名入口；`/__ui` 展示声明式卡片、内嵌形态、元信息、网格和页签。
 
 Button 补充危险、块级、圆角和图标位置 API；这些状态仍使用项目的 Tailwind 语义 Token，并在 `/__ui` 展示触控尺寸。
 

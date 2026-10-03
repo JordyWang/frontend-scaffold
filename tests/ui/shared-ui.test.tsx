@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   Button,
   Card,
+  CardHeader,
+  CardTitle,
   CardContent,
   CardFooter,
   CardMeta,
@@ -220,6 +222,44 @@ describe('shared/ui contracts', () => {
     expect(
       screen.getByText('页签容器').closest('[data-ui-card]'),
     ).toHaveAttribute('aria-busy', 'true')
+  })
+
+  it('resolves Card variants and styles inner headers in both APIs', () => {
+    const { container, rerender } = render(
+      <Card variant="borderless" bordered title="外层卡片">
+        <CardContent>
+          <Card appearance="inner" title="声明式内层">
+            <CardContent>内层内容</CardContent>
+          </Card>
+        </CardContent>
+      </Card>,
+    )
+    const outer = container.querySelector('[data-ui-card]')!
+    const inner = container.querySelector('[data-ui-appearance="inner"]')!
+    expect(outer).toHaveAttribute('data-ui-variant', 'borderless')
+    expect(outer).not.toHaveClass('border')
+    expect(inner).toHaveAttribute('data-ui-variant', 'outlined')
+    expect(inner).toHaveClass('border', 'rounded-[var(--radius-md)]')
+    expect(inner.querySelector('[data-ui-card-header]')).toHaveClass(
+      'border-b',
+      'bg-muted/40',
+    )
+    expect(screen.getByText('声明式内层')).toHaveClass('text-base')
+
+    rerender(
+      <Card appearance="inner" bordered={false} variant="outlined">
+        <CardHeader>
+          <CardTitle>组合式内层</CardTitle>
+        </CardHeader>
+      </Card>,
+    )
+    const compound = container.querySelector('[data-ui-card]')!
+    expect(compound).toHaveAttribute('data-ui-variant', 'outlined')
+    expect(compound).toHaveClass('border')
+    expect(screen.getByText('组合式内层').parentElement).toHaveClass(
+      'border-b',
+      'bg-muted/40',
+    )
   })
 
   it('shares Card size across declarative and compound slots', () => {
