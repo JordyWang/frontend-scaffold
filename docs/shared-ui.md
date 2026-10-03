@@ -101,7 +101,7 @@ Input 与 Textarea 的 `count` 可设为 `true`，或 `{ max, strategy, render }
 
 `Divider` 默认保留原生 `<hr>`；`orientation="vertical"` 用于有高度的水平容器。`variant` 为 solid / dashed / dotted。横向分隔线可传 `children` 作为标题，`titlePlacement` 将标题置于 start / center / end，`plain` 使用普通字重。标题分隔线以标题命名 `separator`，调用方也可提供 `aria-label` 或 `aria-labelledby`；长标题在窄容器换行，不撑开页面。
 
-`Grid` 本身继续使用 `minItemWidth` 自动换列；需要确定列宽时使用 `Grid.Row` / `Grid.Col`（也可单独导入 `GridRow` / `GridCol`）。Row 按自身容器宽度应用 xs、sm、md、lg、xl、xxl 断点（基础、640、768、1024、1280、1536px），`gutter` 为水平像素数、`[水平, 垂直]` 或断点对象；缺失断点继承上一档。Col 的 `span` 与 `offset` 使用 24 列单位，接受数字或断点对象；默认占满 24 列，`span=0` 在对应宽度隐藏内容，偏移不会超过剩余列数。列间距通过内侧留白实现，不扩大 Row 宽度；偏移沿文字方向起始侧计算。Col 保留 DOM 顺序和子控件的键盘顺序，不提供视觉重排 API。`/__ui` 展示容器换列、隐藏列、偏移与 RTL。
+`Grid` 本身继续使用 `minItemWidth` 自动换列；需要确定列宽时使用 `Grid.Row` / `Grid.Col`（也可单独导入 `GridRow` / `GridCol`）。Row 按自身容器宽度应用 xs、sm、md、lg、xl、xxl 断点（基础、640、768、1024、1280、1536px），`gutter` 为水平像素数、`[水平, 垂直]` 或断点对象；`align` 和 `justify` 也可按这些断点配置，分别控制纵向对齐和行内剩余空间的分布。缺失断点继承上一档。Col 的 `span` 与 `offset` 使用 24 列单位，接受数字或断点对象；默认占满 24 列，`span=0` 在对应宽度隐藏内容，偏移不会超过剩余列数。列间距通过内侧留白实现，不扩大 Row 宽度；偏移沿文字方向起始侧计算。Row / Col 均转发根 DOM ref。Col 保留 DOM 顺序和子控件的键盘顺序，不提供视觉重排 API。`/__ui` 展示容器换列、隐藏列、偏移、行对齐与 RTL。
 
 `Flex` 是独立的水平优先布局入口，`Stack` 继续默认纵向。Flex 的 `direction` 为 row / column，`gap` 接受 xs / sm / md / lg / xl 主题间距或非负像素数，`align` 可设 baseline，`justify` 增加 around / evenly，`wrap` 控制换行；原生 div 属性、样式和 ref 透传。此前依赖 `Flex` 默认纵向的调用需显式设置 `direction="column"` 或改用 `Stack`。`/__ui` 展示窄容器、RTL、换行和方向切换。
 

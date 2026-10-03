@@ -96,6 +96,24 @@ export function GridPreview() {
               </div>
             </Grid.Col>
           </Grid.Row>
+          <Grid.Row
+            aria-label="响应式行对齐栅格"
+            gutter={{ xs: 8, sm: 16 }}
+            align={{ xs: 'stretch', sm: 'center', md: 'end' }}
+            justify={{ xs: 'start', sm: 'between', md: 'evenly' }}
+            className="mt-3"
+          >
+            <Grid.Col span={6}>
+              <div className="flex h-12 items-center justify-center rounded-[var(--radius-md)] bg-primary/15 text-sm text-foreground">
+                短项
+              </div>
+            </Grid.Col>
+            <Grid.Col span={6}>
+              <div className="flex h-20 items-center justify-center rounded-[var(--radius-md)] bg-accent text-sm text-accent-foreground">
+                高项
+              </div>
+            </Grid.Col>
+          </Grid.Row>
         </div>
         <p role="status" className="m-0 text-sm text-muted-foreground">
           {action}

@@ -1,4 +1,4 @@
-import type { CSSProperties, HTMLAttributes } from 'react'
+import { forwardRef, type CSSProperties, type HTMLAttributes } from 'react'
 import { cn } from '@/shared/lib/utils'
 
 export type GridBreakpoint = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl'
@@ -8,11 +8,14 @@ export type GridGutter =
   | number
   | readonly [number, number]
   | GridResponsive<number | readonly [number, number]>
+export type GridAlign = 'start' | 'center' | 'end' | 'stretch'
+export type GridJustify =
+  'start' | 'center' | 'end' | 'between' | 'around' | 'evenly'
 
 export type GridRowProps = HTMLAttributes<HTMLDivElement> & {
   gutter?: GridGutter
-  align?: 'start' | 'center' | 'end' | 'stretch'
-  justify?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly'
+  align?: GridAlign | GridResponsive<GridAlign>
+  justify?: GridJustify | GridResponsive<GridJustify>
 }
 
 export type GridColProps = HTMLAttributes<HTMLDivElement> & {
@@ -23,6 +26,8 @@ export type GridColProps = HTMLAttributes<HTMLDivElement> & {
 const breakpoints = ['xs', 'sm', 'md', 'lg', 'xl', 'xxl'] as const
 const rowGutterStyles =
   '[--grid-gap-x:var(--grid-gap-x-xs)] [--grid-gap-y:var(--grid-gap-y-xs)] @min-[640px]/grid-row:[--grid-gap-x:var(--grid-gap-x-sm)] @min-[640px]/grid-row:[--grid-gap-y:var(--grid-gap-y-sm)] @min-[768px]/grid-row:[--grid-gap-x:var(--grid-gap-x-md)] @min-[768px]/grid-row:[--grid-gap-y:var(--grid-gap-y-md)] @min-[1024px]/grid-row:[--grid-gap-x:var(--grid-gap-x-lg)] @min-[1024px]/grid-row:[--grid-gap-y:var(--grid-gap-y-lg)] @min-[1280px]/grid-row:[--grid-gap-x:var(--grid-gap-x-xl)] @min-[1280px]/grid-row:[--grid-gap-y:var(--grid-gap-y-xl)] @min-[1536px]/grid-row:[--grid-gap-x:var(--grid-gap-x-xxl)] @min-[1536px]/grid-row:[--grid-gap-y:var(--grid-gap-y-xxl)]'
+const rowAlignmentStyles =
+  '[--grid-align:var(--grid-align-xs)] [--grid-justify:var(--grid-justify-xs)] @min-[640px]/grid-row:[--grid-align:var(--grid-align-sm)] @min-[640px]/grid-row:[--grid-justify:var(--grid-justify-sm)] @min-[768px]/grid-row:[--grid-align:var(--grid-align-md)] @min-[768px]/grid-row:[--grid-justify:var(--grid-justify-md)] @min-[1024px]/grid-row:[--grid-align:var(--grid-align-lg)] @min-[1024px]/grid-row:[--grid-justify:var(--grid-justify-lg)] @min-[1280px]/grid-row:[--grid-align:var(--grid-align-xl)] @min-[1280px]/grid-row:[--grid-justify:var(--grid-justify-xl)] @min-[1536px]/grid-row:[--grid-align:var(--grid-align-xxl)] @min-[1536px]/grid-row:[--grid-justify:var(--grid-justify-xxl)]'
 const columnLayoutStyles =
   'w-[var(--grid-col-width-xs)] [margin-inline-start:var(--grid-col-offset-xs)] @min-[640px]/grid-row:w-[var(--grid-col-width-sm)] @min-[640px]/grid-row:[margin-inline-start:var(--grid-col-offset-sm)] @min-[768px]/grid-row:w-[var(--grid-col-width-md)] @min-[768px]/grid-row:[margin-inline-start:var(--grid-col-offset-md)] @min-[1024px]/grid-row:w-[var(--grid-col-width-lg)] @min-[1024px]/grid-row:[margin-inline-start:var(--grid-col-offset-lg)] @min-[1280px]/grid-row:w-[var(--grid-col-width-xl)] @min-[1280px]/grid-row:[margin-inline-start:var(--grid-col-offset-xl)] @min-[1536px]/grid-row:w-[var(--grid-col-width-xxl)] @min-[1536px]/grid-row:[margin-inline-start:var(--grid-col-offset-xxl)]'
 const visibilityStyles: Record<GridBreakpoint, { show: string; hide: string }> =
@@ -49,19 +54,19 @@ const visibilityStyles: Record<GridBreakpoint, { show: string; hide: string }> =
       hide: '@min-[1536px]/grid-row:hidden',
     },
   }
-const alignStyles = {
-  start: 'items-start',
-  center: 'items-center',
-  end: 'items-end',
-  stretch: 'items-stretch',
+const alignValues: Record<GridAlign, string> = {
+  start: 'flex-start',
+  center: 'center',
+  end: 'flex-end',
+  stretch: 'stretch',
 } as const
-const justifyStyles = {
-  start: 'justify-start',
-  center: 'justify-center',
-  end: 'justify-end',
-  between: 'justify-between',
-  around: 'justify-around',
-  evenly: 'justify-evenly',
+const justifyValues: Record<GridJustify, string> = {
+  start: 'flex-start',
+  center: 'center',
+  end: 'flex-end',
+  between: 'space-between',
+  around: 'space-around',
+  evenly: 'space-evenly',
 } as const
 
 function responsiveValues<T>(
@@ -99,79 +104,89 @@ function gutterPair(value: number | readonly [number, number]) {
 }
 
 /** A 24-column row whose breakpoints follow its own available width. */
-export function GridRow({
-  gutter = 0,
-  align = 'stretch',
-  justify = 'start',
-  className,
-  style,
-  children,
-  ...props
-}: GridRowProps) {
-  const gutters = responsiveValues(gutter, 0)
-  const variables: Record<string, string> = {}
-  for (const breakpoint of breakpoints) {
-    const [horizontal, vertical] = gutterPair(gutters[breakpoint])
-    variables[`--grid-gap-x-${breakpoint}`] = `${horizontal}px`
-    variables[`--grid-gap-y-${breakpoint}`] = `${vertical}px`
-  }
+export const GridRow = forwardRef<HTMLDivElement, GridRowProps>(
+  function GridRow(
+    {
+      gutter = 0,
+      align = 'stretch',
+      justify = 'start',
+      className,
+      style,
+      children,
+      ...props
+    },
+    ref,
+  ) {
+    const gutters = responsiveValues(gutter, 0)
+    const alignments = responsiveValues<GridAlign>(align, 'stretch')
+    const justifications = responsiveValues<GridJustify>(justify, 'start')
+    const variables: Record<string, string> = {}
+    for (const breakpoint of breakpoints) {
+      const [horizontal, vertical] = gutterPair(gutters[breakpoint])
+      variables[`--grid-gap-x-${breakpoint}`] = `${horizontal}px`
+      variables[`--grid-gap-y-${breakpoint}`] = `${vertical}px`
+      variables[`--grid-align-${breakpoint}`] =
+        alignValues[alignments[breakpoint]]
+      variables[`--grid-justify-${breakpoint}`] =
+        justifyValues[justifications[breakpoint]]
+    }
 
-  return (
-    <div
-      data-grid-row=""
-      className={cn('@container/grid-row min-w-0 w-full', className)}
-      style={{ ...variables, ...style } as CSSProperties}
-      {...props}
-    >
+    return (
       <div
-        data-grid-row-inner=""
-        className={cn(
-          'flex min-w-0 w-full flex-wrap gap-y-[var(--grid-gap-y)]',
-          rowGutterStyles,
-          alignStyles[align],
-          justifyStyles[justify],
-        )}
+        ref={ref}
+        data-grid-row=""
+        className={cn('@container/grid-row min-w-0 w-full', className)}
+        style={{ ...variables, ...style } as CSSProperties}
+        {...props}
       >
-        {children}
+        <div
+          data-grid-row-inner=""
+          className={cn(
+            'flex min-w-0 w-full flex-wrap [align-items:var(--grid-align)] [justify-content:var(--grid-justify)] gap-y-[var(--grid-gap-y)]',
+            rowGutterStyles,
+            rowAlignmentStyles,
+          )}
+        >
+          {children}
+        </div>
       </div>
-    </div>
-  )
-}
+    )
+  },
+)
 
 /** Columns keep DOM order; span zero removes the item at that breakpoint. */
-export function GridCol({
-  span = 24,
-  offset = 0,
-  className,
-  style,
-  ...props
-}: GridColProps) {
-  const spans = responsiveValues(span, 24)
-  const offsets = responsiveValues(offset, 0)
-  const variables: Record<string, string> = {}
-  const visibility: string[] = []
-  for (const breakpoint of breakpoints) {
-    const count = safeSpan(spans[breakpoint])
-    const requestedOffset = safeSpan(offsets[breakpoint])
-    const appliedOffset =
-      count === 0 ? 0 : Math.min(requestedOffset, 24 - count)
-    variables[`--grid-col-width-${breakpoint}`] = `${(count / 24) * 100}%`
-    variables[`--grid-col-offset-${breakpoint}`] =
-      `${(appliedOffset / 24) * 100}%`
-    visibility.push(visibilityStyles[breakpoint][count === 0 ? 'hide' : 'show'])
-  }
+export const GridCol = forwardRef<HTMLDivElement, GridColProps>(
+  function GridCol({ span = 24, offset = 0, className, style, ...props }, ref) {
+    const spans = responsiveValues(span, 24)
+    const offsets = responsiveValues(offset, 0)
+    const variables: Record<string, string> = {}
+    const visibility: string[] = []
+    for (const breakpoint of breakpoints) {
+      const count = safeSpan(spans[breakpoint])
+      const requestedOffset = safeSpan(offsets[breakpoint])
+      const appliedOffset =
+        count === 0 ? 0 : Math.min(requestedOffset, 24 - count)
+      variables[`--grid-col-width-${breakpoint}`] = `${(count / 24) * 100}%`
+      variables[`--grid-col-offset-${breakpoint}`] =
+        `${(appliedOffset / 24) * 100}%`
+      visibility.push(
+        visibilityStyles[breakpoint][count === 0 ? 'hide' : 'show'],
+      )
+    }
 
-  return (
-    <div
-      data-grid-col=""
-      className={cn(
-        'min-w-0 flex-none px-[calc(var(--grid-gap-x,0px)/2)]',
-        columnLayoutStyles,
-        visibility,
-        className,
-      )}
-      style={{ ...variables, ...style } as CSSProperties}
-      {...props}
-    />
-  )
-}
+    return (
+      <div
+        ref={ref}
+        data-grid-col=""
+        className={cn(
+          'min-w-0 flex-none px-[calc(var(--grid-gap-x,0px)/2)]',
+          columnLayoutStyles,
+          visibility,
+          className,
+        )}
+        style={{ ...variables, ...style } as CSSProperties}
+        {...props}
+      />
+    )
+  },
+)

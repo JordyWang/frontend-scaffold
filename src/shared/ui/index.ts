@@ -160,6 +160,8 @@ export type {
   GridResponsive,
   GridSpan,
   GridGutter,
+  GridAlign,
+  GridJustify,
   GridRowProps,
   GridColProps,
 } from './grid-layout'

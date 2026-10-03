@@ -1,3 +1,4 @@
+import { createRef } from 'react'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { Grid, GridCol, GridRow } from '@/shared/ui'
@@ -56,5 +57,38 @@ describe('Grid layout', () => {
     expect(column.style.getPropertyValue('--grid-col-offset-sm')).toBe('50%')
     expect(column.style.getPropertyValue('--grid-col-offset-md')).toBe('0%')
     expect(screen.getByText('隐藏后恢复')).toBeInTheDocument()
+  })
+
+  it('inherits responsive alignment and forwards row and column refs', () => {
+    const rowRef = createRef<HTMLDivElement>()
+    const colRef = createRef<HTMLDivElement>()
+    render(
+      <Grid.Row
+        ref={rowRef}
+        align={{ sm: 'center', md: 'end' }}
+        justify={{ xs: 'start', md: 'evenly' }}
+      >
+        <Grid.Col ref={colRef} span={6}>
+          内容
+        </Grid.Col>
+      </Grid.Row>,
+    )
+    expect(rowRef.current).toHaveAttribute('data-grid-row')
+    expect(colRef.current).toHaveAttribute('data-grid-col')
+    expect(rowRef.current?.style.getPropertyValue('--grid-align-xs')).toBe(
+      'stretch',
+    )
+    expect(rowRef.current?.style.getPropertyValue('--grid-align-sm')).toBe(
+      'center',
+    )
+    expect(rowRef.current?.style.getPropertyValue('--grid-align-md')).toBe(
+      'flex-end',
+    )
+    expect(rowRef.current?.style.getPropertyValue('--grid-justify-sm')).toBe(
+      'flex-start',
+    )
+    expect(rowRef.current?.style.getPropertyValue('--grid-justify-md')).toBe(
+      'space-evenly',
+    )
   })
 })

@@ -101,3 +101,81 @@ test('24-column Grid responds to its container, RTL and H5 touch', async ({
     ),
   ).toBe(true)
 })
+
+test('Grid Row aligns and distributes columns at its own breakpoints', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  const mobile = testInfo.project.name.startsWith('mobile-')
+  const preview = page.locator('#ds-grid')
+  const row = preview.locator('[data-grid-row][aria-label="响应式行对齐栅格"]')
+  const inner = row.locator('[data-grid-row-inner]')
+  const columns = row.locator('[data-grid-col]')
+  const settings = preview.getByRole('group', { name: '栅格展示设置' })
+  const activate = async (button: ReturnType<typeof page.getByRole>) => {
+    if (mobile) await button.tap()
+    else await button.press('Enter')
+  }
+  const styles = () =>
+    inner.evaluate((element) => {
+      const computed = getComputedStyle(element)
+      return { align: computed.alignItems, justify: computed.justifyContent }
+    })
+  const positions = () =>
+    columns.evaluateAll((elements) =>
+      elements.map((element) => {
+        const rect = element.getBoundingClientRect()
+        return {
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height,
+          bottom: rect.bottom,
+        }
+      }),
+    )
+
+  await expect(columns).toHaveCount(2)
+  await expect
+    .poll(styles)
+    .toEqual(
+      mobile
+        ? { align: 'stretch', justify: 'flex-start' }
+        : { align: 'flex-end', justify: 'space-evenly' },
+    )
+  const initial = await positions()
+  if (mobile) expect(initial[0].height).toBeCloseTo(initial[1].height, 0)
+  else {
+    expect(initial[0].bottom).toBeCloseTo(initial[1].bottom, 0)
+    const bounds = await row.boundingBox()
+    expect(bounds).not.toBeNull()
+    expect(initial[0].x - bounds!.x).toBeGreaterThan(bounds!.width * 0.1)
+  }
+
+  if (!mobile) {
+    await activate(settings.getByRole('button', { name: '中容器' }))
+    await expect
+      .poll(styles)
+      .toEqual({ align: 'center', justify: 'space-between' })
+    const medium = await positions()
+    expect(medium[0].y).toBeGreaterThan(medium[1].y)
+    expect(medium[0].x).toBeLessThan(medium[1].x)
+    const bounds = await row.boundingBox()
+    expect(bounds).not.toBeNull()
+    expect(Math.abs(medium[0].x - bounds!.x)).toBeLessThan(1)
+  }
+
+  await activate(settings.getByRole('button', { name: '窄容器' }))
+  await expect.poll(styles).toEqual({ align: 'stretch', justify: 'flex-start' })
+  const narrow = await positions()
+  expect(narrow[0].height).toBeCloseTo(narrow[1].height, 0)
+  await activate(settings.getByRole('button', { name: 'RTL 方向' }))
+  expect(
+    await inner.evaluate((element) => getComputedStyle(element).direction),
+  ).toBe('rtl')
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true)
+})
