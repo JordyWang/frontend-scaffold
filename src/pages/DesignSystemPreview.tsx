@@ -34,6 +34,7 @@ import { FormControlledPreview } from './FormControlledPreview'
 import { FormDependenciesPreview } from './FormDependenciesPreview'
 import { GridPreview } from './GridPreview'
 import { FlexPreview } from './FlexPreview'
+import { SpacePreview } from './SpacePreview'
 import { TablePreview } from './TablePreview'
 import { TableGroupedPreview } from './TableGroupedPreview'
 import { TableManualPreview } from './TableManualPreview'
@@ -1687,6 +1688,7 @@ export function DesignSystemPreview() {
           <ListPreview />
           <GridPreview />
           <FlexPreview />
+          <SpacePreview />
           <TablePreview />
           <TableGroupedPreview />
           <TableManualPreview />

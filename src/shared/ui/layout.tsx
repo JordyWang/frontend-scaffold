@@ -1,5 +1,6 @@
 import {
   Children,
+  isValidElement,
   useId,
   type CSSProperties,
   type HTMLAttributes,
@@ -68,10 +69,12 @@ export function Stack({
   )
 }
 
+export type SpaceSize = Gap | 'small' | 'middle' | 'large' | number
+
 export type SpaceProps = Omit<HTMLAttributes<HTMLDivElement>, 'children'> & {
   children?: ReactNode
   direction?: 'horizontal' | 'vertical'
-  size?: Gap | 'small' | 'middle' | 'large' | number
+  size?: SpaceSize | readonly [SpaceSize, SpaceSize]
   align?: Alignment
   wrap?: boolean
   split?: ReactNode
@@ -92,8 +95,14 @@ const spaceGap: Record<'small' | 'middle' | 'large', Gap> = {
   large: 'lg',
 }
 
-/** Ant Design-like spacing primitive; unlike Stack it defaults to a row. */
-function SpaceBase({
+function resolveSpaceSize(size: SpaceSize) {
+  return typeof size === 'number'
+    ? `${Number.isFinite(size) ? Math.max(0, size) : 0}px`
+    : `var(--space-${spaceGap[size as keyof typeof spaceGap] ?? size})`
+}
+
+/** Spacing primitive with independent inline and block gaps. */
+export function Space({
   direction = 'horizontal',
   size = 'middle',
   align = 'center',
@@ -104,35 +113,49 @@ function SpaceBase({
   style,
   ...props
 }: SpaceProps) {
-  const gap =
-    typeof size === 'number'
-      ? `${size}px`
-      : `var(--space-${spaceGap[size as keyof typeof spaceGap] ?? size})`
+  const [horizontal, vertical] = (
+    Array.isArray(size) ? size : [size, size]
+  ) as readonly [SpaceSize, SpaceSize]
   const content = Children.toArray(children)
   return (
     <div
       className={cn(
-        'inline-flex max-w-full gap-[var(--ui-space-gap)]',
+        'inline-flex max-w-full gap-x-[var(--ui-space-gap-x)] gap-y-[var(--ui-space-gap-y)]',
         direction === 'vertical' ? 'flex-col' : 'flex-row',
         alignStyles[align],
         wrap && 'flex-wrap',
         className,
       )}
-      style={{ '--ui-space-gap': gap, ...style } as CSSProperties}
+      style={
+        {
+          '--ui-space-gap-x': resolveSpaceSize(horizontal),
+          '--ui-space-gap-y': resolveSpaceSize(vertical),
+          ...style,
+        } as CSSProperties
+      }
       {...props}
     >
       {content.map((child, index) => (
-        <span
-          className="inline-flex min-w-0 items-center gap-[var(--ui-space-gap)]"
-          key={`space-${index}`}
+        <div
+          className={cn(
+            'min-w-0 max-w-full',
+            direction === 'vertical'
+              ? 'flex flex-col items-stretch gap-y-[var(--ui-space-gap-y)]'
+              : 'inline-flex items-center gap-x-[var(--ui-space-gap-x)]',
+          )}
+          key={isValidElement(child) ? child.key : `space-${index}`}
         >
           {child}
-          {split && index < content.length - 1 && (
-            <span className="text-muted-foreground" aria-hidden="true">
-              {split}
-            </span>
-          )}
-        </span>
+          {split !== undefined &&
+            split !== null &&
+            split !== false &&
+            split !== '' &&
+            index < content.length - 1 && (
+              <span className="text-muted-foreground" aria-hidden="true">
+                {split}
+              </span>
+            )}
+        </div>
       ))}
     </div>
   )
@@ -171,7 +194,7 @@ export function SpaceCompact({
   )
 }
 
-export const Space = Object.assign(SpaceBase, { Compact: SpaceCompact })
+Space.Compact = SpaceCompact
 
 export type GridProps = HTMLAttributes<HTMLDivElement> & {
   minItemWidth?: string

@@ -150,6 +150,7 @@ export { GridRow, GridCol } from './grid-layout'
 export type {
   StackProps,
   SpaceProps,
+  SpaceSize,
   SpaceCompactProps,
   GridProps,
   DividerProps,
