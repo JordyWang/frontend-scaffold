@@ -109,6 +109,7 @@ export type {
   TableColumn,
   TableColumnGroup,
   TableColumnNode,
+  TableMobileRowContext,
   TableSort,
   TableSelection,
   TableExpandable,

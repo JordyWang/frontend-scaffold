@@ -1,7 +1,9 @@
 import {
   Fragment,
   useId,
+  useLayoutEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type Key,
@@ -29,6 +31,8 @@ export type TableColumn<T> = {
   header: ReactNode
   render: (row: T) => ReactNode
   hidden?: boolean
+  /** Show this column when the Table container reaches this width in CSS pixels. */
+  minContainerWidth?: number
   /** Use true when the owner sorts rows in manual data mode. */
   sorter?: ((left: T, right: T) => number) | true
   sortLabel?: string
@@ -46,6 +50,8 @@ export type TableColumnGroup<T> = {
   header: ReactNode
   children: TableColumnNode<T>[]
   hidden?: boolean
+  /** Show this group and its descendants when the Table container reaches this width. */
+  minContainerWidth?: number
   align?: 'left' | 'center' | 'right'
 }
 
@@ -71,9 +77,26 @@ function isColumnGroup<T>(
   return 'children' in column
 }
 
-function buildColumnLayout<T>(columns: TableColumnNode<T>[]) {
+function hasResponsiveColumns<T>(columns: TableColumnNode<T>[]): boolean {
+  return columns.some(
+    (column) =>
+      column.minContainerWidth !== undefined ||
+      (isColumnGroup(column) && hasResponsiveColumns(column.children)),
+  )
+}
+
+function buildColumnLayout<T>(
+  columns: TableColumnNode<T>[],
+  containerWidth: number | null,
+) {
   function build(column: TableColumnNode<T>): ColumnLayoutNode<T> | null {
-    if (column.hidden) return null
+    if (
+      column.hidden ||
+      (containerWidth !== null &&
+        column.minContainerWidth !== undefined &&
+        containerWidth < column.minContainerWidth)
+    )
+      return null
     if (!isColumnGroup(column)) return { column, leafCount: 1, depth: 1 }
     const children = column.children
       .map(build)
@@ -242,7 +265,7 @@ type TableCommonProps<T> = {
   error?: string
   onRetry?: () => void | Promise<void>
   emptyTitle?: string
-  renderMobileRow?: (row: T) => ReactNode
+  renderMobileRow?: (row: T, context: TableMobileRowContext) => ReactNode
   sort?: TableSort | null
   defaultSort?: TableSort | null
   onSortChange?: (sort: TableSort | null) => void
@@ -258,6 +281,12 @@ type TableCommonProps<T> = {
   rowClassName?: (row: T, index: number) => string | undefined
 }
 
+export type TableMobileRowContext = {
+  visibleColumnKeys: readonly string[]
+  /** Measured outer width of the Table container; null before measurement. */
+  containerWidth: number | null
+}
+
 export type TableProps<T> = TableCommonProps<T> &
   (
     | { dataMode?: 'local'; pagination?: TablePagination | false }
@@ -266,6 +295,8 @@ export type TableProps<T> = TableCommonProps<T> &
 
 export function Table<T>(allProps: TableProps<T>) {
   const radioGroupName = useId()
+  const rootRef = useRef<HTMLElement>(null)
+  const [containerWidth, setContainerWidth] = useState<number | null>(null)
   const controlled = Object.prototype.hasOwnProperty.call(allProps, 'sort')
   const {
     columns,
@@ -299,12 +330,39 @@ export function Table<T>(allProps: TableProps<T>) {
     styles,
     rowClassName,
   } = allProps
+  const responsiveColumns = hasResponsiveColumns(columns)
+  const measureContainer = responsiveColumns || Boolean(renderMobileRow)
+  useLayoutEffect(() => {
+    if (!measureContainer) return
+    const root = rootRef.current
+    if (!root) return
+    const measure = () => {
+      const width = root.getBoundingClientRect().width
+      if (width > 0 && Number.isFinite(width))
+        setContainerWidth((current) => (current === width ? current : width))
+    }
+    measure()
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measure)
+      return () => window.removeEventListener('resize', measure)
+    }
+    const observer = new ResizeObserver(measure)
+    observer.observe(root)
+    return () => observer.disconnect()
+  }, [measureContainer])
   const {
     headerRows,
     leafColumns,
     headerPaths,
     depth: headerDepth,
-  } = useMemo(() => buildColumnLayout(columns), [columns])
+  } = useMemo(
+    () => buildColumnLayout(columns, containerWidth),
+    [columns, containerWidth],
+  )
+  const mobileRowContext: TableMobileRowContext = {
+    visibleColumnKeys: leafColumns.map((column) => column.key),
+    containerWidth,
+  }
   function headerId(key: string) {
     return `${radioGroupName}-column-${encodeURIComponent(key)}`
   }
@@ -745,7 +803,7 @@ export function Table<T>(allProps: TableProps<T>) {
   }
 
   const regionClassName = cn(
-    'overflow-hidden rounded-[var(--radius)] border border-border bg-card text-card-foreground',
+    'min-w-0 overflow-hidden rounded-[var(--radius)] border border-border bg-card text-card-foreground',
     semanticClassNames?.root,
     className,
   )
@@ -757,6 +815,7 @@ export function Table<T>(allProps: TableProps<T>) {
   if (loading)
     return (
       <section
+        ref={rootRef}
         {...tableAttributes}
         aria-busy="true"
         aria-label={caption}
@@ -773,6 +832,7 @@ export function Table<T>(allProps: TableProps<T>) {
   if (error)
     return (
       <section
+        ref={rootRef}
         {...tableAttributes}
         aria-label={caption}
         className={regionClassName}
@@ -792,6 +852,7 @@ export function Table<T>(allProps: TableProps<T>) {
   )
     return (
       <section
+        ref={rootRef}
         {...tableAttributes}
         aria-label={caption}
         className={regionClassName}
@@ -811,6 +872,7 @@ export function Table<T>(allProps: TableProps<T>) {
 
   return (
     <section
+      ref={rootRef}
       {...tableAttributes}
       aria-label={caption}
       className={regionClassName}
@@ -1193,7 +1255,7 @@ export function Table<T>(allProps: TableProps<T>) {
                   <div className="shrink-0">{expandButton(row, true)}</div>
                 )}
                 <div className="min-w-0 flex-1">
-                  {renderMobileRow(row)}
+                  {renderMobileRow(row, mobileRowContext)}
                   {expandable && expandedSet.has(getRowKey(row)) && (
                     <div
                       id={detailId(getRowKey(row), 'mobile')}
