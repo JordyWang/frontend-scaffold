@@ -368,6 +368,45 @@ test('page shell keeps safe padding and the skip link is keyboard reachable', as
   }
 })
 
+test('Card semantic styles follow loading state with keyboard and H5 touch', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 360, height: 844 })
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const card = preview.locator('[data-ui-card]').filter({
+    hasText: '语义样式与加载卡片',
+  })
+  await expect(card).toHaveAttribute('aria-busy', 'true')
+  await expect(card).toHaveClass(/border-primary/)
+  await expect(card.locator('[data-ui-card-header]')).toHaveCSS(
+    'min-height',
+    '64px',
+  )
+  await expect(card.getByRole('status', { name: '正在加载' })).toBeVisible()
+  const reveal = card.getByRole('button', { name: '展示卡片内容' })
+  const bounds = await reveal.boundingBox()
+  expect(bounds!.width).toBeGreaterThanOrEqual(44)
+  expect(bounds!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await reveal.tap()
+  else await reveal.press('Enter')
+  await expect(card).not.toHaveAttribute('aria-busy')
+  await expect(card).toHaveClass(/border-border/)
+  await expect(card.locator('[data-ui-card-header]')).toHaveCSS(
+    'min-height',
+    '56px',
+  )
+  await expect(card.getByRole('heading', { name: '项目任务' })).toHaveClass(
+    /text-primary/,
+  )
+  await expect(card.getByText('加载结束后展示元信息。')).toBeVisible()
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+})
+
 test('small Card applies its size to slots and keeps actions touchable', async ({
   page,
 }, testInfo) => {

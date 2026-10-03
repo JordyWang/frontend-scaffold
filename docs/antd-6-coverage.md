@@ -258,6 +258,8 @@ List、Listy、Table 的公共错误状态支持异步重试，等待时防止�
 
 Card 增加 default / small 尺寸契约，组合式插槽、Meta、Grid 与声明式内容同步缩放，并支持继承 ConfigProvider 的小号尺寸；加载时根节点标记忙碌。`/__ui` 展示小号卡片、元信息、响应式网格及可触控操作。
 
+对照 Card 6.6.5 文档，Card 和 CardMeta 的语义 `classNames` / `styles` 现在均支持对象或函数，函数接收当前 props。原生 `style` 继续覆写根节点语义样式，卡片内 Tabs 的原生 style 覆写其插槽样式；动态加载状态可调整 Header、骨架与 Meta 的展示。`/__ui` 增加加载到内容的状态预览，桌面键盘与 H5 触控回归检查其布局和操作。
+
 Alert 增加可关闭提示和关闭回调，关闭按钮保持 44px 触控区域；`/__ui` 展示操作、关闭与恢复，桌面键盘和 H5 触控均可验证。
 
 Empty 增加 default / small 尺寸契约和可替换插图，未指定尺寸时可继承全局小号配置；字符串图片地址会渲染为真实图片，`imageAlt` 控制替代文本，富标题/说明和 root/image/title/description/action 的 Tailwind 插槽可用于组合状态页。`/__ui` 展示默认、小号和自定义图片空状态，并验证键盘操作和 H5 触控。

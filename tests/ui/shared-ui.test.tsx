@@ -149,6 +149,71 @@ describe('shared/ui contracts', () => {
     expect(screen.queryByText('已完成')).toBeNull()
   })
 
+  it('updates Card and Meta semantic styles as loading changes', () => {
+    const cardClasses = vi.fn(
+      ({ props }: { props: { loading?: boolean } }) => ({
+        root: props.loading ? 'is-loading' : 'is-ready',
+      }),
+    )
+    const renderCard = (loading: boolean) => (
+      <Card
+        title={0}
+        loading={loading}
+        classNames={cardClasses}
+        style={{ opacity: 0.9 }}
+        styles={({ props }) => ({
+          root: { opacity: props.loading ? 0.5 : 0.7 },
+          header: { minHeight: props.loading ? 64 : 56 },
+          loading: { minHeight: 96 },
+        })}
+      >
+        <CardContent>
+          <CardMeta
+            title="项目任务"
+            description="加载已完成"
+            classNames={({ props }) => ({
+              title: props.title ? 'meta-title-ready' : '',
+            })}
+            styles={{ description: { letterSpacing: 0.2 } }}
+          />
+        </CardContent>
+      </Card>
+    )
+    const { container, rerender } = render(renderCard(true))
+    const card = container.querySelector('[data-ui-card]')!
+    expect(card).toHaveClass('is-loading')
+    expect(card).toHaveStyle({ opacity: 0.9 })
+    expect(card.querySelector('[data-ui-card-title]')).toHaveTextContent('0')
+    expect(card.querySelector('[data-ui-card-header]')).toHaveStyle({
+      minHeight: '64px',
+    })
+    expect(
+      card.querySelector('[data-ui-card-loading-placeholder]'),
+    ).toHaveStyle({
+      minHeight: '96px',
+    })
+    expect(screen.queryByText('项目任务')).toBeNull()
+
+    rerender(renderCard(false))
+    expect(card).toHaveClass('is-ready')
+    expect(card).toHaveStyle({ opacity: 0.9 })
+    expect(card).not.toHaveAttribute('aria-busy')
+    expect(card.querySelector('[data-ui-card-header]')).toHaveStyle({
+      minHeight: '56px',
+    })
+    expect(screen.getByRole('heading', { name: '项目任务' })).toHaveClass(
+      'meta-title-ready',
+    )
+    expect(card.querySelector('[data-ui-card-meta-description]')).toHaveStyle({
+      letterSpacing: '0.2px',
+    })
+    expect(cardClasses).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        props: expect.objectContaining({ loading: false }),
+      }),
+    )
+  })
+
   it('composes Card meta, responsive tiles and Tailwind semantic slots', () => {
     const onOpen = vi.fn()
     const { container } = render(
@@ -230,11 +295,20 @@ describe('shared/ui contracts', () => {
         title="页签容器"
         size="small"
         classNames={{ tabs: 'bg-muted' }}
-        tabs={{ items, value: 'overview', onValueChange, label: '卡片页签' }}
+        styles={{ tabs: { borderRadius: 6, backgroundColor: 'red' } }}
+        tabs={{
+          items,
+          value: 'overview',
+          onValueChange,
+          label: '卡片页签',
+          style: { backgroundColor: 'blue' },
+        }}
       />,
     )
     const tabs = container.querySelector('[data-ui-tabs]')!
     expect(tabs).toHaveClass('bg-muted')
+    expect((tabs as HTMLElement).style.borderRadius).toBe('6px')
+    expect((tabs as HTMLElement).style.backgroundColor).toBe('blue')
     expect(tabs).toHaveAttribute('data-ui-size', 'small')
     expect(screen.getByRole('tabpanel')).toHaveTextContent('概览正文')
     act(() => screen.getByRole('tab', { name: '记录' }).focus())

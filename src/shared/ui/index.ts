@@ -30,11 +30,17 @@ export {
 export type {
   CardProps,
   CardPart,
+  CardClassNames,
+  CardStyles,
+  CardSemanticInfo,
   CardVariant,
   CardAppearance,
   CardTabsProps,
   CardMetaProps,
   CardMetaPart,
+  CardMetaClassNames,
+  CardMetaStyles,
+  CardMetaSemanticInfo,
   CardGridGroupProps,
   CardGridProps,
 } from './card'

@@ -247,6 +247,7 @@ export function DesignSystemPreview() {
   const [searchStatus, setSearchStatus] = useState('尚未搜索')
   const [buttonStatus, setButtonStatus] = useState('尚未操作按钮')
   const [smallCardStatus, setSmallCardStatus] = useState('尚未操作')
+  const [semanticCardLoading, setSemanticCardLoading] = useState(true)
   const [cardGridStatus, setCardGridStatus] = useState('尚未选择卡片项目')
   const [innerCardStatus, setInnerCardStatus] = useState('尚未操作内层卡片')
   const [emptyStatus, setEmptyStatus] = useState('尚未重置')
@@ -487,6 +488,38 @@ export function DesignSystemPreview() {
                 执行小号卡片操作
               </Button>
             </CardFooter>
+          </Card>
+          <Card
+            title="语义样式与加载卡片"
+            loading={semanticCardLoading}
+            extra={
+              <Button
+                variant="outline"
+                size="small"
+                onClick={() => setSemanticCardLoading((current) => !current)}
+              >
+                {semanticCardLoading ? '展示卡片内容' : '重新加载卡片'}
+              </Button>
+            }
+            classNames={({ props }) => ({
+              root: props.loading ? 'border-primary' : 'border-border',
+              loading: 'min-h-24',
+            })}
+            styles={({ props }) => ({
+              header: { minHeight: props.loading ? 64 : 56 },
+            })}
+          >
+            <CardContent>
+              <CardMeta
+                avatar={<Avatar label="项目负责人">负</Avatar>}
+                title="项目任务"
+                description="加载结束后展示元信息。"
+                classNames={({ props }) => ({
+                  title: props.title ? 'text-primary' : '',
+                })}
+                styles={{ description: { letterSpacing: 0.2 } }}
+              />
+            </CardContent>
           </Card>
           <Card
             title="卡片元信息与网格"
