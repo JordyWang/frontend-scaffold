@@ -242,6 +242,7 @@ export function DesignSystemPreview() {
   const [formStatus, setFormStatus] = useState('尚未提交')
   const [consentStatus, setConsentStatus] = useState('尚未提交')
   const [searchStatus, setSearchStatus] = useState('尚未搜索')
+  const [buttonStatus, setButtonStatus] = useState('尚未操作按钮')
   const [smallCardStatus, setSmallCardStatus] = useState('尚未操作')
   const [cardGridStatus, setCardGridStatus] = useState('尚未选择卡片项目')
   const [innerCardStatus, setInnerCardStatus] = useState('尚未操作内层卡片')
@@ -414,6 +415,33 @@ export function DesignSystemPreview() {
                   +
                 </Button>
               </Stack>
+              <Stack direction="row" gap="sm" wrap>
+                <Button
+                  danger
+                  variant="outline"
+                  onClick={() => setButtonStatus('已点击危险描边')}
+                >
+                  危险描边
+                </Button>
+                <Button
+                  danger
+                  variant="ghost"
+                  onClick={() => setButtonStatus('已点击危险文字')}
+                >
+                  危险文字
+                </Button>
+                <Button
+                  loading
+                  icon={<Icon name="check" size={16} />}
+                  iconPosition="end"
+                  aria-busy={false}
+                >
+                  正在保存
+                </Button>
+              </Stack>
+              <p role="status" className="m-0 text-sm text-muted-foreground">
+                {buttonStatus}
+              </p>
             </CardContent>
           </Card>
           <Card

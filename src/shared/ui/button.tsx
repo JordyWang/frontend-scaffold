@@ -1,6 +1,7 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { cn } from '@/shared/lib/utils'
 import {
+  buttonDangerStyles,
   buttonShapeStyles,
   buttonSizeStyles,
   buttonStyles,
@@ -47,29 +48,37 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         : componentSize === 'large'
           ? 'large'
           : 'default')
+    const visualVariant = danger
+      ? buttonDangerStyles[variant]
+      : buttonVariantStyles[variant]
+    const leadingIndicator = loading ? (
+      <span className={spinnerStyles} aria-hidden="true" />
+    ) : (
+      icon
+    )
     return (
       <button
+        {...props}
         ref={ref}
         type={type}
         disabled={disabled || loading}
-        aria-busy={loading || undefined}
+        aria-busy={loading ? true : props['aria-busy']}
         data-ui-button=""
         data-ui-size={resolvedSize}
         data-ui-variant={variant}
+        data-ui-danger={danger || undefined}
         className={cn(
           buttonStyles,
-          buttonVariantStyles[danger ? 'destructive' : variant],
+          visualVariant,
           buttonSizeStyles[resolvedSize],
           buttonShapeStyles[shape],
           block && 'w-full',
           className,
         )}
-        {...props}
       >
-        {iconPosition === 'start' && icon}
-        {loading && <span className={spinnerStyles} aria-hidden="true" />}
+        {iconPosition === 'start' && leadingIndicator}
         {children}
-        {iconPosition === 'end' && icon}
+        {iconPosition === 'end' && leadingIndicator}
       </button>
     )
   },

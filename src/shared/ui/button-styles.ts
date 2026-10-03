@@ -1,5 +1,5 @@
 export const buttonStyles =
-  'inline-flex min-h-[max(44px,var(--ui-button-height))] min-w-11 touch-manipulation cursor-pointer items-center justify-center gap-[var(--space-sm)] rounded-[var(--ui-button-radius)] border border-transparent px-4 py-2.5 font-semibold leading-tight transition-[background-color,border-color,opacity] duration-180 ease-in-out enabled:hover:opacity-90 enabled:active:opacity-80 disabled:cursor-not-allowed disabled:opacity-[0.55]'
+  'inline-flex min-h-[max(44px,var(--ui-button-height))] min-w-11 touch-manipulation cursor-pointer items-center justify-center gap-[var(--space-sm)] rounded-[var(--ui-button-radius)] border border-transparent px-4 py-2.5 font-semibold leading-tight transition-[background-color,border-color,opacity] duration-180 ease-in-out enabled:hover:opacity-90 enabled:active:opacity-80 disabled:cursor-not-allowed disabled:opacity-[0.55] motion-reduce:transition-none'
 
 export const buttonVariantStyles = {
   primary:
@@ -8,6 +8,16 @@ export const buttonVariantStyles = {
   outline: 'border-border bg-card text-card-foreground',
   ghost: 'bg-transparent text-foreground',
   destructive: 'bg-destructive text-[var(--ui-map-danger-text)]',
+} as const
+
+export const buttonDangerStyles = {
+  primary: buttonVariantStyles.destructive,
+  secondary: 'bg-[var(--ui-map-error-bg)] text-[var(--ui-color-error)]',
+  outline:
+    'border-[var(--ui-color-error)] bg-card text-[var(--ui-color-error)]',
+  ghost:
+    'bg-transparent text-[var(--ui-color-error)] enabled:hover:bg-[var(--ui-map-error-bg)] enabled:hover:opacity-100',
+  destructive: buttonVariantStyles.destructive,
 } as const
 
 export const buttonSizeStyles = {

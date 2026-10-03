@@ -178,7 +178,7 @@ Select 与 MultiSelect 复用同一组外观与状态字段，错误状态会同
 
 Card 保留组合式子组件，并补充 AntD 常用的 `title`、`extra`、`cover`、`actions`、`hoverable` 和 `loading` 插槽；`variant` 区分 outlined / borderless，旧 `bordered` 兼容，`appearance="inner"` 提供内嵌卡片形态。`CardMeta` 提供头像、标题和描述，`CardGridGroup` / `CardGrid` 以容器宽度组织等宽网格。卡片内页签复用项目 Tabs 的 items/受控/非受控 API，不另建一套页签状态。卡片与 Meta 有 Tailwind 语义类名入口；`/__ui` 展示声明式卡片、内嵌形态、元信息、网格和页签。
 
-Button 补充危险、块级、圆角和图标位置 API；这些状态仍使用项目的 Tailwind 语义 Token，并在 `/__ui` 展示触控尺寸。
+Button 补充危险、块级、圆角和图标位置 API；危险状态按 primary / secondary / outline / ghost 保留外观层级，加载指示器替换原图标且 `aria-busy` 不可被外部 false 覆盖。状态使用项目的 Tailwind 语义 Token；`/__ui` 展示危险外观、加载和触控尺寸，减少动态效果时停止过渡。
 
 数值、日期、时间和自动完成输入复用字段外观与状态契约，`/__ui` 展示填充数字、下划线日期和警告时间范围。
 

@@ -65,6 +65,44 @@ describe('shared/ui contracts', () => {
     )
   })
 
+  it('keeps danger variants distinct and replaces an icon while loading', () => {
+    const onClick = vi.fn()
+    render(
+      <>
+        <Button danger variant="outline">
+          危险描边
+        </Button>
+        <Button danger variant="ghost">
+          危险文字
+        </Button>
+        <Button
+          loading
+          icon={<span data-testid="save-icon">原图标</span>}
+          iconPosition="end"
+          aria-busy={false}
+          onClick={onClick}
+        >
+          保存
+        </Button>
+      </>,
+    )
+    expect(screen.getByRole('button', { name: '危险描边' })).toHaveClass(
+      'border-[var(--ui-color-error)]',
+      'bg-card',
+    )
+    expect(screen.getByRole('button', { name: '危险文字' })).toHaveClass(
+      'bg-transparent',
+      'text-[var(--ui-color-error)]',
+    )
+    const loading = screen.getByRole('button', { name: '保存' })
+    expect(loading).toBeDisabled()
+    expect(loading).toHaveAttribute('aria-busy', 'true')
+    expect(screen.queryByTestId('save-icon')).toBeNull()
+    expect(loading.lastElementChild).toHaveAttribute('aria-hidden', 'true')
+    fireEvent.click(loading)
+    expect(onClick).not.toHaveBeenCalled()
+  })
+
   it('supports declarative card slots while keeping loading content accessible', () => {
     const onAction = vi.fn()
     const { rerender } = render(

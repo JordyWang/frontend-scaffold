@@ -4,7 +4,7 @@
 
 | 组件                            | 项目 API                                                                                                                                               | 约定                                                                                                                        |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| Button                          | `variant`、`size`、`loading`、原生 button 属性                                                                                                         | 默认 `type="button"`；加载时禁用，避免重复提交                                                                              |
+| Button                          | `variant`、`size`、`danger`、`loading`、`icon`、原生 button 属性                                                                                       | 默认 `type="button"`；危险状态保留外观层级；加载时替换图标并禁用，避免重复提交                                              |
 | Input / Textarea                | 原生属性、`invalid`、`size`                                                                                                                            | 转发 ref；`size` 为 default / small / large，输入字号为 16px                                                                |
 | Mentions                        | `options`、`value` / `defaultValue`、`onChange`、`onSelect`、`prefix`、`disabled`、原生 textarea 属性                                                  | 从光标前识别提及；方向键、Enter、Escape 与触控选择，候选项支持禁用；弹层继承局部主题                                        |
 | SearchInput                     | `value` / `defaultValue`、`onValueChange`、`onSearch`、`allowClear`、`loading`、`invalid`、`size`                                                      | Enter 与按钮提交搜索；清空保持输入焦点；在 FormItem 中使用 `trigger="onValueChange"`                                        |
@@ -149,7 +149,7 @@
 
 `Empty` 的 `title` 默认为“暂无数据”；`title` 和 `description` 可传入富内容，容器允许长文本在窄屏换行。`image` 传字符串时作为图片 URL，`imageAlt` 指定图片替代文本，未指定时图片作为装饰；传 React 节点时由节点自行提供图片语义。`image={null}` 隐藏插图。`classNames` 提供 root / image / title / description / action 的 Tailwind 插槽，根节点透传原生属性与 ref。交互应放在 `action` 中使用可访问的按钮或链接。
 
-`Button` 在原有 `variant`、`size`、`loading` 基础上支持 `danger`、`block`、`shape`（default、round、circle）以及 `icon` / `iconPosition` 插槽；`danger` 会优先使用错误主题色。
+`Button` 在原有 `variant`、`size`、`loading` 基础上支持 `danger`、`block`、`shape`（default、round、circle）以及 `icon` / `iconPosition` 插槽。`danger` 使用错误主题色，同时保留 primary、secondary、outline、ghost 的外观层级；`destructive` 仍是实心危险按钮。加载指示器在图标原位置替换图标，按钮禁用并强制暴露 `aria-busy="true"`，原生 `type="button"` 默认值避免在表单内误提交。按钮动效遵守减少动态效果设置。
 
 `InputNumber`、`DatePicker`、`TimePicker`、`DateRangePicker`、`TimeRangePicker` 和 `AutoComplete` 同样支持 `variant` 与 `status`；错误状态通过 `aria-invalid` 传递；日期与时间的单选和范围默认使用项目面板，也提供显式原生适配。
 

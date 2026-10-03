@@ -1,5 +1,47 @@
 import { expect, test } from '@playwright/test'
 
+test('Button danger variants and loading state work on keyboard and H5 touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  await page.setViewportSize({ width: 360, height: 844 })
+  const card = page.locator('[data-ui-card]').filter({ hasText: '按钮扩展' })
+  const outline = card.getByRole('button', { name: '危险描边' })
+  const ghost = card.getByRole('button', { name: '危险文字' })
+  const loading = card.getByRole('button', { name: '正在保存' })
+  for (const button of [outline, ghost, loading]) {
+    const box = await button.boundingBox()
+    expect(box!.width).toBeGreaterThanOrEqual(44)
+    expect(box!.height).toBeGreaterThanOrEqual(44)
+  }
+  const styles = await Promise.all(
+    [outline, ghost].map((button) =>
+      button.evaluate((element) => {
+        const style = getComputedStyle(element)
+        return { background: style.backgroundColor, color: style.color }
+      }),
+    ),
+  )
+  expect(styles[0].background).not.toBe(styles[1].background)
+  expect(styles[0].color).toBe(styles[1].color)
+  await expect(loading).toBeDisabled()
+  await expect(loading).toHaveAttribute('aria-busy', 'true')
+  await expect(loading.locator('svg')).toHaveCount(0)
+  if (testInfo.project.name.startsWith('mobile-')) await outline.tap()
+  else await outline.press('Enter')
+  await expect(card.getByRole('status')).toHaveText('已点击危险描边')
+  if (testInfo.project.name.startsWith('mobile-')) await ghost.tap()
+  else await ghost.press('Space')
+  await expect(card.getByRole('status')).toHaveText('已点击危险文字')
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await expect(outline).toHaveCSS('transition-property', 'none')
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+})
+
 test('Tag selection and dismissal work with keyboard and H5 touch', async ({
   page,
 }, testInfo) => {
