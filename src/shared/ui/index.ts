@@ -111,6 +111,11 @@ export type {
   TableSelection,
   TableExpandable,
   TablePagination,
+  TablePart,
+  TableDisplayState,
+  TableSemanticInfo,
+  TableClassNames,
+  TableStyles,
 } from './table'
 export type { TableFilterOption, TableFilters } from './table-filter'
 export { ThemeScope } from './theme-scope'

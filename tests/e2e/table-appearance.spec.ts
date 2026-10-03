@@ -32,10 +32,14 @@ test('Table display settings work with keyboard and H5 touch', async ({
       .first()
     await expect(row).toHaveCSS('padding-left', '8px')
     await expect(row).toHaveCSS('border-left-width', '1px')
+    await expect(row).toHaveClass(/bg-primary\/5/)
   } else {
     const rowHeader = card.getByRole('rowheader', { name: '设计评审' })
     await expect(rowHeader).toHaveCSS('padding-left', '12px')
     await expect(rowHeader).toHaveCSS('border-left-width', '1px')
+    await expect(
+      card.getByRole('columnheader', { name: /^按任务排序/ }),
+    ).toHaveClass(/\btext-primary\b/)
   }
 
   if (mobile) await spacious.tap()
@@ -84,6 +88,13 @@ test('Table display settings work with keyboard and H5 touch', async ({
       'padding-left',
       '24px',
     )
+    expect(
+      await card
+        .getByRole('columnheader', { name: /^按任务排序/ })
+        .evaluate((element) =>
+          parseFloat(getComputedStyle(element).letterSpacing),
+        ),
+    ).toBeGreaterThan(0)
   }
 
   const expand = card.getByRole('button', { name: '展开设计评审' })

@@ -65,6 +65,18 @@ export function TablePreview() {
           size={size}
           bordered={bordered}
           rowHoverable={rowHoverable}
+          classNames={({ props, state }) => ({
+            headerCell: props.bordered ? 'text-primary' : undefined,
+            selectionSummary: state === 'ready' ? 'font-medium' : undefined,
+          })}
+          styles={({ size: currentSize }) => ({
+            headerCell: {
+              letterSpacing: currentSize === 'large' ? '0.04em' : undefined,
+            },
+          })}
+          rowClassName={(row) =>
+            row.status === '进行中' ? 'bg-primary/5' : undefined
+          }
           rows={rows}
           getRowKey={(row) => row.id}
           columns={[

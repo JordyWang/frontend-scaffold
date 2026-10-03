@@ -129,6 +129,8 @@ Input 与 Textarea 的 `count` 可设为 `true`，或 `{ max, strategy, render }
 
 `Table.size` 使用项目统一的 `small`、`default`、`large`，未传时继承 `ConfigProvider.componentSize`。尺寸调整表头、数据单元格、详情区域与 H5 卡片行的留白；选择、排序和展开按钮仍保留至少 44px 触控目标。`bordered` 默认关闭，开启后桌面展示单元格网格线，H5 卡片行展示独立边框。`rowHoverable` 默认开启，只在支持悬停的设备上提示当前行；设为 `false` 可关闭。`/__ui` 的“Table 展示状态”可切换这些设置，并验证桌面表格与窄屏卡片视图。
 
+`Table.classNames` / `styles` 接受语义槽对象，也可接收 `({ props, size, state }) => 槽对象`，其中 `state` 为 `loading`、`error`、`empty`、`filtered-empty` 或 `ready`。槽包括 `root`、`state`、`selectionSummary`、`scrollRegion`、`table`、`header`、`headerRow`、`headerCell`、`body`、`row`、`cell`、`expandedRow`、`expandedCell`、`mobile`、`mobileToolbar`、`mobileList`、`mobileRow`、`mobileDetail` 和 `pagination`。根节点原有的 `className` / `style` 保留最高优先级。`rowClassName(row, index)` 可按可见数据的全局索引设置桌面行和 H5 卡片行；筛选、排序、分页后的索引与渲染顺序一致。动态 Tailwind 类名仍需以完整字面量出现在项目源码中。
+
 宽表格在自身容器内横向滚动。滚动区域可通过 Tab 聚焦；焦点位于区域自身时，左右方向键移动 44px，Home/End 移到逻辑起止，RTL 使用同一键位。单元格内按钮、输入和带修饰键的操作不被截获。`/__ui` 有 240px RTL 宽表预览，手机可直接横向触控滑动。
 
 `TableColumn.sorter(left, right)` 启用本地稳定排序；交互依次切换升序、降序和原始顺序。`sort` / `defaultSort` 使用 `{ columnKey, direction }`，`onSortChange` 接收新状态或 `null`；受控模式由调用方更新 `sort`。复杂表头可传入 `sortLabel` 作为排序按钮名称。桌面表头使用 `aria-sort`，配置 `renderMobileRow` 后手机卡片上方提供同一排序操作。
@@ -495,6 +497,8 @@ ref 指向输入；`className` 修饰输入，`classNames` 除日期插槽外提
 `Select` 弹层宽度限制在可用视口内，长选项和连续字符可换行；触发器中的已选长标签截断显示，完整文字保留在 DOM 中。`/__ui` 的 240px RTL 搜索预览覆盖这些状态。
 
 `Pagination` 可选 `onPageSizeChange(size, page)`、`pageSizeOptions`、`showQuickJumper` 和 `showTotal`。切换每页条数时，`page` 指向原先第一条记录所在的新页，由调用方同步更新 `pageSize` 和 `page`；快速跳页只接受当前范围内的整数，错误会在输入框旁显示。长页码列表的省略号默认是可操作跳页按钮，每次跳 5 页；`jumpSize` 调整跨度，`showJumpers={false}` 保留纯装饰省略号。按钮有目标页码名称，原生键盘操作和至少 44px 的触控区域；跨页后省略号消失时，键盘焦点回到当前页。加载时这些控件不可操作，`load-more` 模式维持单按钮入口。
+
+`Pagination.style` 可直接设置页码导航或“加载更多”容器的内联样式，供 Table 的 `styles.pagination` 等场景复用；常规外观仍优先使用 Tailwind `className`。
 
 `ErrorState.onRetry` 接受同步或异步回调；等待期间重试按钮进入忙碌并禁用状态，失败后保留错误提示和再次重试入口。List、Listy、Table 共用这一约定。
 

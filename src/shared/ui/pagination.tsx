@@ -1,4 +1,10 @@
-import { useId, useLayoutEffect, useRef, useState } from 'react'
+import {
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react'
 import { cn } from '@/shared/lib/utils'
 import { Button } from './button'
 import { Input } from './input'
@@ -51,6 +57,7 @@ export type PaginationProps = {
   loading?: boolean
   disabled?: boolean
   className?: string
+  style?: CSSProperties
 }
 
 export function Pagination({
@@ -69,6 +76,7 @@ export function Pagination({
   loading,
   disabled = false,
   className,
+  style,
 }: PaginationProps) {
   const jumpId = useId()
   const currentButtonRef = useRef<HTMLButtonElement | null>(null)
@@ -143,6 +151,7 @@ export function Pagination({
         aria-busy={loading || undefined}
         aria-disabled={inactive || undefined}
         className={className}
+        style={style}
       >
         <Button
           variant="outline"
@@ -162,6 +171,7 @@ export function Pagination({
       aria-busy={loading || undefined}
       aria-disabled={inactive || undefined}
       className={cn('flex min-w-0 flex-wrap items-center gap-2', className)}
+      style={style}
     >
       <div className="flex w-full min-w-0 items-center gap-2 sm:flex-1">
         <Button

@@ -1,4 +1,11 @@
-import { Fragment, useMemo, useState, type Key, type ReactNode } from 'react'
+import {
+  Fragment,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type Key,
+  type ReactNode,
+} from 'react'
 import { cn } from '@/shared/lib/utils'
 import { Checkbox } from './choice'
 import {
@@ -76,6 +83,42 @@ export type TablePagination = TablePaginationBase &
       }
   )
 
+export type TablePart =
+  | 'root'
+  | 'state'
+  | 'selectionSummary'
+  | 'scrollRegion'
+  | 'table'
+  | 'header'
+  | 'headerRow'
+  | 'headerCell'
+  | 'body'
+  | 'row'
+  | 'cell'
+  | 'expandedRow'
+  | 'expandedCell'
+  | 'mobile'
+  | 'mobileToolbar'
+  | 'mobileList'
+  | 'mobileRow'
+  | 'mobileDetail'
+  | 'pagination'
+
+export type TableDisplayState =
+  'loading' | 'error' | 'empty' | 'filtered-empty' | 'ready'
+
+export type TableSemanticInfo<T> = {
+  props: TableProps<T>
+  size: ControlSize
+  state: TableDisplayState
+}
+export type TableClassNames<T> =
+  | Partial<Record<TablePart, string>>
+  | ((info: TableSemanticInfo<T>) => Partial<Record<TablePart, string>>)
+export type TableStyles<T> =
+  | Partial<Record<TablePart, CSSProperties>>
+  | ((info: TableSemanticInfo<T>) => Partial<Record<TablePart, CSSProperties>>)
+
 function alignmentClassName(align?: TableColumn<unknown>['align']) {
   if (align === 'center') return 'text-center'
   if (align === 'left') return 'text-left'
@@ -106,6 +149,10 @@ export type TableProps<T> = {
   expandable?: TableExpandable<T>
   pagination?: TablePagination | false
   className?: string
+  style?: CSSProperties
+  classNames?: TableClassNames<T>
+  styles?: TableStyles<T>
+  rowClassName?: (row: T, index: number) => string | undefined
 }
 
 export function Table<T>(allProps: TableProps<T>) {
@@ -133,6 +180,10 @@ export function Table<T>(allProps: TableProps<T>) {
     expandable,
     pagination,
     className,
+    style,
+    classNames,
+    styles,
+    rowClassName,
   } = allProps
   const { componentSize } = useConfig()
   const resolvedSize = resolveComponentSize(componentSize, size)
@@ -226,6 +277,27 @@ export function Table<T>(allProps: TableProps<T>) {
     ? displayedRows.slice((page - 1) * pageSize, page * pageSize)
     : displayedRows
   const pageStart = paginationConfig ? (page - 1) * pageSize : 0
+  const rowClassNames = pageRows.map((row, index) =>
+    rowClassName?.(row, pageStart + index),
+  )
+  const displayState: TableDisplayState = loading
+    ? 'loading'
+    : error
+      ? 'error'
+      : displayedRows.length === 0
+        ? hasActiveFilters
+          ? 'filtered-empty'
+          : 'empty'
+        : 'ready'
+  const semanticInfo: TableSemanticInfo<T> = {
+    props: allProps,
+    size: resolvedSize,
+    state: displayState,
+  }
+  const semanticClassNames =
+    typeof classNames === 'function' ? classNames(semanticInfo) : classNames
+  const semanticStyles =
+    typeof styles === 'function' ? styles(semanticInfo) : styles
 
   function resetPage() {
     if (!paginationConfig || page === 1) return
@@ -451,7 +523,11 @@ export function Table<T>(allProps: TableProps<T>) {
     if (!expandable || !expandedSet.has(getRowKey(row))) return null
     const contentId = detailId(getRowKey(row), 'table')
     return (
-      <tr key={`${String(getRowKey(row))}-expanded`}>
+      <tr
+        key={`${String(getRowKey(row))}-expanded`}
+        className={semanticClassNames?.expandedRow}
+        style={semanticStyles?.expandedRow}
+      >
         <td
           id={contentId}
           colSpan={colSpan}
@@ -460,7 +536,9 @@ export function Table<T>(allProps: TableProps<T>) {
             cellPadding,
             cellBorder,
             !bordered && 'border-b border-border',
+            semanticClassNames?.expandedCell,
           )}
+          style={semanticStyles?.expandedCell}
         >
           {expandable.expandedRowRender(row, index)}
         </td>
@@ -470,9 +548,11 @@ export function Table<T>(allProps: TableProps<T>) {
 
   const regionClassName = cn(
     'overflow-hidden rounded-[var(--radius)] border border-border bg-card text-card-foreground',
+    semanticClassNames?.root,
     className,
   )
-  const stateClassName = 'p-[var(--space-lg)]'
+  const rootStyle = { ...semanticStyles?.root, ...style }
+  const stateClassName = cn('p-[var(--space-lg)]', semanticClassNames?.state)
   const tableColSpan =
     columns.length + (selection ? 1 : 0) + (expandable ? 1 : 0)
 
@@ -483,8 +563,9 @@ export function Table<T>(allProps: TableProps<T>) {
         aria-busy="true"
         aria-label={caption}
         className={regionClassName}
+        style={rootStyle}
       >
-        <div className={stateClassName}>
+        <div className={stateClassName} style={semanticStyles?.state}>
           <LoadingState />
         </div>
       </section>
@@ -495,8 +576,9 @@ export function Table<T>(allProps: TableProps<T>) {
         {...tableAttributes}
         aria-label={caption}
         className={regionClassName}
+        style={rootStyle}
       >
-        <div className={stateClassName}>
+        <div className={stateClassName} style={semanticStyles?.state}>
           <ErrorState description={error} onRetry={onRetry} />
         </div>
       </section>
@@ -507,8 +589,13 @@ export function Table<T>(allProps: TableProps<T>) {
         {...tableAttributes}
         aria-label={caption}
         className={regionClassName}
+        style={rootStyle}
       >
-        <div role="status" className={stateClassName}>
+        <div
+          role="status"
+          className={stateClassName}
+          style={semanticStyles?.state}
+        >
           <Empty title={emptyTitle} />
         </div>
       </section>
@@ -519,11 +606,16 @@ export function Table<T>(allProps: TableProps<T>) {
       {...tableAttributes}
       aria-label={caption}
       className={regionClassName}
+      style={rootStyle}
     >
       {selection && (
         <div
           aria-live="polite"
-          className="border-b border-border px-4 py-2 text-sm text-muted-foreground"
+          className={cn(
+            'border-b border-border px-4 py-2 text-sm text-muted-foreground',
+            semanticClassNames?.selectionSummary,
+          )}
+          style={semanticStyles?.selectionSummary}
         >
           已选 {selectedKeys.length} 项
         </div>
@@ -536,16 +628,38 @@ export function Table<T>(allProps: TableProps<T>) {
         className={cn(
           'overflow-x-auto overscroll-x-contain focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring [scrollbar-width:thin]',
           renderMobileRow && 'hidden sm:block',
+          semanticClassNames?.scrollRegion,
         )}
+        style={semanticStyles?.scrollRegion}
       >
-        <table className="min-w-full border-collapse text-start">
+        <table
+          className={cn(
+            'min-w-full border-collapse text-start',
+            semanticClassNames?.table,
+          )}
+          style={semanticStyles?.table}
+        >
           <caption className="sr-only">{caption}</caption>
-          <thead className="bg-muted">
-            <tr className="border-b border-border">
+          <thead
+            className={cn('bg-muted', semanticClassNames?.header)}
+            style={semanticStyles?.header}
+          >
+            <tr
+              className={cn(
+                'border-b border-border',
+                semanticClassNames?.headerRow,
+              )}
+              style={semanticStyles?.headerRow}
+            >
               {selection && (
                 <th
                   scope="col"
-                  className={cn('w-14 px-2 text-start', cellBorder)}
+                  className={cn(
+                    'w-14 px-2 text-start',
+                    cellBorder,
+                    semanticClassNames?.headerCell,
+                  )}
+                  style={semanticStyles?.headerCell}
                 >
                   {selectAllCheckbox()}
                 </th>
@@ -553,7 +667,12 @@ export function Table<T>(allProps: TableProps<T>) {
               {expandable && (
                 <th
                   scope="col"
-                  className={cn('w-14 px-2 text-start', cellBorder)}
+                  className={cn(
+                    'w-14 px-2 text-start',
+                    cellBorder,
+                    semanticClassNames?.headerCell,
+                  )}
+                  style={semanticStyles?.headerCell}
                 >
                   <span className="sr-only">展开详情</span>
                 </th>
@@ -576,7 +695,9 @@ export function Table<T>(allProps: TableProps<T>) {
                     column.sorter ? sortHeaderPadding : cellPadding,
                     cellBorder,
                     alignmentClassName(column.align),
+                    semanticClassNames?.headerCell,
                   )}
+                  style={semanticStyles?.headerCell}
                 >
                   <span className="inline-flex items-center gap-1">
                     {column.sorter ? sortButton(column) : column.header}
@@ -586,14 +707,29 @@ export function Table<T>(allProps: TableProps<T>) {
               ))}
             </tr>
           </thead>
-          <tbody className={cn(!bordered && 'divide-y divide-border')}>
+          <tbody
+            className={cn(
+              !bordered && 'divide-y divide-border',
+              semanticClassNames?.body,
+            )}
+            style={semanticStyles?.body}
+          >
             {displayedRows.length === 0 && (
               <tr>
                 <td
                   colSpan={Math.max(1, tableColSpan)}
-                  className={cn('p-[var(--space-lg)]', cellBorder)}
+                  className={cn(
+                    'p-[var(--space-lg)]',
+                    cellBorder,
+                    semanticClassNames?.cell,
+                  )}
+                  style={semanticStyles?.cell}
                 >
-                  <div role="status">
+                  <div
+                    role="status"
+                    className={semanticClassNames?.state}
+                    style={semanticStyles?.state}
+                  >
                     <Empty
                       title={emptyTitle}
                       description="调整或清空筛选条件以查看数据。"
@@ -604,14 +740,35 @@ export function Table<T>(allProps: TableProps<T>) {
             )}
             {pageRows.map((row, index) => (
               <Fragment key={getRowKey(row)}>
-                <tr className={rowHover}>
+                <tr
+                  className={cn(
+                    rowHover,
+                    semanticClassNames?.row,
+                    rowClassNames[index],
+                  )}
+                  style={semanticStyles?.row}
+                >
                   {selection && (
-                    <td className={cn('w-14 px-2', cellBorder)}>
+                    <td
+                      className={cn(
+                        'w-14 px-2',
+                        cellBorder,
+                        semanticClassNames?.cell,
+                      )}
+                      style={semanticStyles?.cell}
+                    >
                       {rowCheckbox(row)}
                     </td>
                   )}
                   {expandable && (
-                    <td className={cn('w-14 px-2', cellBorder)}>
+                    <td
+                      className={cn(
+                        'w-14 px-2',
+                        cellBorder,
+                        semanticClassNames?.cell,
+                      )}
+                      style={semanticStyles?.cell}
+                    >
                       {expandButton(row)}
                     </td>
                   )}
@@ -625,7 +782,9 @@ export function Table<T>(allProps: TableProps<T>) {
                           cellPadding,
                           cellBorder,
                           alignmentClassName(column.align),
+                          semanticClassNames?.cell,
                         )}
+                        style={semanticStyles?.cell}
                       >
                         {column.render(row)}
                       </th>
@@ -637,7 +796,9 @@ export function Table<T>(allProps: TableProps<T>) {
                           cellPadding,
                           cellBorder,
                           alignmentClassName(column.align),
+                          semanticClassNames?.cell,
                         )}
+                        style={semanticStyles?.cell}
                       >
                         {column.render(row)}
                       </td>
@@ -651,12 +812,21 @@ export function Table<T>(allProps: TableProps<T>) {
         </table>
       </div>
       {renderMobileRow && (
-        <div className="sm:hidden">
+        <div
+          className={cn('sm:hidden', semanticClassNames?.mobile)}
+          style={semanticStyles?.mobile}
+        >
           {(selection ||
             columns.some(
               (column) => column.sorter || column.filterOptions?.length,
             )) && (
-            <div className="flex flex-wrap items-center gap-2 border-b border-border p-2">
+            <div
+              className={cn(
+                'flex flex-wrap items-center gap-2 border-b border-border p-2',
+                semanticClassNames?.mobileToolbar,
+              )}
+              style={semanticStyles?.mobileToolbar}
+            >
               {selection && selectAllCheckbox(true)}
               {(columns.some((column) => column.sorter) ||
                 columns.some((column) => column.filterOptions?.length)) && (
@@ -686,16 +856,24 @@ export function Table<T>(allProps: TableProps<T>) {
             className={cn(
               'm-0 list-none p-0',
               bordered ? 'grid gap-2 p-2' : 'divide-y divide-border',
+              semanticClassNames?.mobileList,
             )}
+            style={semanticStyles?.mobileList}
           >
             {displayedRows.length === 0 && (
               <li
                 className={cn(
                   mobilePadding,
                   bordered && 'rounded-[var(--radius-sm)] border border-border',
+                  semanticClassNames?.mobileRow,
                 )}
+                style={semanticStyles?.mobileRow}
               >
-                <div role="status">
+                <div
+                  role="status"
+                  className={semanticClassNames?.state}
+                  style={semanticStyles?.state}
+                >
                   <Empty
                     title={emptyTitle}
                     description="调整或清空筛选条件以查看数据。"
@@ -711,7 +889,10 @@ export function Table<T>(allProps: TableProps<T>) {
                   bordered && 'rounded-[var(--radius-sm)] border border-border',
                   rowHover,
                   selection && 'flex items-start gap-3',
+                  semanticClassNames?.mobileRow,
+                  rowClassNames[index],
                 )}
+                style={semanticStyles?.mobileRow}
               >
                 {selection && rowCheckbox(row)}
                 {expandable && (
@@ -722,7 +903,11 @@ export function Table<T>(allProps: TableProps<T>) {
                   {expandable && expandedSet.has(getRowKey(row)) && (
                     <div
                       id={detailId(getRowKey(row), 'mobile')}
-                      className="mt-3 rounded-[var(--radius-sm)] bg-muted/40 p-3"
+                      className={cn(
+                        'mt-3 rounded-[var(--radius-sm)] bg-muted/40 p-3',
+                        semanticClassNames?.mobileDetail,
+                      )}
+                      style={semanticStyles?.mobileDetail}
                     >
                       {expandable.expandedRowRender(row, pageStart + index)}
                     </div>
@@ -746,7 +931,11 @@ export function Table<T>(allProps: TableProps<T>) {
           pageSizeOptions={paginationConfig.pageSizeOptions}
           showQuickJumper={paginationConfig.showQuickJumper}
           showTotal={paginationConfig.showTotal}
-          className="border-t border-border p-3"
+          className={cn(
+            'border-t border-border p-3',
+            semanticClassNames?.pagination,
+          )}
+          style={semanticStyles?.pagination}
         />
       )}
     </section>
