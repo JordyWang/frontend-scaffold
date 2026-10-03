@@ -32,6 +32,7 @@ import { BadgePreview } from './BadgePreview'
 import { ListPreview } from './ListPreview'
 import { FormControlledPreview } from './FormControlledPreview'
 import { FormDependenciesPreview } from './FormDependenciesPreview'
+import { GridPreview } from './GridPreview'
 import { TablePreview } from './TablePreview'
 import { TableGroupedPreview } from './TableGroupedPreview'
 import { TableManualPreview } from './TableManualPreview'
@@ -1683,6 +1684,7 @@ export function DesignSystemPreview() {
             </CardContent>
           </Card>
           <ListPreview />
+          <GridPreview />
           <TablePreview />
           <TableGroupedPreview />
           <TableManualPreview />

@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
+import { GridCol, GridRow } from './grid-layout'
 
 type Gap = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 type Alignment = 'start' | 'center' | 'end' | 'stretch'
@@ -203,6 +204,9 @@ export function Grid({
     />
   )
 }
+
+Grid.Row = GridRow
+Grid.Col = GridCol
 
 type DividerBaseProps = Omit<HTMLAttributes<HTMLElement>, 'children'> & {
   variant?: 'solid' | 'dashed' | 'dotted'

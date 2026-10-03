@@ -101,6 +101,8 @@ Input 与 Textarea 的 `count` 可设为 `true`，或 `{ max, strategy, render }
 
 `Divider` 默认保留原生 `<hr>`；`orientation="vertical"` 用于有高度的水平容器。`variant` 为 solid / dashed / dotted。横向分隔线可传 `children` 作为标题，`titlePlacement` 将标题置于 start / center / end，`plain` 使用普通字重。标题分隔线以标题命名 `separator`，调用方也可提供 `aria-label` 或 `aria-labelledby`；长标题在窄容器换行，不撑开页面。
 
+`Grid` 本身继续使用 `minItemWidth` 自动换列；需要确定列宽时使用 `Grid.Row` / `Grid.Col`（也可单独导入 `GridRow` / `GridCol`）。Row 按自身容器宽度应用 xs、sm、md、lg、xl、xxl 断点（基础、640、768、1024、1280、1536px），`gutter` 为水平像素数、`[水平, 垂直]` 或断点对象；缺失断点继承上一档。Col 的 `span` 与 `offset` 使用 24 列单位，接受数字或断点对象；默认占满 24 列，`span=0` 在对应宽度隐藏内容，偏移不会超过剩余列数。列间距通过内侧留白实现，不扩大 Row 宽度；偏移沿文字方向起始侧计算。Col 保留 DOM 顺序和子控件的键盘顺序，不提供视觉重排 API。`/__ui` 展示容器换列、隐藏列、偏移与 RTL。
+
 `Progress` 的 `type` 可选 `line`、`circle`、`dashboard`。`steps` 可传数字或 `{ count, gap? }`；`gap` 单位为 px，线性默认间距为 4px，圆环及仪表盘默认间距为 2px，最多渲染 100 段。`size="small"` 缩小线条和圆形画布，也可继承 ConfigProvider 的小尺寸；显式 `strokeWidth` 仍以项目像素单位覆盖默认线宽。`successPercent` 显示总进度内已完成的部分，限制在 0 到 `percent` 之间；不传或传非有限值时不显示成功段。仪表盘 `gapDegree` 默认 75°、限制在 0–295°，`gapPlacement` 默认 `bottom`，`start` / `end` 跟随 ConfigProvider 的 LTR/RTL 方向。所有形态只暴露一个 `progressbar`，总进度通过 `aria-valuenow` 表达，成功段通过 `aria-valuetext` 补充；可见百分比文本由 `format(percent, successPercent?)` 控制。
 
 `Result` 的 `title` 可省略，按 `status` 提供中文默认标题；403、404、500 还提供默认说明与可见状态码。调用方传入的 `title`、`subTitle` 和 `icon` 优先。`size="small"` 用于卡片内紧凑结果，`headingLevel` 默认为 2，可设 1–6 以匹配页面标题层级。`children` 用于展示复杂错误详情或后续说明，位于 `extra` 操作区之后，并使用主题背景承载内容。结果区由标题提供可访问名称，状态码和自定义图标作为装饰内容隐藏，避免重复播报；长内容在窄屏换行。

@@ -144,6 +144,7 @@ export type {
   TypographyEllipsisOptions,
 } from './typography'
 export { Stack, Flex, Space, SpaceCompact, Grid, Divider } from './layout'
+export { GridRow, GridCol } from './grid-layout'
 export type {
   StackProps,
   SpaceProps,
@@ -151,6 +152,14 @@ export type {
   GridProps,
   DividerProps,
 } from './layout'
+export type {
+  GridBreakpoint,
+  GridResponsive,
+  GridSpan,
+  GridGutter,
+  GridRowProps,
+  GridColProps,
+} from './grid-layout'
 export { Splitter } from './splitter'
 export type { SplitterPanel, SplitterProps } from './splitter'
 export { Masonry } from './masonry'
