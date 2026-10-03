@@ -387,7 +387,14 @@ export type { TreeSelectCheckedStrategy } from './tree-select-state'
 export { Transfer } from './transfer'
 export type { TransferDirection, TransferItem, TransferProps } from './transfer'
 export { Statistic } from './data-display'
-export type { StatisticProps, StatisticPart } from './data-display'
+export type {
+  StatisticProps,
+  StatisticPart,
+  StatisticState,
+  StatisticSemanticInfo,
+  StatisticClassNames,
+  StatisticStyles,
+} from './data-display'
 export { StatisticTimer } from './statistic-timer'
 export type { StatisticTimerProps } from './statistic-timer'
 export { Timeline } from './timeline'

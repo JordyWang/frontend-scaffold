@@ -70,7 +70,7 @@
 | Avatar                          | `src`、`srcSet`、`alt`、`label`、`size`、`shape`、`icon`、`gap`、`onError`                                                                                | 头像保留单一可访问名称，失败后回退到图标或文字；长文字自动缩放，尺寸可响应断点                                              |
 | Descriptions                    | `items`、`column`、`bordered`、`layout`、`size`、`title`、`extra`、`colon`、`emptyText`、`classNames`、`styles`                                           | `dl/dt/dd` 保持一份阅读顺序；响应式列数和跨度、整行剩余填充、统一尺寸、RTL 与空状态                                         |
 | AvatarGroup                     | `items`、`maxCount`、`size`、`shape`、`label`                                                                                                             | 重叠展示成员，溢出按钮支持键盘和触控打开公共 Popover 查看其余成员，布局跟随 RTL                                             |
-| Statistic / StatisticTimer      | `Statistic(title, value, precision, locale, classNames)`；`StatisticTimer(value, type, format, onChange, onFinish)`                                       | 数值格式与内部语义节点可定制；计时器从毫秒时间戳倒计时或正计时，后台恢复时按实际时钟校正                                    |
+| Statistic / StatisticTimer      | `Statistic(title, value, precision, locale, classNames, styles)`；`StatisticTimer(value, type, format, onChange, onFinish)`                               | 数值格式与内部语义节点可定制；计时器从毫秒时间戳倒计时或正计时，后台恢复时按实际时钟校正                                    |
 | Timeline                        | `items`、`mode`、`orientation`、`reverse`、`variant`、`labelWidth`、`label`、`emptyText`、`classNames`                                                    | 原生有序列表；两侧与交替布局、水平滚动、容器响应式、加载与文字状态、动态焦点恢复                                            |
 | Carousel                        | `items`、`index` / `defaultIndex`、`autoplay`、`dots`、`dotPlacement`、`effect`、`infinite`、`adaptiveHeight`、`ref`                                      | 受控轮播、四向指示点、两种动效、键盘/手势切换、播放进度及隐藏内容焦点恢复                                                   |
 | Tree                            | `treeData`、`expandedKeys`、`selectedKey` / `selectedKeys`、`checkedKeys`、`multiple`、`loadChildren`、`classNames`                                       | 选择和勾选独立；父子传导与半选、禁用边界、异步加载与取消/重试、唯一 Tab 入口、RTL 键盘与空状态                              |
@@ -626,7 +626,7 @@ Carousel 的 `items` 保持项目 ReactNode 数组 API；有状态的内容传�
 
 `label` 命名轮播区域，`emptyText` 定义空数据文案；单项数据不显示切换控制。`classNames` 提供 `root` / `viewport` / `slide` / `controls` / `arrow` / `dots` / `dot` / `status` / `rotation` 的 Tailwind 插槽。隐藏当前焦点所属内容、删除或禁用焦点所在的导航控件时，焦点恢复到轮播区域；外部焦点不被抢走。`/__ui` 展示两种动效、四向页码、有限循环、表单草稿、动态缩减、进度、RTL 深色、单项与空数据。
 
-`Statistic.classNames` 可分别设置 `root`、`header`、`title`、`content`、`value`、`prefix`、`suffix` 的 Tailwind 类；加载时保留标题、内容和值节点，并把骨架放在值节点内。数字先按 `locale` 和 `precision` 格式化，再通过 `groupSeparator`、`decimalSeparator` 覆写对应的分组和小数标记；`formatter` 完全接管数值显示。`StatisticTimer` 继承语义类名入口。
+`Statistic.classNames` / `styles` 可传语义槽对象，或接收 `({ props, state }) => 槽对象` 的函数；`state` 为 `loading` 或 `ready`。槽包括 `root`、`header`、`title`、`content`、`value`、`prefix`、`suffix`，分别应用 Tailwind 类和 CSS 属性。根节点原有的 `className` / `style` 优先于语义槽；加载时保留标题、内容和值节点，并把骨架放在值节点内。数字先按 `locale` 和 `precision` 格式化，再通过 `groupSeparator`、`decimalSeparator` 覆写对应的分组和小数标记；`formatter` 完全接管数值显示。`StatisticTimer` 继承同一套语义样式入口。
 
 `StatisticTimer` 的 `value` 是 Unix 毫秒时间戳：倒计时表示目标时间，正计时表示起始时间。`type` 默认为 `countdown`，`format` 默认为 `HH:mm:ss`；支持 `D` / `DD`、`H` / `HH`、`m` / `mm`、`s` / `ss`、`S` / `SS` / `SSS`，字面文字用方括号包裹。有天数时小时显示当天小时，否则显示累计小时；秒级格式每秒更新，包含毫秒的格式以约 50ms 间隔刷新。`onChange` 收到当前显示精度对应的剩余或已过毫秒数，`onFinish` 在倒计时首次到零时调用一次；更换目标时间会重新开始。无效时间显示 `—`。计时器使用 `role="timer"` 且关闭自动播报，避免每秒打断阅读；加载时复用 Statistic 骨架屏。
 

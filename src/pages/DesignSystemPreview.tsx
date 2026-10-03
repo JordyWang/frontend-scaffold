@@ -2979,7 +2979,19 @@ export function DesignSystemPreview() {
                       value={12345.678}
                       precision={1}
                       loading={statisticLoading}
-                      classNames={{ value: 'text-primary' }}
+                      classNames={({ state }) => ({
+                        root:
+                          state === 'loading'
+                            ? 'rounded-[var(--radius-sm)] border border-border p-2'
+                            : 'rounded-[var(--radius-sm)] bg-primary/5 p-2',
+                        value: 'text-primary',
+                      })}
+                      styles={({ state }) => ({
+                        value: {
+                          letterSpacing:
+                            state === 'ready' ? '0.04em' : undefined,
+                        },
+                      })}
                     />
                     <Statistic
                       title="自定义分隔符"

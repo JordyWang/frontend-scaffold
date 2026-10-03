@@ -861,6 +861,11 @@ test('Statistic reveals a grouped value after loading on keyboard and touch', as
   )
   const complete = preview.getByRole('button', { name: '完成统计加载' })
   await expect(statistic).toHaveAttribute('aria-busy', 'true')
+  await expect(statistic).toHaveAttribute('data-ui-statistic-state', 'loading')
+  await expect(statistic).toHaveClass(/border-border/)
+  const loadingBackground = await statistic.evaluate(
+    (element) => getComputedStyle(element).backgroundColor,
+  )
   await expect(statistic.locator('[data-ui-statistic-value]')).toHaveCount(1)
   await expect(
     statistic.getByRole('status', { name: '处理任务数正在加载' }),
@@ -873,6 +878,19 @@ test('Statistic reveals a grouped value after loading on keyboard and touch', as
     await complete.press('Enter')
   }
   await expect(statistic).not.toHaveAttribute('aria-busy', 'true')
+  await expect(statistic).toHaveAttribute('data-ui-statistic-state', 'ready')
+  await expect(statistic).toHaveClass(/bg-primary\/5/)
+  await expect(statistic.locator('[data-ui-statistic-value]')).toHaveAttribute(
+    'style',
+    /letter-spacing: 0\.04em/,
+  )
+  await expect
+    .poll(() =>
+      statistic.evaluate(
+        (element) => getComputedStyle(element).backgroundColor,
+      ),
+    )
+    .not.toBe(loadingBackground)
   await expect(statistic).toContainText('12,345.7')
   await expect(statistic.locator('[data-ui-statistic-value]')).toHaveCount(1)
 
@@ -880,6 +898,7 @@ test('Statistic reveals a grouped value after loading on keyboard and touch', as
   if (testInfo.project.name.startsWith('mobile-')) await reset.tap()
   else await reset.press('Enter')
   await expect(statistic).toHaveAttribute('aria-busy', 'true')
+  await expect(statistic).toHaveAttribute('data-ui-statistic-state', 'loading')
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
