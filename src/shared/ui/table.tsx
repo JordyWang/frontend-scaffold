@@ -4,6 +4,7 @@ import { Checkbox } from './choice'
 import { Empty } from './empty'
 import { ErrorState, LoadingState } from './feedback-state'
 import { scrollHorizontalRegion } from './horizontal-scroll'
+import { Pagination } from './pagination'
 import {
   TableFilterControl,
   type TableFilterOption,
@@ -46,6 +47,30 @@ export type TableExpandable<T> = {
   getLabel?: (row: T) => string
 }
 
+type TablePaginationBase = {
+  onChange?: (page: number, pageSize: number) => void
+  showSizeChanger?: boolean
+  pageSizeOptions?: number[]
+  showQuickJumper?: boolean
+  showTotal?: boolean
+}
+
+export type TablePagination = TablePaginationBase &
+  (
+    | {
+        page: number
+        pageSize: number
+        defaultPage?: never
+        defaultPageSize?: never
+      }
+    | {
+        page?: never
+        pageSize?: never
+        defaultPage?: number
+        defaultPageSize?: number
+      }
+  )
+
 function alignmentClassName(align?: TableColumn<unknown>['align']) {
   if (align === 'center') return 'text-center'
   if (align === 'left') return 'text-left'
@@ -71,6 +96,7 @@ export type TableProps<T> = {
   onFiltersChange?: (filters: TableFilters) => void
   selection?: TableSelection<T>
   expandable?: TableExpandable<T>
+  pagination?: TablePagination | false
   className?: string
 }
 
@@ -94,8 +120,19 @@ export function Table<T>(allProps: TableProps<T>) {
     onFiltersChange,
     selection,
     expandable,
+    pagination,
     className,
   } = allProps
+  const paginationConfig = pagination === false ? undefined : pagination
+  const paginationControlled =
+    paginationConfig?.page !== undefined &&
+    paginationConfig.pageSize !== undefined
+  const [internalPage, setInternalPage] = useState(
+    paginationConfig?.defaultPage ?? 1,
+  )
+  const [internalPageSize, setInternalPageSize] = useState(
+    paginationConfig?.defaultPageSize ?? 10,
+  )
   const [internalSort, setInternalSort] = useState<TableSort | null>(
     defaultSort,
   )
@@ -136,6 +173,44 @@ export function Table<T>(allProps: TableProps<T>) {
       })
       .map(({ row }) => row)
   }, [activeFilters, activeSort, columns, rows, sorter])
+  const requestedPageSize = paginationControlled
+    ? paginationConfig?.pageSize
+    : internalPageSize
+  const pageSize = Number.isFinite(requestedPageSize)
+    ? Math.max(1, Math.floor(requestedPageSize!))
+    : 10
+  const pageCount = Math.max(1, Math.ceil(displayedRows.length / pageSize))
+  const requestedPage = paginationControlled
+    ? paginationConfig?.page
+    : internalPage
+  const page = Number.isFinite(requestedPage)
+    ? Math.max(1, Math.min(Math.floor(requestedPage!), pageCount))
+    : 1
+  const pageRows = paginationConfig
+    ? displayedRows.slice((page - 1) * pageSize, page * pageSize)
+    : displayedRows
+  const pageStart = paginationConfig ? (page - 1) * pageSize : 0
+
+  function resetPage() {
+    if (!paginationConfig || page === 1) return
+    if (!paginationControlled) setInternalPage(1)
+    paginationConfig.onChange?.(1, pageSize)
+  }
+
+  function changePage(next: number) {
+    if (!paginationConfig) return
+    if (!paginationControlled) setInternalPage(next)
+    paginationConfig.onChange?.(next, pageSize)
+  }
+
+  function changePageSize(nextSize: number, nextPage: number) {
+    if (!paginationConfig) return
+    if (!paginationControlled) {
+      setInternalPageSize(nextSize)
+      setInternalPage(nextPage)
+    }
+    paginationConfig.onChange?.(nextPage, nextSize)
+  }
   const [internalSelectedKeys, setInternalSelectedKeys] = useState<Key[]>(
     selection?.defaultSelectedKeys ?? [],
   )
@@ -168,7 +243,7 @@ export function Table<T>(allProps: TableProps<T>) {
   }
   const selectedSet = new Set(selectedKeys)
   const enabledKeys = selection
-    ? displayedRows
+    ? pageRows
         .filter((row) => !selection.disabled?.(row))
         .map((row) => getRowKey(row))
     : []
@@ -183,6 +258,7 @@ export function Table<T>(allProps: TableProps<T>) {
     else delete next[columnKey]
     if (filters === undefined) setInternalFilters(next)
     onFiltersChange?.(next)
+    resetPage()
   }
 
   function changeSelection(next: Key[]) {
@@ -267,6 +343,7 @@ export function Table<T>(allProps: TableProps<T>) {
           : null
     if (!controlled) setInternalSort(next)
     onSortChange?.(next)
+    resetPage()
   }
 
   function sortButton(column: TableColumn<T>, mobile = false) {
@@ -465,7 +542,7 @@ export function Table<T>(allProps: TableProps<T>) {
                 </td>
               </tr>
             )}
-            {displayedRows.map((row, index) => (
+            {pageRows.map((row, index) => (
               <Fragment key={getRowKey(row)}>
                 <tr>
                   {selection && (
@@ -499,7 +576,7 @@ export function Table<T>(allProps: TableProps<T>) {
                     ),
                   )}
                 </tr>
-                {expandedRow(row, index, tableColSpan)}
+                {expandedRow(row, pageStart + index, tableColSpan)}
               </Fragment>
             ))}
           </tbody>
@@ -550,7 +627,7 @@ export function Table<T>(allProps: TableProps<T>) {
                 </div>
               </li>
             )}
-            {displayedRows.map((row, index) => (
+            {pageRows.map((row, index) => (
               <li
                 key={getRowKey(row)}
                 className={cn(
@@ -569,7 +646,7 @@ export function Table<T>(allProps: TableProps<T>) {
                       id={detailId(getRowKey(row), 'mobile')}
                       className="mt-3 rounded-[var(--radius-sm)] bg-muted/40 p-3"
                     >
-                      {expandable.expandedRowRender(row, index)}
+                      {expandable.expandedRowRender(row, pageStart + index)}
                     </div>
                   )}
                 </div>
@@ -577,6 +654,22 @@ export function Table<T>(allProps: TableProps<T>) {
             ))}
           </ul>
         </div>
+      )}
+      {paginationConfig && (
+        <Pagination
+          label={`${caption}分页`}
+          page={page}
+          pageSize={pageSize}
+          total={displayedRows.length}
+          onPageChange={changePage}
+          onPageSizeChange={
+            paginationConfig.showSizeChanger ? changePageSize : undefined
+          }
+          pageSizeOptions={paginationConfig.pageSizeOptions}
+          showQuickJumper={paginationConfig.showQuickJumper}
+          showTotal={paginationConfig.showTotal}
+          className="border-t border-border p-3"
+        />
       )}
     </section>
   )

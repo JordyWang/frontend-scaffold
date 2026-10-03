@@ -36,6 +36,7 @@ function pageItems(
 }
 
 export type PaginationProps = {
+  label?: string
   page: number
   pageSize: number
   total: number
@@ -53,6 +54,7 @@ export type PaginationProps = {
 }
 
 export function Pagination({
+  label = '分页',
   page,
   pageSize,
   total,
@@ -156,7 +158,7 @@ export function Pagination({
 
   return (
     <nav
-      aria-label="分页"
+      aria-label={label}
       aria-busy={loading || undefined}
       aria-disabled={inactive || undefined}
       className={cn('flex min-w-0 flex-wrap items-center gap-2', className)}

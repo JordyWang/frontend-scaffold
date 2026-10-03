@@ -90,6 +90,7 @@ export type {
   TableSort,
   TableSelection,
   TableExpandable,
+  TablePagination,
 } from './table'
 export type { TableFilterOption, TableFilters } from './table-filter'
 export { ThemeScope } from './theme-scope'

@@ -72,6 +72,14 @@ const rows: DemoRow[] = [
   { id: '2', name: '组件预览', status: '进行中', owner: '团队 B' },
   { id: '3', name: '触控检查', status: '待开始', owner: '团队 C' },
 ]
+const paginatedRows: DemoRow[] = [
+  { id: 'p1', name: '需求梳理', status: '已完成', owner: '团队 A' },
+  { id: 'p2', name: '组件设计', status: '进行中', owner: '团队 B' },
+  { id: 'p3', name: '交互验收', status: '已完成', owner: '团队 C' },
+  { id: 'p4', name: '视觉核对', status: '进行中', owner: '团队 A' },
+  { id: 'p5', name: '移动端验证', status: '待开始', owner: '团队 B' },
+  { id: 'p6', name: '文档整理', status: '已完成', owner: '团队 C' },
+]
 
 const demoVideoSource = {
   src: '/mock/media/sample.mp4',
@@ -926,6 +934,61 @@ export function DevWorkbenchPage() {
                     )}
                   />
                 </div>
+              </div>
+              <div className="space-y-3">
+                <h3 className="font-semibold">表格内分页</h3>
+                <Table
+                  caption="分页任务表"
+                  rows={paginatedRows}
+                  getRowKey={(row) => row.id}
+                  columns={[
+                    {
+                      key: 'name',
+                      header: '任务',
+                      rowScope: 'row',
+                      render: (row) => row.name,
+                      sorter: (left, right) =>
+                        left.name.localeCompare(right.name, 'zh-CN'),
+                    },
+                    {
+                      key: 'status',
+                      header: '状态',
+                      render: (row) => row.status,
+                      filterOptions: [
+                        {
+                          value: 'done',
+                          label: '已完成',
+                          matches: (row) => row.status === '已完成',
+                        },
+                        {
+                          value: 'active',
+                          label: '进行中',
+                          matches: (row) => row.status === '进行中',
+                        },
+                      ],
+                    },
+                    {
+                      key: 'owner',
+                      header: '负责人',
+                      render: (row) => row.owner,
+                    },
+                  ]}
+                  selection={{ getLabel: (row) => row.name }}
+                  pagination={{
+                    defaultPageSize: 2,
+                    showSizeChanger: true,
+                    pageSizeOptions: [2, 4, 6],
+                    showTotal: true,
+                  }}
+                  renderMobileRow={(row) => (
+                    <div className="space-y-1">
+                      <strong>{row.name}</strong>
+                      <p className="text-sm text-muted-foreground">
+                        {row.status} · {row.owner}
+                      </p>
+                    </div>
+                  )}
+                />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="min-w-0 space-y-2">

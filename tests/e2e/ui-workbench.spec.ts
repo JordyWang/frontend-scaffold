@@ -786,6 +786,120 @@ test('table selection supports partial, all and disabled rows on desktop and H5'
   }
 })
 
+test('table pagination keeps row selection across pages on desktop and H5', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  if (testInfo.project.name.startsWith('mobile-'))
+    await page.setViewportSize({ width: 360, height: 780 })
+  const table = page
+    .getByRole('region', { name: '导航与数据' })
+    .getByRole('region', { name: '分页任务表' })
+  const pagination = table.getByRole('navigation', { name: '分页任务表分页' })
+  const rows = testInfo.project.name.startsWith('mobile-')
+    ? table.getByRole('list', { name: '分页任务表' })
+    : table.getByRole('table', { name: '分页任务表' })
+  await expect(rows.getByText('需求梳理', { exact: true })).toBeVisible()
+  await expect(rows.getByText('组件设计', { exact: true })).toBeVisible()
+  await expect(rows.getByText('交互验收', { exact: true })).toHaveCount(0)
+  const first = rows.getByRole('checkbox', { name: '选择需求梳理' })
+  if (testInfo.project.name.startsWith('mobile-'))
+    await first.locator('..').tap()
+  else {
+    await first.focus()
+    await first.press('Space')
+  }
+  await expect(table.getByText('已选 1 项')).toBeVisible()
+  const next = pagination.getByRole('button', { name: '下一页' })
+  const nextBox = await next.boundingBox()
+  expect(nextBox!.width).toBeGreaterThanOrEqual(44)
+  expect(nextBox!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await next.tap()
+  else {
+    await next.focus()
+    await next.press('Enter')
+  }
+  await expect(rows.getByText('交互验收', { exact: true })).toBeVisible()
+  await expect(rows.getByText('需求梳理', { exact: true })).toHaveCount(0)
+  const all = table.getByRole('checkbox', {
+    name: '全选分页任务表当前可选行',
+  })
+  if (testInfo.project.name.startsWith('mobile-')) await all.locator('..').tap()
+  else {
+    await all.focus()
+    await all.press('Space')
+  }
+  await expect(table.getByText('已选 3 项')).toBeVisible()
+  const previous = pagination.getByRole('button', { name: '上一页' })
+  if (testInfo.project.name.startsWith('mobile-')) await previous.tap()
+  else {
+    await previous.focus()
+    await previous.press('Enter')
+  }
+  await expect(
+    rows.getByRole('checkbox', { name: '选择需求梳理' }),
+  ).toBeChecked()
+
+  if (testInfo.project.name.startsWith('mobile-')) await next.tap()
+  else {
+    await next.focus()
+    await next.press('Enter')
+  }
+  await expect(pagination.getByText('第 3–4 条，共 6 条')).toBeVisible()
+
+  const size = pagination.getByRole('combobox', { name: '每页条数' })
+  if (testInfo.project.name.startsWith('mobile-')) await size.tap()
+  else {
+    await size.focus()
+    await size.press('ArrowDown')
+  }
+  const four = page.getByRole('option', { name: '4 条/页' })
+  if (testInfo.project.name.startsWith('mobile-')) await four.tap()
+  else {
+    await four.focus()
+    await four.press('Enter')
+  }
+  await expect(rows.getByText('视觉核对', { exact: true })).toBeVisible()
+  await expect(pagination.getByText('第 1–4 条，共 6 条')).toBeVisible()
+
+  if (testInfo.project.name.startsWith('mobile-')) await next.tap()
+  else {
+    await next.focus()
+    await next.press('Enter')
+  }
+  const sort = table.getByRole('button', { name: /按任务排序/ })
+  if (testInfo.project.name.startsWith('mobile-')) await sort.tap()
+  else {
+    await sort.focus()
+    await sort.press('Enter')
+  }
+  await expect(pagination.getByText('第 1–4 条，共 6 条')).toBeVisible()
+  if (testInfo.project.name.startsWith('mobile-')) await next.tap()
+  else {
+    await next.focus()
+    await next.press('Enter')
+  }
+  const filter = table.getByRole('button', { name: /^筛选状态/ })
+  if (testInfo.project.name.startsWith('mobile-')) await filter.tap()
+  else {
+    await filter.focus()
+    await filter.press('Enter')
+  }
+  const panel = page.getByRole('dialog', { name: '筛选状态' })
+  const done = panel.getByRole('checkbox', { name: '已完成' })
+  if (testInfo.project.name.startsWith('mobile-')) await done.tap()
+  else await done.press('Space')
+  const apply = panel.getByRole('button', { name: '应用' })
+  if (testInfo.project.name.startsWith('mobile-')) await apply.tap()
+  else await apply.press('Enter')
+  await expect(pagination.getByText('第 1–3 条，共 3 条')).toBeVisible()
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+})
+
 test('checkbox and radio marks remain visible after selection', async ({
   page,
 }, testInfo) => {
