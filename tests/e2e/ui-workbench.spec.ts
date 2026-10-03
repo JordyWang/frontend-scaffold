@@ -176,6 +176,35 @@ test('Badge exposes zero, overflow, status and RTL ribbon states', async ({
   await expect(zero).toHaveText('0')
 })
 
+test('Badge custom content keeps its accessible name and semantic ribbon styling', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  await page.setViewportSize({ width: 360, height: 844 })
+  const group = page.getByRole('group', { name: '徽标状态' })
+  const custom = group.locator('#preview-custom-badge')
+  const indicator = custom.getByRole('status', { name: '任务已完成' })
+  await expect(indicator).toHaveAttribute('title', '完成标记')
+  await expect(indicator).toHaveClass(/ring-2/)
+  const action = custom.getByRole('button', { name: '自定义徽标' })
+  const box = await action.boundingBox()
+  expect(box!.width).toBeGreaterThanOrEqual(44)
+  expect(box!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await action.tap()
+  else await action.press('Enter')
+  await expect(group.getByText('已查看完成任务')).toBeVisible()
+  const ribbonContent = group.locator('[data-ui-badge-ribbon-content]').filter({
+    hasText: '蓝色角标',
+  })
+  await expect(ribbonContent).toHaveClass(/tracking-wide/)
+  await expect(ribbonContent.locator('..')).toHaveClass(/bg-primary/)
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+})
+
 test('Tooltip delays hover and keeps focus and H5 touch behavior', async ({
   page,
 }, testInfo) => {

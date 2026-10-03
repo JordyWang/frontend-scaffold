@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Badge, Button, Typography } from '@/shared/ui'
+import { Badge, Button, Icon, Typography } from '@/shared/ui'
 
 export function BadgePreview() {
   const [count, setCount] = useState(0)
+  const [customBadgeStatus, setCustomBadgeStatus] = useState('尚未查看任务')
 
   return (
     <div role="group" aria-label="徽标状态" className="space-y-3">
@@ -21,12 +22,29 @@ export function BadgePreview() {
         <Badge count={3} offset={[4, 4]} tone="warning">
           <Button variant="outline">偏移徽标</Button>
         </Badge>
+        <Badge
+          id="preview-custom-badge"
+          count={<Icon name="check" size={12} />}
+          label="任务已完成"
+          title="完成标记"
+          classNames={{ indicator: 'bg-primary/85 ring-2 ring-card' }}
+        >
+          <Button
+            variant="outline"
+            onClick={() => setCustomBadgeStatus('已查看完成任务')}
+          >
+            自定义徽标
+          </Button>
+        </Badge>
         <Button variant="outline" onClick={() => setCount(12)}>
           设为 12
         </Button>
         <Button variant="outline" onClick={() => setCount(0)}>
           设为 0
         </Button>
+        <span role="status" className="text-sm text-muted-foreground">
+          {customBadgeStatus}
+        </span>
       </div>
       <div className="flex max-w-full flex-wrap items-center gap-3">
         <Badge status="processing" text="处理中" />
@@ -35,6 +53,14 @@ export function BadgePreview() {
         <Badge status="error" text="处理失败" />
         <Badge status="default" />
       </div>
+      <Badge.Ribbon
+        text="蓝色角标"
+        classNames={{ indicator: 'bg-primary', content: 'tracking-wide' }}
+      >
+        <div className="w-44 rounded-md border border-border bg-card p-4 pt-12 text-sm text-card-foreground">
+          语义类名示例
+        </div>
+      </Badge.Ribbon>
       <div
         dir="rtl"
         role="group"

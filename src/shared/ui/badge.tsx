@@ -1,4 +1,4 @@
-import { type HTMLAttributes, type ReactNode } from 'react'
+import { type HTMLAttributes, type ReactNode, type Ref } from 'react'
 import { cn } from '@/shared/lib/utils'
 
 type BadgeTone = 'default' | 'success' | 'warning' | 'error'
@@ -27,8 +27,12 @@ const badgeStatusLabels = {
   error: '错误状态',
 } as const
 
-export type BadgeProps = {
-  count?: number | string
+export type BadgePart = 'root' | 'indicator' | 'text'
+export type BadgeProps = Omit<
+  HTMLAttributes<HTMLSpanElement>,
+  'children' | 'title' | 'color'
+> & {
+  count?: ReactNode
   max?: number
   showZero?: boolean
   dot?: boolean
@@ -39,7 +43,9 @@ export type BadgeProps = {
   offset?: readonly [number, number]
   children?: ReactNode
   label?: string
-  className?: string
+  title?: string | null | false
+  classNames?: Partial<Record<BadgePart, string>>
+  ref?: Ref<HTMLSpanElement>
 }
 
 export function Badge({
@@ -54,28 +60,44 @@ export function Badge({
   offset,
   children,
   label,
+  title,
+  classNames,
   className,
+  ref,
+  ...props
 }: BadgeProps) {
   if (status) {
     return (
       <span
+        {...props}
+        ref={ref}
         data-ui-badge=""
         data-ui-badge-status={status}
-        className={cn('inline-flex max-w-full items-center gap-2', className)}
+        className={cn(
+          'inline-flex max-w-full items-center gap-2',
+          classNames?.root,
+          className,
+        )}
       >
         {children}
         <span
           role="img"
           aria-label={label ?? badgeStatusLabels[status]}
+          title={typeof title === 'string' ? title : undefined}
           data-ui-badge-status-dot=""
           className={cn(
             'relative size-2.5 shrink-0 rounded-full',
             badgeStatusStyles[status],
             status === 'processing' &&
               'after:absolute after:inset-0 after:rounded-full after:bg-primary/50 after:animate-ping motion-reduce:after:animate-none',
+            classNames?.indicator,
           )}
         />
-        {text != null && <span className="min-w-0 break-words">{text}</span>}
+        {text != null && (
+          <span className={cn('min-w-0 break-words', classNames?.text)}>
+            {text}
+          </span>
+        )}
       </span>
     )
   }
@@ -83,29 +105,46 @@ export function Badge({
   const hasAnchor =
     children !== undefined && children !== null && children !== false
   const validCount =
-    typeof count === 'number' && (!Number.isFinite(count) || count < 0)
+    (typeof count === 'number' && (!Number.isFinite(count) || count < 0)) ||
+    typeof count === 'boolean' ||
+    count === null
       ? undefined
       : count
   const isZero = validCount === 0
   const hasBadge =
     (dot || validCount !== undefined || Boolean(label)) && (!isZero || showZero)
   const limit = Number.isFinite(max) ? Math.max(0, Math.floor(max)) : 99
-  const visibleText = dot
-    ? ''
+  const visibleContent = dot
+    ? null
     : typeof validCount === 'number' && validCount > limit
       ? `${limit}+`
       : validCount === undefined
         ? hasAnchor
-          ? ''
+          ? null
           : (label ?? '')
-        : String(validCount)
+        : validCount
+  const accessibleLabel =
+    label ??
+    (typeof validCount === 'number'
+      ? `${validCount} 条通知`
+      : typeof validCount === 'string'
+        ? validCount
+        : validCount === undefined
+          ? undefined
+          : '徽标')
   const offsetInline = offset?.[0]
   const offsetBlock = offset?.[1]
 
   return (
     <span
+      {...props}
+      ref={ref}
       data-ui-badge=""
-      className={cn('relative inline-flex w-fit max-w-full', className)}
+      className={cn(
+        'relative inline-flex w-fit max-w-full',
+        classNames?.root,
+        className,
+      )}
     >
       {children}
       {hasBadge && (
@@ -120,6 +159,7 @@ export function Badge({
             badgeToneStyles[tone],
             dot && 'size-2.5 min-w-0 p-0',
             dot && size === 'small' && 'size-2',
+            classNames?.indicator,
           )}
           style={
             hasAnchor && offset
@@ -137,27 +177,25 @@ export function Badge({
                 }
               : undefined
           }
-          aria-label={
-            label ??
-            (typeof validCount === 'number'
-              ? `${validCount} 条通知`
-              : validCount)
-          }
-          role={label || validCount !== undefined ? 'status' : undefined}
-          aria-hidden={!label && validCount === undefined ? true : undefined}
+          aria-label={accessibleLabel}
+          title={typeof title === 'string' ? title : undefined}
+          role={accessibleLabel ? 'status' : undefined}
+          aria-hidden={accessibleLabel ? undefined : true}
         >
-          {visibleText}
+          {visibleContent}
         </span>
       )}
     </span>
   )
 }
 
+export type BadgeRibbonPart = 'root' | 'indicator' | 'content'
 export type BadgeRibbonProps = HTMLAttributes<HTMLDivElement> & {
   text: ReactNode
   tone?: BadgeTone
   placement?: 'start' | 'end'
   children: ReactNode
+  classNames?: Partial<Record<BadgeRibbonPart, string>>
 }
 
 export function BadgeRibbon({
@@ -165,13 +203,18 @@ export function BadgeRibbon({
   tone = 'default',
   placement = 'end',
   children,
+  classNames,
   className,
   ...props
 }: BadgeRibbonProps) {
   return (
     <div
       data-ui-badge-ribbon-wrapper=""
-      className={cn('relative inline-block max-w-full', className)}
+      className={cn(
+        'relative inline-block max-w-full',
+        classNames?.root,
+        className,
+      )}
       {...props}
     >
       {children}
@@ -182,9 +225,12 @@ export function BadgeRibbon({
           'absolute top-2 z-10 max-w-[calc(100%-1rem)] truncate px-3 py-1.5 text-sm font-semibold shadow-sm',
           placement === 'start' ? 'start-0 rounded-e-md' : 'end-0 rounded-s-md',
           badgeToneStyles[tone],
+          classNames?.indicator,
         )}
       >
-        {text}
+        <span data-ui-badge-ribbon-content="" className={classNames?.content}>
+          {text}
+        </span>
       </span>
     </div>
   )

@@ -1,3 +1,4 @@
+import { createRef } from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import {
@@ -293,10 +294,9 @@ describe('display and feedback semantics', () => {
       'motion-reduce:after:animate-none',
     )
     expect(screen.getByRole('img', { name: '错误状态' })).toBeVisible()
-    expect(screen.getByText('推荐')).toHaveAttribute(
-      'data-ui-badge-ribbon',
-      'start',
-    )
+    expect(
+      screen.getByText('推荐').closest('[data-ui-badge-ribbon]'),
+    ).toHaveAttribute('data-ui-badge-ribbon', 'start')
     expect(screen.getByText('项目卡片')).toBeVisible()
   })
 
@@ -312,6 +312,64 @@ describe('display and feedback semantics', () => {
     expect(count).not.toHaveClass('absolute')
     expect(count.parentElement).toHaveAttribute('data-ui-badge')
     expect(screen.getByText('已同步')).toHaveAttribute('aria-label', '已同步')
+  })
+
+  it('accepts custom badge content, native attributes, refs and semantic Tailwind slots', () => {
+    const ref = createRef<HTMLSpanElement>()
+    render(
+      <>
+        <Badge
+          ref={ref}
+          id="custom-badge"
+          count={<Icon name="check" size={12} />}
+          label="任务已完成"
+          title="完成标记"
+          classNames={{ root: 'ring-1', indicator: 'bg-primary/80' }}
+        >
+          <button type="button">查看任务</button>
+        </Badge>
+        <Badge
+          status="processing"
+          text="处理中"
+          data-testid="status-badge"
+          title={false}
+          classNames={{ indicator: 'ring-2', text: 'font-semibold' }}
+        />
+        <Badge.Ribbon
+          text="精选"
+          classNames={{
+            root: 'rounded-md',
+            indicator: 'bg-primary',
+            content: 'tracking-wide',
+          }}
+        >
+          <div>卡片内容</div>
+        </Badge.Ribbon>
+      </>,
+    )
+    expect(ref.current).toHaveAttribute('id', 'custom-badge')
+    expect(ref.current).toHaveClass('ring-1')
+    expect(screen.getByRole('status', { name: '任务已完成' })).toHaveClass(
+      'bg-primary/80',
+    )
+    expect(screen.getByRole('status', { name: '任务已完成' })).toHaveAttribute(
+      'title',
+      '完成标记',
+    )
+    const status = screen.getByTestId('status-badge')
+    expect(status.querySelector('[data-ui-badge-status-dot]')).toHaveClass(
+      'ring-2',
+    )
+    expect(
+      status.querySelector('[data-ui-badge-status-dot]'),
+    ).not.toHaveAttribute('title')
+    expect(screen.getByText('处理中')).toHaveClass('font-semibold')
+    const ribbon = screen.getByText('精选')
+    expect(ribbon).toHaveClass('tracking-wide')
+    expect(ribbon.closest('[data-ui-badge-ribbon]')).toHaveClass('bg-primary')
+    expect(ribbon.closest('[data-ui-badge-ribbon-wrapper]')).toHaveClass(
+      'rounded-md',
+    )
   })
 
   it('names loading placeholders and progress feedback', () => {

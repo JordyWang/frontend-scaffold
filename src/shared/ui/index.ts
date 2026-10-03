@@ -189,7 +189,13 @@ export type {
   ImagePreviewGroupProps,
 } from './image'
 export type { TagProps, SkeletonProps, SkeletonParagraph } from './display'
-export type { BadgeProps, BadgeRibbonProps, BadgeStatus } from './badge'
+export type {
+  BadgeProps,
+  BadgePart,
+  BadgeRibbonProps,
+  BadgeRibbonPart,
+  BadgeStatus,
+} from './badge'
 export { Alert } from './alert'
 export type { AlertProps } from './alert'
 export { Spinner } from './spinner'
