@@ -471,6 +471,42 @@ test('Statistic reveals a grouped value after loading on keyboard and touch', as
   await expect(statistic).toHaveAttribute('aria-busy', 'true')
 })
 
+test('StatisticTimer counts down and up with keyboard and H5 touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  await page.setViewportSize({ width: 360, height: 844 })
+  await page.clock.install()
+  await page.clock.pauseAt(new Date(Date.now() + 60_000))
+  const group = page.getByRole('group', { name: '统计计时器预览' })
+  const countdown = group.locator('[data-ui-statistic-timer="countdown"]')
+  const countup = group.locator('[data-ui-statistic-timer="countup"]')
+  const start = group.getByRole('button', { name: '启动 3 秒倒计时' })
+  const reset = group.getByRole('button', { name: '重置正计时' })
+  for (const control of [start, reset]) {
+    const box = await control.boundingBox()
+    expect(box!.width).toBeGreaterThanOrEqual(44)
+    expect(box!.height).toBeGreaterThanOrEqual(44)
+  }
+  if (testInfo.project.name.startsWith('mobile-')) await start.tap()
+  else await start.press('Enter')
+  await expect(countdown).toHaveAttribute('aria-label', '任务倒计时：00:03')
+  await page.clock.runFor(3000)
+  await expect(countdown).toHaveAttribute('aria-label', '任务倒计时：00:00')
+  await expect(group.getByRole('status')).toHaveText('倒计时已完成')
+
+  if (testInfo.project.name.startsWith('mobile-')) await reset.tap()
+  else await reset.press('Enter')
+  await expect(countup).toHaveAttribute('aria-label', '任务已运行：00:00:00')
+  await page.clock.runFor(1000)
+  await expect(countup).toHaveAttribute('aria-label', '任务已运行：00:00:01')
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+})
+
 test('Badge reserves space alone and follows the logical end in RTL', async ({
   page,
 }, testInfo) => {

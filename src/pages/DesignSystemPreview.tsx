@@ -100,6 +100,7 @@ import {
   Steps,
   Slider,
   Statistic,
+  StatisticTimer,
   Switch,
   Table,
   Tag,
@@ -218,6 +219,9 @@ export function DesignSystemPreview() {
     3,
   )
   const [statisticLoading, setStatisticLoading] = useState(true)
+  const [timerTarget, setTimerTarget] = useState(() => Date.now() + 90_000)
+  const [timerStart, setTimerStart] = useState(() => Date.now())
+  const [timerStatus, setTimerStatus] = useState('倒计时进行中')
   const [skeletonLoading, setSkeletonLoading] = useState(true)
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false)
   const [avatarRecovered, setAvatarRecovered] = useState(false)
@@ -2529,6 +2533,49 @@ export function DesignSystemPreview() {
                   >
                     {statisticLoading ? '完成统计加载' : '重置统计加载'}
                   </Button>
+                  <div
+                    role="group"
+                    aria-label="统计计时器预览"
+                    className="grid gap-3 sm:grid-cols-2"
+                  >
+                    <StatisticTimer
+                      title="任务倒计时"
+                      value={timerTarget}
+                      format="mm:ss"
+                      onFinish={() => setTimerStatus('倒计时已完成')}
+                    />
+                    <StatisticTimer
+                      title="任务已运行"
+                      value={timerStart}
+                      type="countup"
+                      format="HH:mm:ss"
+                    />
+                    <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
+                      <Button
+                        variant="outline"
+                        size="small"
+                        onClick={() => {
+                          setTimerTarget(Date.now() + 3_000)
+                          setTimerStatus('倒计时进行中')
+                        }}
+                      >
+                        启动 3 秒倒计时
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="small"
+                        onClick={() => setTimerStart(Date.now())}
+                      >
+                        重置正计时
+                      </Button>
+                      <span
+                        role="status"
+                        className="text-sm text-muted-foreground"
+                      >
+                        {timerStatus}
+                      </span>
+                    </div>
+                  </div>
                 </Stack>
                 <div id="preview-timeline">
                   <Timeline

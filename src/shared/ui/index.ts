@@ -331,6 +331,8 @@ export { Transfer } from './transfer'
 export type { TransferDirection, TransferItem, TransferProps } from './transfer'
 export { Statistic } from './data-display'
 export type { StatisticProps } from './data-display'
+export { StatisticTimer } from './statistic-timer'
+export type { StatisticTimerProps } from './statistic-timer'
 export { Timeline } from './timeline'
 export type {
   TimelineItem,
