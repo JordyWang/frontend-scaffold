@@ -116,6 +116,7 @@ import {
   Typography,
   Upload,
   Watermark,
+  message,
   notification,
   toast,
   type DateRange,
@@ -1763,6 +1764,19 @@ export function DesignSystemPreview() {
                     }
                   >
                     通知示例
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const id = 'preview-message-flow'
+                      message.loading({ id, content: '任务处理中' })
+                      window.setTimeout(
+                        () => message.success({ id, content: '任务已完成' }),
+                        650,
+                      )
+                    }}
+                  >
+                    消息状态更新
                   </Button>
                 </Stack>
                 <p

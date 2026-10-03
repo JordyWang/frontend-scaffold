@@ -3453,6 +3453,48 @@ test('mock workflow connects upload, task retry, cancellation and media preview'
   await expect(flow.getByText('任务未完成，请重试后预览。')).toBeVisible()
 })
 
+test('message loading updates one toast for keyboard and H5 touch', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  await page.clock.install()
+  await page.clock.pauseAt(new Date(Date.now() + 60_000))
+  const trigger = page.getByRole('button', { name: '消息状态更新' })
+  if (testInfo.project.name.startsWith('mobile-')) await trigger.tap()
+  else await trigger.press('Enter')
+  await page.clock.runFor(50)
+  const current = page.locator('[data-sonner-toast]')
+  await expect(current).toHaveCount(1)
+  await expect(current).toHaveAttribute('data-type', 'loading')
+  await expect(current).toContainText('任务处理中')
+  await expect(current.locator('.sonner-spinner')).toHaveCount(1)
+  const loader = current.locator('.sonner-loading-bar').first()
+  const primaryColor = await page.evaluate(() => {
+    const probe = document.createElement('span')
+    probe.className = 'bg-primary'
+    document.body.appendChild(probe)
+    const color = getComputedStyle(probe).backgroundColor
+    probe.remove()
+    return color
+  })
+  expect(
+    await loader.evaluate(
+      (element) => getComputedStyle(element).backgroundColor,
+    ),
+  ).toBe(primaryColor)
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await expect(loader).toHaveCSS('animation-name', 'none')
+  await page.clock.runFor(650)
+  await expect(current).toHaveCount(1)
+  await expect(current).toHaveAttribute('data-type', 'success')
+  await expect(current).toContainText('任务已完成')
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+})
+
 test('mobile controls are touchable without horizontal overflow', async ({
   page,
 }, testInfo) => {
