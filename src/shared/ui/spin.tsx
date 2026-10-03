@@ -1,13 +1,15 @@
+import * as DialogPrimitive from '@radix-ui/react-dialog'
 import {
   forwardRef,
   useEffect,
+  useRef,
   useState,
   type HTMLAttributes,
   type ReactNode,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { resolveComponentSize, useConfig } from './config-context'
-import { Portal } from './portal'
+import { usePortalContainer } from './portal-context'
 import { spinnerIndicatorStyles, spinnerSizeStyles } from './tailwind-styles'
 
 export type SpinProps = HTMLAttributes<HTMLDivElement> & {
@@ -35,7 +37,9 @@ export const Spin = forwardRef<HTMLDivElement, SpinProps>(function Spin(
   ref,
 ) {
   const { componentSize } = useConfig()
+  const portalContainer = usePortalContainer()
   const resolvedSize = resolveComponentSize(componentSize, size)
+  const returnFocusRef = useRef<HTMLElement | null>(null)
   const safeDelay = Number.isFinite(delay) ? Math.max(0, delay) : 0
   const [visible, setVisible] = useState(spinning && safeDelay === 0)
 
@@ -64,8 +68,10 @@ export const Spin = forwardRef<HTMLDivElement, SpinProps>(function Spin(
         aria-hidden="true"
         className={cn(spinnerIndicatorStyles, spinnerSizeStyles[resolvedSize])}
       />
-      {tip && (
-        <span className="text-center text-sm text-foreground">{tip}</span>
+      {(tip || fullscreen) && (
+        <span className="text-center text-sm text-foreground">
+          {tip ?? label}
+        </span>
       )}
     </div>
   )
@@ -78,13 +84,34 @@ export const Spin = forwardRef<HTMLDivElement, SpinProps>(function Spin(
             {children}
           </div>
         )}
-        {active && (
-          <Portal>
-            <div className="fixed inset-0 z-[60] flex min-h-dvh items-center justify-center bg-background/80 px-4 backdrop-blur-[2px]">
+        <DialogPrimitive.Root open={active}>
+          <DialogPrimitive.Portal container={portalContainer}>
+            <DialogPrimitive.Overlay className="fixed inset-0 z-[90] bg-background/80 backdrop-blur-[2px]" />
+            <DialogPrimitive.Content
+              aria-describedby={undefined}
+              className="fixed inset-0 z-[91] flex min-h-dvh items-center justify-center px-4 outline-none"
+              onOpenAutoFocus={() => {
+                returnFocusRef.current =
+                  document.activeElement instanceof HTMLElement
+                    ? document.activeElement
+                    : null
+              }}
+              onCloseAutoFocus={(event) => {
+                event.preventDefault()
+                if (returnFocusRef.current?.isConnected)
+                  returnFocusRef.current.focus()
+                returnFocusRef.current = null
+              }}
+              onEscapeKeyDown={(event) => event.preventDefault()}
+              onPointerDownOutside={(event) => event.preventDefault()}
+            >
+              <DialogPrimitive.Title className="sr-only">
+                {label}
+              </DialogPrimitive.Title>
               {indicator}
-            </div>
-          </Portal>
-        )}
+            </DialogPrimitive.Content>
+          </DialogPrimitive.Portal>
+        </DialogPrimitive.Root>
       </div>
     )
 

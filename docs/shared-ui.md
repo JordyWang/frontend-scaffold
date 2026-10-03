@@ -58,7 +58,7 @@
 | Image / Skeleton                | 原生 img 属性、必填 `alt`、`fallback`、`preview`；`Skeleton(shape, size, width, height, label, loading, active, avatar, title, paragraph, round)`      | 图片支持放大预览和加载失败反馈；骨架屏支持独立按钮、输入框、图片占位及组合内容，加载结束后展示真实内容                      |
 | ImagePreviewGroup               | `items`、`current` / `defaultCurrent`、`onCurrentChange`、`open` / `defaultOpen`、`onOpenChange`、`label`、缩放配置                                    | 项目相册以图片数组表示，缩略图与预览地址可不同；键盘切换、触控工具栏和关闭后的焦点恢复共用图片预览实现                      |
 | Alert / Spinner                 | `Alert(title, tone, banner, open, onOpenChange)`；`Spinner(label, size)`                                                                               | 错误与警告用 alert，其他状态用 status；可控关闭与 Banner 支持 44px 操作区域；加载状态有可访问名称                           |
-| Spin                            | `spinning`、`delay`、`tip`、`label`、`size`、`fullscreen`                                                                                              | 可包裹局部内容或全屏展示；加载时内容不可操作，延迟用于避免短任务闪烁                                                        |
+| Spin                            | `spinning`、`delay`、`tip`、`label`、`size`、`fullscreen`                                                                                              | 可包裹局部内容或全屏展示；全屏时阻止背景交互并在结束后恢复焦点，延迟用于避免短任务闪烁                                      |
 | Watermark                       | `content`、`image`、`markSize`、`gap`、`offset`、`rotate`、`opacity`、`fontSize`、`onRemove`                                                           | 在内容上重复绘制非交互水印；文字颜色跟随语义变量，图片加载失败时回退文字                                                    |
 | BorderBeam                      | `children`、`color`、`duration`、`borderWidth`、`anchor`、`reverse`、原生 div 属性                                                                     | 装饰性动态边框；内容保持原有语义、键盘和触控行为，系统减少动态效果时停止动画                                                |
 | QRCode                          | `value`、`size`、`color`、`bgColor`、`bordered`、`errorLevel`、`icon`、`iconSize`、`status`、`statusRender`、`onRefresh`、`type`                       | 支持 SVG / Canvas、真实 QR 模块、加载与失效状态；状态操作和触控目标至少 44px                                                |
@@ -539,7 +539,7 @@ ref 指向输入；`className` 修饰输入，`classNames` 除日期插槽外提
 
 `Steps` 可用 `current` 受控，也可用 `defaultCurrent` 初始化内部步骤；提供 `onChange` 后步骤可点击，禁用项仍以禁用按钮和 `aria-disabled` 暴露。`size="small"` 缩小标记和文字，也可继承 `ConfigProvider.componentSize="small"`；交互区域仍至少 44px。`percent` 在当前进行中的步骤标记外显示 0–100% 进度环，非有限值不显示；其他步骤或错误状态不显示进度环。当前步骤使用 `aria-current="step"`，各步状态和当前百分比通过辅助文字说明。
 
-`Spinner` 和 `Spin` 共用小号 16px、默认 24px、大号 36px 的 Tailwind 指示器尺寸，并继承 `ConfigProvider.componentSize`。两者以可访问状态名称报告加载，系统启用减少动态效果时停止旋转。
+`Spinner` 和 `Spin` 共用小号 16px、默认 24px、大号 36px 的 Tailwind 指示器尺寸，并继承 `ConfigProvider.componentSize`。两者以可访问状态名称报告加载，系统启用减少动态效果时停止旋转。`Spin fullscreen` 使用项目 Portal 容器中的模态层；加载期间背景无法获得键盘焦点或触控操作，Escape 不会中断加载，结束后焦点返回原位置。没有 `tip` 时全屏层显示 `label`。
 
 `Tree` 保留 `selectedKey` / `defaultSelectedKey` 和 `onSelect(key)` 的单选 API；数组契约使用 `selectedKeys` / `defaultSelectedKeys`、`onSelectionChange(keys, { node, selected })`，`multiple` 开启逐项追加或移除。选择与焦点独立，方向键只移动焦点；显式 `selectedKey={undefined}` 或 `selectedKeys={[]}` 表示受控空选择，单选模式最多显示第一个有效键。全局 `selectable` 和单项 `selectable={false}` 关闭节点选择，不影响展开和勾选。
 

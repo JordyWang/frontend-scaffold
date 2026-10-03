@@ -2408,7 +2408,7 @@ test('masonry reflows uneven cards across container widths and dynamic updates',
   ).toBe(true)
 })
 
-test('spin overlays regions and full screen without trapping inactive content', async ({
+test('spin overlays regions and traps full-screen focus', async ({
   page,
 }, testInfo) => {
   await page.goto('/__ui')
@@ -2428,14 +2428,31 @@ test('spin overlays regions and full screen without trapping inactive content', 
   await expect(action.locator('../..')).not.toHaveAttribute('inert')
   await action.click()
 
+  await page.clock.install()
+  await page.clock.pauseAt(new Date(Date.now() + 60_000))
   const fullscreen = preview.getByRole('button', { name: '演示全屏加载' })
-  if (testInfo.project.name.startsWith('mobile-')) await fullscreen.tap()
-  else await fullscreen.click()
-  await expect(page.getByRole('status', { name: '页面加载中' })).toBeVisible()
-  await expect(page.getByRole('status', { name: '页面加载中' })).toHaveCount(
-    0,
-    { timeout: 3000 },
-  )
+  await fullscreen.focus()
+  await fullscreen.press('Enter')
+  const dialog = page.getByRole('dialog', { name: '页面加载中' })
+  await expect(dialog.getByRole('status', { name: '页面加载中' })).toBeVisible()
+  await page.keyboard.press('Tab')
+  expect(
+    await dialog.evaluate((element) =>
+      element.contains(document.activeElement),
+    ),
+  ).toBe(true)
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeVisible()
+  await page.clock.runFor(1400)
+  await expect(dialog).toHaveCount(0)
+  await page.clock.runFor(10)
+  await expect(fullscreen).toBeFocused()
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await fullscreen.tap()
+    await expect(dialog).toBeVisible()
+    await page.clock.runFor(1400)
+    await expect(dialog).toHaveCount(0)
+  }
 })
 
 test('spinner and spin share sizes and respect reduced motion', async ({
