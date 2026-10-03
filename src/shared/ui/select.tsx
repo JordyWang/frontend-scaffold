@@ -209,7 +209,10 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
         required={required}
         name={name}
       >
-        <span className="relative inline-flex w-full min-w-0">
+        <span
+          data-ui-select-root=""
+          className="relative inline-flex w-full min-w-0"
+        >
           <SelectPrimitive.Trigger
             ref={(element) => {
               triggerRef.current = element

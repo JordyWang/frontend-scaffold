@@ -152,11 +152,16 @@ export function SpaceCompact({
       data-ui-space-compact=""
       role={role ?? (props['aria-label'] ? 'group' : undefined)}
       className={cn(
-        'inline-flex max-w-full [&>*]:rounded-none [&>*]:focus-visible:z-10 [&>*+*]:-ms-px [&>*:first-child]:rounded-s-[var(--ui-field-radius)] [&>*:last-child]:rounded-e-[var(--ui-field-radius)]',
+        'inline-flex max-w-full [&>*]:rounded-none [&>*]:whitespace-nowrap [&>*]:focus-visible:z-10 [&>*+*]:-ms-px [&>*:first-child]:rounded-s-[var(--ui-field-radius)] [&>*:last-child]:rounded-e-[var(--ui-field-radius)]',
+        '[&>[data-ui-input-root]]:w-auto [&>[data-ui-input-root]:focus-within]:z-10 [&>[data-ui-input-root]>input]:max-w-full [&>[data-ui-input-root]>input]:rounded-none [&>[data-ui-input-root]:first-child>input]:rounded-s-[var(--ui-field-radius)] [&>[data-ui-input-root]:last-child>input]:rounded-e-[var(--ui-field-radius)]',
+        '[&>[data-ui-select-root]]:w-auto [&>[data-ui-select-root]:focus-within]:z-10 [&>[data-ui-select-root]>button:first-child]:rounded-none [&>[data-ui-select-root]:first-child>button:first-child]:rounded-s-[var(--ui-field-radius)] [&>[data-ui-select-root]:last-child>button:first-child]:rounded-e-[var(--ui-field-radius)]',
+        '[&>[data-ui-affix-root]]:w-auto [&>[data-ui-affix-root]:focus-within]:z-10',
+        '[&>[data-ui-textarea-root]]:w-auto [&>[data-ui-textarea-root]:focus-within]:z-10 [&>[data-ui-textarea-root]>span>textarea]:rounded-none [&>[data-ui-textarea-root]:first-child>span>textarea]:rounded-s-[var(--ui-field-radius)] [&>[data-ui-textarea-root]:last-child>span>textarea]:rounded-e-[var(--ui-field-radius)]',
         direction === 'vertical'
-          ? 'flex-col [&>*+*]:-mt-px [&>*+*]:-ms-0 [&>*:first-child]:rounded-s-none [&>*:first-child]:rounded-t-[var(--ui-field-radius)] [&>*:last-child]:rounded-e-none [&>*:last-child]:rounded-b-[var(--ui-field-radius)]'
+          ? 'flex-col [&>*+*]:-mt-px [&>*+*]:-ms-0 [&>*:first-child]:rounded-s-none [&>*:first-child]:rounded-t-[var(--ui-field-radius)] [&>*:last-child]:rounded-e-none [&>*:last-child]:rounded-b-[var(--ui-field-radius)] [&>[data-ui-input-root]:first-child>input]:rounded-s-none [&>[data-ui-input-root]:first-child>input]:rounded-t-[var(--ui-field-radius)] [&>[data-ui-input-root]:last-child>input]:rounded-e-none [&>[data-ui-input-root]:last-child>input]:rounded-b-[var(--ui-field-radius)] [&>[data-ui-select-root]:first-child>button:first-child]:rounded-s-none [&>[data-ui-select-root]:first-child>button:first-child]:rounded-t-[var(--ui-field-radius)] [&>[data-ui-select-root]:last-child>button:first-child]:rounded-e-none [&>[data-ui-select-root]:last-child>button:first-child]:rounded-b-[var(--ui-field-radius)] [&>[data-ui-textarea-root]:first-child>span>textarea]:rounded-s-none [&>[data-ui-textarea-root]:first-child>span>textarea]:rounded-t-[var(--ui-field-radius)] [&>[data-ui-textarea-root]:last-child>span>textarea]:rounded-e-none [&>[data-ui-textarea-root]:last-child>span>textarea]:rounded-b-[var(--ui-field-radius)]'
           : 'flex-row',
-        block && 'flex w-full',
+        block &&
+          'flex w-full [&>[data-ui-input-root]]:min-w-0 [&>[data-ui-input-root]]:flex-1 [&>[data-ui-affix-root]]:min-w-0 [&>[data-ui-affix-root]]:flex-1',
         className,
       )}
       {...props}

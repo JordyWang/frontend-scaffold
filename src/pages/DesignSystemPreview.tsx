@@ -199,6 +199,7 @@ const demoWatermarkImage = `data:image/svg+xml,${encodeURIComponent(
 
 export function DesignSystemPreview() {
   const [checked, setChecked] = useState(false)
+  const [compactStatus, setCompactStatus] = useState('尚未应用输入组合')
   const [showInputSuffix, setShowInputSuffix] = useState(true)
   const [inputClearStatus, setInputClearStatus] = useState('尚未清空金额')
   const [enabled, setEnabled] = useState(true)
@@ -680,6 +681,78 @@ export function DesignSystemPreview() {
                   />
                   <Button>提交</Button>
                 </Space.Compact>
+                <Space.Compact
+                  aria-label="地址输入组合"
+                  block
+                  className="max-w-[32rem]"
+                >
+                  <Select
+                    aria-label="紧凑协议"
+                    className="w-28"
+                    defaultValue="https"
+                    options={[
+                      { value: 'https', label: 'HTTPS' },
+                      { value: 'http', label: 'HTTP' },
+                    ]}
+                  />
+                  <Input aria-label="紧凑域名" defaultValue="example.com" />
+                  <Button
+                    onClick={() => setCompactStatus('已应用地址输入组合')}
+                  >
+                    应用
+                  </Button>
+                </Space.Compact>
+                <Space.Compact
+                  aria-label="金额输入组合"
+                  block
+                  className="max-w-[32rem]"
+                >
+                  <Input
+                    aria-label="紧凑金额"
+                    prefix="¥"
+                    suffix="元"
+                    defaultValue="100"
+                    allowClear
+                  />
+                  <Button
+                    onClick={() => setCompactStatus('已确认金额输入组合')}
+                  >
+                    确认
+                  </Button>
+                </Space.Compact>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Space.Compact aria-label="搜索输入组合" block>
+                    <Button variant="outline">站内</Button>
+                    <SearchInput
+                      aria-label="紧凑搜索"
+                      defaultValue="组件"
+                      onSearch={(value) => setCompactStatus(`已搜索：${value}`)}
+                    />
+                  </Space.Compact>
+                  <Space.Compact aria-label="密码输入组合" block>
+                    <PasswordInput
+                      aria-label="紧凑密码"
+                      defaultValue="secret"
+                    />
+                    <Button onClick={() => setCompactStatus('已保存紧凑密码')}>
+                      保存
+                    </Button>
+                  </Space.Compact>
+                  <Space.Compact
+                    aria-label="多行输入组合"
+                    direction="vertical"
+                    block
+                    className="max-w-[20rem]"
+                  >
+                    <Textarea aria-label="紧凑多行" defaultValue="第一行" />
+                    <Button onClick={() => setCompactStatus('已保存紧凑多行')}>
+                      保存多行
+                    </Button>
+                  </Space.Compact>
+                </div>
+                <Typography as="span" variant="caption" role="status">
+                  {compactStatus}
+                </Typography>
                 <Space.Compact
                   direction="vertical"
                   aria-label="纵向紧凑操作组"

@@ -76,6 +76,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
 
     return (
       <div
+        data-ui-affix-root=""
         data-invalid={isInvalid || undefined}
         data-disabled={disabled || undefined}
         className={cn(affixShellStyles, className)}
@@ -187,6 +188,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
 
     return (
       <div
+        data-ui-affix-root=""
         data-invalid={isInvalid || undefined}
         data-disabled={disabled || undefined}
         className={cn(affixShellStyles, className)}

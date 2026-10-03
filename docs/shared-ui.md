@@ -97,7 +97,7 @@ Input 与 Textarea 的 `count` 可设为 `true`，或 `{ max, strategy, render }
 
 `ToastOptions.id` 可传稳定的字符串或数字，让后续调用更新同一条提示。`message.loading({ id, content })` 显示加载指示，默认不自动关闭；任务完成时使用相同 `id` 调用 `message.success`、`message.error` 或 `message.destroy(id)`。显式 `duration` 可覆写默认时长。`/__ui` 演示加载到完成的更新路径。
 
-`Space.Compact` 是 `Space` 的紧凑组合入口，也可直接导入 `SpaceCompact`。`direction` 支持 horizontal / vertical，`block` 让组合填满容器；子控件保留自己的语义、焦点顺序和 44px 触控尺寸，只合并相邻边框和圆角。
+`Space.Compact` 是 `Space` 的紧凑组合入口，也可直接导入 `SpaceCompact`。`direction` 支持 horizontal / vertical，`block` 让组合填满容器；可组合 Button、Input、Textarea、Select、SearchInput 和 PasswordInput。容器对带包装层的字段调整实际输入表面的宽度与圆角，相邻边框连接且窄屏可收缩；子控件保留自己的语义、焦点顺序和 44px 触控尺寸。
 
 `Progress` 的 `type` 可选 `line`、`circle`、`dashboard`。`steps` 可传数字或 `{ count, gap? }`；`gap` 单位为 px，线性默认间距为 4px，圆环及仪表盘默认间距为 2px，最多渲染 100 段。`size="small"` 缩小线条和圆形画布，也可继承 ConfigProvider 的小尺寸；显式 `strokeWidth` 仍以项目像素单位覆盖默认线宽。`successPercent` 显示总进度内已完成的部分，限制在 0 到 `percent` 之间；不传或传非有限值时不显示成功段。仪表盘 `gapDegree` 默认 75°、限制在 0–295°，`gapPlacement` 默认 `bottom`，`start` / `end` 跟随 ConfigProvider 的 LTR/RTL 方向。所有形态只暴露一个 `progressbar`，总进度通过 `aria-valuenow` 表达，成功段通过 `aria-valuetext` 补充；可见百分比文本由 `format(percent, successPercent?)` 控制。
 

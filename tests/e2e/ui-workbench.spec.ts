@@ -528,6 +528,19 @@ test('Space.Compact keeps control order, semantics and H5 touch targets', async 
   const prefix = compact.getByRole('button', { name: '前缀' })
   const input = compact.getByRole('textbox', { name: '紧凑输入' })
   const submit = compact.getByRole('button', { name: '提交' })
+  const [prefixBox, inputBox, submitBox] = await Promise.all([
+    prefix.boundingBox(),
+    input.boundingBox(),
+    submit.boundingBox(),
+  ])
+  expect(
+    Math.abs(prefixBox!.x + prefixBox!.width - inputBox!.x),
+  ).toBeLessThanOrEqual(1)
+  expect(
+    Math.abs(inputBox!.x + inputBox!.width - submitBox!.x),
+  ).toBeLessThanOrEqual(1)
+  await expect(input).toHaveCSS('border-top-left-radius', '0px')
+  await expect(input).toHaveCSS('border-top-right-radius', '0px')
   for (const control of [prefix, input, submit]) {
     const box = await control.boundingBox()
     expect(box!.height).toBeGreaterThanOrEqual(44)
@@ -545,6 +558,146 @@ test('Space.Compact keeps control order, semantics and H5 touch targets', async 
       () =>
         document.documentElement.scrollWidth <=
         document.documentElement.clientWidth,
+    ),
+  ).toBe(true)
+})
+
+test('Space.Compact joins Select and affixed inputs without gaps on desktop and H5', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  await page.setViewportSize({ width: 360, height: 844 })
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const address = preview.getByRole('group', { name: '地址输入组合' })
+  const protocol = address.getByRole('combobox', { name: '紧凑协议' })
+  const domain = address.getByRole('textbox', { name: '紧凑域名' })
+  const apply = address.getByRole('button', { name: '应用' })
+  const [protocolBox, domainBox, applyBox] = await Promise.all([
+    protocol.boundingBox(),
+    domain.boundingBox(),
+    apply.boundingBox(),
+  ])
+  expect(
+    Math.abs(protocolBox!.x + protocolBox!.width - domainBox!.x),
+  ).toBeLessThanOrEqual(1)
+  expect(
+    Math.abs(domainBox!.x + domainBox!.width - applyBox!.x),
+  ).toBeLessThanOrEqual(1)
+  await expect(protocol).toHaveCSS('border-top-right-radius', '0px')
+  await expect(domain).toHaveCSS('border-top-left-radius', '0px')
+  await expect(domain).toHaveCSS('border-top-right-radius', '0px')
+  for (const control of [protocol, domain, apply])
+    expect((await control.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await protocol.tap()
+  else {
+    await protocol.focus()
+    await protocol.press('Enter')
+  }
+  const http = page.getByRole('option', { name: 'HTTP', exact: true })
+  if (testInfo.project.name.startsWith('mobile-')) await http.tap()
+  else await http.press('Enter')
+  await expect(protocol).toContainText('HTTP')
+  await domain.fill('example.org')
+  if (testInfo.project.name.startsWith('mobile-')) await apply.tap()
+  else await apply.press('Enter')
+  await expect(preview.getByText('已应用地址输入组合')).toBeVisible()
+
+  const amount = preview.getByRole('group', { name: '金额输入组合' })
+  const amountInput = amount.getByRole('textbox', { name: '紧凑金额' })
+  const amountRoot = amountInput.locator('..')
+  const confirm = amount.getByRole('button', { name: '确认' })
+  const [amountBox, confirmBox] = await Promise.all([
+    amountRoot.boundingBox(),
+    confirm.boundingBox(),
+  ])
+  expect(
+    Math.abs(amountBox!.x + amountBox!.width - confirmBox!.x),
+  ).toBeLessThanOrEqual(1)
+  await expect(amountRoot).toHaveCSS('border-top-right-radius', '0px')
+  const clear = amount.getByRole('button', { name: '清空输入' })
+  expect((await clear.boundingBox())!.width).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await clear.tap()
+  else {
+    await clear.focus()
+    await clear.press('Enter')
+  }
+  await expect(amountInput).toHaveValue('')
+  await expect(amountInput).toBeFocused()
+  if (testInfo.project.name.startsWith('mobile-')) await confirm.tap()
+  else await confirm.press('Enter')
+  await expect(preview.getByText('已确认金额输入组合')).toBeVisible()
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+})
+
+test('Space.Compact keeps search, password and multiline controls joined on H5', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  await page.setViewportSize({ width: 360, height: 844 })
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const mobile = testInfo.project.name.startsWith('mobile-')
+
+  const search = preview.getByRole('group', { name: '搜索输入组合' })
+  const prefix = search.getByRole('button', { name: '站内' })
+  const searchField = search.getByRole('searchbox', { name: '紧凑搜索' })
+  const searchRoot = searchField.locator('..')
+  const [prefixBox, searchBox] = await Promise.all([
+    prefix.boundingBox(),
+    searchRoot.boundingBox(),
+  ])
+  expect(
+    Math.abs(prefixBox!.x + prefixBox!.width - searchBox!.x),
+  ).toBeLessThanOrEqual(1)
+  await expect(searchRoot).toHaveCSS('border-top-left-radius', '0px')
+  const searchAction = search.getByRole('button', { name: '搜索' })
+  expect((await searchAction.boundingBox())!.width).toBeGreaterThanOrEqual(44)
+  if (mobile) await searchAction.tap()
+  else await searchAction.press('Enter')
+  await expect(preview.getByText('已搜索：组件')).toBeVisible()
+
+  const password = preview.getByRole('group', { name: '密码输入组合' })
+  const passwordField = password.locator('input[aria-label="紧凑密码"]')
+  const passwordRoot = passwordField.locator('..')
+  const save = password.getByRole('button', { name: '保存', exact: true })
+  const [passwordBox, saveBox] = await Promise.all([
+    passwordRoot.boundingBox(),
+    save.boundingBox(),
+  ])
+  expect(
+    Math.abs(passwordBox!.x + passwordBox!.width - saveBox!.x),
+  ).toBeLessThanOrEqual(1)
+  const reveal = password.getByRole('button', { name: '显示密码' })
+  if (mobile) await reveal.tap()
+  else await reveal.press('Enter')
+  await expect(passwordField).toHaveAttribute('type', 'text')
+  if (mobile) await save.tap()
+  else await save.press('Enter')
+  await expect(preview.getByText('已保存紧凑密码')).toBeVisible()
+
+  const multiline = preview.getByRole('group', { name: '多行输入组合' })
+  const textarea = multiline.getByRole('textbox', { name: '紧凑多行' })
+  const textareaRoot = textarea.locator('..').locator('..')
+  const saveMultiline = multiline.getByRole('button', { name: '保存多行' })
+  const [textareaBox, saveMultilineBox] = await Promise.all([
+    textareaRoot.boundingBox(),
+    saveMultiline.boundingBox(),
+  ])
+  expect(
+    Math.abs(textareaBox!.y + textareaBox!.height - saveMultilineBox!.y),
+  ).toBeLessThanOrEqual(1)
+  await expect(textarea).toHaveCSS('border-bottom-left-radius', '0px')
+  await expect(textarea).toHaveCSS('border-bottom-right-radius', '0px')
+  await textarea.fill('第一行\n第二行')
+  if (mobile) await saveMultiline.tap()
+  else await saveMultiline.press('Enter')
+  await expect(preview.getByText('已保存紧凑多行')).toBeVisible()
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true)
 })

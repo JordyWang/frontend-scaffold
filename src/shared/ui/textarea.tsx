@@ -168,7 +168,10 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       requestAnimationFrame(() => textareaRef.current?.focus())
     }
     return (
-      <span className="inline-flex w-full min-w-0 flex-col">
+      <span
+        data-ui-textarea-root=""
+        className="inline-flex w-full min-w-0 flex-col"
+      >
         <span className="relative inline-flex w-full min-w-0">
           <textarea
             {...props}
