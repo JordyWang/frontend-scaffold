@@ -6,6 +6,7 @@ describe('clearable text controls', () => {
   it('clears an uncontrolled Input and restores focus', async () => {
     const onChange = vi.fn()
     const onValueChange = vi.fn()
+    const onClear = vi.fn()
     const changedValues: string[] = []
     render(
       <Input
@@ -17,6 +18,7 @@ describe('clearable text controls', () => {
           onChange(event)
         }}
         onValueChange={onValueChange}
+        onClear={onClear}
       />,
     )
     const input = screen.getByRole('textbox', { name: '名称' })
@@ -25,6 +27,7 @@ describe('clearable text controls', () => {
     fireEvent.click(clear)
     expect(input).toHaveValue('')
     expect(onValueChange).toHaveBeenCalledWith('')
+    expect(onClear).toHaveBeenCalledOnce()
     expect(onChange).toHaveBeenCalledOnce()
     expect(changedValues).toEqual([''])
     expect(onChange.mock.calls[0][0].nativeEvent).toBeInstanceOf(Event)
@@ -35,12 +38,14 @@ describe('clearable text controls', () => {
   it('emits the cleared textarea value through a real change event', () => {
     const changedValues: string[] = []
     const onValueChange = vi.fn()
+    const onClear = vi.fn()
     render(
       <Textarea
         aria-label="说明"
         defaultValue="旧内容"
         allowClear
         onValueChange={onValueChange}
+        onClear={onClear}
         onChange={(event) => changedValues.push(event.currentTarget.value)}
       />,
     )
@@ -48,6 +53,82 @@ describe('clearable text controls', () => {
     expect(screen.getByRole('textbox', { name: '说明' })).toHaveValue('')
     expect(changedValues).toEqual([''])
     expect(onValueChange).toHaveBeenCalledExactlyOnceWith('')
+    expect(onClear).toHaveBeenCalledOnce()
+  })
+
+  it('keeps the native input mounted when prefix and suffix change', () => {
+    const onPressEnter = vi.fn()
+    const { rerender } = render(
+      <Input
+        aria-label="金额"
+        prefix="¥"
+        suffix="元"
+        defaultValue="128"
+        allowClear
+        onPressEnter={onPressEnter}
+      />,
+    )
+    const input = screen.getByRole('textbox', { name: '金额' })
+    input.focus()
+    rerender(
+      <Input
+        aria-label="金额"
+        prefix="¥"
+        suffix={null}
+        defaultValue="128"
+        allowClear
+        onPressEnter={onPressEnter}
+      />,
+    )
+    expect(screen.getByRole('textbox', { name: '金额' })).toBe(input)
+    expect(input).toHaveFocus()
+    expect(input.closest('[data-ui-input-root]')).toHaveTextContent('¥')
+    expect(input.closest('[data-ui-input-root]')).not.toHaveTextContent('元')
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(onPressEnter).toHaveBeenCalledOnce()
+    fireEvent.click(screen.getByRole('button', { name: '清空输入：金额' }))
+    expect(input).toHaveValue('')
+  })
+
+  it('preserves an explicit false aria-invalid value in an affix input', () => {
+    render(<Input aria-label="金额" prefix="¥" aria-invalid="false" />)
+    const input = screen.getByRole('textbox', { name: '金额' })
+    expect(input).toHaveAttribute('aria-invalid', 'false')
+    expect(input.closest('[data-ui-input-root]')).not.toHaveAttribute(
+      'data-invalid',
+    )
+  })
+
+  it('does not report a composed or cancelled Enter', () => {
+    const onPressEnter = vi.fn()
+    const { rerender } = render(
+      <Input aria-label="名称" onPressEnter={onPressEnter} />,
+    )
+    const input = screen.getByRole('textbox', { name: '名称' })
+    fireEvent.keyDown(input, { key: 'Enter', isComposing: true })
+    rerender(
+      <Input
+        aria-label="名称"
+        onPressEnter={onPressEnter}
+        onKeyDown={(event) => event.preventDefault()}
+      />,
+    )
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(onPressEnter).not.toHaveBeenCalled()
+  })
+
+  it('sizes an autoSize Textarea from its configured minimum rows', () => {
+    render(
+      <Textarea
+        aria-label="说明"
+        autoSize={{ minRows: 2, maxRows: 4 }}
+        defaultValue="内容"
+      />,
+    )
+    const textarea = screen.getByRole('textbox', { name: '说明' })
+    expect(textarea).toHaveClass('resize-none')
+    expect(Number.parseFloat(textarea.style.height)).toBeGreaterThanOrEqual(48)
+    expect(textarea).not.toHaveAttribute('autosize')
   })
 
   it('keeps controlled Input and Textarea values until the owner updates them', () => {

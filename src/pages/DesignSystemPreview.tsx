@@ -199,6 +199,8 @@ const demoWatermarkImage = `data:image/svg+xml,${encodeURIComponent(
 
 export function DesignSystemPreview() {
   const [checked, setChecked] = useState(false)
+  const [showInputSuffix, setShowInputSuffix] = useState(true)
+  const [inputClearStatus, setInputClearStatus] = useState('尚未清空金额')
   const [enabled, setEnabled] = useState(true)
   const [choice, setChoice] = useState('a')
   const [segmentedValue, setSegmentedValue] = useState<string | undefined>(
@@ -830,6 +832,41 @@ export function DesignSystemPreview() {
                     <Textarea allowClear defaultValue="多行内容也支持清空" />
                   }
                 />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <FormField
+                    label="金额前后缀"
+                    control={
+                      <Input
+                        defaultValue="128"
+                        prefix="¥"
+                        suffix={showInputSuffix ? '元' : null}
+                        allowClear
+                        onClear={() => setInputClearStatus('金额已清空')}
+                      />
+                    }
+                  />
+                  <FormField
+                    label="自适应文本域"
+                    control={
+                      <Textarea
+                        autoSize={{ minRows: 2, maxRows: 4 }}
+                        defaultValue={'第一行\n第二行'}
+                      />
+                    }
+                  />
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="small"
+                    onClick={() => setShowInputSuffix((shown) => !shown)}
+                  >
+                    切换金额后缀
+                  </Button>
+                  <Typography as="span" variant="caption" role="status">
+                    {inputClearStatus}
+                  </Typography>
+                </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <FormField
                     label="只读输入"

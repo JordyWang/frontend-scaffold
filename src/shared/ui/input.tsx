@@ -4,6 +4,8 @@ import {
   useState,
   type ChangeEvent,
   type InputHTMLAttributes,
+  type KeyboardEvent,
+  type ReactNode,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { clearNativeInput } from './clear-native-input'
@@ -25,6 +27,10 @@ export type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
   allowClear?: boolean
   clearLabel?: string
   onValueChange?: (value: string) => void
+  onClear?: () => void
+  onPressEnter?: (event: KeyboardEvent<HTMLInputElement>) => void
+  prefix?: ReactNode
+  suffix?: ReactNode
   variant?: InputVariant
   status?: InputStatus
 }
@@ -40,6 +46,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       allowClear = false,
       clearLabel = '清空输入',
       onValueChange,
+      onClear,
+      onPressEnter,
+      prefix,
+      suffix,
       variant = 'outlined',
       status = 'default',
       onChange,
@@ -47,6 +57,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       defaultValue,
       disabled,
       readOnly,
+      onKeyDown,
       'aria-label': ariaLabel,
       ...props
     } = allProps
@@ -73,6 +84,15 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         ? ''
         : String(value)
       : internalValue
+    const hasAffix =
+      (prefix !== undefined && prefix !== null) ||
+      (suffix !== undefined && suffix !== null)
+    const canClear = Boolean(
+      allowClear && currentValue && !disabled && !readOnly,
+    )
+    const ariaInvalid =
+      invalid || status === 'error' ? true : props['aria-invalid']
+    const isInvalid = Boolean(ariaInvalid && ariaInvalid !== 'false')
     function handleChange(event: ChangeEvent<HTMLInputElement>) {
       if (!controlled) setInternalValue(event.currentTarget.value)
       onValueChange?.(event.currentTarget.value)
@@ -80,10 +100,30 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     }
     function clear() {
       if (inputRef.current) clearNativeInput(inputRef.current)
+      onClear?.()
       requestAnimationFrame(() => inputRef.current?.focus())
     }
     return (
-      <span className="relative inline-flex w-full min-w-0">
+      <span
+        data-ui-input-root=""
+        data-disabled={disabled || undefined}
+        data-invalid={isInvalid || undefined}
+        className={cn(
+          'relative inline-flex w-full min-w-0 items-center',
+          hasAffix &&
+            'min-h-[max(44px,var(--ui-control-height))] rounded-[var(--ui-field-radius)] border border-input bg-card text-card-foreground focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20 data-[disabled=true]:opacity-[0.55] data-[invalid=true]:border-destructive',
+          hasAffix && inputVariantStyles[variant],
+          hasAffix && inputStatusStyles[status],
+        )}
+      >
+        {prefix !== undefined && prefix !== null && (
+          <span
+            data-ui-input-prefix=""
+            className="shrink-0 ps-3 text-muted-foreground"
+          >
+            {prefix}
+          </span>
+        )}
         <input
           {...props}
           ref={(element) => {
@@ -95,30 +135,51 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           disabled={disabled}
           readOnly={readOnly}
           aria-label={ariaLabel}
-          aria-invalid={
-            invalid || status === 'error' || props['aria-invalid'] || undefined
-          }
+          aria-invalid={ariaInvalid}
           data-status={status === 'default' ? undefined : status}
           className={cn(
-            inputStyles,
-            inputVariantStyles[variant],
-            inputStatusStyles[status],
+            hasAffix
+              ? 'min-h-11 min-w-0 flex-1 rounded-none border-0 bg-transparent px-3 py-2.5 text-base leading-6 text-card-foreground outline-none placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed'
+              : inputStyles,
+            !hasAffix && inputVariantStyles[variant],
+            !hasAffix && inputStatusStyles[status],
             inputSizeStyles[resolvedSize],
-            allowClear && currentValue && 'pe-12',
+            canClear && !hasAffix && 'pe-12',
             className,
           )}
           value={currentValue}
           onChange={handleChange}
+          onKeyDown={(event) => {
+            onKeyDown?.(event)
+            if (
+              event.key === 'Enter' &&
+              !event.defaultPrevented &&
+              !event.nativeEvent.isComposing &&
+              event.nativeEvent.keyCode !== 229
+            )
+              onPressEnter?.(event)
+          }}
         />
-        {allowClear && currentValue && !disabled && !readOnly && (
+        {canClear && (
           <button
             type="button"
             aria-label={`${clearLabel}${ariaLabel ? `：${ariaLabel}` : ''}`}
-            className="absolute inset-y-0 end-0 z-10 flex min-h-11 w-11 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
+            className={cn(
+              'z-10 flex min-h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring',
+              !hasAffix && 'absolute inset-y-0 end-0',
+            )}
             onClick={clear}
           >
             <span aria-hidden="true">×</span>
           </button>
+        )}
+        {suffix !== undefined && suffix !== null && (
+          <span
+            data-ui-input-suffix=""
+            className="shrink-0 pe-3 text-muted-foreground"
+          >
+            {suffix}
+          </span>
         )}
       </span>
     )

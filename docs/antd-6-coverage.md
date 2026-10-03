@@ -174,6 +174,8 @@ Input 与 Textarea 增加 `allowClear`，清空按钮保持 44px 触控区域并
 
 Input 与 Textarea 提供项目自己的 `variant`（outlined、filled、borderless、underlined）和 `status`（error、warning），状态通过主题 Token 和 `aria-invalid` 暴露。
 
+对照 [Input 6.6.5 文档](https://ant.design/components/input-cn)，本批补 Input 的前后缀、`onClear`、`onPressEnter` 和 Textarea 的 `autoSize`。动态前后缀保持原生 input 节点与焦点，清空仍发送原生变更事件；Textarea 根据内容和容器宽度在最小/最大行数之间调整高度。`/__ui` 增加前后缀、动态切换和自适应多行预览，并以桌面键盘、H5 触控及真实尺寸回归验证。字数计数、定制计数和输入组合能力仍需补齐。
+
 Select 与 MultiSelect 复用同一组外观与状态字段，错误状态会同步设置 `aria-invalid`，`/__ui` 展示填充和下划线警告选择器。
 
 Card 保留组合式子组件，并补充 AntD 常用的 `title`、`extra`、`cover`、`actions`、`hoverable` 和 `loading` 插槽；`variant` 区分 outlined / borderless，旧 `bordered` 兼容，`appearance="inner"` 提供内嵌卡片形态。`CardMeta` 提供头像、标题和描述，`CardGridGroup` / `CardGrid` 以容器宽度组织等宽网格。卡片内页签复用项目 Tabs 的 items/受控/非受控 API，不另建一套页签状态。卡片与 Meta 有 Tailwind 语义类名入口；`/__ui` 展示声明式卡片、内嵌形态、元信息、网格和页签。

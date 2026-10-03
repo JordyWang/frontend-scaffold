@@ -1,5 +1,6 @@
 import {
   forwardRef,
+  useLayoutEffect,
   useRef,
   useState,
   type ChangeEvent,
@@ -17,12 +18,20 @@ import {
 } from './tailwind-styles'
 import type { InputStatus, InputVariant } from './input'
 
+function normalizeRows(value: number | undefined, fallback: number) {
+  return value !== undefined && Number.isFinite(value)
+    ? Math.max(1, Math.floor(value))
+    : fallback
+}
+
 export type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   invalid?: boolean
   size?: 'default' | 'small' | 'large'
   allowClear?: boolean
   clearLabel?: string
   onValueChange?: (value: string) => void
+  onClear?: () => void
+  autoSize?: boolean | { minRows?: number; maxRows?: number }
   variant?: InputVariant
   status?: InputStatus
 }
@@ -37,6 +46,8 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       allowClear = false,
       clearLabel = '清空输入',
       onValueChange,
+      onClear,
+      autoSize = false,
       variant = 'outlined',
       status = 'default',
       onChange,
@@ -44,6 +55,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       defaultValue,
       disabled,
       readOnly,
+      rows,
       'aria-label': ariaLabel,
       ...props
     } = allProps
@@ -70,6 +82,67 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         ? ''
         : String(value)
       : internalValue
+    const canClear = Boolean(
+      allowClear && currentValue && !disabled && !readOnly,
+    )
+    const minRows =
+      typeof autoSize === 'object' && autoSize.minRows !== undefined
+        ? normalizeRows(autoSize.minRows, 2)
+        : normalizeRows(rows, 2)
+    const maxRows =
+      typeof autoSize === 'object' && autoSize.maxRows !== undefined
+        ? Math.max(minRows, normalizeRows(autoSize.maxRows, minRows))
+        : Infinity
+    useLayoutEffect(() => {
+      const field = textareaRef.current
+      if (!field || !autoSize) return
+      const previousHeight = field.style.height
+      const previousOverflow = field.style.overflowY
+      function resize() {
+        if (!field) return
+        const styles = getComputedStyle(field)
+        const lineHeight = parseFloat(styles.lineHeight) || 24
+        const padding =
+          (parseFloat(styles.paddingTop) || 0) +
+          (parseFloat(styles.paddingBottom) || 0)
+        const border =
+          (parseFloat(styles.borderTopWidth) || 0) +
+          (parseFloat(styles.borderBottomWidth) || 0)
+        field.style.height = '0px'
+        const maximum = maxRows * lineHeight + padding + border
+        const height = Math.min(
+          Math.max(
+            field.scrollHeight + border,
+            minRows * lineHeight + padding + border,
+          ),
+          maximum,
+        )
+        field.style.height = `${height}px`
+        field.style.overflowY =
+          field.scrollHeight + border > maximum ? 'auto' : 'hidden'
+      }
+      resize()
+      let previousWidth = field.getBoundingClientRect().width
+      let resizeFrame = 0
+      const observer =
+        typeof ResizeObserver === 'undefined'
+          ? null
+          : new ResizeObserver(() => {
+              const width = field.getBoundingClientRect().width
+              if (width !== previousWidth) {
+                previousWidth = width
+                cancelAnimationFrame(resizeFrame)
+                resizeFrame = requestAnimationFrame(resize)
+              }
+            })
+      observer?.observe(field)
+      return () => {
+        observer?.disconnect()
+        cancelAnimationFrame(resizeFrame)
+        field.style.height = previousHeight
+        field.style.overflowY = previousOverflow
+      }
+    }, [autoSize, currentValue, minRows, maxRows])
     function handleChange(event: ChangeEvent<HTMLTextAreaElement>) {
       if (!controlled) setInternalValue(event.currentTarget.value)
       onValueChange?.(event.currentTarget.value)
@@ -77,6 +150,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     }
     function clear() {
       if (textareaRef.current) clearNativeInput(textareaRef.current)
+      onClear?.()
       requestAnimationFrame(() => textareaRef.current?.focus())
     }
     return (
@@ -90,6 +164,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           }}
           disabled={disabled}
           readOnly={readOnly}
+          rows={rows}
           aria-label={ariaLabel}
           aria-invalid={
             invalid || status === 'error' || props['aria-invalid'] || undefined
@@ -100,14 +175,14 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             inputVariantStyles[variant],
             inputStatusStyles[status],
             inputSizeStyles[resolvedSize],
-            'min-h-28 resize-y',
-            allowClear && currentValue && 'pe-12',
+            autoSize ? 'min-h-0 resize-none' : 'min-h-28 resize-y',
+            canClear && 'pe-12',
             className,
           )}
           value={currentValue}
           onChange={handleChange}
         />
-        {allowClear && currentValue && !disabled && !readOnly && (
+        {canClear && (
           <button
             type="button"
             aria-label={`${clearLabel}${ariaLabel ? `：${ariaLabel}` : ''}`}

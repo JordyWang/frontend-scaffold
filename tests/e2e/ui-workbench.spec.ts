@@ -1319,6 +1319,61 @@ test('clearable Input and Textarea restore focus on desktop and H5', async ({
   }
 })
 
+test('Input affixes and Textarea autoSize work on desktop and H5', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  await page.setViewportSize({ width: 360, height: 844 })
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const amount = preview.getByRole('textbox', { name: '金额前后缀' })
+  const amountRoot = amount.locator('..')
+  await expect(amountRoot.locator('[data-ui-input-prefix]')).toHaveText('¥')
+  await expect(amountRoot.locator('[data-ui-input-suffix]')).toHaveText('元')
+  const toggle = preview.getByRole('button', { name: '切换金额后缀' })
+  if (testInfo.project.name.startsWith('mobile-')) await toggle.tap()
+  else await toggle.press('Enter')
+  await expect(amountRoot.locator('[data-ui-input-suffix]')).toHaveCount(0)
+  await expect(amount).toHaveValue('128')
+  const clear = amountRoot.getByRole('button', { name: '清空输入' })
+  const clearBox = await clear.boundingBox()
+  expect(clearBox!.width).toBeGreaterThanOrEqual(44)
+  expect(clearBox!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await clear.tap()
+  else {
+    await clear.focus()
+    await clear.press('Enter')
+  }
+  await expect(amount).toHaveValue('')
+  await expect(amount).toBeFocused()
+  await expect(preview.getByText('金额已清空', { exact: true })).toBeVisible()
+
+  const textarea = preview.getByRole('textbox', { name: '自适应文本域' })
+  const initialHeight = (await textarea.boundingBox())!.height
+  await textarea.fill('第一行\n第二行\n第三行\n第四行\n第五行\n第六行')
+  const expandedHeight = (await textarea.boundingBox())!.height
+  expect(expandedHeight).toBeGreaterThan(initialHeight)
+  expect(
+    await textarea.evaluate((element) => getComputedStyle(element).overflowY),
+  ).toBe('auto')
+  await textarea.fill('短')
+  expect((await textarea.boundingBox())!.height).toBeLessThan(expandedHeight)
+  await textarea.fill(
+    '这是一段用于验证容器宽度变化时文本域能够重新计算高度的长文本',
+  )
+  const wideHeight = (await textarea.boundingBox())!.height
+  await textarea.locator('..').evaluate((element) => {
+    element.style.width = '180px'
+  })
+  await expect
+    .poll(async () => (await textarea.boundingBox())!.height)
+    .toBeGreaterThan(wideHeight)
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+})
+
 test('native form reset restores uncontrolled inputs on keyboard and H5 touch', async ({
   page,
 }, testInfo) => {

@@ -75,7 +75,7 @@
 | Carousel                        | `items`、`index` / `defaultIndex`、`autoplay`、`dots`、`dotPlacement`、`effect`、`infinite`、`adaptiveHeight`、`ref`                                   | 受控轮播、四向指示点、两种动效、键盘/手势切换、播放进度及隐藏内容焦点恢复                                                   |
 | Tree                            | `treeData`、`expandedKeys`、`selectedKey` / `selectedKeys`、`checkedKeys`、`multiple`、`loadChildren`、`classNames`                                    | 选择和勾选独立；父子传导与半选、禁用边界、异步加载与取消/重试、唯一 Tab 入口、RTL 键盘与空状态                              |
 
-Input 与 Textarea 的 `allowClear` 在有值且可编辑时显示清空按钮，清空时触发原生 change 与 `onValueChange('')`，随后恢复输入焦点。`disabled` 和 `readOnly` 均隐藏清空按钮；Textarea 的按钮只占右上角 44×44px，右侧其余区域仍可用于选择和滚动。两者支持 `variant`（outlined / filled / borderless / underlined）与 `status`（default / error / warning）。
+Input 与 Textarea 的 `allowClear` 在有值且可编辑时显示清空按钮，清空时触发原生 change、`onValueChange('')` 和 `onClear()`，随后恢复输入焦点。`disabled` 和 `readOnly` 均隐藏清空按钮；Textarea 的按钮只占右上角 44×44px，右侧其余区域仍可用于选择和滚动。两者支持 `variant`（outlined / filled / borderless / underlined）与 `status`（default / error / warning）。Input 的 `prefix` / `suffix` 为输入框内的 React 内容，动态切换时保留同一个原生 input；`onPressEnter` 仅在未被取消、非输入法组合的 Enter 时触发。Textarea 的 `autoSize` 支持布尔值或 `{ minRows, maxRows }`，只调整高度；达到最大行数后在字段内部滚动。
 
 `Breadcrumb.maxItems` 至少保留 3 项：第一项、尾部若干项和当前页；中间路径以 44px 折叠按钮代替。`expanded` / `defaultExpanded` / `onExpandedChange` 控制展开状态，受控值须由调用方接受。展开时隐藏项保持原来的链接、按钮或禁用语义，折叠按钮保留焦点并提供 `aria-expanded` 与所控制路径的关联。长路径在 `__ui` 中提供键盘、触控和 RTL 预览。
 
