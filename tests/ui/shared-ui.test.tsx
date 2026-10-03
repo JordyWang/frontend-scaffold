@@ -1,3 +1,4 @@
+import { createRef } from 'react'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import {
@@ -296,14 +297,31 @@ describe('shared/ui contracts', () => {
   })
 
   it('sizes Empty through ConfigProvider and allows custom or hidden images', () => {
+    const ref = createRef<HTMLDivElement>()
     render(
       <ConfigProvider componentSize="small">
         <Empty title="继承小号" description="当前没有记录" />
         <Empty title="显式默认" size="default" image={null} />
         <Empty
+          ref={ref}
           title="自定义插图"
-          image={<img src="/empty-search.svg" alt="搜索插图" />}
+          description={
+            <span>
+              包含<strong>重点</strong>的说明
+            </span>
+          }
+          image="/empty-search.svg"
+          imageAlt="搜索插图"
+          classNames={{
+            root: 'shadow-sm',
+            image: 'size-14',
+            title: 'text-primary',
+            description: 'text-sm',
+            action: 'pt-2',
+          }}
+          action={<Button>继续</Button>}
         />
+        <Empty image={null} />
       </ConfigProvider>,
     )
     const compact = screen.getByText('继承小号').closest('[data-ui-empty]')
@@ -314,7 +332,22 @@ describe('shared/ui contracts', () => {
     expect(regular).toHaveAttribute('data-ui-size', 'default')
     expect(regular).toHaveClass('min-h-48')
     expect(regular?.querySelector('svg')).toBeNull()
-    expect(screen.getByRole('img', { name: '搜索插图' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: '搜索插图' })).toHaveAttribute(
+      'src',
+      '/empty-search.svg',
+    )
+    expect(ref.current).toHaveClass('shadow-sm')
+    expect(ref.current?.querySelector('img')?.parentElement).toHaveClass(
+      'size-14',
+    )
+    expect(screen.getByText('自定义插图')).toHaveClass('text-primary')
+    expect(screen.getByText('重点').parentElement?.parentElement).toHaveClass(
+      'text-sm',
+    )
+    expect(
+      screen.getByRole('button', { name: '继续' }).parentElement,
+    ).toHaveClass('pt-2')
+    expect(screen.getByText('暂无数据')).toBeInTheDocument()
   })
 
   it('prevents a second action while a button is loading', () => {

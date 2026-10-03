@@ -562,10 +562,23 @@ test('Empty previews remain legible and their action works on keyboard and touch
   const compact = card.locator('[data-ui-empty]').filter({
     hasText: '暂无可选成员',
   })
+  const custom = card.locator('[data-ui-empty]').filter({
+    hasText: '自定义图片空状态',
+  })
   await expect(regular).toHaveAttribute('data-ui-size', 'default')
   await expect(regular).toHaveCSS('min-height', '192px')
   await expect(compact).toHaveAttribute('data-ui-size', 'small')
   await expect(compact).toHaveCSS('min-height', '128px')
+  const illustration = custom.getByRole('img', { name: '搜索插图' })
+  await illustration.scrollIntoViewIfNeeded()
+  await expect(illustration).toHaveAttribute('src', '/empty-search.svg')
+  await expect
+    .poll(() =>
+      illustration.evaluate((image: HTMLImageElement) => image.naturalWidth),
+    )
+    .toBeGreaterThan(0)
+  await expect(custom.getByText('自定义图片空状态')).toHaveClass(/text-primary/)
+  await expect(custom.getByText('重点文字')).toBeVisible()
   expect(
     await card.evaluate(
       (element) => element.scrollWidth <= element.clientWidth,

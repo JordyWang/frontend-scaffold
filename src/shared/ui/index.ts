@@ -38,7 +38,7 @@ export type {
   CardGridProps,
 } from './card'
 export { Empty } from './empty'
-export type { EmptyProps } from './empty'
+export type { EmptyProps, EmptyPart } from './empty'
 export { LoadingState, ErrorState } from './feedback-state'
 export type { ErrorStateProps } from './feedback-state'
 export { ErrorBoundary } from './error-boundary'

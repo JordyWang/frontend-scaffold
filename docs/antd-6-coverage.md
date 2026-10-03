@@ -246,7 +246,7 @@ Card 增加 default / small 尺寸契约，组合式插槽、Meta、Grid 与声�
 
 Alert 增加可关闭提示和关闭回调，关闭按钮保持 44px 触控区域；`/__ui` 展示操作、关闭与恢复，桌面键盘和 H5 触控均可验证。
 
-Empty 增加 default / small 尺寸契约和可替换插图，未指定尺寸时可继承全局小号配置；`/__ui` 独立展示两种空状态，并验证键盘操作和 H5 触控。
+Empty 增加 default / small 尺寸契约和可替换插图，未指定尺寸时可继承全局小号配置；字符串图片地址会渲染为真实图片，`imageAlt` 控制替代文本，富标题/说明和 root/image/title/description/action 的 Tailwind 插槽可用于组合状态页。`/__ui` 展示默认、小号和自定义图片空状态，并验证键盘操作和 H5 触控。
 
 Pagination 增加独立禁用状态，并为加载态暴露 `aria-busy`；页码、条数选择、快速跳页与加载更多同步禁用，`/__ui` 可切换验证。
 

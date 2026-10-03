@@ -1,25 +1,32 @@
-import { type HTMLAttributes, type ReactNode } from 'react'
+import { type HTMLAttributes, type ReactNode, type Ref } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { useConfig } from './config-context'
 
+export type EmptyPart = 'root' | 'image' | 'title' | 'description' | 'action'
 export type EmptyProps = Omit<
   HTMLAttributes<HTMLDivElement>,
   'children' | 'title'
 > & {
-  title: string
-  description?: string
+  title?: ReactNode
+  description?: ReactNode
   action?: ReactNode
   image?: ReactNode
+  imageAlt?: string
   size?: 'default' | 'small'
+  classNames?: Partial<Record<EmptyPart, string>>
+  ref?: Ref<HTMLDivElement>
 }
 
 export function Empty({
-  title,
+  title = '暂无数据',
   description,
   action,
   image,
+  imageAlt,
   size,
+  classNames,
   className,
+  ref,
   ...props
 }: EmptyProps) {
   const { componentSize } = useConfig()
@@ -28,19 +35,22 @@ export function Empty({
   return (
     <div
       {...props}
+      ref={ref}
       data-ui-empty=""
       data-ui-size={resolvedSize}
       className={cn(
         'flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border text-center',
         resolvedSize === 'small' ? 'min-h-32 p-4' : 'min-h-48 p-6',
+        classNames?.root,
         className,
       )}
     >
-      {image !== null && image !== false && (
+      {image !== null && image !== false && image !== '' && (
         <div
           className={cn(
             'grid place-items-center text-muted-foreground [&_img]:max-h-full [&_img]:max-w-full [&_svg]:max-h-full [&_svg]:max-w-full',
             resolvedSize === 'small' ? 'size-10' : 'size-12',
+            classNames?.image,
           )}
         >
           {image === undefined ? (
@@ -66,16 +76,39 @@ export function Empty({
                 strokeLinecap="round"
               />
             </svg>
+          ) : typeof image === 'string' ? (
+            <img
+              src={image}
+              alt={imageAlt ?? ''}
+              loading="lazy"
+              className="size-full object-contain"
+            />
           ) : (
             image
           )}
         </div>
       )}
-      <p className="m-0 font-semibold">{title}</p>
-      {description && (
-        <p className="m-0 text-muted-foreground">{description}</p>
+      {title !== null && title !== false && (
+        <div
+          className={cn(
+            'min-w-0 max-w-full font-semibold [overflow-wrap:anywhere]',
+            classNames?.title,
+          )}
+        >
+          {title}
+        </div>
       )}
-      {action && <div className="mt-1">{action}</div>}
+      {description !== null && description !== false && description !== '' && (
+        <div
+          className={cn(
+            'min-w-0 max-w-full text-muted-foreground [overflow-wrap:anywhere]',
+            classNames?.description,
+          )}
+        >
+          {description}
+        </div>
+      )}
+      {action && <div className={cn('mt-1', classNames?.action)}>{action}</div>}
     </div>
   )
 }

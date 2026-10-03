@@ -577,6 +577,17 @@ export function DesignSystemPreview() {
                 image={<Icon name="search" size={32} />}
                 title="暂无可选成员"
               />
+              <Empty
+                title="自定义图片空状态"
+                description={
+                  <span>
+                    可使用图片地址，并在说明中加入<strong>重点文字</strong>。
+                  </span>
+                }
+                image="/empty-search.svg"
+                imageAlt="搜索插图"
+                classNames={{ image: 'size-14', title: 'text-primary' }}
+              />
               <p role="status" className="m-0 text-sm text-muted-foreground">
                 {emptyStatus}
               </p>
