@@ -33,6 +33,10 @@ export type TableColumn<T> = {
   hidden?: boolean
   /** Show this column when the Table container reaches this width in CSS pixels. */
   minContainerWidth?: number
+  /** Preferred desktop table column width in CSS pixels. */
+  width?: number
+  /** Keep this column at the logical start or end while scrolling horizontally. */
+  fixed?: 'start' | 'end'
   /** Use true when the owner sorts rows in manual data mode. */
   sorter?: ((left: T, right: T) => number) | true
   sortLabel?: string
@@ -52,6 +56,8 @@ export type TableColumnGroup<T> = {
   hidden?: boolean
   /** Show this group and its descendants when the Table container reaches this width. */
   minContainerWidth?: number
+  /** Inherited by descendant columns unless they set their own fixed side. */
+  fixed?: 'start' | 'end'
   align?: 'left' | 'center' | 'right'
 }
 
@@ -60,6 +66,8 @@ export type TableColumnNode<T> = TableColumn<T> | TableColumnGroup<T>
 type ColumnLayoutNode<T> = {
   column: TableColumnNode<T>
   children?: ColumnLayoutNode<T>[]
+  leafKeys: string[]
+  fixed?: 'start' | 'end'
   leafCount: number
   depth: number
 }
@@ -67,8 +75,16 @@ type ColumnLayoutNode<T> = {
 type ColumnHeaderCell<T> = {
   column: TableColumnNode<T>
   group: boolean
+  leafKeys: string[]
+  fixed?: 'start' | 'end'
   colSpan: number
   rowSpan: number
+}
+
+type TableMeasuredWidths = {
+  leaves: Record<string, number>
+  selection: number
+  expansion: number
 }
 
 function isColumnGroup<T>(
@@ -89,7 +105,10 @@ function buildColumnLayout<T>(
   columns: TableColumnNode<T>[],
   containerWidth: number | null,
 ) {
-  function build(column: TableColumnNode<T>): ColumnLayoutNode<T> | null {
+  function build(
+    column: TableColumnNode<T>,
+    inheritedFixed?: 'start' | 'end',
+  ): ColumnLayoutNode<T> | null {
     if (
       column.hidden ||
       (containerWidth !== null &&
@@ -97,21 +116,30 @@ function buildColumnLayout<T>(
         containerWidth < column.minContainerWidth)
     )
       return null
-    if (!isColumnGroup(column)) return { column, leafCount: 1, depth: 1 }
+    const fixed = column.fixed ?? inheritedFixed
+    if (!isColumnGroup(column))
+      return { column, leafKeys: [column.key], fixed, leafCount: 1, depth: 1 }
     const children = column.children
-      .map(build)
+      .map((child) => build(child, fixed))
       .filter((child): child is ColumnLayoutNode<T> => child !== null)
     if (!children.length) return null
+    const sharedFixed = children.every((child) => child.fixed === 'start')
+      ? 'start'
+      : children.every((child) => child.fixed === 'end')
+        ? 'end'
+        : undefined
     return {
       column,
       children,
+      leafKeys: children.flatMap((child) => child.leafKeys),
+      fixed: sharedFixed,
       leafCount: children.reduce((count, child) => count + child.leafCount, 0),
       depth: 1 + Math.max(...children.map((child) => child.depth)),
     }
   }
 
   const roots = columns
-    .map(build)
+    .map((column) => build(column))
     .filter((column): column is ColumnLayoutNode<T> => column !== null)
   const depth = Math.max(1, ...roots.map((root) => root.depth))
   const headerRows: ColumnHeaderCell<T>[][] = Array.from(
@@ -119,6 +147,7 @@ function buildColumnLayout<T>(
     () => [],
   )
   const leafColumns: TableColumn<T>[] = []
+  const fixedByKey = new Map<string, 'start' | 'end'>()
   const headerPaths = new Map<string, string[]>()
   function visit(
     nodes: ColumnLayoutNode<T>[],
@@ -130,6 +159,8 @@ function buildColumnLayout<T>(
       headerRows[level].push({
         column: node.column,
         group,
+        leafKeys: node.leafKeys,
+        fixed: node.fixed,
         colSpan: node.leafCount,
         rowSpan: group ? 1 : depth - level,
       })
@@ -137,12 +168,13 @@ function buildColumnLayout<T>(
         visit(node.children, level + 1, [...ancestors, node.column.key])
       else {
         leafColumns.push(node.column as TableColumn<T>)
+        if (node.fixed) fixedByKey.set(node.column.key, node.fixed)
         headerPaths.set(node.column.key, [...ancestors, node.column.key])
       }
     })
   }
   visit(roots, 0, [])
-  return { headerRows, leafColumns, headerPaths, depth }
+  return { headerRows, leafColumns, fixedByKey, headerPaths, depth }
 }
 
 export type TableSort = {
@@ -300,9 +332,15 @@ export type TableProps<T> = TableCommonProps<T> &
 export function Table<T>(allProps: TableProps<T>) {
   const radioGroupName = useId()
   const rootRef = useRef<HTMLElement>(null)
+  const tableRef = useRef<HTMLTableElement>(null)
   const focusedBeforeResizeRef = useRef<HTMLElement | null>(null)
   const lastMeasuredWidthRef = useRef<number | null>(null)
   const [containerWidth, setContainerWidth] = useState<number | null>(null)
+  const [measuredWidths, setMeasuredWidths] = useState<TableMeasuredWidths>({
+    leaves: {},
+    selection: 0,
+    expansion: 0,
+  })
   const controlled = Object.prototype.hasOwnProperty.call(allProps, 'sort')
   const {
     columns,
@@ -375,6 +413,7 @@ export function Table<T>(allProps: TableProps<T>) {
   const {
     headerRows,
     leafColumns,
+    fixedByKey,
     headerPaths,
     depth: headerDepth,
   } = useMemo(
@@ -506,6 +545,115 @@ export function Table<T>(allProps: TableProps<T>) {
           ? 'filtered-empty'
           : 'empty'
         : 'ready'
+  const fixedLayoutSignature = JSON.stringify({
+    columns: leafColumns.map((column) => [
+      column.key,
+      fixedByKey.get(column.key),
+    ]),
+    selection: Boolean(selection),
+    expansion: Boolean(expandable),
+  })
+  const hasFixedColumns = fixedByKey.size > 0
+  useLayoutEffect(() => {
+    if (!hasFixedColumns) return
+    const table = tableRef.current
+    if (!table) return
+    const cells = Array.from(
+      table.querySelectorAll<HTMLTableCellElement>(
+        'thead th[data-ui-table-leaf], thead th[data-ui-table-structure]',
+      ),
+    )
+    const measure = () => {
+      const next: TableMeasuredWidths = {
+        leaves: {},
+        selection: 0,
+        expansion: 0,
+      }
+      cells.forEach((cell) => {
+        const width = cell.getBoundingClientRect().width
+        const leaf = cell.getAttribute('data-ui-table-leaf')
+        const structure = cell.getAttribute('data-ui-table-structure')
+        if (leaf !== null) next.leaves[leaf] = width
+        else if (structure === 'selection') next.selection = width
+        else if (structure === 'expansion') next.expansion = width
+      })
+      setMeasuredWidths((current) => {
+        const keys = Object.keys(next.leaves)
+        if (
+          current.selection === next.selection &&
+          current.expansion === next.expansion &&
+          Object.keys(current.leaves).length === keys.length &&
+          keys.every((key) => current.leaves[key] === next.leaves[key])
+        )
+          return current
+        return next
+      })
+    }
+    measure()
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measure)
+      return () => window.removeEventListener('resize', measure)
+    }
+    const observer = new ResizeObserver(measure)
+    cells.forEach((cell) => observer.observe(cell))
+    return () => observer.disconnect()
+  }, [displayState, fixedLayoutSignature, hasFixedColumns])
+  const hasFixedStart = [...fixedByKey.values()].includes('start')
+  const fixedReady =
+    hasFixedColumns &&
+    leafColumns.every(
+      (column) =>
+        !fixedByKey.has(column.key) || measuredWidths.leaves[column.key] > 0,
+    ) &&
+    (!hasFixedStart ||
+      ((!selection || measuredWidths.selection > 0) &&
+        (!expandable || measuredWidths.expansion > 0)))
+  const fixedStartOffsets = new Map<string, number>()
+  const fixedEndOffsets = new Map<string, number>()
+  if (fixedReady) {
+    let start =
+      (selection ? measuredWidths.selection : 0) +
+      (expandable ? measuredWidths.expansion : 0)
+    leafColumns.forEach((column) => {
+      if (fixedByKey.get(column.key) !== 'start') return
+      fixedStartOffsets.set(column.key, start)
+      start += measuredWidths.leaves[column.key]
+    })
+    let end = 0
+    for (const column of [...leafColumns].reverse()) {
+      if (fixedByKey.get(column.key) !== 'end') continue
+      fixedEndOffsets.set(column.key, end)
+      end += measuredWidths.leaves[column.key]
+    }
+  }
+  function fixedStyle(
+    fixed: 'start' | 'end' | undefined,
+    leafKeys: string[],
+  ): CSSProperties | undefined {
+    if (!fixedReady || !fixed) return undefined
+    const key = fixed === 'start' ? leafKeys[0] : leafKeys.at(-1)
+    if (key === undefined) return undefined
+    const offset =
+      fixed === 'start' ? fixedStartOffsets.get(key) : fixedEndOffsets.get(key)
+    return offset === undefined
+      ? undefined
+      : fixed === 'start'
+        ? { insetInlineStart: offset }
+        : { insetInlineEnd: offset }
+  }
+  function columnWidthStyle(column: TableColumn<T>): CSSProperties | undefined {
+    return typeof column.width === 'number' &&
+      Number.isFinite(column.width) &&
+      column.width > 0
+      ? { width: column.width, minWidth: column.width }
+      : undefined
+  }
+  const selectionFixedStyle: CSSProperties | undefined =
+    fixedReady && hasFixedStart ? { insetInlineStart: 0 } : undefined
+  const expansionFixedStyle: CSSProperties | undefined =
+    fixedReady && hasFixedStart
+      ? { insetInlineStart: selection ? measuredWidths.selection : 0 }
+      : undefined
   const rowClassNames =
     displayState === 'ready'
       ? pageRows.map((row, index) => rowClassName?.(row, pageStart + index))
@@ -938,6 +1086,7 @@ export function Table<T>(allProps: TableProps<T>) {
         }}
       >
         <table
+          ref={tableRef}
           className={cn(
             'min-w-full border-collapse text-start',
             semanticClassNames?.table,
@@ -964,14 +1113,19 @@ export function Table<T>(allProps: TableProps<T>) {
               >
                 {level === 0 && selection && (
                   <th
+                    data-ui-table-structure="selection"
                     scope="col"
                     rowSpan={headerDepth}
                     className={cn(
                       'w-14 px-2 text-start',
+                      selectionFixedStyle && 'sticky z-40 bg-muted',
                       cellBorder,
                       semanticClassNames?.headerCell,
                     )}
-                    style={semanticStyles?.headerCell}
+                    style={{
+                      ...semanticStyles?.headerCell,
+                      ...selectionFixedStyle,
+                    }}
                   >
                     {singleSelection ? (
                       <span className="sr-only">选择一行</span>
@@ -982,56 +1136,71 @@ export function Table<T>(allProps: TableProps<T>) {
                 )}
                 {level === 0 && expandable && (
                   <th
+                    data-ui-table-structure="expansion"
                     scope="col"
                     rowSpan={headerDepth}
                     className={cn(
                       'w-14 px-2 text-start',
+                      expansionFixedStyle && 'sticky z-40 bg-muted',
                       cellBorder,
                       semanticClassNames?.headerCell,
                     )}
-                    style={semanticStyles?.headerCell}
+                    style={{
+                      ...semanticStyles?.headerCell,
+                      ...expansionFixedStyle,
+                    }}
                   >
                     <span className="sr-only">展开详情</span>
                   </th>
                 )}
-                {headerRow.map(({ column, group, colSpan, rowSpan }) => {
-                  const leaf = group ? undefined : (column as TableColumn<T>)
-                  return (
-                    <th
-                      key={column.key}
-                      id={headerId(column.key)}
-                      scope={group ? 'colgroup' : 'col'}
-                      colSpan={group ? colSpan : undefined}
-                      rowSpan={rowSpan > 1 ? rowSpan : undefined}
-                      aria-sort={
-                        leaf?.sorter
-                          ? activeSort?.columnKey === leaf.key
-                            ? activeSort.direction === 'asc'
-                              ? 'ascending'
-                              : 'descending'
-                            : 'none'
-                          : undefined
-                      }
-                      className={cn(
-                        'text-sm font-semibold',
-                        leaf?.sorter ? sortHeaderPadding : cellPadding,
-                        cellBorder,
-                        alignmentClassName(column.align),
-                        semanticClassNames?.headerCell,
-                      )}
-                      style={semanticStyles?.headerCell}
-                    >
-                      {leaf ? (
-                        <span className="inline-flex items-center gap-1">
-                          {leaf.sorter ? sortButton(leaf) : leaf.header}
-                          {filterButton(leaf)}
-                        </span>
-                      ) : (
-                        column.header
-                      )}
-                    </th>
-                  )
-                })}
+                {headerRow.map(
+                  ({ column, group, leafKeys, fixed, colSpan, rowSpan }) => {
+                    const leaf = group ? undefined : (column as TableColumn<T>)
+                    const fixedOffset = fixedStyle(fixed, leafKeys)
+                    return (
+                      <th
+                        key={column.key}
+                        data-ui-table-leaf={leaf?.key}
+                        data-ui-fixed={fixed}
+                        id={headerId(column.key)}
+                        scope={group ? 'colgroup' : 'col'}
+                        colSpan={group ? colSpan : undefined}
+                        rowSpan={rowSpan > 1 ? rowSpan : undefined}
+                        aria-sort={
+                          leaf?.sorter
+                            ? activeSort?.columnKey === leaf.key
+                              ? activeSort.direction === 'asc'
+                                ? 'ascending'
+                                : 'descending'
+                              : 'none'
+                            : undefined
+                        }
+                        className={cn(
+                          'text-sm font-semibold',
+                          leaf?.sorter ? sortHeaderPadding : cellPadding,
+                          fixedOffset && 'sticky z-40 bg-muted',
+                          cellBorder,
+                          alignmentClassName(column.align),
+                          semanticClassNames?.headerCell,
+                        )}
+                        style={{
+                          ...semanticStyles?.headerCell,
+                          ...(leaf && columnWidthStyle(leaf)),
+                          ...fixedOffset,
+                        }}
+                      >
+                        {leaf ? (
+                          <span className="inline-flex items-center gap-1">
+                            {leaf.sorter ? sortButton(leaf) : leaf.header}
+                            {filterButton(leaf)}
+                          </span>
+                        ) : (
+                          column.header
+                        )}
+                      </th>
+                    )
+                  },
+                )}
               </tr>
             ))}
           </thead>
@@ -1077,6 +1246,7 @@ export function Table<T>(allProps: TableProps<T>) {
                     selection ? selectedSet.has(getRowKey(row)) : undefined
                   }
                   className={cn(
+                    hasFixedColumns && 'bg-card',
                     selection && selectedSet.has(getRowKey(row)) && rowHoverable
                       ? 'hover:bg-primary/15'
                       : rowHover,
@@ -1092,10 +1262,14 @@ export function Table<T>(allProps: TableProps<T>) {
                     <td
                       className={cn(
                         'w-14 px-2',
+                        selectionFixedStyle && 'sticky z-10 bg-inherit',
                         cellBorder,
                         semanticClassNames?.cell,
                       )}
-                      style={semanticStyles?.cell}
+                      style={{
+                        ...semanticStyles?.cell,
+                        ...selectionFixedStyle,
+                      }}
                     >
                       {rowSelector(row)}
                     </td>
@@ -1104,48 +1278,64 @@ export function Table<T>(allProps: TableProps<T>) {
                     <td
                       className={cn(
                         'w-14 px-2',
+                        expansionFixedStyle && 'sticky z-10 bg-inherit',
                         cellBorder,
                         semanticClassNames?.cell,
                       )}
-                      style={semanticStyles?.cell}
+                      style={{
+                        ...semanticStyles?.cell,
+                        ...expansionFixedStyle,
+                      }}
                     >
                       {expandButton(row)}
                     </td>
                   )}
-                  {leafColumns.map((column) =>
-                    column.rowScope ? (
+                  {leafColumns.map((column) => {
+                    const fixedOffset = fixedStyle(fixedByKey.get(column.key), [
+                      column.key,
+                    ])
+                    const cellStyle = {
+                      ...semanticStyles?.cell,
+                      ...columnWidthStyle(column),
+                      ...fixedOffset,
+                    }
+                    return column.rowScope ? (
                       <th
                         key={column.key}
+                        data-ui-fixed={fixedByKey.get(column.key)}
                         headers={cellHeaders(column.key)}
                         scope={column.rowScope}
                         className={cn(
                           'align-middle font-medium',
+                          fixedOffset && 'sticky z-10 bg-inherit',
                           cellPadding,
                           cellBorder,
                           alignmentClassName(column.align),
                           semanticClassNames?.cell,
                         )}
-                        style={semanticStyles?.cell}
+                        style={cellStyle}
                       >
                         {column.render(row)}
                       </th>
                     ) : (
                       <td
                         key={column.key}
+                        data-ui-fixed={fixedByKey.get(column.key)}
                         headers={cellHeaders(column.key)}
                         className={cn(
                           'align-middle',
+                          fixedOffset && 'sticky z-10 bg-inherit',
                           cellPadding,
                           cellBorder,
                           alignmentClassName(column.align),
                           semanticClassNames?.cell,
                         )}
-                        style={semanticStyles?.cell}
+                        style={cellStyle}
                       >
                         {column.render(row)}
                       </td>
-                    ),
-                  )}
+                    )
+                  })}
                 </tr>
                 {expandedRow(row, pageStart + index, tableColSpan)}
               </Fragment>
@@ -1163,32 +1353,57 @@ export function Table<T>(allProps: TableProps<T>) {
               <tr>
                 {selection && (
                   <td
-                    className={cn(cellBorder, semanticClassNames?.summaryCell)}
-                    style={semanticStyles?.summaryCell}
+                    className={cn(
+                      selectionFixedStyle && 'sticky z-30 bg-muted',
+                      cellBorder,
+                      semanticClassNames?.summaryCell,
+                    )}
+                    style={{
+                      ...semanticStyles?.summaryCell,
+                      ...selectionFixedStyle,
+                    }}
                   />
                 )}
                 {expandable && (
                   <td
-                    className={cn(cellBorder, semanticClassNames?.summaryCell)}
-                    style={semanticStyles?.summaryCell}
-                  />
-                )}
-                {leafColumns.map((column) => (
-                  <td
-                    key={column.key}
-                    headers={cellHeaders(column.key)}
                     className={cn(
-                      'font-medium',
-                      cellPadding,
+                      expansionFixedStyle && 'sticky z-30 bg-muted',
                       cellBorder,
-                      alignmentClassName(column.align),
                       semanticClassNames?.summaryCell,
                     )}
-                    style={semanticStyles?.summaryCell}
-                  >
-                    {summaryValues?.[column.key]}
-                  </td>
-                ))}
+                    style={{
+                      ...semanticStyles?.summaryCell,
+                      ...expansionFixedStyle,
+                    }}
+                  />
+                )}
+                {leafColumns.map((column) => {
+                  const fixedOffset = fixedStyle(fixedByKey.get(column.key), [
+                    column.key,
+                  ])
+                  return (
+                    <td
+                      key={column.key}
+                      data-ui-fixed={fixedByKey.get(column.key)}
+                      headers={cellHeaders(column.key)}
+                      className={cn(
+                        'font-medium',
+                        fixedOffset && 'sticky z-30 bg-muted',
+                        cellPadding,
+                        cellBorder,
+                        alignmentClassName(column.align),
+                        semanticClassNames?.summaryCell,
+                      )}
+                      style={{
+                        ...semanticStyles?.summaryCell,
+                        ...columnWidthStyle(column),
+                        ...fixedOffset,
+                      }}
+                    >
+                      {summaryValues?.[column.key]}
+                    </td>
+                  )
+                })}
               </tr>
             </tfoot>
           )}

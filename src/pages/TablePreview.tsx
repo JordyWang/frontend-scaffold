@@ -23,6 +23,38 @@ const scrollRows = Array.from({ length: 12 }, (_, index) => ({
   name: `任务 ${index + 1}`,
   status: index % 3 === 0 ? '进行中' : '待开始',
 }))
+const fixedRows = [
+  {
+    id: 'design',
+    name: '设计评审',
+    owner: '甲',
+    team: '团队 A',
+    status: '进行中',
+    done: 3,
+    pending: 1,
+    updated: '10-03',
+  },
+  {
+    id: 'media',
+    name: '媒体能力',
+    owner: '乙',
+    team: '团队 B',
+    status: '待开始',
+    done: 5,
+    pending: 2,
+    updated: '10-02',
+  },
+  {
+    id: 'forms',
+    name: '表单完善',
+    owner: '丙',
+    team: '团队 A',
+    status: '进行中',
+    done: 1,
+    pending: 3,
+    updated: '10-01',
+  },
+]
 
 export function TablePreview() {
   const [size, setSize] = useState<ControlSize>('default')
@@ -31,8 +63,8 @@ export function TablePreview() {
   const [singleStatus, setSingleStatus] = useState('已选择制定计划')
 
   return (
-    <Card id="ds-table" className="col-span-full scroll-mt-6">
-      <CardContent className="grid gap-4">
+    <Card id="ds-table" className="col-span-full min-w-0 scroll-mt-6">
+      <CardContent className="grid min-w-0 grid-cols-1 gap-4">
         <Typography as="h3" variant="title">
           Table 展示状态
         </Typography>
@@ -162,6 +194,86 @@ export function TablePreview() {
             </div>
           )}
         />
+        <Typography as="h4" variant="heading">
+          固定列宽表
+        </Typography>
+        <Typography variant="caption" tone="muted">
+          横向滚动时固定项目、成员组和更新时间；窄容器自动收起成员组。
+        </Typography>
+        <div className="min-w-0 max-w-full" style={{ width: 620 }}>
+          <Table
+            caption="固定列任务表"
+            rows={fixedRows}
+            getRowKey={(row) => row.id}
+            columns={[
+              {
+                key: 'name',
+                header: '项目',
+                rowScope: 'row',
+                fixed: 'start',
+                width: 110,
+                render: (row) => row.name,
+              },
+              {
+                key: 'people',
+                header: '成员',
+                fixed: 'start',
+                minContainerWidth: 520,
+                children: [
+                  {
+                    key: 'owner',
+                    header: '负责人',
+                    width: 110,
+                    render: (row) => row.owner,
+                  },
+                  {
+                    key: 'team',
+                    header: '团队',
+                    width: 100,
+                    render: (row) => row.team,
+                  },
+                ],
+              },
+              {
+                key: 'status',
+                header: '状态',
+                width: 140,
+                render: (row) => row.status,
+              },
+              {
+                key: 'done',
+                header: '已完成',
+                width: 100,
+                render: (row) => row.done,
+              },
+              {
+                key: 'pending',
+                header: '待处理',
+                width: 100,
+                render: (row) => row.pending,
+              },
+              {
+                key: 'updated',
+                header: '更新于',
+                fixed: 'end',
+                width: 100,
+                render: (row) => row.updated,
+              },
+            ]}
+            selection={{ getLabel: (row) => row.name }}
+            scrollY={220}
+            stickySummary
+            summary={(visibleRows) => ({
+              name: '合计',
+              done: visibleRows.reduce((total, row) => total + row.done, 0),
+              pending: visibleRows.reduce(
+                (total, row) => total + row.pending,
+                0,
+              ),
+              updated: '最近更新',
+            })}
+          />
+        </div>
         <Typography as="h4" variant="heading">
           单选与跨页
         </Typography>

@@ -143,6 +143,8 @@ Input 与 Textarea 的 `count` 可设为 `true`，或 `{ max, strategy, render }
 
 `Table.scrollY` 接受正数 CSS 像素值，限制桌面表格滚动区域的最大高度；多层表头作为整体固定在区域顶部。传入 `stickySummary` 且有汇总时，汇总行固定在底部。横向滚动仍在同一区域中进行；传入 `renderMobileRow` 的 H5 列表不受 `scrollY` 高度限制。`/__ui` 的“长表格滚动”展示键盘滚动、固定表头和汇总。
 
+数据列可设 `width`（正数 CSS 像素，作为首选最小宽度）和 `fixed: 'start' | 'end'`。固定列在表格自身的横向滚动区域内停靠逻辑起止侧，偏移按实际表头宽度测量，因此内容、尺寸或容器变化后会重算。列组的 `fixed` 由子列继承；仅当可见子列全部固定在同一侧时，分组表头也固定。选择和展开列位于数据列之前；有起始侧固定列时它们一起固定。建议把起始侧固定列放在数据列开头、末尾固定列放在末尾，并为这些列提供 `width`，以便给中间数据留出可阅读空间。`hidden` 和 `minContainerWidth` 的列剪枝先执行，偏移只计算最终可见列；RTL 仍按逻辑方向停靠。`/__ui` 的“固定列宽表”展示分组、汇总、响应式列和 H5 横向触控。
+
 `TableColumn.sorter(left, right)` 启用本地稳定排序；交互依次切换升序、降序和原始顺序。`sort` / `defaultSort` 使用 `{ columnKey, direction }`，`onSortChange` 接收新状态或 `null`；受控模式由调用方更新 `sort`。复杂表头可传入 `sortLabel` 作为排序按钮名称。桌面表头使用 `aria-sort`，配置 `renderMobileRow` 后手机卡片上方提供同一排序操作。
 
 `Table.expandable` 提供项目自己的行详情契约：`expandedRowKeys` / `defaultExpandedRowKeys`、`onExpandedRowsChange`、`expandedRowRender(row, index)`、`rowExpandable` 和 `getLabel`。展开按钮是独立的 44px 键盘/触控入口，使用 `aria-expanded` 和 `aria-controls` 关联详情行；桌面表格和 H5 卡片复用同一展开状态，受控模式等待外部更新，排序、筛选和禁用行不会改变详情内容的值语义。
