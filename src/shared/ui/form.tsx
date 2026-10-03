@@ -4,6 +4,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -42,6 +43,7 @@ type FieldRegistration<TValues extends FormValues> = {
 type FormContextValue<TValues extends FormValues> = {
   values: Partial<TValues>
   errors: Record<string, string>
+  controlled: boolean
   validateOn: 'submit' | 'change' | 'blur'
   registerField: (
     name: string,
@@ -49,6 +51,7 @@ type FormContextValue<TValues extends FormValues> = {
   ) => () => void
   setFieldValue: (name: string, value: unknown) => void
   validateField: (name: string) => Promise<string | undefined>
+  requestValidation: (name: string, afterAcceptance?: boolean) => void
 }
 
 const FormContext = createContext<FormContextValue<FormValues> | null>(null)
@@ -122,7 +125,9 @@ export function Form<TValues extends FormValues = FormValues>({
   const valuesVersionRef = useRef(0)
   const fieldsVersionRef = useRef(0)
   const resetVersionRef = useRef(0)
-  useEffect(() => {
+  const pendingControlledValidationRef = useRef(new Set<string>())
+  const previousControlledValuesRef = useRef(controlledValues)
+  useLayoutEffect(() => {
     if (controlledValues === undefined) return
     valuesRef.current = controlledValues
     valuesVersionRef.current += 1
@@ -158,15 +163,16 @@ export function Form<TValues extends FormValues = FormValues>({
   const setValues = useCallback(
     (changedValues: Partial<TValues>) => {
       const nextValues = { ...valuesRef.current, ...changedValues }
-      valuesRef.current = nextValues as Partial<TValues>
-      valuesVersionRef.current += 1
-      if (controlledValues === undefined)
+      if (controlledValues === undefined) {
+        valuesRef.current = nextValues as Partial<TValues>
+        valuesVersionRef.current += 1
         setInternalValues(nextValues as Partial<TValues>)
-      setErrors((current) => {
-        const next = { ...current }
-        for (const name of Object.keys(changedValues)) delete next[name]
-        return next
-      })
+        setErrors((current) => {
+          const next = { ...current }
+          for (const name of Object.keys(changedValues)) delete next[name]
+          return next
+        })
+      }
       onValuesChange?.(changedValues, nextValues)
     },
     [controlledValues, onValuesChange],
@@ -238,6 +244,45 @@ export function Form<TValues extends FormValues = FormValues>({
     [runValidation],
   )
 
+  const requestValidation = useCallback(
+    (name: string, afterAcceptance = false) => {
+      if (controlledValues !== undefined && afterAcceptance) {
+        pendingControlledValidationRef.current.add(name)
+        return
+      }
+      void validateField(name)
+    },
+    [controlledValues, validateField],
+  )
+
+  useEffect(() => {
+    const previous = previousControlledValuesRef.current
+    previousControlledValuesRef.current = controlledValues
+    if (controlledValues === undefined) {
+      pendingControlledValidationRef.current.clear()
+      return
+    }
+    if (previous === undefined) return
+    const changedNames = [
+      ...new Set([...Object.keys(previous), ...Object.keys(controlledValues)]),
+    ].filter((name) => !Object.is(previous[name], controlledValues[name]))
+    if (changedNames.length === 0) return
+    setErrors((current) => {
+      const next = { ...current }
+      for (const name of changedNames) delete next[name]
+      return next
+    })
+    for (const name of changedNames) {
+      if (
+        validateOn === 'change' ||
+        pendingControlledValidationRef.current.has(name)
+      ) {
+        pendingControlledValidationRef.current.delete(name)
+        void validateField(name)
+      }
+    }
+  }, [controlledValues, validateField, validateOn])
+
   const validateFields = useCallback(async () => {
     const resetVersion = resetVersionRef.current
     while (true) {
@@ -284,16 +329,18 @@ export function Form<TValues extends FormValues = FormValues>({
           changedValues[name] = undefined
         }
       }
-      valuesRef.current = nextValues as Partial<TValues>
-      valuesVersionRef.current += 1
       resetVersionRef.current += 1
-      if (controlledValues === undefined)
+      pendingControlledValidationRef.current.clear()
+      if (controlledValues === undefined) {
+        valuesRef.current = nextValues as Partial<TValues>
+        valuesVersionRef.current += 1
         setInternalValues(nextValues as Partial<TValues>)
-      setErrors((current) => {
-        const next = { ...current }
-        for (const name of targetNames) delete next[name]
-        return next
-      })
+        setErrors((current) => {
+          const next = { ...current }
+          for (const name of targetNames) delete next[name]
+          return next
+        })
+      }
       onValuesChange?.(
         changedValues as Partial<TValues>,
         nextValues as Partial<TValues>,
@@ -321,11 +368,13 @@ export function Form<TValues extends FormValues = FormValues>({
   const contextValue: FormContextValue<TValues> = {
     values: controlledValues ?? internalValues,
     errors,
+    controlled: controlledValues !== undefined,
     validateOn,
     registerField,
     setFieldValue: (name, value) =>
       setValues({ [name]: value } as Partial<TValues>),
     validateField,
+    requestValidation,
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -487,13 +536,19 @@ function ConnectedFormItem<TValues extends FormValues>({
         context.validateOn === 'change' ||
         (trigger === 'onBlur' && context.validateOn === 'blur')
       )
-        void context.validateField(name)
+        context.requestValidation(
+          name,
+          !Object.is(context.values[name], nextValue),
+        )
     },
   }
   if (trigger !== 'onBlur')
     injectedProps.onBlur = (event: unknown) => {
       if (typeof originalBlur === 'function') originalBlur(event)
-      if (context.validateOn === 'blur') void context.validateField(name)
+      if (context.validateOn === 'blur') {
+        void context.validateField(name)
+        if (context.controlled) context.requestValidation(name, true)
+      }
     }
   if (hasValue || valuePropName === 'value' || valuePropName === 'checked')
     injectedProps[valuePropName] =

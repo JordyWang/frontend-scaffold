@@ -7,6 +7,7 @@ import {
   RadioGroup,
   TreeSelect,
   useForm,
+  type FormInstance,
 } from '@/shared/ui'
 
 function deferred<T>() {
@@ -18,6 +19,132 @@ function deferred<T>() {
 }
 
 describe('Form coordinator', () => {
+  it('submits only accepted controlled values and keeps rejected changes visible as requests', async () => {
+    const onValuesChange = vi.fn()
+    const onFinish = vi.fn()
+    const onFinishFailed = vi.fn()
+    const form = {} as FormInstance<{ name: string }>
+    const props = { onValuesChange, onFinish, onFinishFailed }
+    const fields = (name: string) => (
+      <Form
+        {...props}
+        form={form}
+        values={{ name }}
+        initialValues={{ name: '初始值' }}
+      >
+        <FormItem
+          name="name"
+          label="受控名称"
+          rules={[{ required: true, message: '请输入名称' }]}
+          control={<input />}
+        />
+        <button type="submit">提交</button>
+        <button type="reset">重置</button>
+      </Form>
+    )
+    const { rerender } = render(fields(''))
+    const input = screen.getByRole('textbox', { name: '受控名称' })
+
+    fireEvent.change(input, { target: { value: '待接受' } })
+    expect(onValuesChange).toHaveBeenLastCalledWith(
+      { name: '待接受' },
+      { name: '待接受' },
+    )
+    expect(input).toHaveValue('')
+    expect(form.getFieldValue('name')).toBe('')
+    fireEvent.click(screen.getByRole('button', { name: '提交' }))
+    await waitFor(() =>
+      expect(onFinishFailed).toHaveBeenCalledWith(
+        { name: '请输入名称' },
+        { name: '' },
+      ),
+    )
+    expect(onFinish).not.toHaveBeenCalled()
+
+    rerender(fields('待接受'))
+    expect(input).toHaveValue('待接受')
+    expect(form.getFieldsValue()).toEqual({ name: '待接受' })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '提交' }))
+    await waitFor(() =>
+      expect(onFinish).toHaveBeenCalledWith({ name: '待接受' }),
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '重置' }))
+    expect(onValuesChange).toHaveBeenLastCalledWith(
+      { name: '初始值' },
+      { name: '初始值' },
+    )
+    expect(input).toHaveValue('待接受')
+    expect(form.getFieldValue('name')).toBe('待接受')
+    rerender(fields('初始值'))
+    expect(input).toHaveValue('初始值')
+    expect(form.getFieldValue('name')).toBe('初始值')
+  })
+
+  it('validates accepted controlled changes and ignores stale asynchronous results', async () => {
+    const oldResult = deferred<string | undefined>()
+    const validator = vi.fn((value: unknown) =>
+      value === '旧值' ? oldResult.promise : Promise.resolve(undefined),
+    )
+    const fields = (name: string) => (
+      <Form values={{ name }} validateOn="change">
+        <FormItem
+          name="name"
+          label="受控校验"
+          rules={[{ validator }]}
+          control={<input />}
+        />
+      </Form>
+    )
+    const { rerender } = render(fields('初始'))
+    const input = screen.getByRole('textbox', { name: '受控校验' })
+    fireEvent.change(input, { target: { value: '旧值' } })
+    expect(validator).not.toHaveBeenCalled()
+
+    rerender(fields('旧值'))
+    await waitFor(() =>
+      expect(validator).toHaveBeenCalledWith('旧值', { name: '旧值' }),
+    )
+    rerender(fields('新值'))
+    await waitFor(() =>
+      expect(validator).toHaveBeenCalledWith('新值', { name: '新值' }),
+    )
+    await act(async () => oldResult.resolve('旧值无效'))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(input).toHaveValue('新值')
+  })
+
+  it('rechecks an accepted controlled value after blur', async () => {
+    const validator = vi.fn((value: unknown) =>
+      value === '无效' ? '名称不可用' : undefined,
+    )
+    const fields = (name: string) => (
+      <Form values={{ name }} validateOn="blur">
+        <FormItem
+          name="name"
+          label="失焦校验"
+          rules={[{ validator }]}
+          control={<input />}
+        />
+      </Form>
+    )
+    const { rerender } = render(fields('有效'))
+    const input = screen.getByRole('textbox', { name: '失焦校验' })
+    fireEvent.change(input, { target: { value: '无效' } })
+    fireEvent.blur(input)
+    await waitFor(() =>
+      expect(validator).toHaveBeenCalledWith('有效', { name: '有效' }),
+    )
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+
+    rerender(fields('无效'))
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('名称不可用'),
+    )
+    expect(validator).toHaveBeenCalledWith('无效', { name: '无效' })
+  })
+
   it('requires a checked boolean field before submit and after reset', async () => {
     const onFinish = vi.fn()
     render(

@@ -30,6 +30,7 @@ import { TabsPreview } from './TabsPreview'
 import { TagPreview } from './TagPreview'
 import { BadgePreview } from './BadgePreview'
 import { ListPreview } from './ListPreview'
+import { FormControlledPreview } from './FormControlledPreview'
 import { TablePreview } from './TablePreview'
 import { TableGroupedPreview } from './TableGroupedPreview'
 import { TableManualPreview } from './TableManualPreview'
@@ -1458,6 +1459,7 @@ export function DesignSystemPreview() {
                     </Typography>
                   </Stack>
                 </Form>
+                <FormControlledPreview />
                 <Form
                   aria-label="条款确认示例"
                   onFinish={() => setConsentStatus('已确认条款')}
