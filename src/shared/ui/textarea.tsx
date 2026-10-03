@@ -1,5 +1,6 @@
 import {
   forwardRef,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -10,6 +11,7 @@ import { cn } from '@/shared/lib/utils'
 import { clearNativeInput } from './clear-native-input'
 import { useConfig } from './config-context'
 import { useNativeFormReset } from './native-form-reset'
+import { resolveTextCount, type TextCount } from './text-count'
 import {
   inputSizeStyles,
   inputStatusStyles,
@@ -32,6 +34,7 @@ export type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   onValueChange?: (value: string) => void
   onClear?: () => void
   autoSize?: boolean | { minRows?: number; maxRows?: number }
+  count?: TextCount
   variant?: InputVariant
   status?: InputStatus
 }
@@ -48,6 +51,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       onValueChange,
       onClear,
       autoSize = false,
+      count,
       variant = 'outlined',
       status = 'default',
       onChange,
@@ -68,6 +72,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           ? 'large'
           : 'default')
     const textareaRef = useRef<HTMLTextAreaElement>(null)
+    const countId = useId()
     const [internalValue, setInternalValue] = useState(
       defaultValue === undefined ? '' : String(defaultValue),
     )
@@ -82,6 +87,15 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         ? ''
         : String(value)
       : internalValue
+    const resolvedCount = resolveTextCount(currentValue, count, props.maxLength)
+    const ariaInvalid =
+      invalid || status === 'error' || resolvedCount?.exceeded
+        ? true
+        : props['aria-invalid']
+    const describedBy =
+      [props['aria-describedby'], resolvedCount && countId]
+        .filter(Boolean)
+        .join(' ') || undefined
     const canClear = Boolean(
       allowClear && currentValue && !disabled && !readOnly,
     )
@@ -154,43 +168,60 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       requestAnimationFrame(() => textareaRef.current?.focus())
     }
     return (
-      <span className="relative inline-flex w-full min-w-0">
-        <textarea
-          {...props}
-          ref={(element) => {
-            textareaRef.current = element
-            if (typeof ref === 'function') ref(element)
-            else if (ref) ref.current = element
-          }}
-          disabled={disabled}
-          readOnly={readOnly}
-          rows={rows}
-          aria-label={ariaLabel}
-          aria-invalid={
-            invalid || status === 'error' || props['aria-invalid'] || undefined
-          }
-          data-status={status === 'default' ? undefined : status}
-          className={cn(
-            inputStyles,
-            inputVariantStyles[variant],
-            inputStatusStyles[status],
-            inputSizeStyles[resolvedSize],
-            autoSize ? 'min-h-0 resize-none' : 'min-h-28 resize-y',
-            canClear && 'pe-12',
-            className,
+      <span className="inline-flex w-full min-w-0 flex-col">
+        <span className="relative inline-flex w-full min-w-0">
+          <textarea
+            {...props}
+            ref={(element) => {
+              textareaRef.current = element
+              if (typeof ref === 'function') ref(element)
+              else if (ref) ref.current = element
+            }}
+            disabled={disabled}
+            readOnly={readOnly}
+            rows={rows}
+            aria-label={ariaLabel}
+            aria-invalid={ariaInvalid}
+            aria-describedby={describedBy}
+            data-status={status === 'default' ? undefined : status}
+            className={cn(
+              inputStyles,
+              inputVariantStyles[variant],
+              inputStatusStyles[status],
+              resolvedCount?.exceeded &&
+                'border-destructive focus-visible:border-destructive',
+              inputSizeStyles[resolvedSize],
+              autoSize ? 'min-h-0 resize-none' : 'min-h-28 resize-y',
+              canClear && 'pe-12',
+              className,
+            )}
+            value={currentValue}
+            onChange={handleChange}
+          />
+          {canClear && (
+            <button
+              type="button"
+              aria-label={`${clearLabel}${ariaLabel ? `：${ariaLabel}` : ''}`}
+              className="absolute end-0 top-0 z-10 flex h-11 w-11 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
+              onClick={clear}
+            >
+              <span aria-hidden="true">×</span>
+            </button>
           )}
-          value={currentValue}
-          onChange={handleChange}
-        />
-        {canClear && (
-          <button
-            type="button"
-            aria-label={`${clearLabel}${ariaLabel ? `：${ariaLabel}` : ''}`}
-            className="absolute end-0 top-0 z-10 flex h-11 w-11 touch-manipulation items-center justify-center rounded-[var(--ui-field-radius)] text-muted-foreground hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
-            onClick={clear}
+        </span>
+        {resolvedCount && (
+          <span
+            id={countId}
+            data-ui-textarea-count=""
+            data-exceeded={resolvedCount.exceeded || undefined}
+            aria-label={resolvedCount.description}
+            className={cn(
+              'max-w-full self-end overflow-hidden text-ellipsis whitespace-nowrap px-1 text-xs text-muted-foreground',
+              resolvedCount.exceeded && 'text-destructive',
+            )}
           >
-            <span aria-hidden="true">×</span>
-          </button>
+            {resolvedCount.content}
+          </span>
         )}
       </span>
     )

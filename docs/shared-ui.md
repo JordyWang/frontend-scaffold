@@ -77,6 +77,8 @@
 
 Input 与 Textarea 的 `allowClear` 在有值且可编辑时显示清空按钮，清空时触发原生 change、`onValueChange('')` 和 `onClear()`，随后恢复输入焦点。`disabled` 和 `readOnly` 均隐藏清空按钮；Textarea 的按钮只占右上角 44×44px，右侧其余区域仍可用于选择和滚动。两者支持 `variant`（outlined / filled / borderless / underlined）与 `status`（default / error / warning）。Input 的 `prefix` / `suffix` 为输入框内的 React 内容，动态切换时保留同一个原生 input；`onPressEnter` 仅在未被取消、非输入法组合的 Enter 时触发。Textarea 的 `autoSize` 支持布尔值或 `{ minRows, maxRows }`，只调整高度；达到最大行数后在字段内部滚动。
 
+Input 与 Textarea 的 `count` 可设为 `true`，或 `{ max, strategy, render }`。默认按字符串长度计数，`strategy(value)` 可覆盖计算方式，`render({ value, count, max })` 自定义显示；计数文本通过 `aria-describedby` 关联字段。`count.max` 只显示并标记超限，不截断输入，受控值也原样显示；需要原生截断时使用 `maxLength`。Input 的计数位于字段内，Textarea 位于字段下方，均随值变更和原生表单重置更新。
+
 `Breadcrumb.maxItems` 至少保留 3 项：第一项、尾部若干项和当前页；中间路径以 44px 折叠按钮代替。`expanded` / `defaultExpanded` / `onExpandedChange` 控制展开状态，受控值须由调用方接受。展开时隐藏项保持原来的链接、按钮或禁用语义，折叠按钮保留焦点并提供 `aria-expanded` 与所控制路径的关联。长路径在 `__ui` 中提供键盘、触控和 RTL 预览。
 
 `Tag` 默认是静态标签。`selectable` 提供带 `aria-pressed` 的选择按钮，`selected` / `defaultSelected` 与 `onSelectedChange` 管理选择状态；`closable` 提供独立关闭按钮，`open` / `defaultOpen` 与 `onOpenChange` 管理可见性。关闭先调用 `onClose(event)`，可通过 `event.preventDefault()` 取消；`closeLabel` 和 `closeIcon` 可定制关闭按钮。`disabled` 禁用选择和关闭操作。按钮均不提交外层表单，触控目标至少 44px；关闭后优先将焦点移到同组下一可操作项，其次移到上一项。受控值须由调用方更新。

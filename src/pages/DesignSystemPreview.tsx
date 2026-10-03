@@ -867,6 +867,37 @@ export function DesignSystemPreview() {
                     {inputClearStatus}
                   </Typography>
                 </div>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <FormField
+                    label="字符上限输入"
+                    description="超过 count.max 时提示，不截断内容。"
+                    control={
+                      <Input
+                        allowClear
+                        count={{ max: 4 }}
+                        defaultValue="内容超过上限"
+                      />
+                    }
+                  />
+                  <FormField
+                    label="原生长度限制"
+                    control={<Input count maxLength={5} defaultValue="任务" />}
+                  />
+                  <FormField
+                    label="自定义字数文本域"
+                    control={
+                      <Textarea
+                        defaultValue="😀😀😀"
+                        count={{
+                          max: 4,
+                          strategy: (value) => Array.from(value).length,
+                          render: ({ count, max }) =>
+                            `${count} 个字符 / ${max}`,
+                        }}
+                      />
+                    }
+                  />
+                </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <FormField
                     label="只读输入"

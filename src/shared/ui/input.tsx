@@ -1,5 +1,6 @@
 import {
   forwardRef,
+  useId,
   useRef,
   useState,
   type ChangeEvent,
@@ -11,6 +12,7 @@ import { cn } from '@/shared/lib/utils'
 import { clearNativeInput } from './clear-native-input'
 import { useConfig } from './config-context'
 import { useNativeFormReset } from './native-form-reset'
+import { resolveTextCount, type TextCount } from './text-count'
 import {
   inputSizeStyles,
   inputStatusStyles,
@@ -31,6 +33,7 @@ export type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> & {
   onPressEnter?: (event: KeyboardEvent<HTMLInputElement>) => void
   prefix?: ReactNode
   suffix?: ReactNode
+  count?: TextCount
   variant?: InputVariant
   status?: InputStatus
 }
@@ -50,6 +53,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       onPressEnter,
       prefix,
       suffix,
+      count,
       variant = 'outlined',
       status = 'default',
       onChange,
@@ -70,6 +74,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           ? 'large'
           : 'default')
     const inputRef = useRef<HTMLInputElement>(null)
+    const countId = useId()
     const [internalValue, setInternalValue] = useState(
       defaultValue === undefined ? '' : String(defaultValue),
     )
@@ -84,15 +89,23 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         ? ''
         : String(value)
       : internalValue
+    const resolvedCount = resolveTextCount(currentValue, count, props.maxLength)
     const hasAffix =
       (prefix !== undefined && prefix !== null) ||
-      (suffix !== undefined && suffix !== null)
+      (suffix !== undefined && suffix !== null) ||
+      Boolean(resolvedCount)
     const canClear = Boolean(
       allowClear && currentValue && !disabled && !readOnly,
     )
     const ariaInvalid =
-      invalid || status === 'error' ? true : props['aria-invalid']
+      invalid || status === 'error' || resolvedCount?.exceeded
+        ? true
+        : props['aria-invalid']
     const isInvalid = Boolean(ariaInvalid && ariaInvalid !== 'false')
+    const describedBy =
+      [props['aria-describedby'], resolvedCount && countId]
+        .filter(Boolean)
+        .join(' ') || undefined
     function handleChange(event: ChangeEvent<HTMLInputElement>) {
       if (!controlled) setInternalValue(event.currentTarget.value)
       onValueChange?.(event.currentTarget.value)
@@ -108,12 +121,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         data-ui-input-root=""
         data-disabled={disabled || undefined}
         data-invalid={isInvalid || undefined}
+        data-count-exceeded={resolvedCount?.exceeded || undefined}
         className={cn(
           'relative inline-flex w-full min-w-0 items-center',
           hasAffix &&
             'min-h-[max(44px,var(--ui-control-height))] rounded-[var(--ui-field-radius)] border border-input bg-card text-card-foreground focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20 data-[disabled=true]:opacity-[0.55] data-[invalid=true]:border-destructive',
           hasAffix && inputVariantStyles[variant],
           hasAffix && inputStatusStyles[status],
+          hasAffix &&
+            isInvalid &&
+            'border-destructive focus-within:border-destructive',
         )}
       >
         {prefix !== undefined && prefix !== null && (
@@ -136,6 +153,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           readOnly={readOnly}
           aria-label={ariaLabel}
           aria-invalid={ariaInvalid}
+          aria-describedby={describedBy}
           data-status={status === 'default' ? undefined : status}
           className={cn(
             hasAffix
@@ -179,6 +197,20 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             className="shrink-0 pe-3 text-muted-foreground"
           >
             {suffix}
+          </span>
+        )}
+        {resolvedCount && (
+          <span
+            id={countId}
+            data-ui-input-count=""
+            data-exceeded={resolvedCount.exceeded || undefined}
+            aria-label={resolvedCount.description}
+            className={cn(
+              'max-w-[50%] shrink-0 overflow-hidden text-ellipsis whitespace-nowrap pe-3 text-xs text-muted-foreground',
+              resolvedCount.exceeded && 'text-destructive',
+            )}
+          >
+            {resolvedCount.content}
           </span>
         )}
       </span>

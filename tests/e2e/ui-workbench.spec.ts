@@ -1374,6 +1374,60 @@ test('Input affixes and Textarea autoSize work on desktop and H5', async ({
   ).toBe(true)
 })
 
+test('Input and Textarea counts preserve values and expose limits on desktop and H5', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/__ui')
+  await page.setViewportSize({ width: 360, height: 844 })
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const limited = preview.getByRole('textbox', { name: '字符上限输入' })
+  const limitedCount = limited.locator('..').locator('[data-ui-input-count]')
+  await expect(limited).toHaveValue('内容超过上限')
+  await expect(limitedCount).toHaveText('6 / 4')
+  await expect(limited).toHaveAttribute('aria-invalid', 'true')
+  await expect(limitedCount).toHaveAttribute('data-exceeded', 'true')
+  expect(await limited.getAttribute('aria-describedby')).toContain(
+    await limitedCount.getAttribute('id'),
+  )
+  const clear = limited.locator('..').getByRole('button', { name: '清空输入' })
+  if (testInfo.project.name.startsWith('mobile-')) await clear.tap()
+  else {
+    await clear.focus()
+    await clear.press('Enter')
+  }
+  await expect(limited).toHaveValue('')
+  await expect(limited).toBeFocused()
+  await expect(limitedCount).toHaveText('0 / 4')
+  await expect(limited).not.toHaveAttribute('aria-invalid', 'true')
+
+  const nativeLimit = preview.getByRole('textbox', { name: '原生长度限制' })
+  await nativeLimit.fill('')
+  await nativeLimit.pressSequentially('123456789')
+  await expect(nativeLimit).toHaveValue('12345')
+  await expect(
+    nativeLimit.locator('..').locator('[data-ui-input-count]'),
+  ).toHaveText('5 / 5')
+
+  const textarea = preview.getByRole('textbox', { name: '自定义字数文本域' })
+  const textareaCount = textarea
+    .locator('..')
+    .locator('..')
+    .locator('[data-ui-textarea-count]')
+  await expect(textareaCount).toHaveText('3 个字符 / 4')
+  await textarea.fill('😀😀😀😀😀')
+  await expect(textarea).toHaveValue('😀😀😀😀😀')
+  await expect(textareaCount).toHaveText('5 个字符 / 4')
+  await expect(textarea).toHaveAttribute('aria-invalid', 'true')
+  await textarea.fill('😀😀')
+  await expect(textareaCount).toHaveText('2 个字符 / 4')
+  await expect(textarea).not.toHaveAttribute('aria-invalid', 'true')
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+})
+
 test('native form reset restores uncontrolled inputs on keyboard and H5 touch', async ({
   page,
 }, testInfo) => {

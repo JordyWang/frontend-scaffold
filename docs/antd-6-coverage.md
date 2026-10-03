@@ -174,7 +174,9 @@ Input 与 Textarea 增加 `allowClear`，清空按钮保持 44px 触控区域并
 
 Input 与 Textarea 提供项目自己的 `variant`（outlined、filled、borderless、underlined）和 `status`（error、warning），状态通过主题 Token 和 `aria-invalid` 暴露。
 
-对照 [Input 6.6.5 文档](https://ant.design/components/input-cn)，本批补 Input 的前后缀、`onClear`、`onPressEnter` 和 Textarea 的 `autoSize`。动态前后缀保持原生 input 节点与焦点，清空仍发送原生变更事件；Textarea 根据内容和容器宽度在最小/最大行数之间调整高度。`/__ui` 增加前后缀、动态切换和自适应多行预览，并以桌面键盘、H5 触控及真实尺寸回归验证。字数计数、定制计数和输入组合能力仍需补齐。
+对照 [Input 6.6.5 文档](https://ant.design/components/input-cn)，本批补 Input 的前后缀、`onClear`、`onPressEnter` 和 Textarea 的 `autoSize`。动态前后缀保持原生 input 节点与焦点，清空仍发送原生变更事件；Textarea 根据内容和容器宽度在最小/最大行数之间调整高度。`/__ui` 增加前后缀、动态切换和自适应多行预览，并以桌面键盘、H5 触控及真实尺寸回归验证。输入组合能力仍需补齐。
+
+字符计数使用项目自己的 `count` 配置，同时支持 Input 与 Textarea：默认字符串长度、自定义策略与显示、可选的视觉上限。`maxLength` 仍由原生字段限制输入，`count.max` 超限只标记错误并保留受控完整值；计数关联字段说明且不覆盖 FormField 的提示。`/__ui` 展示超限、原生限制与 emoji 自定义计数，桌面与 H5 回归检查键盘输入、清空、状态和窄屏布局。
 
 Select 与 MultiSelect 复用同一组外观与状态字段，错误状态会同步设置 `aria-invalid`，`/__ui` 展示填充和下划线警告选择器。
 
