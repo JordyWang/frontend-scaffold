@@ -2517,13 +2517,40 @@ export function DesignSystemPreview() {
                       />
                     }
                   />
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Statistic title="完成率" value={volume} suffix="%" />
+                  <div
+                    role="group"
+                    aria-label="统计数值语义预览"
+                    className="grid gap-3 sm:grid-cols-2"
+                  >
+                    <Statistic
+                      title="完成率"
+                      value={volume}
+                      suffix="%"
+                      classNames={{
+                        header: 'pb-1',
+                        value: 'text-primary',
+                        suffix: 'text-primary',
+                      }}
+                    />
                     <Statistic
                       title="处理任务数"
                       value={12345.678}
                       precision={1}
                       loading={statisticLoading}
+                      classNames={{ value: 'text-primary' }}
+                    />
+                    <Statistic
+                      title="自定义分隔符"
+                      value={1234567.89}
+                      precision={2}
+                      prefix="¥"
+                      suffix="元"
+                      groupSeparator="_"
+                      decimalSeparator="·"
+                      classNames={{
+                        prefix: 'text-primary',
+                        value: 'text-primary',
+                      }}
                     />
                   </div>
                   <Button

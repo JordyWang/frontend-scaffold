@@ -1772,6 +1772,87 @@ describe('Ant Design-inspired shared components', () => {
     ).toBeNull()
   })
 
+  it('exposes statistic semantic parts for Tailwind classes and separator overrides', () => {
+    const classNames = {
+      root: 'rounded-lg',
+      header: 'pb-2',
+      title: 'text-primary',
+      content: 'gap-2',
+      prefix: 'text-sm',
+      value: 'text-3xl',
+      suffix: 'text-xs',
+    }
+    const { container, rerender } = render(
+      <Statistic
+        title="收入"
+        value={1234567.89}
+        precision={2}
+        prefix="¥"
+        suffix="元"
+        groupSeparator="_"
+        decimalSeparator="·"
+        classNames={classNames}
+      />,
+    )
+    const root = container.querySelector('[data-ui-statistic]')!
+    expect(root).toHaveClass('rounded-lg')
+    expect(root.querySelector('[data-ui-statistic-header]')).toHaveClass('pb-2')
+    expect(root.querySelector('[data-ui-statistic-title]')).toHaveClass(
+      'text-primary',
+    )
+    expect(root.querySelector('[data-ui-statistic-content]')).toHaveClass(
+      'gap-2',
+    )
+    expect(root.querySelector('[data-ui-statistic-prefix]')).toHaveClass(
+      'text-sm',
+    )
+    expect(root.querySelector('[data-ui-statistic-value]')).toHaveClass(
+      'text-3xl',
+    )
+    expect(root.querySelector('[data-ui-statistic-value]')).toHaveTextContent(
+      '1_234_567·89',
+    )
+    expect(root.querySelector('[data-ui-statistic-suffix]')).toHaveClass(
+      'text-xs',
+    )
+
+    rerender(
+      <Statistic
+        title="收入"
+        value={1234567.89}
+        loading
+        classNames={classNames}
+      />,
+    )
+    expect(root).toHaveAttribute('aria-busy', 'true')
+    expect(root.querySelector('[data-ui-statistic-content]')).toHaveClass(
+      'gap-2',
+    )
+    expect(root.querySelector('[data-ui-statistic-value]')).toHaveClass(
+      'text-3xl',
+    )
+    expect(
+      screen.getByRole('status', { name: '收入正在加载' }),
+    ).toBeInTheDocument()
+    expect(root.querySelector('[data-ui-statistic-prefix]')).toBeNull()
+
+    rerender(
+      <Statistic
+        title="零值单位"
+        value={12}
+        prefix={0}
+        suffix={0}
+        groupSeparator=""
+      />,
+    )
+    expect(root.querySelector('[data-ui-statistic-prefix]')).toHaveTextContent(
+      '0',
+    )
+    expect(root.querySelector('[data-ui-statistic-suffix]')).toHaveTextContent(
+      '0',
+    )
+  })
+
   it('keeps overlay interactions keyboard accessible', async () => {
     const onSelect = vi.fn()
     const onConfirm = vi.fn()

@@ -250,7 +250,7 @@ Empty 增加 default / small 尺寸契约和可替换插图，未指定尺寸时
 
 Pagination 增加独立禁用状态，并为加载态暴露 `aria-busy`；页码、条数选择、快速跳页与加载更多同步禁用，`/__ui` 可切换验证。
 
-Statistic 的数值格式遵循 ConfigProvider.locale，并支持精度、局部语言覆写和加载骨架；`StatisticTimer` 对应上游当前 Timer 形态，以目标或起始时间戳正计时、倒计时，支持天/时/分/秒/毫秒格式、变更与完成回调，并在后台恢复时按实际时钟校正。`/__ui` 展示数值加载及可重启的计时器，桌面键盘与 H5 触控回归覆盖运行和归零。
+Statistic 的数值格式遵循 ConfigProvider.locale，并支持精度、局部语言、分组符及小数符覆写和加载骨架；内部 root/header/title/content/value/prefix/suffix 节点可分别传 Tailwind 类，加载时结构保持稳定。`StatisticTimer` 对应上游当前 Timer 形态，以目标或起始时间戳正计时、倒计时，支持天/时/分/秒/毫秒格式、变更与完成回调，并在后台恢复时按实际时钟校正。`/__ui` 展示语义样式、数值加载及可重启的计时器，桌面键盘与 H5 触控回归覆盖运行和归零。
 
 Badge 无子元素时正常占位并显示数量或标签；数字零、溢出上限、短文本、小号、圆点和逻辑偏移有明确规则，状态点与 Ribbon 角标支持语义名称和 RTL。附着于控件时徽标跟随 LTR/RTL 逻辑末端，`/__ui` 提供桌面与 H5 预览。
 

@@ -450,8 +450,29 @@ test('Statistic reveals a grouped value after loading on keyboard and touch', as
   const statistic = preview.locator('[data-ui-statistic]').filter({
     hasText: '处理任务数',
   })
+  const semantic = preview.getByRole('group', { name: '统计数值语义预览' })
+  const customized = semantic.locator('[data-ui-statistic]').filter({
+    hasText: '自定义分隔符',
+  })
+  await expect(customized.locator('[data-ui-statistic-value]')).toHaveText(
+    '1_234_567·89',
+  )
+  await expect(customized.locator('[data-ui-statistic-header]')).toBeVisible()
+  const primaryColor = await page.evaluate(() => {
+    const probe = document.createElement('span')
+    probe.className = 'text-primary'
+    document.body.appendChild(probe)
+    const color = getComputedStyle(probe).color
+    probe.remove()
+    return color
+  })
+  await expect(customized.locator('[data-ui-statistic-value]')).toHaveCSS(
+    'color',
+    primaryColor,
+  )
   const complete = preview.getByRole('button', { name: '完成统计加载' })
   await expect(statistic).toHaveAttribute('aria-busy', 'true')
+  await expect(statistic.locator('[data-ui-statistic-value]')).toHaveCount(1)
   await expect(
     statistic.getByRole('status', { name: '处理任务数正在加载' }),
   ).toBeVisible()
@@ -464,11 +485,17 @@ test('Statistic reveals a grouped value after loading on keyboard and touch', as
   }
   await expect(statistic).not.toHaveAttribute('aria-busy', 'true')
   await expect(statistic).toContainText('12,345.7')
+  await expect(statistic.locator('[data-ui-statistic-value]')).toHaveCount(1)
 
   const reset = preview.getByRole('button', { name: '重置统计加载' })
   if (testInfo.project.name.startsWith('mobile-')) await reset.tap()
   else await reset.press('Enter')
   await expect(statistic).toHaveAttribute('aria-busy', 'true')
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
 })
 
 test('StatisticTimer counts down and up with keyboard and H5 touch', async ({
