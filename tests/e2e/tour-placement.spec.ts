@@ -93,3 +93,41 @@ test('Tour keeps expanded content and actions reachable in a short viewport', as
   else await next.click()
   await expect(page.getByRole('dialog', { name: '保存草稿' })).toBeVisible()
 })
+
+test('controlled Tour restores focus only after the owner accepts closing', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const begin = preview.getByRole('button', { name: '预览受控关闭' })
+  if (testInfo.project.name.startsWith('mobile-')) await begin.tap()
+  else await begin.click()
+
+  const card = page.getByRole('dialog', { name: '受控关闭请求' })
+  const close = card.getByRole('button', { name: '关闭引导' })
+  await expect(close).toBeFocused()
+  const bounds = await close.boundingBox()
+  expect(bounds!.width).toBeGreaterThanOrEqual(44)
+  expect(bounds!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile-')) await close.tap()
+  else await close.press('Enter')
+  await expect(card).toBeVisible()
+  await expect(begin).not.toBeFocused()
+  if (testInfo.project.name === 'mobile-webkit') {
+    // WebKit can clear button focus after a tap; the next keyboard Tab must
+    // still enter the guarded card instead of moving through the page.
+    await page.keyboard.press('Tab')
+  }
+  await expect(close).toBeFocused()
+
+  if (testInfo.project.name.startsWith('mobile-')) await close.tap()
+  else await close.press('Enter')
+  await expect(card).toHaveCount(0)
+  await expect(begin).toBeFocused()
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+})

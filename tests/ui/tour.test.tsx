@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Tour } from '@/shared/ui'
@@ -117,5 +117,37 @@ describe('Tour', () => {
     fireEvent.keyDown(input, { key: 'ArrowRight' })
     expect(onChange).not.toHaveBeenCalled()
     fireEvent.keyDown(document, { key: 'Escape' })
+  })
+
+  it('keeps focus in a controlled tour when a close request is rejected', async () => {
+    const onClose = vi.fn()
+    const renderTour = (open: boolean) => (
+      <>
+        <button type="button">打开引导</button>
+        <Tour
+          open={open}
+          onClose={onClose}
+          steps={[{ key: 'guarded', title: '受控引导' }]}
+        />
+      </>
+    )
+    const { rerender } = render(renderTour(false))
+    const opener = screen.getByRole('button', { name: '打开引导' })
+    opener.focus()
+    rerender(renderTour(true))
+    const close = screen.getByRole('button', { name: '关闭引导' })
+    await waitFor(() => expect(close).toHaveFocus())
+
+    fireEvent.click(close)
+    expect(onClose).toHaveBeenCalledOnce()
+    close.blur()
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    )
+    expect(screen.getByRole('dialog', { name: '受控引导' })).toBeVisible()
+    expect(close).toHaveFocus()
+
+    rerender(renderTour(false))
+    await waitFor(() => expect(opener).toHaveFocus())
   })
 })

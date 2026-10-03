@@ -259,11 +259,23 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
       if (open === undefined) setInternalOpen(false)
       if (finish) onFinish?.()
       else onClose?.()
-      requestAnimationFrame(() =>
-        (restoreFocusRef.current ?? returnFocusRef?.current)?.focus(),
-      )
+      // A controlled owner may reject the close request. Restore focus only
+      // after the card has actually left the document, including when the
+      // owner unmounts Tour in response to this callback.
+      requestAnimationFrame(() => {
+        const card = cardRef.current
+        if (!card?.isConnected) {
+          ;(restoreFocusRef.current ?? returnFocusRef?.current)?.focus()
+          return
+        }
+        const active = document.activeElement
+        const target = targetElement(step?.target)
+        if (hasMask && !card.contains(active) && !target?.contains(active)) {
+          card.querySelector<HTMLButtonElement>('[data-tour-close]')?.focus()
+        }
+      })
     },
-    [onClose, onFinish, open, returnFocusRef],
+    [hasMask, onClose, onFinish, open, returnFocusRef, step],
   )
 
   useLayoutEffect(() => {
@@ -317,6 +329,11 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
 
   useEffect(() => {
     if (!isOpen) {
+      if (openSessionRef.current) {
+        requestAnimationFrame(() =>
+          (restoreFocusRef.current ?? returnFocusRef?.current)?.focus(),
+        )
+      }
       openSessionRef.current = false
       return
     }
@@ -324,7 +341,7 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
     const active = document.activeElement as HTMLElement | null
     restoreFocusRef.current = active && active !== document.body ? active : null
     openSessionRef.current = true
-  }, [isOpen])
+  }, [isOpen, returnFocusRef])
 
   useEffect(() => {
     if (!isOpen) return

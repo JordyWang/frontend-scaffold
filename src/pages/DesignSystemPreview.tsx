@@ -303,10 +303,13 @@ export function DesignSystemPreview() {
     'start',
   )
   const [tourTargetClicks, setTourTargetClicks] = useState(0)
+  const [tourGuardOpen, setTourGuardOpen] = useState(false)
+  const tourGuardCloseRequests = useRef(0)
   const [rtlPopupContainer, setRtlPopupContainer] =
     useState<HTMLDivElement | null>(null)
   const tourTriggerRef = useRef<HTMLButtonElement>(null)
   const tourEdgeTriggerRef = useRef<HTMLButtonElement>(null)
+  const tourGuardTriggerRef = useRef<HTMLButtonElement>(null)
   const anchorScrollRef = useRef<HTMLDivElement>(null)
   const alertRestoreRef = useRef<HTMLButtonElement>(null)
   const affixTargetRef = useRef<HTMLDivElement>(null)
@@ -3452,6 +3455,17 @@ export function DesignSystemPreview() {
                   >
                     预览边缘放置
                   </Button>
+                  <Button
+                    ref={tourGuardTriggerRef}
+                    variant="outline"
+                    size="small"
+                    onClick={() => {
+                      tourGuardCloseRequests.current = 0
+                      setTourGuardOpen(true)
+                    }}
+                  >
+                    预览受控关闭
+                  </Button>
                 </Stack>
                 <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/30 p-4">
                   <Button
@@ -3506,6 +3520,24 @@ export function DesignSystemPreview() {
                       description: '确认内容无误后发布给团队成员。',
                       placement: 'right',
                       type: 'primary',
+                    },
+                  ]}
+                />
+                <Tour
+                  open={tourGuardOpen}
+                  returnFocusRef={tourGuardTriggerRef}
+                  onClose={() => {
+                    tourGuardCloseRequests.current += 1
+                    if (tourGuardCloseRequests.current >= 2)
+                      setTourGuardOpen(false)
+                  }}
+                  onFinish={() => setTourGuardOpen(false)}
+                  steps={[
+                    {
+                      key: 'guarded-close',
+                      title: '受控关闭请求',
+                      description:
+                        '第一次关闭请求由调用方拒绝，卡片保持打开；第二次请求才真正关闭并恢复焦点。',
                     },
                   ]}
                 />
