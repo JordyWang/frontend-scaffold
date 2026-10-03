@@ -66,6 +66,21 @@ export const overlayFooterStyles =
 export const affixShellStyles =
   'flex w-full min-h-[max(44px,var(--ui-control-height))] items-center rounded-[var(--ui-field-radius)] border border-input bg-card text-card-foreground focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20 data-[invalid=true]:border-destructive data-[disabled=true]:opacity-[0.55]'
 
+export const affixVariantStyles = {
+  outlined: '',
+  filled: 'border-transparent bg-muted',
+  borderless: 'border-transparent bg-transparent',
+  underlined:
+    'rounded-none border-0 border-b border-input bg-transparent focus-within:border-ring focus-within:ring-0',
+} as const
+
+export const affixStatusStyles = {
+  default: '',
+  error: 'border-destructive focus-within:border-destructive',
+  warning:
+    'border-[var(--ui-color-warning)] focus-within:border-[var(--ui-color-warning)]',
+} as const
+
 export const affixInputStyles =
   'min-w-0 flex-1 bg-transparent px-3 py-2.5 text-base leading-6 text-card-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed'
 

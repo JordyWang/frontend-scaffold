@@ -1,27 +1,46 @@
-import { forwardRef, useRef, useState, type InputHTMLAttributes } from 'react'
+import {
+  forwardRef,
+  useId,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type InputHTMLAttributes,
+  type ReactNode,
+} from 'react'
 import { cn } from '@/shared/lib/utils'
+import { clearNativeInput } from './clear-native-input'
 import { useConfig } from './config-context'
 import { Icon } from './icon'
 import { useNativeFormReset } from './native-form-reset'
+import { resolveTextCount, type TextCount } from './text-count'
 import {
   affixActionStyles,
   affixInputStyles,
   affixShellStyles,
+  affixStatusStyles,
+  affixVariantStyles,
   inputSizeStyles,
   spinnerStyles,
 } from './tailwind-styles'
+import type { InputStatus, InputVariant } from './input'
 
 type InputSize = 'default' | 'small' | 'large'
 
 export type SearchInputProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
-  'type' | 'size' | 'value' | 'defaultValue' | 'onChange'
+  'type' | 'size' | 'value' | 'defaultValue'
 > & {
   value?: string
   defaultValue?: string
   onValueChange?: (value: string) => void
+  onClear?: () => void
   onSearch?: (value: string) => void
   allowClear?: boolean
+  prefix?: ReactNode
+  suffix?: ReactNode
+  count?: TextCount
+  variant?: InputVariant
+  status?: InputStatus
   loading?: boolean
   invalid?: boolean
   size?: InputSize
@@ -37,14 +56,22 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
       value,
       defaultValue = '',
       onValueChange,
+      onChange,
+      onClear,
       onSearch,
       allowClear = false,
+      prefix,
+      suffix,
+      count,
+      variant = 'outlined',
+      status = 'default',
       loading = false,
       invalid = false,
       size,
       searchLabel = '搜索',
       clearLabel = '清空搜索',
       disabled = false,
+      readOnly = false,
       className,
       onKeyDown,
       'aria-invalid': ariaInvalid,
@@ -61,12 +88,38 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
     const [internalValue, setInternalValue] = useState(defaultValue)
     const currentValue = controlled ? (value ?? '') : internalValue
     const inputRef = useRef<HTMLInputElement | null>(null)
+    const countId = useId()
     useNativeFormReset(inputRef, controlled, defaultValue, setInternalValue)
-    const isInvalid = invalid || ariaInvalid === true || ariaInvalid === 'true'
+    const resolvedCount = resolveTextCount(
+      currentValue,
+      count,
+      inputProps.maxLength,
+    )
+    const resolvedAriaInvalid =
+      invalid || status === 'error' || resolvedCount?.exceeded
+        ? true
+        : ariaInvalid
+    const isInvalid = Boolean(
+      resolvedAriaInvalid && resolvedAriaInvalid !== 'false',
+    )
+    const describedBy =
+      [inputProps['aria-describedby'], resolvedCount && countId]
+        .filter(Boolean)
+        .join(' ') || undefined
+    const canClear = Boolean(
+      allowClear && currentValue && !disabled && !readOnly,
+    )
 
-    function change(nextValue: string) {
-      if (!controlled) setInternalValue(nextValue)
-      onValueChange?.(nextValue)
+    function handleChange(event: ChangeEvent<HTMLInputElement>) {
+      if (!controlled) setInternalValue(event.currentTarget.value)
+      onValueChange?.(event.currentTarget.value)
+      onChange?.(event)
+    }
+
+    function clear() {
+      if (inputRef.current) clearNativeInput(inputRef.current)
+      onClear?.()
+      requestAnimationFrame(() => inputRef.current?.focus())
     }
 
     function search() {
@@ -79,8 +132,19 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
         data-ui-affix-root=""
         data-invalid={isInvalid || undefined}
         data-disabled={disabled || undefined}
-        className={cn(affixShellStyles, className)}
+        data-status={status === 'default' ? undefined : status}
+        data-count-exceeded={resolvedCount?.exceeded || undefined}
+        className={cn(
+          affixShellStyles,
+          affixVariantStyles[variant],
+          affixStatusStyles[status],
+          isInvalid && 'border-destructive focus-within:border-destructive',
+          className,
+        )}
       >
+        {prefix !== undefined && prefix !== null && (
+          <span className="shrink-0 ps-3 text-muted-foreground">{prefix}</span>
+        )}
         <input
           {...inputProps}
           ref={(node) => {
@@ -91,37 +155,55 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           type="search"
           value={currentValue}
           disabled={disabled}
-          aria-invalid={isInvalid || undefined}
+          readOnly={readOnly}
+          aria-invalid={resolvedAriaInvalid}
+          aria-describedby={describedBy}
+          data-status={status === 'default' ? undefined : status}
           className={cn(
             affixInputStyles,
             inputSizeStyles[resolvedSize],
             '[&::-webkit-search-cancel-button]:hidden',
           )}
-          onChange={(event) => change(event.target.value)}
+          onChange={handleChange}
           onKeyDown={(event) => {
             onKeyDown?.(event)
             if (
               event.key === 'Enter' &&
               !event.defaultPrevented &&
-              !event.nativeEvent.isComposing
+              !event.nativeEvent.isComposing &&
+              event.nativeEvent.keyCode !== 229
             ) {
               event.preventDefault()
               search()
             }
           }}
         />
-        {allowClear && currentValue && !disabled && (
+        {canClear && (
           <button
             type="button"
             aria-label={clearLabel}
             className={affixActionStyles}
-            onClick={() => {
-              change('')
-              inputRef.current?.focus()
-            }}
+            onClick={clear}
           >
             <Icon name="close" size={18} />
           </button>
+        )}
+        {suffix !== undefined && suffix !== null && (
+          <span className="shrink-0 pe-3 text-muted-foreground">{suffix}</span>
+        )}
+        {resolvedCount && (
+          <span
+            id={countId}
+            data-ui-search-count=""
+            data-exceeded={resolvedCount.exceeded || undefined}
+            aria-label={resolvedCount.description}
+            className={cn(
+              'max-w-[40%] shrink-0 overflow-hidden text-ellipsis whitespace-nowrap pe-2 text-xs text-muted-foreground',
+              resolvedCount.exceeded && 'text-destructive',
+            )}
+          >
+            {resolvedCount.content}
+          </span>
         )}
         <button
           type="button"
@@ -147,8 +229,19 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
 
 export type PasswordInputProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
-  'type' | 'size'
+  'type' | 'size' | 'value' | 'defaultValue'
 > & {
+  value?: string
+  defaultValue?: string
+  onValueChange?: (value: string) => void
+  onClear?: () => void
+  allowClear?: boolean
+  clearLabel?: string
+  prefix?: ReactNode
+  suffix?: ReactNode
+  count?: TextCount
+  variant?: InputVariant
+  status?: InputStatus
   visible?: boolean
   defaultVisible?: boolean
   onVisibleChange?: (visible: boolean) => void
@@ -159,8 +252,21 @@ export type PasswordInputProps = Omit<
 
 /** Password entry with an accessible visibility toggle. */
 export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
-  function PasswordInput(
-    {
+  function PasswordInput(allProps, ref) {
+    const controlled = Object.prototype.hasOwnProperty.call(allProps, 'value')
+    const {
+      value,
+      defaultValue = '',
+      onChange,
+      onValueChange,
+      onClear,
+      allowClear = false,
+      clearLabel = '清空密码',
+      prefix,
+      suffix,
+      count,
+      variant = 'outlined',
+      status = 'default',
       visible,
       defaultVisible = false,
       onVisibleChange,
@@ -168,12 +274,11 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
       invalid = false,
       size,
       disabled = false,
+      readOnly = false,
       className,
       'aria-invalid': ariaInvalid,
       ...inputProps
-    },
-    ref,
-  ) {
+    } = allProps
     const { componentSize } = useConfig()
     const resolvedSize =
       size ??
@@ -184,23 +289,105 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
           : 'default')
     const [internalVisible, setInternalVisible] = useState(defaultVisible)
     const isVisible = visible ?? internalVisible
-    const isInvalid = invalid || ariaInvalid === true || ariaInvalid === 'true'
+    const inputRef = useRef<HTMLInputElement | null>(null)
+    const countId = useId()
+    const [internalValue, setInternalValue] = useState(defaultValue)
+    useNativeFormReset(inputRef, controlled, defaultValue, setInternalValue)
+    const currentValue = controlled ? (value ?? '') : internalValue
+    const resolvedCount = resolveTextCount(
+      currentValue,
+      count,
+      inputProps.maxLength,
+    )
+    const resolvedAriaInvalid =
+      invalid || status === 'error' || resolvedCount?.exceeded
+        ? true
+        : ariaInvalid
+    const isInvalid = Boolean(
+      resolvedAriaInvalid && resolvedAriaInvalid !== 'false',
+    )
+    const describedBy =
+      [inputProps['aria-describedby'], resolvedCount && countId]
+        .filter(Boolean)
+        .join(' ') || undefined
+    const canClear = Boolean(
+      allowClear && currentValue && !disabled && !readOnly,
+    )
+
+    function handleChange(event: ChangeEvent<HTMLInputElement>) {
+      if (!controlled) setInternalValue(event.currentTarget.value)
+      onValueChange?.(event.currentTarget.value)
+      onChange?.(event)
+    }
+
+    function clear() {
+      if (inputRef.current) clearNativeInput(inputRef.current)
+      onClear?.()
+      requestAnimationFrame(() => inputRef.current?.focus())
+    }
 
     return (
       <div
         data-ui-affix-root=""
         data-invalid={isInvalid || undefined}
         data-disabled={disabled || undefined}
-        className={cn(affixShellStyles, className)}
+        data-status={status === 'default' ? undefined : status}
+        data-count-exceeded={resolvedCount?.exceeded || undefined}
+        className={cn(
+          affixShellStyles,
+          affixVariantStyles[variant],
+          affixStatusStyles[status],
+          isInvalid && 'border-destructive focus-within:border-destructive',
+          className,
+        )}
       >
+        {prefix !== undefined && prefix !== null && (
+          <span className="shrink-0 ps-3 text-muted-foreground">{prefix}</span>
+        )}
         <input
           {...inputProps}
-          ref={ref}
+          ref={(node) => {
+            inputRef.current = node
+            if (typeof ref === 'function') ref(node)
+            else if (ref) ref.current = node
+          }}
           type={isVisible ? 'text' : 'password'}
+          value={currentValue}
           disabled={disabled}
-          aria-invalid={isInvalid || undefined}
+          readOnly={readOnly}
+          aria-invalid={resolvedAriaInvalid}
+          aria-describedby={describedBy}
+          data-status={status === 'default' ? undefined : status}
           className={cn(affixInputStyles, inputSizeStyles[resolvedSize])}
+          onChange={handleChange}
         />
+        {canClear && (
+          <button
+            type="button"
+            aria-label={clearLabel}
+            className={affixActionStyles}
+            onClick={clear}
+          >
+            <Icon name="close" size={18} />
+          </button>
+        )}
+        {suffix !== undefined && suffix !== null && (
+          <span className="shrink-0 pe-3 text-muted-foreground">{suffix}</span>
+        )}
+        {resolvedCount && (
+          <span
+            id={countId}
+            data-ui-password-count=""
+            data-exceeded={resolvedCount.exceeded || undefined}
+            aria-label={resolvedCount.description}
+            className={cn(
+              'max-w-[40%] shrink-0 overflow-hidden text-ellipsis whitespace-nowrap pe-2 text-xs text-muted-foreground',
+              resolvedCount.exceeded && 'text-destructive',
+            )}
+          >
+            {resolvedCount.content}
+          </span>
+        )}
         {visibilityToggle && (
           <button
             type="button"

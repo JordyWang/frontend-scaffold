@@ -1036,6 +1036,12 @@ export function DesignSystemPreview() {
                     label="原生搜索"
                     control={<SearchInput defaultValue="默认搜索" allowClear />}
                   />
+                  <FormField
+                    label="原生密码"
+                    control={
+                      <PasswordInput defaultValue="default-123" allowClear />
+                    }
+                  />
                   <Button type="reset" variant="outline" size="small">
                     重置原生表单
                   </Button>
@@ -1249,6 +1255,55 @@ export function DesignSystemPreview() {
                   error="密码不符合要求"
                   control={<PasswordInput defaultValue="short" />}
                 />
+                <div
+                  role="group"
+                  aria-label="搜索与密码输入外观"
+                  className="grid min-w-0 gap-3 sm:grid-cols-2"
+                >
+                  <FormField
+                    label="填充警告搜索"
+                    description="前后缀、字数提示和清空使用相同输入约定。"
+                    control={
+                      <SearchInput
+                        variant="filled"
+                        status="warning"
+                        prefix="站内"
+                        suffix="项"
+                        count={{ max: 4 }}
+                        defaultValue="组件"
+                        allowClear
+                      />
+                    }
+                  />
+                  <FormField
+                    label="下划线密码"
+                    control={
+                      <PasswordInput
+                        variant="underlined"
+                        count={{ max: 12 }}
+                        defaultValue="demo-123"
+                        allowClear
+                        autoComplete="off"
+                      />
+                    }
+                  />
+                  <FormField
+                    label="错误搜索状态"
+                    error="请输入有效关键词"
+                    control={<SearchInput status="error" defaultValue="?" />}
+                  />
+                  <FormField
+                    label="只读密码状态"
+                    control={
+                      <PasswordInput
+                        variant="borderless"
+                        defaultValue="read-only"
+                        readOnly
+                        allowClear
+                      />
+                    }
+                  />
+                </div>
                 <PasswordInput
                   aria-label="不可用密码"
                   value="disabled"

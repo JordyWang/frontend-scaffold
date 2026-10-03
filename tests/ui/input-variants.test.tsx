@@ -30,9 +30,12 @@ describe('input variants', () => {
     )
   })
 
-  it('searches by Enter and button, then clears without submitting a parent form', () => {
+  it('searches by Enter and button, then clears without submitting a parent form', async () => {
     const onSearch = vi.fn()
     const onValueChange = vi.fn()
+    const onChange = vi.fn()
+    const onClear = vi.fn()
+    const changedValues: string[] = []
     const onSubmit = vi.fn((event: React.FormEvent) => event.preventDefault())
     render(
       <form onSubmit={onSubmit}>
@@ -41,6 +44,11 @@ describe('input variants', () => {
           allowClear
           onSearch={onSearch}
           onValueChange={onValueChange}
+          onChange={(event) => {
+            changedValues.push(event.currentTarget.value)
+            onChange(event)
+          }}
+          onClear={onClear}
         />
       </form>,
     )
@@ -53,7 +61,12 @@ describe('input variants', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '清空搜索' }))
     expect(input).toHaveValue('')
-    expect(input).toHaveFocus()
+    expect(onValueChange).toHaveBeenLastCalledWith('')
+    expect(changedValues).toEqual(['设计系统', ''])
+    expect(onChange).toHaveBeenCalledTimes(2)
+    expect(onChange.mock.calls[1][0].nativeEvent).toBeInstanceOf(Event)
+    expect(onClear).toHaveBeenCalledOnce()
+    await waitFor(() => expect(input).toHaveFocus())
     fireEvent.click(screen.getByRole('button', { name: '搜索' }))
     expect(onSearch).toHaveBeenLastCalledWith('')
   })
@@ -93,6 +106,135 @@ describe('input variants', () => {
     expect(submit).toHaveAttribute('aria-busy', 'true')
     fireEvent.keyDown(input, { key: 'Enter' })
     expect(onSearch).not.toHaveBeenCalled()
+  })
+
+  it('preserves composition, read-only values and explicit valid aria state', () => {
+    const onSearch = vi.fn()
+    render(
+      <>
+        <SearchInput
+          aria-label="只读搜索"
+          defaultValue="任务"
+          allowClear
+          readOnly
+          onSearch={onSearch}
+          aria-invalid="false"
+        />
+        <PasswordInput
+          aria-label="只读密码"
+          defaultValue="secret"
+          allowClear
+          readOnly
+        />
+      </>,
+    )
+    const search = screen.getByRole('searchbox', { name: '只读搜索' })
+    const password = screen.getByLabelText('只读密码')
+    expect(search).toHaveAttribute('readonly')
+    expect(password).toHaveAttribute('readonly')
+    expect(search).toHaveAttribute('aria-invalid', 'false')
+    expect(search.closest('[data-ui-affix-root]')).not.toHaveAttribute(
+      'data-invalid',
+    )
+    expect(screen.queryByRole('button', { name: '清空搜索' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '清空密码' })).toBeNull()
+    fireEvent.keyDown(search, { key: 'Enter', isComposing: true })
+    fireEvent.keyDown(search, { key: 'Enter', keyCode: 229 })
+    expect(onSearch).not.toHaveBeenCalled()
+    fireEvent.keyDown(search, { key: 'Enter' })
+    expect(onSearch).toHaveBeenCalledExactlyOnceWith('任务')
+  })
+
+  it('supports variants, affixes and a linked character count', () => {
+    render(
+      <>
+        <SearchInput
+          aria-label="警告搜索"
+          variant="filled"
+          status="warning"
+          prefix="🔎"
+          suffix="件"
+          count={{ max: 2 }}
+          defaultValue="任务列表"
+        />
+        <PasswordInput
+          aria-label="错误密码"
+          variant="underlined"
+          status="error"
+          count
+          defaultValue="secret"
+        />
+      </>,
+    )
+    const search = screen.getByRole('searchbox', { name: '警告搜索' })
+    const searchRoot = search.closest('[data-ui-affix-root]')
+    expect(searchRoot).toHaveClass('bg-muted')
+    expect(searchRoot).toHaveAttribute('data-status', 'warning')
+    expect(searchRoot).toHaveAttribute('data-count-exceeded', 'true')
+    expect(search).toHaveAttribute('aria-invalid', 'true')
+    expect(search).toHaveAttribute('aria-describedby')
+    expect(searchRoot).toHaveTextContent('4 / 2')
+    expect(searchRoot).toHaveTextContent('件')
+
+    const password = screen.getByLabelText('错误密码')
+    const passwordRoot = password.closest('[data-ui-affix-root]')
+    expect(passwordRoot).toHaveClass('border-b')
+    expect(passwordRoot).toHaveAttribute('data-status', 'error')
+    expect(password).toHaveAttribute('aria-invalid', 'true')
+    expect(password).toHaveAttribute('aria-describedby')
+    expect(passwordRoot).toHaveTextContent('6')
+  })
+
+  it('clears password through native change and restores the initial value on form reset', async () => {
+    const onValueChange = vi.fn()
+    const onClear = vi.fn()
+    const changedValues: string[] = []
+    render(
+      <form aria-label="密码表单">
+        <PasswordInput
+          aria-label="可清空密码"
+          defaultValue="secret"
+          allowClear
+          onValueChange={onValueChange}
+          onClear={onClear}
+          onChange={(event) => changedValues.push(event.currentTarget.value)}
+        />
+        <button type="reset">重置密码表单</button>
+      </form>,
+    )
+    const input = screen.getByLabelText('可清空密码')
+    fireEvent.click(screen.getByRole('button', { name: '清空密码' }))
+    expect(input).toHaveValue('')
+    expect(onValueChange).toHaveBeenCalledExactlyOnceWith('')
+    expect(changedValues).toEqual([''])
+    expect(onClear).toHaveBeenCalledOnce()
+    await waitFor(() => expect(input).toHaveFocus())
+    fireEvent.click(screen.getByRole('button', { name: '重置密码表单' }))
+    expect(input).toHaveValue('secret')
+    expect(screen.getByRole('button', { name: '清空密码' })).toBeVisible()
+    expect(onValueChange).toHaveBeenCalledOnce()
+  })
+
+  it('keeps a controlled password until its owner supplies the next value', () => {
+    const onValueChange = vi.fn()
+    const onChange = vi.fn()
+    const { rerender } = render(
+      <PasswordInput
+        aria-label="受控值密码"
+        value="secret"
+        allowClear
+        onValueChange={onValueChange}
+        onChange={onChange}
+      />,
+    )
+    const input = screen.getByLabelText('受控值密码')
+    fireEvent.click(screen.getByRole('button', { name: '清空密码' }))
+    expect(onValueChange).toHaveBeenCalledExactlyOnceWith('')
+    expect(onChange).toHaveBeenCalledOnce()
+    expect(input).toHaveValue('secret')
+    rerender(<PasswordInput aria-label="受控值密码" value="" allowClear />)
+    expect(input).toHaveValue('')
+    expect(screen.queryByRole('button', { name: '清空密码' })).toBeNull()
   })
 
   it('toggles password visibility without changing its value or submitting', () => {

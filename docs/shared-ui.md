@@ -7,8 +7,8 @@
 | Button                          | `variant`、`size`、`danger`、`loading`、`icon`、原生 button 属性                                                                                       | 默认 `type="button"`；危险状态保留外观层级；加载时替换图标并禁用，避免重复提交                                              |
 | Input / Textarea                | 原生属性、`invalid`、`size`                                                                                                                            | 转发 ref；`size` 为 default / small / large，输入字号为 16px                                                                |
 | Mentions                        | `options`、`value` / `defaultValue`、`onChange`、`onSelect`、`prefix`、`disabled`、原生 textarea 属性                                                  | 从光标前识别提及；方向键、Enter、Escape 与触控选择，候选项支持禁用；弹层继承局部主题                                        |
-| SearchInput                     | `value` / `defaultValue`、`onValueChange`、`onSearch`、`allowClear`、`loading`、`invalid`、`size`                                                      | Enter 与按钮提交搜索；清空保持输入焦点；在 FormItem 中使用 `trigger="onValueChange"`                                        |
-| PasswordInput                   | 原生输入属性、`visible` / `defaultVisible`、`onVisibleChange`、`visibilityToggle`、`invalid`、`size`                                                   | 保留原生密码输入及自动填充，显示/隐藏按钮支持键盘且不会提交表单                                                             |
+| SearchInput                     | `value` / `defaultValue`、`onValueChange`、`onSearch`、外观与计数                                                                                      | Enter 与按钮提交搜索；清空保持输入焦点；在 FormItem 中使用 `trigger="onValueChange"`                                        |
+| PasswordInput                   | 原生输入属性、受控值、显隐与清空、外观与计数                                                                                                           | 保留原生密码输入及自动填充，显示/隐藏按钮支持键盘且不会提交表单                                                             |
 | InputOTP                        | `length`、`value` / `defaultValue`、`onChange`、`onComplete`、`label`、`inputMode`、`mask`、`disabled`、`invalid`、`name`                              | 分格输入一次性验证码；支持粘贴、方向键和删除，默认数字键盘，单格触控区域至少 44px                                           |
 | FormField                       | `label?`、`control`、`description`、`error`、`required`、`id`                                                                                          | 自动连接标签、说明和错误；自带标签的控件省略 `label`                                                                        |
 | Form / FormItem                 | `initialValues`、`values`、`onValuesChange`、`onFinish`、`onFinishFailed`、`onFinishError`、`rules`、`valuePropName`、`emptyValue`、`trigger`          | 表单只协调值和校验；控件仍使用项目自己的 API，规则错误通过 FormField 的 `aria-describedby` 暴露                             |
@@ -143,7 +143,9 @@ Input 与 Textarea 的 `count` 可设为 `true`，或 `{ max, strategy, render }
 
 `Input` 和 `Textarea` 的 `allowClear` 在有值且未禁用时显示 44px 清空按钮；清空会触发真实的 `input` 事件，使 `onValueChange('')` 和 `onChange` 均收到空值，非受控值立即显示为空并恢复输入焦点。`clearLabel` 可定制按钮名称，受控值仍由外部更新；两者均可作为 `FormItem` 的 `onValueChange` 控件。两者还支持 `variant`（outlined、filled、borderless、underlined）和 `status`（error、warning），状态使用主题 Token 表现。
 
-未受控的 `Input`、`Textarea`、`SearchInput` 在原生 `<form>` 重置时恢复初始 `defaultValue`，并同步清空按钮状态；重置不会触发值变更回调。受控值继续由调用方负责。
+未受控的 `Input`、`Textarea`、`SearchInput`、`PasswordInput` 在原生 `<form>` 重置时恢复初始 `defaultValue`，并同步清空按钮状态；重置不会触发值变更回调。受控值继续由调用方负责。
+
+`SearchInput` 和 `PasswordInput` 与普通文本输入共用 `size`、`invalid`、`variant`（outlined、filled、borderless、underlined）、`status`（default、error、warning）、`prefix`、`suffix`、`count`、`allowClear` 与 `onClear`；搜索另有 `loading`、`onSearch`，密码另有 `visible` / `defaultVisible`、`onVisibleChange`、`visibilityToggle`。超出 `count.max` 时显示计数错误并暴露 `aria-invalid`，但不截断值；显式 `maxLength` 继续由浏览器限制输入。只读和禁用状态不显示清空按钮；清空会通过原生输入事件触发 `onChange`、`onValueChange('')` 和 `onClear`，受控值仍由调用方更新。搜索在输入法组合期间不会因 Enter 提交。
 
 `Select` 和 `MultiSelect` 使用相同的 `variant` 和 `status` 字段契约；`status="error"` 同时暴露 `aria-invalid="true"`，便于表单校验和辅助技术识别。
 

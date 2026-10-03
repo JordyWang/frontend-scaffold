@@ -2690,6 +2690,86 @@ test('search and password inputs support keyboard, touch and status feedback', a
     'aria-invalid',
     'true',
   )
+
+  const variants = preview.getByRole('group', {
+    name: '搜索与密码输入外观',
+  })
+  const filledSearch = variants.getByRole('searchbox', {
+    name: '填充警告搜索',
+  })
+  const filledRoot = filledSearch.locator('..')
+  await expect(filledRoot).toHaveAttribute('data-status', 'warning')
+  await expect(filledRoot).not.toHaveAttribute('data-count-exceeded', 'true')
+  await expect(filledSearch).not.toHaveAttribute('aria-invalid', 'true')
+  await expect(filledRoot.locator('[data-ui-search-count]')).toHaveText('2 / 4')
+  const warningColors = await filledRoot.evaluate((element) => {
+    const probe = document.createElement('span')
+    probe.style.color = 'var(--ui-color-warning)'
+    element.appendChild(probe)
+    const expected = getComputedStyle(probe).color
+    const actual = getComputedStyle(element).borderTopColor
+    probe.remove()
+    return { actual, expected }
+  })
+  expect(warningColors.actual).toBe(warningColors.expected)
+  await filledSearch.fill('组件列表页')
+  await expect(filledRoot).toHaveAttribute('data-count-exceeded', 'true')
+  await expect(filledSearch).toHaveAttribute('aria-invalid', 'true')
+  await expect(filledRoot.locator('[data-ui-search-count]')).toHaveText('5 / 4')
+  const searchClear = filledRoot.getByRole('button', { name: '清空搜索' })
+  const searchClearBox = await searchClear.boundingBox()
+  expect(searchClearBox!.width).toBeGreaterThanOrEqual(44)
+  expect(searchClearBox!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile')) await searchClear.tap()
+  else {
+    await searchClear.focus()
+    await searchClear.press('Enter')
+  }
+  await expect(filledSearch).toHaveValue('')
+  await expect(filledSearch).toBeFocused()
+
+  const underlinedPassword = variants.getByLabel('下划线密码')
+  const passwordRoot = underlinedPassword.locator('..')
+  await expect(passwordRoot).toHaveClass(/border-b/)
+  await expect(passwordRoot.locator('[data-ui-password-count]')).toHaveText(
+    '8 / 12',
+  )
+  const passwordClear = passwordRoot.getByRole('button', { name: '清空密码' })
+  const passwordClearBox = await passwordClear.boundingBox()
+  expect(passwordClearBox!.width).toBeGreaterThanOrEqual(44)
+  expect(passwordClearBox!.height).toBeGreaterThanOrEqual(44)
+  if (testInfo.project.name.startsWith('mobile')) await passwordClear.tap()
+  else {
+    await passwordClear.focus()
+    await passwordClear.press('Enter')
+  }
+  await expect(underlinedPassword).toHaveValue('')
+  await expect(underlinedPassword).toBeFocused()
+  await expect(variants.getByLabel('错误搜索状态')).toHaveAttribute(
+    'aria-invalid',
+    'true',
+  )
+  await expect(variants.getByLabel('只读密码状态')).toHaveAttribute(
+    'readonly',
+    '',
+  )
+
+  const nativeForm = preview.getByRole('form', {
+    name: '原生表单重置预览',
+  })
+  const nativePassword = nativeForm.getByLabel('原生密码')
+  await nativePassword.fill('changed')
+  if (testInfo.project.name.startsWith('mobile')) {
+    await nativeForm.getByRole('button', { name: '重置原生表单' }).tap()
+  } else {
+    await nativeForm.getByRole('button', { name: '重置原生表单' }).click()
+  }
+  await expect(nativePassword).toHaveValue('default-123')
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
 })
 
 test('calendar selects dates with keyboard and touch without page overflow', async ({
