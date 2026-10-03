@@ -62,12 +62,19 @@ export function TablePreview() {
         </div>
         <Table
           caption="展示状态任务表"
+          title="任务清单"
+          footer={(visibleRows) => `当前显示 ${visibleRows.length} 条任务`}
+          summary={(visibleRows) => ({
+            name: '当前页汇总',
+            status: `${visibleRows.length} 项`,
+          })}
           size={size}
           bordered={bordered}
           rowHoverable={rowHoverable}
           classNames={({ props, state }) => ({
             headerCell: props.bordered ? 'text-primary' : undefined,
             selectionSummary: state === 'ready' ? 'font-medium' : undefined,
+            summaryCell: props.bordered ? 'bg-primary/5' : undefined,
           })}
           styles={({ size: currentSize }) => ({
             headerCell: {

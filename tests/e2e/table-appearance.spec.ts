@@ -12,6 +12,18 @@ test('Table display settings work with keyboard and H5 touch', async ({
   const borders = settings.getByRole('button', { name: '网格边框' })
   const hover = settings.getByRole('button', { name: '行悬停' })
   const mobile = testInfo.project.name.startsWith('mobile-')
+  const summary = mobile
+    ? card.getByRole('group', { name: '展示状态任务表汇总' })
+    : card.getByRole('table', { name: '展示状态任务表' }).locator('tfoot')
+
+  await expect(card.getByText('任务清单')).toBeVisible()
+  await expect(card.getByText('当前显示 2 条任务')).toBeVisible()
+  await expect(summary).toContainText('当前页汇总')
+  await expect(summary).toContainText('2 项')
+  if (mobile) {
+    await expect(summary.locator('dt').first()).toHaveText('任务')
+    await expect(summary.locator('dd').first()).toHaveText('当前页汇总')
+  }
 
   for (const control of [compact, spacious, borders, hover]) {
     const box = (await control.boundingBox())!
@@ -24,6 +36,8 @@ test('Table display settings work with keyboard and H5 touch', async ({
   if (mobile) await borders.tap()
   else await borders.press('Space')
   await expect(table).toHaveAttribute('data-ui-bordered', 'true')
+  if (!mobile)
+    await expect(summary.locator('td').last()).toHaveClass(/bg-primary\/5/)
 
   if (mobile) {
     const row = card

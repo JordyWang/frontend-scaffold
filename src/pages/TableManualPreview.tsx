@@ -48,6 +48,12 @@ export function TableManualPreview() {
         </Typography>
         <Table
           caption="手动数据任务表"
+          title="服务端任务"
+          footer={(visibleRows) => `当前页返回 ${visibleRows.length} 条`}
+          summary={(visibleRows) => ({
+            name: '当前页汇总',
+            status: `${visibleRows.length} 项`,
+          })}
           dataMode="manual"
           rows={currentRows}
           getRowKey={(row) => row.id}

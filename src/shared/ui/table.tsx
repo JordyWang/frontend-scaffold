@@ -32,6 +32,8 @@ export type TableColumn<T> = {
   sortLabel?: string
   filterOptions?: TableFilterOption<T>[]
   filterLabel?: string
+  /** Accessible label for this column in the H5 summary when header is rich content. */
+  summaryLabel?: string
   align?: 'left' | 'center' | 'right'
   /** Render this data cell as a row header for assistive technology. */
   rowScope?: 'row' | 'rowgroup'
@@ -96,12 +98,15 @@ export type TablePart =
   | 'root'
   | 'state'
   | 'selectionSummary'
+  | 'title'
   | 'scrollRegion'
   | 'table'
   | 'header'
   | 'headerRow'
   | 'headerCell'
   | 'body'
+  | 'summary'
+  | 'summaryCell'
   | 'row'
   | 'cell'
   | 'expandedRow'
@@ -111,6 +116,9 @@ export type TablePart =
   | 'mobileList'
   | 'mobileRow'
   | 'mobileDetail'
+  | 'mobileSummary'
+  | 'mobileSummaryItem'
+  | 'footer'
   | 'pagination'
 
 export type TableDisplayState =
@@ -140,6 +148,9 @@ type TableCommonProps<T> = {
   rows: T[]
   getRowKey: (row: T) => Key
   caption: string
+  title?: ReactNode | ((visibleRows: T[]) => ReactNode)
+  footer?: ReactNode | ((visibleRows: T[]) => ReactNode)
+  summary?: (visibleRows: T[]) => Partial<Record<string, ReactNode>>
   size?: ControlSize
   bordered?: boolean
   rowHoverable?: boolean
@@ -176,6 +187,9 @@ export function Table<T>(allProps: TableProps<T>) {
     rows,
     getRowKey,
     caption,
+    title,
+    footer,
+    summary,
     dataMode = 'local',
     size,
     bordered = false,
@@ -324,6 +338,45 @@ export function Table<T>(allProps: TableProps<T>) {
     typeof classNames === 'function' ? classNames(semanticInfo) : classNames
   const semanticStyles =
     typeof styles === 'function' ? styles(semanticInfo) : styles
+  const titleContent = typeof title === 'function' ? title(pageRows) : title
+  const footerContent = typeof footer === 'function' ? footer(pageRows) : footer
+  const summaryValues =
+    displayState === 'ready' || displayState === 'filtered-empty'
+      ? summary?.(pageRows)
+      : undefined
+  const hasSummary =
+    summaryValues !== undefined &&
+    columns.some((column) => summaryValues[column.key] != null)
+
+  function tableTitle() {
+    if (titleContent == null || titleContent === false) return null
+    return (
+      <div
+        className={cn(
+          'border-b border-border px-4 py-3 font-semibold',
+          semanticClassNames?.title,
+        )}
+        style={semanticStyles?.title}
+      >
+        {titleContent}
+      </div>
+    )
+  }
+
+  function tableFooter() {
+    if (footerContent == null || footerContent === false) return null
+    return (
+      <div
+        className={cn(
+          'border-t border-border px-4 py-3 text-sm text-muted-foreground',
+          semanticClassNames?.footer,
+        )}
+        style={semanticStyles?.footer}
+      >
+        {footerContent}
+      </div>
+    )
+  }
 
   function resetPage() {
     if (!paginationConfig || page === 1) return
@@ -591,9 +644,11 @@ export function Table<T>(allProps: TableProps<T>) {
         className={regionClassName}
         style={rootStyle}
       >
+        {tableTitle()}
         <div className={stateClassName} style={semanticStyles?.state}>
           <LoadingState />
         </div>
+        {tableFooter()}
       </section>
     )
   if (error)
@@ -604,9 +659,11 @@ export function Table<T>(allProps: TableProps<T>) {
         className={regionClassName}
         style={rootStyle}
       >
+        {tableTitle()}
         <div className={stateClassName} style={semanticStyles?.state}>
           <ErrorState description={error} onRetry={onRetry} />
         </div>
+        {tableFooter()}
       </section>
     )
   if (
@@ -621,6 +678,7 @@ export function Table<T>(allProps: TableProps<T>) {
         className={regionClassName}
         style={rootStyle}
       >
+        {tableTitle()}
         <div
           role="status"
           className={stateClassName}
@@ -628,6 +686,7 @@ export function Table<T>(allProps: TableProps<T>) {
         >
           <Empty title={emptyTitle} />
         </div>
+        {tableFooter()}
       </section>
     )
 
@@ -638,6 +697,7 @@ export function Table<T>(allProps: TableProps<T>) {
       className={regionClassName}
       style={rootStyle}
     >
+      {tableTitle()}
       {selection && (
         <div
           aria-live="polite"
@@ -843,6 +903,45 @@ export function Table<T>(allProps: TableProps<T>) {
               </Fragment>
             ))}
           </tbody>
+          {hasSummary && (
+            <tfoot
+              className={cn(
+                'border-t border-border bg-muted/40',
+                semanticClassNames?.summary,
+              )}
+              style={semanticStyles?.summary}
+            >
+              <tr>
+                {selection && (
+                  <td
+                    className={cn(cellBorder, semanticClassNames?.summaryCell)}
+                    style={semanticStyles?.summaryCell}
+                  />
+                )}
+                {expandable && (
+                  <td
+                    className={cn(cellBorder, semanticClassNames?.summaryCell)}
+                    style={semanticStyles?.summaryCell}
+                  />
+                )}
+                {columns.map((column) => (
+                  <td
+                    key={column.key}
+                    className={cn(
+                      'font-medium',
+                      cellPadding,
+                      cellBorder,
+                      alignmentClassName(column.align),
+                      semanticClassNames?.summaryCell,
+                    )}
+                    style={semanticStyles?.summaryCell}
+                  >
+                    {summaryValues?.[column.key]}
+                  </td>
+                ))}
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
       {renderMobileRow && (
@@ -954,8 +1053,46 @@ export function Table<T>(allProps: TableProps<T>) {
               </li>
             ))}
           </ul>
+          {hasSummary && (
+            <div
+              role="group"
+              aria-label={`${caption}汇总`}
+              className={cn(
+                'border-t border-border bg-muted/40',
+                mobilePadding,
+                semanticClassNames?.mobileSummary,
+              )}
+              style={semanticStyles?.mobileSummary}
+            >
+              <dl className="m-0 grid gap-2">
+                {columns
+                  .filter((column) => summaryValues?.[column.key] != null)
+                  .map((column) => (
+                    <div
+                      key={column.key}
+                      className={cn(
+                        'flex min-w-0 items-start justify-between gap-3',
+                        semanticClassNames?.mobileSummaryItem,
+                      )}
+                      style={semanticStyles?.mobileSummaryItem}
+                    >
+                      <dt className="text-sm text-muted-foreground">
+                        {column.summaryLabel ??
+                          (typeof column.header === 'string'
+                            ? column.header
+                            : column.key)}
+                      </dt>
+                      <dd className="m-0 min-w-0 text-end font-medium [overflow-wrap:anywhere]">
+                        {summaryValues?.[column.key]}
+                      </dd>
+                    </div>
+                  ))}
+              </dl>
+            </div>
+          )}
         </div>
       )}
+      {tableFooter()}
       {paginationConfig && (
         <Pagination
           label={`${caption}分页`}

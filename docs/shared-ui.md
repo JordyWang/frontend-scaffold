@@ -129,7 +129,9 @@ Input 与 Textarea 的 `count` 可设为 `true`，或 `{ max, strategy, render }
 
 `Table.size` 使用项目统一的 `small`、`default`、`large`，未传时继承 `ConfigProvider.componentSize`。尺寸调整表头、数据单元格、详情区域与 H5 卡片行的留白；选择、排序和展开按钮仍保留至少 44px 触控目标。`bordered` 默认关闭，开启后桌面展示单元格网格线，H5 卡片行展示独立边框。`rowHoverable` 默认开启，只在支持悬停的设备上提示当前行；设为 `false` 可关闭。`/__ui` 的“Table 展示状态”可切换这些设置，并验证桌面表格与窄屏卡片视图。
 
-`Table.classNames` / `styles` 接受语义槽对象，也可接收 `({ props, size, state }) => 槽对象`，其中 `state` 为 `loading`、`error`、`empty`、`filtered-empty` 或 `ready`。槽包括 `root`、`state`、`selectionSummary`、`scrollRegion`、`table`、`header`、`headerRow`、`headerCell`、`body`、`row`、`cell`、`expandedRow`、`expandedCell`、`mobile`、`mobileToolbar`、`mobileList`、`mobileRow`、`mobileDetail` 和 `pagination`。根节点原有的 `className` / `style` 保留最高优先级。`rowClassName(row, index)` 可按可见数据的全局索引设置桌面行和 H5 卡片行；筛选、排序、分页后的索引与渲染顺序一致。动态 Tailwind 类名仍需以完整字面量出现在项目源码中。
+`Table.classNames` / `styles` 接受语义槽对象，也可接收 `({ props, size, state }) => 槽对象`，其中 `state` 为 `loading`、`error`、`empty`、`filtered-empty` 或 `ready`。槽包括 `root`、`state`、`title`、`selectionSummary`、`scrollRegion`、`table`、`header`、`headerRow`、`headerCell`、`body`、`row`、`cell`、`summary`、`summaryCell`、`expandedRow`、`expandedCell`、`mobile`、`mobileToolbar`、`mobileList`、`mobileRow`、`mobileDetail`、`mobileSummary`、`mobileSummaryItem`、`footer` 和 `pagination`。根节点原有的 `className` / `style` 保留最高优先级。`rowClassName(row, index)` 可按可见数据的全局索引设置桌面行和 H5 卡片行；筛选、排序、分页后的索引与渲染顺序一致。动态 Tailwind 类名仍需以完整字面量出现在项目源码中。
+
+`Table.title` / `footer` 可传内容或 `(visibleRows) => 内容`，在加载、错误和空状态下也保留；`caption` 继续提供表格的可访问名称。`summary(visibleRows)` 返回按列 `key` 对应的内容对象，桌面渲染为原生 `tfoot` 汇总行，选择列和展开列自动补空单元格；H5 卡片视图渲染相同值的 `dt/dd` 汇总列表。复杂表头可用列的 `summaryLabel` 指定 H5 汇总标签。`visibleRows` 是当前页最终展示的记录：本地模式已筛选、排序和分页，手动模式直接采用调用方传入的 `rows`。加载与错误状态不计算汇总；完全空表只显示空状态。
 
 宽表格在自身容器内横向滚动。滚动区域可通过 Tab 聚焦；焦点位于区域自身时，左右方向键移动 44px，Home/End 移到逻辑起止，RTL 使用同一键位。单元格内按钮、输入和带修饰键的操作不被截获。`/__ui` 有 240px RTL 宽表预览，手机可直接横向触控滑动。
 
