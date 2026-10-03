@@ -111,6 +111,7 @@ export type {
   TableSelection,
   TableExpandable,
   TablePagination,
+  TableManualPagination,
   TablePart,
   TableDisplayState,
   TableSemanticInfo,

@@ -7,7 +7,8 @@ import { Popover } from './overlay'
 export type TableFilterOption<T> = {
   value: string
   label: string
-  matches: (row: T) => boolean
+  /** Required for local filtering; manual data mode leaves matching to the owner. */
+  matches?: (row: T) => boolean
 }
 
 export type TableFilters = Record<string, string[]>

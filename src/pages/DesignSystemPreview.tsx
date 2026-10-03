@@ -30,6 +30,7 @@ import { TabsPreview } from './TabsPreview'
 import { TagPreview } from './TagPreview'
 import { BadgePreview } from './BadgePreview'
 import { TablePreview } from './TablePreview'
+import { TableManualPreview } from './TableManualPreview'
 import { TooltipPreview } from './TooltipPreview'
 import { DropdownPreview } from './DropdownPreview'
 import { ResultPreview } from './ResultPreview'
@@ -1656,6 +1657,7 @@ export function DesignSystemPreview() {
             </CardContent>
           </Card>
           <TablePreview />
+          <TableManualPreview />
           <Card id="ds-feedback" className="col-span-full scroll-mt-6">
             <CardContent>
               <Stack gap="sm">

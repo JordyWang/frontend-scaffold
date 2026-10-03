@@ -141,6 +141,7 @@ const previewGroups = [
       { id: 'ds-calendar', label: '日历' },
       { id: 'ds-display', label: '展示与加载' },
       { id: 'ds-table', label: '表格' },
+      { id: 'ds-table-manual', label: '手动数据表格' },
       { id: 'ds-feedback', label: '反馈与弹层' },
       { id: 'ds-navigation', label: '导航与结果' },
       { id: 'ds-collapse', label: '折叠面板' },

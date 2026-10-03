@@ -27,7 +27,8 @@ export type TableColumn<T> = {
   key: string
   header: ReactNode
   render: (row: T) => ReactNode
-  sorter?: (left: T, right: T) => number
+  /** Use true when the owner sorts rows in manual data mode. */
+  sorter?: ((left: T, right: T) => number) | true
   sortLabel?: string
   filterOptions?: TableFilterOption<T>[]
   filterLabel?: string
@@ -67,8 +68,7 @@ type TablePaginationBase = {
   showTotal?: boolean
 }
 
-export type TablePagination = TablePaginationBase &
-  (
+export type TablePagination = TablePaginationBase & { total?: never } & (
     | {
         page: number
         pageSize: number
@@ -82,6 +82,15 @@ export type TablePagination = TablePaginationBase &
         defaultPageSize?: number
       }
   )
+
+export type TableManualPagination = TablePaginationBase & {
+  page: number
+  pageSize: number
+  total: number
+  onChange: (page: number, pageSize: number) => void
+  defaultPage?: never
+  defaultPageSize?: never
+}
 
 export type TablePart =
   | 'root'
@@ -126,7 +135,7 @@ function alignmentClassName(align?: TableColumn<unknown>['align']) {
   return 'text-start'
 }
 
-export type TableProps<T> = {
+type TableCommonProps<T> = {
   columns: TableColumn<T>[]
   rows: T[]
   getRowKey: (row: T) => Key
@@ -147,13 +156,18 @@ export type TableProps<T> = {
   onFiltersChange?: (filters: TableFilters) => void
   selection?: TableSelection<T>
   expandable?: TableExpandable<T>
-  pagination?: TablePagination | false
   className?: string
   style?: CSSProperties
   classNames?: TableClassNames<T>
   styles?: TableStyles<T>
   rowClassName?: (row: T, index: number) => string | undefined
 }
+
+export type TableProps<T> = TableCommonProps<T> &
+  (
+    | { dataMode?: 'local'; pagination?: TablePagination | false }
+    | { dataMode: 'manual'; pagination?: TableManualPagination | false }
+  )
 
 export function Table<T>(allProps: TableProps<T>) {
   const controlled = Object.prototype.hasOwnProperty.call(allProps, 'sort')
@@ -162,6 +176,7 @@ export function Table<T>(allProps: TableProps<T>) {
     rows,
     getRowKey,
     caption,
+    dataMode = 'local',
     size,
     bordered = false,
     rowHoverable = true,
@@ -209,6 +224,7 @@ export function Table<T>(allProps: TableProps<T>) {
     'data-ui-size': resolvedSize,
     'data-ui-bordered': bordered,
     'data-ui-row-hoverable': rowHoverable,
+    'data-ui-data-mode': dataMode,
   }
   const paginationConfig = pagination === false ? undefined : pagination
   const paginationControlled =
@@ -236,6 +252,7 @@ export function Table<T>(allProps: TableProps<T>) {
     (values) => values.length > 0,
   )
   const displayedRows = useMemo(() => {
+    if (dataMode === 'manual') return rows
     const filteredRows = rows.filter((row) =>
       columns.every((column) => {
         const values = activeFilters[column.key]
@@ -243,11 +260,11 @@ export function Table<T>(allProps: TableProps<T>) {
         return values.some((value) =>
           column.filterOptions
             ?.find((option) => option.value === value)
-            ?.matches(row),
+            ?.matches?.(row),
         )
       }),
     )
-    if (!activeSort || !sorter) return filteredRows
+    if (!activeSort || typeof sorter !== 'function') return filteredRows
     const multiplier = activeSort.direction === 'asc' ? 1 : -1
     return filteredRows
       .map((row, index) => ({ row, index }))
@@ -259,27 +276,32 @@ export function Table<T>(allProps: TableProps<T>) {
         )
       })
       .map(({ row }) => row)
-  }, [activeFilters, activeSort, columns, rows, sorter])
+  }, [activeFilters, activeSort, columns, dataMode, rows, sorter])
   const requestedPageSize = paginationControlled
     ? paginationConfig?.pageSize
     : internalPageSize
   const pageSize = Number.isFinite(requestedPageSize)
     ? Math.max(1, Math.floor(requestedPageSize!))
     : 10
-  const pageCount = Math.max(1, Math.ceil(displayedRows.length / pageSize))
+  const paginationTotal =
+    dataMode === 'manual' && paginationConfig
+      ? typeof paginationConfig.total === 'number' &&
+        Number.isFinite(paginationConfig.total)
+        ? Math.max(0, Math.floor(paginationConfig.total))
+        : 0
+      : displayedRows.length
+  const pageCount = Math.max(1, Math.ceil(paginationTotal / pageSize))
   const requestedPage = paginationControlled
     ? paginationConfig?.page
     : internalPage
   const page = Number.isFinite(requestedPage)
     ? Math.max(1, Math.min(Math.floor(requestedPage!), pageCount))
     : 1
-  const pageRows = paginationConfig
-    ? displayedRows.slice((page - 1) * pageSize, page * pageSize)
-    : displayedRows
+  const pageRows =
+    paginationConfig && dataMode === 'local'
+      ? displayedRows.slice((page - 1) * pageSize, page * pageSize)
+      : displayedRows
   const pageStart = paginationConfig ? (page - 1) * pageSize : 0
-  const rowClassNames = pageRows.map((row, index) =>
-    rowClassName?.(row, pageStart + index),
-  )
   const displayState: TableDisplayState = loading
     ? 'loading'
     : error
@@ -289,6 +311,10 @@ export function Table<T>(allProps: TableProps<T>) {
           ? 'filtered-empty'
           : 'empty'
         : 'ready'
+  const rowClassNames =
+    displayState === 'ready'
+      ? pageRows.map((row, index) => rowClassName?.(row, pageStart + index))
+      : []
   const semanticInfo: TableSemanticInfo<T> = {
     props: allProps,
     size: resolvedSize,
@@ -583,7 +609,11 @@ export function Table<T>(allProps: TableProps<T>) {
         </div>
       </section>
     )
-  if (displayedRows.length === 0 && !hasActiveFilters)
+  if (
+    displayedRows.length === 0 &&
+    !hasActiveFilters &&
+    (dataMode === 'local' || paginationTotal === 0)
+  )
     return (
       <section
         {...tableAttributes}
@@ -732,7 +762,11 @@ export function Table<T>(allProps: TableProps<T>) {
                   >
                     <Empty
                       title={emptyTitle}
-                      description="调整或清空筛选条件以查看数据。"
+                      description={
+                        hasActiveFilters
+                          ? '调整或清空筛选条件以查看数据。'
+                          : '当前页暂无数据，请切换页码。'
+                      }
                     />
                   </div>
                 </td>
@@ -876,7 +910,11 @@ export function Table<T>(allProps: TableProps<T>) {
                 >
                   <Empty
                     title={emptyTitle}
-                    description="调整或清空筛选条件以查看数据。"
+                    description={
+                      hasActiveFilters
+                        ? '调整或清空筛选条件以查看数据。'
+                        : '当前页暂无数据，请切换页码。'
+                    }
                   />
                 </div>
               </li>
@@ -923,7 +961,7 @@ export function Table<T>(allProps: TableProps<T>) {
           label={`${caption}分页`}
           page={page}
           pageSize={pageSize}
-          total={displayedRows.length}
+          total={paginationTotal}
           onPageChange={changePage}
           onPageSizeChange={
             paginationConfig.showSizeChanger ? changePageSize : undefined
