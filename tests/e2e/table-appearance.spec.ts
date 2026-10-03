@@ -6,7 +6,10 @@ test('Table display settings work with keyboard and H5 touch', async ({
   await page.goto('/__ui')
   const card = page.locator('#ds-table')
   const settings = card.getByRole('group', { name: '表格展示设置' })
-  const table = card.locator('[data-ui-table]')
+  const table = card.getByRole('region', {
+    name: '展示状态任务表',
+    exact: true,
+  })
   const compact = settings.getByRole('button', { name: '紧凑尺寸' })
   const spacious = settings.getByRole('button', { name: '宽松尺寸' })
   const borders = settings.getByRole('button', { name: '网格边框' })

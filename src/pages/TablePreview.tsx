@@ -12,11 +12,18 @@ const rows = [
   { id: 'review', name: '设计评审', status: '进行中' },
   { id: 'release', name: '组件发布', status: '待开始' },
 ]
+const singleRows = [
+  { id: 'plan', name: '制定计划' },
+  { id: 'build', name: '实现组件' },
+  { id: 'test', name: '测试组件' },
+  { id: 'review', name: '验证交互' },
+]
 
 export function TablePreview() {
   const [size, setSize] = useState<ControlSize>('default')
   const [bordered, setBordered] = useState(false)
   const [rowHoverable, setRowHoverable] = useState(true)
+  const [singleStatus, setSingleStatus] = useState('已选择制定计划')
 
   return (
     <Card id="ds-table" className="col-span-full scroll-mt-6">
@@ -117,6 +124,28 @@ export function TablePreview() {
         <Typography variant="caption" tone="muted">
           桌面显示表格，窄屏切换为卡片行；选择、排序和展开状态共用。
         </Typography>
+        <Typography as="h4" variant="heading">
+          单选与跨页
+        </Typography>
+        <Table
+          caption="单选任务表"
+          rows={singleRows}
+          getRowKey={(row) => row.id}
+          columns={[{ key: 'name', header: '任务', render: (row) => row.name }]}
+          selection={{
+            mode: 'single',
+            defaultSelectedKeys: ['plan'],
+            getLabel: (row) => row.name,
+            disabled: (row) => row.id === 'build',
+            onChange: (_keys, selectedRows) =>
+              setSingleStatus(`已选择${selectedRows[0]?.name ?? '任务'}`),
+          }}
+          pagination={{ defaultPageSize: 3, showTotal: true }}
+          renderMobileRow={(row) => <strong>{row.name}</strong>}
+        />
+        <p role="status" className="m-0 text-sm text-muted-foreground">
+          {singleStatus}
+        </p>
       </CardContent>
     </Card>
   )

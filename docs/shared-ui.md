@@ -139,7 +139,7 @@ Input 与 Textarea 的 `count` 可设为 `true`，或 `{ max, strategy, render }
 
 `Table.expandable` 提供项目自己的行详情契约：`expandedRowKeys` / `defaultExpandedRowKeys`、`onExpandedRowsChange`、`expandedRowRender(row, index)`、`rowExpandable` 和 `getLabel`。展开按钮是独立的 44px 键盘/触控入口，使用 `aria-expanded` 和 `aria-controls` 关联详情行；桌面表格和 H5 卡片复用同一展开状态，受控模式等待外部更新，排序、筛选和禁用行不会改变详情内容的值语义。
 
-`Table.selection` 支持 `selectedKeys` / `defaultSelectedKeys`、`onChange(keys, currentRows)`、`disabled(row)` 和 `getLabel(row)`。全选只影响当前可见页的可用行，保留其他页及禁用行的选中键；回调中的 `currentRows` 只包含当前 `rows` 内选中的记录。桌面选择列与手机卡片共用状态，部分选中时全选框呈混合状态。`Checkbox` 的 `indeterminate` 和 `hideLabel` 用于这类紧凑选择入口。
+`Table.selection` 支持 `mode`（`multiple` 默认、`single` 单选）、`selectedKeys` / `defaultSelectedKeys`、`onChange(keys, currentRows)`、`disabled(row)` 和 `getLabel(row)`。多选全选只影响当前可见页的可用行，保留其他页及禁用行的选中键；部分选中时全选框呈混合状态。单选使用同一数组契约但最多保留一个键，不提供全选，选中当前项时再次点击不会清除；原生 Radio 支持方向键与触控。两种模式的桌面行和 H5 卡片行共用状态，选中行显示主题浅蓝背景；桌面行暴露 `aria-selected`。回调中的 `currentRows` 只包含当前 `rows` 内选中的记录。`Checkbox` 和 `Radio` 的 `hideLabel` 用于紧凑选择入口。`/__ui` 提供单选跨页与禁用行预览。
 
 本地模式的 `Table.pagination` 可省略或设为 `false` 以展示全部数据；传入对象时先对所有行筛选和排序，再按当前页截取。非受控模式使用 `defaultPage` / `defaultPageSize`，受控模式同时提供 `page` / `pageSize` 并在 `onChange(page, pageSize)` 后更新；两者不能混用。`showSizeChanger`、`pageSizeOptions`、`showQuickJumper` 和 `showTotal` 透传到项目 Pagination。改变每页条数时保留原首条记录所在页；手动排序或筛选时请求第 1 页。外部数据量缩减时显示可用的最后一页，数据恢复后回到原请求页。选择键与展开键跨页保留，桌面表格和 H5 卡片使用同一页；分页导航以表格标题命名。
 

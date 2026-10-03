@@ -1,5 +1,6 @@
 import {
   Fragment,
+  useId,
   useMemo,
   useState,
   type CSSProperties,
@@ -7,7 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { cn } from '@/shared/lib/utils'
-import { Checkbox } from './choice'
+import { Checkbox, Radio } from './choice'
 import {
   resolveComponentSize,
   useConfig,
@@ -45,6 +46,7 @@ export type TableSort = {
 }
 
 export type TableSelection<T> = {
+  mode?: 'multiple' | 'single'
   selectedKeys?: Key[]
   defaultSelectedKeys?: Key[]
   onChange?: (selectedKeys: Key[], selectedRows: T[]) => void
@@ -181,6 +183,7 @@ export type TableProps<T> = TableCommonProps<T> &
   )
 
 export function Table<T>(allProps: TableProps<T>) {
+  const radioGroupName = useId()
   const controlled = Object.prototype.hasOwnProperty.call(allProps, 'sort')
   const {
     columns,
@@ -404,13 +407,17 @@ export function Table<T>(allProps: TableProps<T>) {
   const selectionControlled = selection
     ? Object.prototype.hasOwnProperty.call(selection, 'selectedKeys')
     : false
-  const selectedKeys = [
+  const requestedSelectedKeys = [
     ...new Set(
       selectionControlled
         ? (selection?.selectedKeys ?? [])
         : internalSelectedKeys,
     ),
   ]
+  const singleSelection = selection?.mode === 'single'
+  const selectedKeys = singleSelection
+    ? requestedSelectedKeys.slice(0, 1)
+    : requestedSelectedKeys
   const expandedControlled = expandable
     ? Object.prototype.hasOwnProperty.call(expandable, 'expandedRowKeys')
     : false
@@ -450,6 +457,7 @@ export function Table<T>(allProps: TableProps<T>) {
 
   function changeSelection(next: Key[]) {
     const unique = [...new Set(next)]
+    if (singleSelection) unique.splice(1)
     if (!selectionControlled) setInternalSelectedKeys(unique)
     const nextSet = new Set(unique)
     selection?.onChange?.(
@@ -459,6 +467,10 @@ export function Table<T>(allProps: TableProps<T>) {
   }
 
   function toggleRow(key: Key) {
+    if (singleSelection) {
+      if (!selectedSet.has(key)) changeSelection([key])
+      return
+    }
     changeSelection(
       selectedSet.has(key)
         ? selectedKeys.filter((selectedKey) => selectedKey !== key)
@@ -492,11 +504,24 @@ export function Table<T>(allProps: TableProps<T>) {
     )
   }
 
-  function rowCheckbox(row: T) {
+  function rowSelector(row: T, mobile = false) {
     const key = getRowKey(row)
+    const label = `选择${selection?.getLabel?.(row) ?? String(key)}`
+    if (singleSelection)
+      return (
+        <Radio
+          label={label}
+          hideLabel
+          name={`${radioGroupName}-${mobile ? 'mobile' : 'table'}`}
+          checked={selectedSet.has(key)}
+          disabled={selection?.disabled?.(row)}
+          className="min-w-11 justify-center"
+          onChange={() => toggleRow(key)}
+        />
+      )
     return (
       <Checkbox
-        label={`选择${selection?.getLabel?.(row) ?? String(key)}`}
+        label={label}
         hideLabel
         checked={selectedSet.has(key)}
         disabled={selection?.disabled?.(row)}
@@ -751,7 +776,11 @@ export function Table<T>(allProps: TableProps<T>) {
                   )}
                   style={semanticStyles?.headerCell}
                 >
-                  {selectAllCheckbox()}
+                  {singleSelection ? (
+                    <span className="sr-only">选择一行</span>
+                  ) : (
+                    selectAllCheckbox()
+                  )}
                 </th>
               )}
               {expandable && (
@@ -835,8 +864,16 @@ export function Table<T>(allProps: TableProps<T>) {
             {pageRows.map((row, index) => (
               <Fragment key={getRowKey(row)}>
                 <tr
+                  aria-selected={
+                    selection ? selectedSet.has(getRowKey(row)) : undefined
+                  }
                   className={cn(
-                    rowHover,
+                    selection && selectedSet.has(getRowKey(row)) && rowHoverable
+                      ? 'hover:bg-primary/15'
+                      : rowHover,
+                    selection &&
+                      selectedSet.has(getRowKey(row)) &&
+                      'bg-primary/10',
                     semanticClassNames?.row,
                     rowClassNames[index],
                   )}
@@ -851,7 +888,7 @@ export function Table<T>(allProps: TableProps<T>) {
                       )}
                       style={semanticStyles?.cell}
                     >
-                      {rowCheckbox(row)}
+                      {rowSelector(row)}
                     </td>
                   )}
                   {expandable && (
@@ -949,7 +986,7 @@ export function Table<T>(allProps: TableProps<T>) {
           className={cn('sm:hidden', semanticClassNames?.mobile)}
           style={semanticStyles?.mobile}
         >
-          {(selection ||
+          {((selection && !singleSelection) ||
             columns.some(
               (column) => column.sorter || column.filterOptions?.length,
             )) && (
@@ -960,7 +997,7 @@ export function Table<T>(allProps: TableProps<T>) {
               )}
               style={semanticStyles?.mobileToolbar}
             >
-              {selection && selectAllCheckbox(true)}
+              {selection && !singleSelection && selectAllCheckbox(true)}
               {(columns.some((column) => column.sorter) ||
                 columns.some((column) => column.filterOptions?.length)) && (
                 <div
@@ -1021,17 +1058,25 @@ export function Table<T>(allProps: TableProps<T>) {
             {pageRows.map((row, index) => (
               <li
                 key={getRowKey(row)}
+                data-ui-selected={
+                  (selection && selectedSet.has(getRowKey(row))) || undefined
+                }
                 className={cn(
                   mobilePadding,
                   bordered && 'rounded-[var(--radius-sm)] border border-border',
-                  rowHover,
+                  selection && selectedSet.has(getRowKey(row)) && rowHoverable
+                    ? 'hover:bg-primary/15'
+                    : rowHover,
+                  selection &&
+                    selectedSet.has(getRowKey(row)) &&
+                    'bg-primary/10',
                   selection && 'flex items-start gap-3',
                   semanticClassNames?.mobileRow,
                   rowClassNames[index],
                 )}
                 style={semanticStyles?.mobileRow}
               >
-                {selection && rowCheckbox(row)}
+                {selection && rowSelector(row, true)}
                 {expandable && (
                   <div className="shrink-0">{expandButton(row, true)}</div>
                 )}

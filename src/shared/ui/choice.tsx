@@ -82,9 +82,9 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
   },
 )
 
-export type RadioProps = ChoiceProps
+export type RadioProps = ChoiceProps & { hideLabel?: boolean }
 export const Radio = forwardRef<HTMLInputElement, RadioProps>(function Radio(
-  { label, size = 'default', invalid, className, ...props },
+  { label, size = 'default', invalid, hideLabel = false, className, ...props },
   ref,
 ) {
   return (
@@ -99,7 +99,7 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(function Radio(
       <span className={cn(choiceMarkStyles, 'rounded-full')} aria-hidden="true">
         <span className="size-2 rounded-full bg-primary-foreground opacity-0 transition-opacity" />
       </span>
-      <span>{label}</span>
+      <span className={hideLabel ? 'sr-only' : undefined}>{label}</span>
     </label>
   )
 })
