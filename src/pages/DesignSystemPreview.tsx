@@ -718,6 +718,26 @@ export function DesignSystemPreview() {
                 <TagPreview />
                 <BadgePreview />
                 <Divider />
+                <div
+                  role="group"
+                  aria-label="分隔线样式"
+                  className="grid min-w-0 gap-2"
+                >
+                  <Divider variant="dashed" titlePlacement="start">
+                    任务概览
+                  </Divider>
+                  <Divider variant="dotted" titlePlacement="end" plain>
+                    更多信息
+                  </Divider>
+                  <div className="flex h-12 items-stretch gap-2 text-sm">
+                    <span>左侧</span>
+                    <Divider orientation="vertical" variant="dashed" />
+                    <span>右侧</span>
+                  </div>
+                  <div className="w-56 max-w-full">
+                    <Divider>窄容器中的较长分隔线标题</Divider>
+                  </div>
+                </div>
                 <Typography variant="caption" tone="muted">
                   Grid 根据可用宽度自动换列。
                 </Typography>

@@ -1,5 +1,6 @@
 import {
   Children,
+  useId,
   type CSSProperties,
   type HTMLAttributes,
   type ReactNode,
@@ -203,22 +204,99 @@ export function Grid({
   )
 }
 
-export type DividerProps = HTMLAttributes<HTMLHRElement> & {
-  orientation?: 'horizontal' | 'vertical'
+type DividerBaseProps = Omit<HTMLAttributes<HTMLElement>, 'children'> & {
+  variant?: 'solid' | 'dashed' | 'dotted'
 }
+
+export type DividerProps = DividerBaseProps &
+  (
+    | {
+        orientation?: 'horizontal'
+        children?: ReactNode
+        titlePlacement?: 'start' | 'center' | 'end'
+        plain?: boolean
+      }
+    | {
+        orientation: 'vertical'
+        children?: never
+        titlePlacement?: never
+        plain?: never
+      }
+  )
+
+const dividerLineStyles = {
+  solid: 'border-solid',
+  dashed: 'border-dashed',
+  dotted: 'border-dotted',
+} as const
 
 export function Divider({
   orientation = 'horizontal',
+  variant = 'solid',
+  titlePlacement = 'center',
+  plain = false,
+  children,
   className,
   ...props
 }: DividerProps) {
+  const titleId = useId()
+  const hasTitle =
+    orientation === 'horizontal' &&
+    children !== undefined &&
+    children !== null &&
+    children !== false &&
+    children !== ''
+
+  if (hasTitle) {
+    return (
+      <div
+        role="separator"
+        aria-orientation="horizontal"
+        aria-labelledby={
+          props['aria-label'] || props['aria-labelledby'] ? undefined : titleId
+        }
+        className={cn('my-4 flex w-full min-w-0 items-center gap-3', className)}
+        {...props}
+      >
+        <span
+          aria-hidden="true"
+          className={cn(
+            'min-w-0 border-t border-border',
+            dividerLineStyles[variant],
+            titlePlacement === 'start' ? 'w-4 shrink-0' : 'flex-1',
+          )}
+        />
+        <span
+          id={titleId}
+          className={cn(
+            'min-w-0 max-w-[80%] break-words text-center text-sm',
+            plain
+              ? 'font-normal text-muted-foreground'
+              : 'font-semibold text-foreground',
+          )}
+        >
+          {children}
+        </span>
+        <span
+          aria-hidden="true"
+          className={cn(
+            'min-w-0 border-t border-border',
+            dividerLineStyles[variant],
+            titlePlacement === 'end' ? 'w-4 shrink-0' : 'flex-1',
+          )}
+        />
+      </div>
+    )
+  }
+
   return (
     <hr
       aria-orientation={orientation}
       className={cn(
         orientation === 'vertical'
-          ? 'mx-2 my-0 w-px self-stretch border-0 border-s border-border'
+          ? 'mx-2 my-0 h-auto w-px self-stretch border-0 border-s border-border'
           : 'mx-0 my-4 border-0 border-t border-border',
+        dividerLineStyles[variant],
         className,
       )}
       {...props}
