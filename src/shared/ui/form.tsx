@@ -38,6 +38,7 @@ export type FormInstance<TValues extends FormValues = FormValues> = {
 
 type FieldRegistration<TValues extends FormValues> = {
   getRules: () => FormRule<TValues>[]
+  getDependencies: () => string[]
 }
 
 type FormContextValue<TValues extends FormValues> = {
@@ -48,6 +49,7 @@ type FormContextValue<TValues extends FormValues> = {
   registerField: (
     name: string,
     getRules: () => FormRule<TValues>[],
+    getDependencies: () => string[],
   ) => () => void
   setFieldValue: (name: string, value: unknown) => void
   validateField: (name: string) => Promise<string | undefined>
@@ -122,11 +124,13 @@ export function Form<TValues extends FormValues = FormValues>({
   const valuesRef = useRef<Partial<TValues>>(controlledValues ?? internalValues)
   const formRef = useRef<HTMLFormElement>(null)
   const fieldsRef = useRef(new Map<string, FieldRegistration<TValues>>())
+  const validatedFieldsRef = useRef(new Set<string>())
   const valuesVersionRef = useRef(0)
   const fieldsVersionRef = useRef(0)
   const resetVersionRef = useRef(0)
   const pendingControlledValidationRef = useRef(new Set<string>())
   const previousControlledValuesRef = useRef(controlledValues)
+  const previousInternalValuesRef = useRef(internalValues)
   useLayoutEffect(() => {
     if (controlledValues === undefined) return
     valuesRef.current = controlledValues
@@ -179,8 +183,12 @@ export function Form<TValues extends FormValues = FormValues>({
   )
 
   const registerField = useCallback(
-    (name: string, getRules: () => FormRule<TValues>[]) => {
-      const registration = { getRules }
+    (
+      name: string,
+      getRules: () => FormRule<TValues>[],
+      getDependencies: () => string[],
+    ) => {
+      const registration = { getRules, getDependencies }
       fieldsRef.current.set(name, registration)
       fieldsVersionRef.current += 1
       return () => {
@@ -237,12 +245,49 @@ export function Form<TValues extends FormValues = FormValues>({
           }
           return { ...current, [name]: message }
         })
+        validatedFieldsRef.current.add(name)
         return message
       }
       return undefined
     },
     [runValidation],
   )
+
+  const revalidateDependents = useCallback(
+    (changedNames: string[]) => {
+      if (changedNames.length === 0) return
+      const changed = new Set(changedNames)
+      const dependents = [...fieldsRef.current.entries()]
+        .filter(([name, registration]) =>
+          registration
+            .getDependencies()
+            .some((source) => source !== name && changed.has(source)),
+        )
+        .map(([name]) => name)
+      if (dependents.length === 0) return
+      setErrors((current) => {
+        if (!dependents.some((name) => name in current)) return current
+        const next = { ...current }
+        for (const name of dependents) delete next[name]
+        return next
+      })
+      for (const name of dependents) {
+        if (validateOn === 'change' || validatedFieldsRef.current.has(name))
+          void validateField(name)
+      }
+    },
+    [validateField, validateOn],
+  )
+
+  useEffect(() => {
+    const previous = previousInternalValuesRef.current
+    previousInternalValuesRef.current = internalValues
+    if (controlledValues !== undefined) return
+    const changedNames = [
+      ...new Set([...Object.keys(previous), ...Object.keys(internalValues)]),
+    ].filter((name) => !Object.is(previous[name], internalValues[name]))
+    revalidateDependents(changedNames)
+  }, [controlledValues, internalValues, revalidateDependents])
 
   const requestValidation = useCallback(
     (name: string, afterAcceptance = false) => {
@@ -281,7 +326,8 @@ export function Form<TValues extends FormValues = FormValues>({
         void validateField(name)
       }
     }
-  }, [controlledValues, validateField, validateOn])
+    revalidateDependents(changedNames)
+  }, [controlledValues, revalidateDependents, validateField, validateOn])
 
   const validateFields = useCallback(async () => {
     const resetVersion = resetVersionRef.current
@@ -304,6 +350,7 @@ export function Form<TValues extends FormValues = FormValues>({
       const nextErrors: Record<string, string> = {}
       for (const [name, message] of results)
         if (message) nextErrors[name] = message
+      for (const [name] of results) validatedFieldsRef.current.add(name)
       setErrors(nextErrors)
       if (Object.keys(nextErrors).length > 0) throw nextErrors
       return snapshot as TValues
@@ -332,7 +379,9 @@ export function Form<TValues extends FormValues = FormValues>({
       resetVersionRef.current += 1
       pendingControlledValidationRef.current.clear()
       if (controlledValues === undefined) {
+        for (const name of targetNames) validatedFieldsRef.current.delete(name)
         valuesRef.current = nextValues as Partial<TValues>
+        previousInternalValuesRef.current = nextValues as Partial<TValues>
         valuesVersionRef.current += 1
         setInternalValues(nextValues as Partial<TValues>)
         setErrors((current) => {
@@ -436,6 +485,7 @@ export type FormItemProps<TValues extends FormValues = FormValues> = Omit<
   name: string
   control: ReactElement
   rules?: FormRule<TValues>[]
+  dependencies?: string[]
   valuePropName?: string
   emptyValue?: unknown
   trigger?: string
@@ -459,6 +509,7 @@ export function FormItem<TValues extends FormValues = FormValues>({
   name,
   control,
   rules = [],
+  dependencies = [],
   valuePropName = 'value',
   emptyValue = '',
   trigger = 'onChange',
@@ -482,6 +533,7 @@ export function FormItem<TValues extends FormValues = FormValues>({
       name={name}
       control={control}
       rules={rules}
+      dependencies={dependencies}
       valuePropName={valuePropName}
       emptyValue={emptyValue}
       trigger={trigger}
@@ -496,6 +548,7 @@ type ConnectedFormItemProps<TValues extends FormValues> = {
   name: string
   control: ReactElement
   rules: FormRule<TValues>[]
+  dependencies: string[]
   valuePropName: string
   emptyValue: unknown
   trigger: string
@@ -508,6 +561,7 @@ function ConnectedFormItem<TValues extends FormValues>({
   name,
   control,
   rules,
+  dependencies,
   valuePropName,
   emptyValue,
   trigger,
@@ -516,8 +570,13 @@ function ConnectedFormItem<TValues extends FormValues>({
 }: ConnectedFormItemProps<TValues>) {
   const registerField = context.registerField
   useEffect(
-    () => registerField(name, () => rules),
-    [registerField, name, rules],
+    () =>
+      registerField(
+        name,
+        () => rules,
+        () => dependencies,
+      ),
+    [dependencies, registerField, name, rules],
   )
 
   const controlProps = control.props as Record<string, unknown>

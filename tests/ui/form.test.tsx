@@ -19,6 +19,162 @@ function deferred<T>() {
 }
 
 describe('Form coordinator', () => {
+  it('revalidates a previously checked dependent field when its source changes', async () => {
+    render(
+      <Form
+        validateOn="blur"
+        initialValues={{ password: 'alpha', confirmation: 'alpha' }}
+      >
+        <FormItem name="password" label="密码" control={<input />} />
+        <FormItem
+          name="confirmation"
+          label="确认密码"
+          dependencies={['password']}
+          rules={[
+            {
+              validator: (value, values) =>
+                value === values.password ? undefined : '两次输入不一致',
+            },
+          ]}
+          control={<input />}
+        />
+      </Form>,
+    )
+    const password = screen.getByRole('textbox', { name: '密码' })
+    const confirmation = screen.getByRole('textbox', { name: '确认密码' })
+    await act(async () => fireEvent.blur(confirmation))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+
+    fireEvent.change(password, { target: { value: 'beta' } })
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('两次输入不一致'),
+    )
+    expect(confirmation).toHaveAttribute('aria-invalid', 'true')
+
+    fireEvent.change(password, { target: { value: 'alpha' } })
+    await waitFor(() =>
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument(),
+    )
+    expect(confirmation).not.toHaveAttribute('aria-invalid', 'true')
+  })
+
+  it('revalidates a dependent field when both fields change in one update', async () => {
+    const onFinish = vi.fn()
+    function Example() {
+      const form = useForm()
+      return (
+        <Form
+          form={form}
+          initialValues={{ password: 'alpha', confirmation: 'alpha' }}
+          onFinish={onFinish}
+        >
+          <FormItem name="password" label="密码" control={<input />} />
+          <FormItem
+            name="confirmation"
+            label="确认密码"
+            dependencies={['password']}
+            rules={[
+              {
+                validator: (value, values) =>
+                  value === values.password ? undefined : '两次输入不一致',
+              },
+            ]}
+            control={<input />}
+          />
+          <button type="submit">校验</button>
+          <button
+            type="button"
+            onClick={() =>
+              form.setFieldsValue({ password: 'beta', confirmation: 'gamma' })
+            }
+          >
+            批量更新
+          </button>
+        </Form>
+      )
+    }
+    render(<Example />)
+    fireEvent.click(screen.getByRole('button', { name: '校验' }))
+    await waitFor(() => expect(onFinish).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByRole('button', { name: '批量更新' }))
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('两次输入不一致'),
+    )
+  })
+
+  it('waits for controlled acceptance before checking dependents', async () => {
+    const validator = vi.fn(
+      (value: unknown, values: Record<string, unknown>) =>
+        value === values.password ? undefined : '两次输入不一致',
+    )
+    const fields = (password: string) => (
+      <Form values={{ password, confirmation: 'alpha' }} validateOn="change">
+        <FormItem name="password" label="密码" control={<input />} />
+        <FormItem
+          name="confirmation"
+          label="确认密码"
+          dependencies={['password']}
+          rules={[{ validator }]}
+          control={<input />}
+        />
+      </Form>
+    )
+    const { rerender } = render(fields('alpha'))
+    fireEvent.change(screen.getByRole('textbox', { name: '密码' }), {
+      target: { value: 'beta' },
+    })
+    expect(validator).not.toHaveBeenCalled()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+
+    rerender(fields('beta'))
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('两次输入不一致'),
+    )
+    expect(validator).toHaveBeenCalledWith('alpha', {
+      password: 'beta',
+      confirmation: 'alpha',
+    })
+  })
+
+  it('ignores an obsolete asynchronous dependent error after another source change', async () => {
+    const obsolete = deferred<string | undefined>()
+    const validator = vi.fn((_: unknown, values: Record<string, unknown>) =>
+      values.password === 'beta' ? obsolete.promise : undefined,
+    )
+    render(
+      <Form
+        initialValues={{ password: 'alpha', confirmation: 'alpha' }}
+        validateOn="change"
+      >
+        <FormItem name="password" label="密码" control={<input />} />
+        <FormItem
+          name="confirmation"
+          label="确认密码"
+          dependencies={['password']}
+          rules={[{ validator }]}
+          control={<input />}
+        />
+      </Form>,
+    )
+    const password = screen.getByRole('textbox', { name: '密码' })
+    fireEvent.change(password, { target: { value: 'beta' } })
+    await waitFor(() =>
+      expect(validator).toHaveBeenCalledWith('alpha', {
+        password: 'beta',
+        confirmation: 'alpha',
+      }),
+    )
+    fireEvent.change(password, { target: { value: 'gamma' } })
+    await waitFor(() =>
+      expect(validator).toHaveBeenCalledWith('alpha', {
+        password: 'gamma',
+        confirmation: 'alpha',
+      }),
+    )
+    await act(async () => obsolete.resolve('旧来源错误'))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
   it('submits only accepted controlled values and keeps rejected changes visible as requests', async () => {
     const onValuesChange = vi.fn()
     const onFinish = vi.fn()

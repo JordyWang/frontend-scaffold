@@ -688,6 +688,8 @@ Checkbox、Switch 和 RadioGroup 自带可访问标签。需要显示校验错�
 
 `Form` 的异步规则使用同一份值快照校验；输入在校验期间变化时会重新校验最新值，旧结果不会覆盖新错误状态。`onFinishFailed(errors, values)` 只处理字段规则错误；`onFinish` 的同步异常或 Promise 拒绝交给 `onFinishError(error, values)`。如需处理保存失败，应提供 `onFinishError` 并在其中展示反馈。`resetFields()` 会恢复初始值、清除后来新增的字段和错误，并取消尚未完成的校验及提交；命令式 `validateFields()` 在此时以 `AbortError` 拒绝。传入受控 `values` 时，`onValuesChange(changed, proposed)` 只提出变更，字段显示、命令式读取、校验和提交均以外部已接纳的 `values` 为准；重置也先提出恢复初始值的请求。`validateOn="change"` 等待外部接纳后校验，受控值变化会清除对应旧错误，迟到的异步结果不会覆盖新值。`/__ui` 展示接纳与拒绝请求。
 
+`FormItem.dependencies` 接受同一 Form 内的扁平字段名数组。来源值被接纳后，依赖字段的旧错误会清除；`validateOn="change"` 会立即按新快照校验，其他模式会重新校验此前已校验过的依赖字段。受控变更被拒绝时不触发联动；非受控重置清除校验记录和错误，受控重置在外部接纳后清除变更字段的错误。依赖关系只影响规则校验，不自动改写其他字段的值；`/__ui` 的“依赖字段校验”展示校验、修复与重置。
+
 提交校验失败时，Form 会聚焦首个错误控件，并默认以 `scrollToFirstError` 将它滚到可见区域；可传入 `ScrollIntoViewOptions` 调整位置，或设为 `false` 保留当前滚动位置。每次失败提交只定位一次，后续无关重渲染不会抢回焦点。`/__ui` 的长表单示例覆盖嵌套滚动容器。
 
 `Calendar` 的 `value` 和 `month` 可分别受控；`onChange` 返回本地日期字符串，不经过 UTC 转换。`renderDate` 只放非交互内容；有额外日期信息时同时提供 `getDateDescription`，让读屏器读到完整日期和说明。窄屏时日期表格在组件内部横向滚动，不让页面产生横向溢出。
