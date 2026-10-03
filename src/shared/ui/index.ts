@@ -215,7 +215,13 @@ export type {
   QrCodeStatusInfo,
 } from './qrcode'
 export { Tour } from './tour'
-export type { TourPlacement, TourProps, TourStep, TourTarget } from './tour'
+export type {
+  TourArrow,
+  TourPlacement,
+  TourProps,
+  TourStep,
+  TourTarget,
+} from './tour'
 export { Breadcrumb, Steps } from './navigation'
 export type {
   BreadcrumbItem,

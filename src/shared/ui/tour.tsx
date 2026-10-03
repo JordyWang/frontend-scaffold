@@ -29,6 +29,7 @@ export type TourPlacement =
   | 'rightBottom'
 
 export type TourTarget = HTMLElement | null | (() => HTMLElement | null)
+export type TourArrow = boolean | { pointAtCenter?: boolean }
 
 export type TourStep = {
   key: string
@@ -38,6 +39,7 @@ export type TourStep = {
   cover?: ReactNode
   placement?: TourPlacement
   mask?: boolean
+  arrow?: TourArrow
   type?: 'default' | 'primary'
   nextButtonProps?: Omit<ButtonProps, 'children' | 'onClick'>
   prevButtonProps?: Omit<ButtonProps, 'children' | 'onClick'>
@@ -57,6 +59,9 @@ export type TourProps = Omit<
   onFinish?: () => void
   mask?: boolean | { color?: string; className?: string }
   maskClosable?: boolean
+  disabledInteraction?: boolean
+  arrow?: TourArrow
+  type?: 'default' | 'primary'
   keyboard?: boolean
   placement?: TourPlacement
   gap?: number | [offset: number, radius: number]
@@ -124,6 +129,7 @@ function placementPosition(
     return {
       left: Math.max(12, (viewport.width - width) / 2),
       top: Math.max(12, (viewport.height - height) / 2),
+      side: null,
     }
   }
   const horizontal = (align: 'start' | 'center' | 'end') => {
@@ -193,6 +199,7 @@ function placementPosition(
       12,
       Math.min(top, Math.max(12, viewport.height - height - 12)),
     ),
+    side: chosen,
   }
 }
 
@@ -209,6 +216,9 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
     onFinish,
     mask = true,
     maskClosable = true,
+    disabledInteraction = false,
+    arrow = true,
+    type = 'default',
     keyboard = true,
     placement: defaultPlacement = 'bottom',
     gap = [6, 8],
@@ -270,12 +280,24 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
         }
         const active = document.activeElement
         const target = targetElement(step?.target)
-        if (hasMask && !card.contains(active) && !target?.contains(active)) {
+        if (
+          hasMask &&
+          !card.contains(active) &&
+          (disabledInteraction || !target?.contains(active))
+        ) {
           card.querySelector<HTMLButtonElement>('[data-tour-close]')?.focus()
         }
       })
     },
-    [hasMask, onClose, onFinish, open, returnFocusRef, step],
+    [
+      disabledInteraction,
+      hasMask,
+      onClose,
+      onFinish,
+      open,
+      returnFocusRef,
+      step,
+    ],
   )
 
   useLayoutEffect(() => {
@@ -344,20 +366,31 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
   }, [isOpen, returnFocusRef])
 
   useEffect(() => {
+    if (!isOpen || !step || !disabledInteraction) return
+    const target = targetElement(step.target)
+    if (!target || (cardRef.current && target.contains(cardRef.current))) return
+    const wasInert = target.hasAttribute('inert')
+    target.setAttribute('inert', '')
+    return () => {
+      if (!wasInert) target.removeAttribute('inert')
+    }
+  }, [disabledInteraction, isOpen, step])
+
+  useEffect(() => {
     if (!isOpen) return
     const focusTarget = targetElement(step?.target)
     const frame = window.requestAnimationFrame(() => {
       const closeButton =
         cardRef.current?.querySelector<HTMLButtonElement>('[data-tour-close]')
       closeButton?.focus()
-      if (focusTarget && !hasMask)
+      if (focusTarget && !hasMask && !disabledInteraction)
         focusTarget.setAttribute('data-tour-focus-target', '')
     })
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       if (hasMask && event.key === 'Tab') {
         const focusable = [
           ...focusableElements(cardRef.current),
-          ...focusableElements(focusTarget),
+          ...(disabledInteraction ? [] : focusableElements(focusTarget)),
         ]
         event.preventDefault()
         if (focusable.length === 0) {
@@ -398,7 +431,17 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
       document.removeEventListener('keydown', handleKeyDown)
       if (focusTarget) focusTarget.removeAttribute('data-tour-focus-target')
     }
-  }, [isOpen, stepIndex, steps.length, keyboard, hasMask, step, close, setStep])
+  }, [
+    isOpen,
+    stepIndex,
+    steps.length,
+    keyboard,
+    hasMask,
+    disabledInteraction,
+    step,
+    close,
+    setStep,
+  ])
 
   if (!isOpen || !step) return null
   const cardWidth = Math.min(360, Math.max(0, viewport.width - 24))
@@ -411,6 +454,55 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
     offset + 8,
     viewport,
   )
+  const resolvedType = step.type ?? type
+  const resolvedArrow = step.arrow ?? arrow
+  const showArrow = resolvedArrow !== false && position.side !== null
+  const pointAtCenter =
+    typeof resolvedArrow === 'object' && resolvedArrow.pointAtCenter === true
+  const arrowSize = 12
+  const arrowInset = 16
+  const targetInsetX = Math.min(12, targetRect.width / 2)
+  const targetInsetY = Math.min(12, targetRect.height / 2)
+  const arrowAimX = pointAtCenter
+    ? targetRect.left + targetRect.width / 2
+    : Math.max(
+        targetRect.left + targetInsetX,
+        Math.min(
+          position.left + cardWidth / 2,
+          targetRect.right - targetInsetX,
+        ),
+      )
+  const arrowAimY = pointAtCenter
+    ? targetRect.top + targetRect.height / 2
+    : Math.max(
+        targetRect.top + targetInsetY,
+        Math.min(
+          position.top + cardHeight / 2,
+          targetRect.bottom - targetInsetY,
+        ),
+      )
+  const arrowX = Math.max(
+    position.left + arrowInset,
+    Math.min(
+      arrowAimX - arrowSize / 2,
+      position.left + cardWidth - arrowInset - arrowSize,
+    ),
+  )
+  const arrowY = Math.max(
+    position.top + arrowInset,
+    Math.min(
+      arrowAimY - arrowSize / 2,
+      position.top + cardHeight - arrowInset - arrowSize,
+    ),
+  )
+  const arrowStyle =
+    position.side === 'top'
+      ? { left: arrowX, top: position.top + cardHeight - arrowSize / 2 }
+      : position.side === 'bottom'
+        ? { left: arrowX, top: position.top - arrowSize / 2 }
+        : position.side === 'left'
+          ? { left: position.left + cardWidth - arrowSize / 2, top: arrowY }
+          : { left: position.left - arrowSize / 2, top: arrowY }
   const maskColor = typeof mask === 'object' ? mask.color : undefined
   const maskClassName = typeof mask === 'object' ? mask.className : undefined
   const targetStyle = targetRect.width
@@ -492,11 +584,6 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
               }}
               onClick={() => maskClosable && close()}
             />
-            <div
-              aria-hidden="true"
-              className="pointer-events-none fixed border-2 border-primary shadow-[0_0_0_2px_color-mix(in_srgb,var(--primary)_35%,transparent)]"
-              style={targetStyle}
-            />
           </>
         )}
         {hasMask && !targetStyle && (
@@ -511,16 +598,44 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
             onClick={() => maskClosable && close()}
           />
         )}
+        {targetStyle && (hasMask || disabledInteraction) && (
+          <div
+            aria-hidden="true"
+            data-tour-highlight=""
+            className={cn(
+              'pointer-events-none fixed border-2 border-primary shadow-[0_0_0_2px_color-mix(in_srgb,var(--primary)_35%,transparent)]',
+              disabledInteraction && 'pointer-events-auto cursor-not-allowed',
+            )}
+            style={targetStyle}
+          />
+        )}
+        {showArrow && (
+          <div
+            aria-hidden="true"
+            data-tour-arrow={position.side}
+            className={cn(
+              'pointer-events-none fixed z-[71] size-3 rotate-45 border',
+              resolvedType === 'primary'
+                ? 'border-primary bg-primary'
+                : 'border-border bg-card',
+            )}
+            style={arrowStyle}
+          />
+        )}
         <div
           ref={cardRef}
           role="dialog"
           tabIndex={-1}
-          aria-modal={hasMask && !targetRect.width ? true : undefined}
+          aria-modal={
+            hasMask && (!targetRect.width || disabledInteraction)
+              ? true
+              : undefined
+          }
           aria-label={typeof step.title === 'string' ? step.title : '页面引导'}
           data-tour-card=""
           className={cn(
             'pointer-events-auto fixed z-[71] max-h-[calc(100dvh-24px)] max-w-[calc(100vw-24px)] overflow-y-auto overscroll-contain rounded-xl border p-4 text-sm shadow-xl outline-none sm:p-5',
-            step.type === 'primary'
+            resolvedType === 'primary'
               ? 'border-primary bg-primary text-primary-foreground'
               : 'border-border bg-card text-card-foreground',
           )}
@@ -567,7 +682,7 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
             <div className="flex items-center gap-2">
               {stepIndex > 0 && (
                 <Button
-                  variant={step.type === 'primary' ? 'ghost' : 'outline'}
+                  variant={resolvedType === 'primary' ? 'ghost' : 'outline'}
                   size="small"
                   {...step.prevButtonProps}
                   onClick={() => setStep(stepIndex - 1)}
@@ -576,7 +691,7 @@ export const Tour = forwardRef<HTMLDivElement, TourProps>(function Tour(
                 </Button>
               )}
               <Button
-                variant={step.type === 'primary' ? 'secondary' : 'primary'}
+                variant={resolvedType === 'primary' ? 'secondary' : 'primary'}
                 size="small"
                 {...actionButtonProps}
                 onClick={() =>

@@ -93,6 +93,7 @@ describe('Tour', () => {
     )
     expect(document.querySelectorAll('[data-tour-mask]')).toHaveLength(4)
     expect(screen.getByRole('dialog', { name: '目标引导' })).toBeInTheDocument()
+    expect(document.querySelector('[data-tour-arrow]')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '目标' })).toBe(target)
   })
 
@@ -149,5 +150,63 @@ describe('Tour', () => {
 
     rerender(renderTour(false))
     await waitFor(() => expect(opener).toHaveFocus())
+  })
+
+  it('blocks highlighted target interaction and restores its prior state', async () => {
+    const target = document.createElement('button')
+    target.textContent = '受保护目标'
+    document.body.append(target)
+    vi.spyOn(target, 'getBoundingClientRect').mockReturnValue({
+      top: 80,
+      left: 40,
+      right: 160,
+      bottom: 120,
+      width: 120,
+      height: 40,
+    } as DOMRect)
+    Object.defineProperty(target, 'scrollIntoView', {
+      configurable: true,
+      value: vi.fn(),
+    })
+    const renderTour = (open: boolean, stepArrow: boolean) => (
+      <Tour
+        open={open}
+        disabledInteraction
+        arrow={false}
+        type="primary"
+        steps={[
+          {
+            key: 'blocked',
+            target,
+            title: '目标不可操作',
+            arrow: stepArrow,
+          },
+        ]}
+      />
+    )
+    const { rerender } = render(renderTour(false, true))
+    target.focus()
+    rerender(renderTour(true, true))
+    await waitFor(() =>
+      expect(screen.getByRole('dialog', { name: '目标不可操作' })).toHaveClass(
+        'bg-primary',
+      ),
+    )
+    expect(target).toHaveAttribute('inert')
+    expect(
+      screen.getByRole('dialog', { name: '目标不可操作' }),
+    ).toHaveAttribute('aria-modal', 'true')
+    expect(document.querySelector('[data-tour-highlight]')).toHaveClass(
+      'pointer-events-auto',
+    )
+    expect(document.querySelector('[data-tour-arrow]')).toBeInTheDocument()
+
+    rerender(renderTour(true, false))
+    expect(document.querySelector('[data-tour-arrow]')).toBeNull()
+    expect(target).toHaveAttribute('inert')
+    rerender(renderTour(false, false))
+    expect(target).not.toHaveAttribute('inert')
+    await waitFor(() => expect(target).toHaveFocus())
+    target.remove()
   })
 })

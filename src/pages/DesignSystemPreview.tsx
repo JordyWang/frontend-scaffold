@@ -305,11 +305,13 @@ export function DesignSystemPreview() {
   const [tourTargetClicks, setTourTargetClicks] = useState(0)
   const [tourGuardOpen, setTourGuardOpen] = useState(false)
   const tourGuardCloseRequests = useRef(0)
+  const [tourBlockedOpen, setTourBlockedOpen] = useState(false)
   const [rtlPopupContainer, setRtlPopupContainer] =
     useState<HTMLDivElement | null>(null)
   const tourTriggerRef = useRef<HTMLButtonElement>(null)
   const tourEdgeTriggerRef = useRef<HTMLButtonElement>(null)
   const tourGuardTriggerRef = useRef<HTMLButtonElement>(null)
+  const tourBlockedTriggerRef = useRef<HTMLButtonElement>(null)
   const anchorScrollRef = useRef<HTMLDivElement>(null)
   const alertRestoreRef = useRef<HTMLButtonElement>(null)
   const affixTargetRef = useRef<HTMLDivElement>(null)
@@ -3466,6 +3468,14 @@ export function DesignSystemPreview() {
                   >
                     预览受控关闭
                   </Button>
+                  <Button
+                    ref={tourBlockedTriggerRef}
+                    variant="outline"
+                    size="small"
+                    onClick={() => setTourBlockedOpen(true)}
+                  >
+                    预览禁止目标交互
+                  </Button>
                 </Stack>
                 <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/30 p-4">
                   <Button
@@ -3538,6 +3548,26 @@ export function DesignSystemPreview() {
                       title: '受控关闭请求',
                       description:
                         '第一次关闭请求由调用方拒绝，卡片保持打开；第二次请求才真正关闭并恢复焦点。',
+                    },
+                  ]}
+                />
+                <Tour
+                  open={tourBlockedOpen}
+                  disabledInteraction
+                  type="primary"
+                  arrow={{ pointAtCenter: true }}
+                  maskClosable={false}
+                  returnFocusRef={tourBlockedTriggerRef}
+                  onClose={() => setTourBlockedOpen(false)}
+                  onFinish={() => setTourBlockedOpen(false)}
+                  steps={[
+                    {
+                      key: 'blocked-target',
+                      target: () => document.getElementById('tour-upload'),
+                      title: '禁止目标交互',
+                      description:
+                        '引导期间不能触发高亮的上传按钮；关闭后恢复目标操作。箭头指向目标中心。',
+                      placement: 'bottom',
                     },
                   ]}
                 />

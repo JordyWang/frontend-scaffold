@@ -682,7 +682,9 @@ Checkbox、Switch 和 RadioGroup 自带可访问标签。需要显示校验错�
 
 `QRCode` 默认使用 Canvas，也支持 SVG；`value` 采用字节模式编码，`errorLevel` 为 `L` / `M` / `Q` / `H`。`status="loading"` 和 `status="expired"` 会保留二维码容器并覆盖状态层，`onRefresh` 用于失效后的重新获取。
 
-`Tour.steps` 使用 `{ key, target?, title, description?, cover?, placement?, mask?, type? }`。`target` 可传元素或返回元素的函数；目标为空时卡片居中。开启遮罩时目标周围保留可直接操作的高亮区域，Tab 在卡片和高亮目标之间循环，遮罩区域可点击关闭；卡片或目标尺寸变化时会重新定位。`keyboard` 开启后支持 Escape、左右方向键，步骤切换会调用 `onChange`。`current` / `open` 为受控状态，`onFinish` 和 `onClose` 结束后恢复打开前焦点。
+`Tour.steps` 使用 `{ key, target?, title, description?, cover?, placement?, mask?, arrow?, type? }`。`target` 可传元素或返回元素的函数；目标为空时卡片居中。开启遮罩时目标周围默认保留可直接操作的高亮区域，Tab 在卡片和高亮目标之间循环，遮罩区域可点击关闭；卡片或目标尺寸变化时会重新定位。`keyboard` 开启后支持 Escape、左右方向键，步骤切换会调用 `onChange`。`current` / `open` 为受控状态，`onFinish` 和 `onClose` 结束后恢复打开前焦点。
+
+`arrow` 默认显示，可用步骤的 `arrow` 覆写；传 `{ pointAtCenter: true }` 时箭头朝高亮目标中心对齐，位置随卡片换边调整。`type` 可在 Tour 或单个步骤设为 `primary`，统一卡片与箭头的主题色。`disabledInteraction` 将高亮目标临时设为 `inert` 并遮挡指针，Tab 只在卡片内循环；换步或关闭后恢复目标原有的 `inert` 状态。`/__ui` 的“预览禁止目标交互”展示这一组合。
 
 受控 `open` 的 `onClose` / `onFinish` 是关闭请求；调用方继续保持 `open=true` 时，卡片不会提前将焦点恢复到启动按钮，键盘 Tab 仍进入引导。只有实际变为关闭状态后才恢复启动前焦点；`/__ui` 的“预览受控关闭”展示第一次拒绝、第二次接受的路径。
 

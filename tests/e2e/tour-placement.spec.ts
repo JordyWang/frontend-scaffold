@@ -131,3 +131,84 @@ test('controlled Tour restores focus only after the owner accepts closing', asyn
     ),
   ).toBe(true)
 })
+
+test('Tour arrow follows the card while disabledInteraction protects the target', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/__ui')
+  const preview = page.getByRole('region', { name: '设计系统补充组件' })
+  const begin = preview.getByRole('button', { name: '预览禁止目标交互' })
+  const target = preview.getByRole('button', { name: '上传素材' })
+  if (testInfo.project.name.startsWith('mobile-')) await begin.tap()
+  else await begin.click()
+
+  const card = page.getByRole('dialog', { name: '禁止目标交互' })
+  const close = card.getByRole('button', { name: '关闭引导' })
+  const finish = card.getByRole('button', { name: '完成' })
+  const arrow = page.locator('[data-tour-arrow]')
+  await expect(card).toHaveClass(/bg-primary/)
+  await expect(card).toHaveAttribute('aria-modal', 'true')
+  await expect(target).toHaveAttribute('inert', '')
+  await expect(arrow).toBeVisible()
+  expect(
+    await arrow.evaluate(
+      (element) => getComputedStyle(element).backgroundColor,
+    ),
+  ).toBe(
+    await card.evaluate((element) => getComputedStyle(element).backgroundColor),
+  )
+  const side = await arrow.getAttribute('data-tour-arrow')
+  const cardBox = await card.boundingBox()
+  const arrowBox = await arrow.boundingBox()
+  const arrowCenterX = arrowBox!.x + arrowBox!.width / 2
+  const arrowCenterY = arrowBox!.y + arrowBox!.height / 2
+  const cardEdge =
+    side === 'top'
+      ? cardBox!.y + cardBox!.height
+      : side === 'bottom'
+        ? cardBox!.y
+        : side === 'left'
+          ? cardBox!.x + cardBox!.width
+          : cardBox!.x
+  expect(
+    Math.abs(
+      side === 'top' || side === 'bottom'
+        ? arrowCenterY - cardEdge
+        : arrowCenterX - cardEdge,
+    ),
+  ).toBeLessThanOrEqual(2)
+
+  const targetBox = await target.boundingBox()
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await page.touchscreen.tap(
+      targetBox!.x + targetBox!.width / 2,
+      targetBox!.y + targetBox!.height / 2,
+    )
+  } else {
+    await page.mouse.click(
+      targetBox!.x + targetBox!.width / 2,
+      targetBox!.y + targetBox!.height / 2,
+    )
+  }
+  await expect(preview.getByText(/上传按钮已点击/)).toContainText('0 次')
+  await close.focus()
+  await page.keyboard.press('Tab')
+  await expect(finish).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(close).toBeFocused()
+
+  if (testInfo.project.name.startsWith('mobile-')) await finish.tap()
+  else await finish.click()
+  await expect(card).toHaveCount(0)
+  await expect(target).not.toHaveAttribute('inert')
+  await expect(begin).toBeFocused()
+  if (testInfo.project.name.startsWith('mobile-')) await target.tap()
+  else await target.click()
+  await expect(preview.getByText(/上传按钮已点击/)).toContainText('1 次')
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true)
+})
